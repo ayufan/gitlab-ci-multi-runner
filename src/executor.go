@@ -9,11 +9,13 @@ type Executor interface {
 
 func GetExecutor(config RunnerConfig) Executor {
 	switch config.Executor {
-		case "shell":
-			return &ShellExecutor{}
-		case "":
-			return &ShellExecutor{}
-		default:
-			return nil
+	case "shell":
+		return &ShellExecutor{}
+	case "docker":
+		return &DockerExecutor{}
+	case "":
+		return &ShellExecutor{}
+	default:
+		return nil
 	}
 }
