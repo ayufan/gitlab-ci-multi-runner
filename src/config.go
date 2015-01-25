@@ -1,6 +1,9 @@
 package src
 
 import (
+	"bufio"
+	"bytes"
+	"io/ioutil"
 	"os"
 	"time"
 
@@ -9,18 +12,25 @@ import (
 )
 
 type RunnerConfig struct {
-	Name      string `toml:"name",omitempty`
+	Name      string `toml:"name"`
 	URL       string `toml:"url"`
 	Token     string `toml:"token"`
-	Limit     int    `toml:"limit",omitempty`
-	Executor  string `toml:"executor",omitempty`
-	BuildsDir string `toml:"builds_dir",omitempty`
+	Limit     int    `toml:"limit"`
+	Executor  string `toml:"executor"`
+	BuildsDir string `toml:"builds_dir"`
+
+	ShellScript string `toml:"shell_script"`
+}
+
+type BaseConfig struct {
+	Concurrent int             `toml:"concurrent"`
+	RootDir    string          `toml:"root_dir"`
+	Runners    []*RunnerConfig `toml:"runners"`
 }
 
 type Config struct {
-	RootDir    string          `toml:"root_dir"`
-	Concurrent int             `toml:"concurrent"`
-	Runners    []*RunnerConfig `toml:"runners"`
+	BaseConfig
+	ModTime time.Time
 }
 
 func (c *RunnerConfig) GetBuildsDir() string {
@@ -35,30 +45,42 @@ func (c *RunnerConfig) ShortDescription() string {
 	return c.Token[0:8]
 }
 
-func LoadConfig(config_file string) (Config, time.Time, error) {
-	config := Config{}
-
+func (config *Config) LoadConfig(config_file string) error {
 	info, err := os.Stat(config_file)
 	if err != nil {
-		return config, time.Time{}, err
+		return err
 	}
 
-	if _, err = toml.DecodeFile(config_file, &config); err != nil {
-		return config, info.ModTime(), err
+	if _, err = toml.DecodeFile(config_file, &config.BaseConfig); err != nil {
+		return err
 	}
 
 	if config.Concurrent == 0 {
 		config.Concurrent = 1
 	}
 
-	if len(config.RootDir) > 0 {
-		err = os.Chdir(config.RootDir)
-		if err != nil {
-			panic(err)
-		}
+	config.ModTime = info.ModTime()
+	return nil
+}
+
+func (config *Config) SaveConfig(config_file string) error {
+	var new_config bytes.Buffer
+	new_buffer := bufio.NewWriter(&new_config)
+
+	if err := toml.NewEncoder(new_buffer).Encode(&config.BaseConfig); err != nil {
+		log.Fatalf("Error encoding TOML: %s", err)
+		return err
 	}
 
-	return config, info.ModTime(), nil
+	if err := new_buffer.Flush(); err != nil {
+		return err
+	}
+
+	if err := ioutil.WriteFile(config_file, new_config.Bytes(), 0600); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func ReloadConfig(config_file string, config_time time.Time, reload_config chan Config) {
@@ -74,13 +96,23 @@ func ReloadConfig(config_file string, config_time time.Time, reload_config chan 
 		if config_time.Before(info.ModTime()) {
 			config_time = info.ModTime()
 
-			new_config, _, err := LoadConfig(config_file)
+			new_config := Config{}
+			err := new_config.LoadConfig(config_file)
 			if err != nil {
 				log.Errorln("Failed to load config", err)
 				continue
 			}
 
 			reload_config <- new_config
+		}
+	}
+}
+
+func (c *Config) SetChdir() {
+	if len(c.RootDir) > 0 {
+		err := os.Chdir(c.RootDir)
+		if err != nil {
+			panic(err)
 		}
 	}
 }

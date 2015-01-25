@@ -74,10 +74,13 @@ func startNewJob(config *Config, jobs []*Job, finish chan *Job) *Job {
 }
 
 func runMulti(c *cli.Context) {
-	config, config_time, err := LoadConfig(c.String("config"))
+	config := Config{}
+	err := config.LoadConfig(c.String("config"))
 	if err != nil {
 		panic(err)
 	}
+
+	config.SetChdir()
 
 	log.Println("Starting multi-runner from", c.String("config"), "...")
 
@@ -85,7 +88,7 @@ func runMulti(c *cli.Context) {
 	job_finish := make(chan *Job)
 
 	reload_config := make(chan Config)
-	go ReloadConfig(c.String("config"), config_time, reload_config)
+	go ReloadConfig(c.String("config"), config.ModTime, reload_config)
 
 	for {
 		new_job := startNewJob(&config, jobs, job_finish)
@@ -109,6 +112,7 @@ func runMulti(c *cli.Context) {
 		case new_config := <-reload_config:
 			log.Debugln(len(jobs), "Config reloaded.")
 			config = new_config
+			config.SetChdir()
 
 		case <-time.After(CHECK_INTERVAL * time.Second):
 			log.Debugln(len(jobs), "Check interval fired")

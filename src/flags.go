@@ -12,7 +12,7 @@ var (
 		EnvVar: "CONFIG_FILE",
 	}
 	flURL = cli.StringFlag{
-		Name:   "URL",
+		Name:   "url",
 		Value:  "",
 		Usage:  "Runner URL",
 		EnvVar: "RUNNER_URL",

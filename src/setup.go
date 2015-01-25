@@ -2,27 +2,25 @@ package src
 
 import (
 	"bufio"
-	"bytes"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"github.com/codegangsta/cli"
 )
 
 func setup(c *cli.Context) {
 	log.SetFlags(0)
 
-	config := Config{
-		Concurrent: 1,
+	file, err := os.OpenFile(c.String("config"), os.O_APPEND|os.O_CREATE, 0600)
+	if file != nil {
+		file.Close()
 	}
 
-	if _, err := os.Stat(c.String("config")); err == nil {
-		if _, err := toml.DecodeFile(c.String("config"), &config); err != nil {
-			panic(err)
-		}
+	config := Config{}
+	err = config.LoadConfig(c.String("config"))
+	if err != nil {
+		panic(err)
 	}
 
 	runner_config := RunnerConfig{
@@ -71,18 +69,8 @@ func setup(c *cli.Context) {
 
 	config.Runners = append(config.Runners, &runner_config)
 
-	var new_config bytes.Buffer
-	new_buffer := bufio.NewWriter(&new_config)
-
-	if err := toml.NewEncoder(new_buffer).Encode(&config); err != nil {
-		log.Fatalf("Error encoding TOML: %s", err)
-	}
-
-	if err := new_buffer.Flush(); err != nil {
-		panic(err)
-	}
-
-	if err := ioutil.WriteFile(flConfigFile.Value, new_config.Bytes(), 0600); err != nil {
+	err = config.SaveConfig(c.String("config"))
+	if err != nil {
 		panic(err)
 	}
 

@@ -71,8 +71,13 @@ func (s *ShellExecutor) Run(config RunnerConfig, build Build) error {
 	defer os.Remove(build_log.Name())
 	log.Debugln(config.ShortDescription(), build.Id, "Created build log:", build_log.Name())
 
+	shell_script := config.ShellScript
+	if len(shell_script) == 0 {
+		shell_script = "setsid"
+	}
+
 	// create execution command
-	cmd := exec.Command("/usr/local/bin/setsid", *script_file)
+	cmd := exec.Command(shell_script, *script_file)
 	if cmd == nil {
 		return errors.New("Failed to generate execution command")
 	}

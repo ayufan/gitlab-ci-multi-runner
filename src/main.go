@@ -59,7 +59,7 @@ func Main() {
 			Name:      "setup",
 			ShortName: "s",
 			Usage:     "setup a new runner",
-			Flags:     []cli.Flag{flRegistrationToken, flURL, flHostname},
+			Flags:     []cli.Flag{flRegistrationToken, flURL, flHostname, flConfigFile},
 			Action:    setup,
 		},
 		{
