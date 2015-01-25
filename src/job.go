@@ -31,21 +31,23 @@ func (j *Job) fail(config RunnerConfig, build Build, err error) {
 	}
 }
 
-func (j *Job) Run() {
+func (j *Job) Run() error {
 	executor := GetExecutor(*j.Runner)
 	if executor == nil {
+		err := errors.New("couldn't get executor")
 		j.Finish <- j
-		failBuild(*j.Runner, *j.Build, errors.New("couldn't get executor"))
-		return
+		failBuild(*j.Runner, *j.Build, err)
+		return err
 	}
 
 	err := executor.Run(*j.Runner, *j.Build)
 	if err != nil {
 		j.Finish <- j
 		failBuild(*j.Runner, *j.Build, err)
-		return
+		return err
 	}
 
 	// notify about job finish
 	j.Finish <- j
+	return nil
 }

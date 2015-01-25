@@ -2,7 +2,6 @@ package src
 
 import (
 	"bytes"
-	"errors"
 	"github.com/codegangsta/cli"
 	"time"
 
@@ -41,18 +40,12 @@ func runSingle(c *cli.Context) {
 			continue
 		}
 
-		build := Build{*new_build}
-
-		executor := GetExecutor(runner_config)
-		if executor == nil {
-			go failBuild(runner_config, build, errors.New("couldn't get executor"))
-			continue
+		new_job := Job{
+			Build:  &Build{*new_build},
+			Runner: &runner_config,
 		}
 
-		err := executor.Run(runner_config, build)
-		if err != nil {
-			go failBuild(runner_config, build, err)
-			continue
-		}
+		go new_job.Run()
+		<-new_job.Finish
 	}
 }
