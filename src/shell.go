@@ -17,7 +17,7 @@ type ShellExecutor struct {
 func (s *ShellExecutor) Run(config RunnerConfig, build Build) error {
 	builds_dir := "tmp/builds"
 	if len(config.BuildsDir) != 0 {
-		builds_dir = c.BuildsDir
+		builds_dir = config.BuildsDir
 	}
 
 	// generate build script
