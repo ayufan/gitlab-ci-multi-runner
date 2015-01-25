@@ -1,4 +1,4 @@
-package main
+package src
 
 import (
 	"log"
@@ -62,7 +62,7 @@ func setup(c *cli.Context) {
 		runner_config.Token = strings.TrimSpace(runner_config.Token)
 	}
 
-	result := RegisterRunner(&runner_config)
+	result := RegisterRunner(runner_config)
 	if result == nil {
 		log.Fatalf("Failed to register this runner. Perhaps your SSH key is invalid or you are having network problems");
 	}

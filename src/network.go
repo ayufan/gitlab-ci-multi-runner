@@ -1,4 +1,4 @@
-package main
+package src
 
 import (
 	"encoding/json"
@@ -133,7 +133,7 @@ func getUrl(baseURL string, request string, a ...interface{}) string {
 	return fmt.Sprintf("%s/api/v1/%s", baseURL, fmt.Sprintf(request, a...));
 }
 
-func GetBuild(config *RunnerConfig) *GetBuildResponse {
+func GetBuild(config RunnerConfig) *GetBuildResponse {
 	request := GetBuildRequest{
 		Token: config.Token,
 	}
@@ -148,7 +148,7 @@ func GetBuild(config *RunnerConfig) *GetBuildResponse {
 	}
 }
 
-func RegisterRunner(config *RunnerConfig) *RegisterRunnerResponse {
+func RegisterRunner(config RunnerConfig) *RegisterRunnerResponse {
 	request := RegisterRunnerRequest{
 		Token: config.Token,
 		Hostname: config.Name,
@@ -163,7 +163,7 @@ func RegisterRunner(config *RunnerConfig) *RegisterRunnerResponse {
 	}
 }
 
-func UpdateBuild(config *RunnerConfig, id int, state BuildState, trace io.Reader) UpdateState {
+func UpdateBuild(config RunnerConfig, id int, state BuildState, trace io.Reader) UpdateState {
 	data, err := readPayload(trace)
 	if err != nil {
 		return UpdateFailed
