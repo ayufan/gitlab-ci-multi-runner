@@ -1,17 +1,18 @@
 package src
 
 import (
-	"errors"
-	"os"
-	"time"
-	"fmt"
 	"bytes"
+	"errors"
+	"fmt"
 	"io/ioutil"
+	"os"
 	"os/exec"
+	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 type ShellExecutor struct {
-
 }
 
 func sendBuildLog(config RunnerConfig, buildId int, build_log string, state BuildState) UpdateState {
@@ -28,16 +29,21 @@ func updateBuildLog(config RunnerConfig, buildId int, build_log string, abort ch
 	for {
 		select {
 		case <-time.After(time.Second * 3):
+			log.Debugln(config.ShortDescription(), buildId, "updateBuildLog", "Updating...")
 			switch sendBuildLog(config, buildId, build_log, Running) {
 			case UpdateSucceeded:
 			case UpdateAbort:
+				log.Debugln(config.ShortDescription(), buildId, "updateBuildLog", "Sending abort request...")
 				abort <- true
-				<- finished
+				log.Debugln(config.ShortDescription(), buildId, "updateBuildLog", "Waiting for finished flag...")
+				<-finished
+				log.Debugln(config.ShortDescription(), buildId, "updateBuildLog", "Thread finished.")
 				return
 			case UpdateFailed:
 			}
 
 		case <-finished:
+			log.Debugln(config.ShortDescription(), buildId, "updateBuildLog", "Received finish.")
 			return
 		}
 	}
@@ -51,7 +57,8 @@ func (s *ShellExecutor) Run(config RunnerConfig, build Build) error {
 	if script_file == nil {
 		return errors.New("Failed to generate build script")
 	}
-	defer os.Remove(*script_file)
+	// defer os.Remove(*script_file)
+	log.Debugln(config.ShortDescription(), build.Id, "Generated build script:", *script_file)
 
 	// create build log
 	build_log, err := ioutil.TempFile("", "build_log")
@@ -59,10 +66,11 @@ func (s *ShellExecutor) Run(config RunnerConfig, build Build) error {
 		return errors.New("Failed to create build log file")
 	}
 	defer build_log.Close()
-	defer os.Remove(build_log.Name())
+	// defer os.Remove(build_log.Name())
+	log.Debugln(config.ShortDescription(), build.Id, "Created build log:", build_log.Name())
 
 	// create execution command
-	cmd := exec.Command("setsid", *script_file)
+	cmd := exec.Command("/usr/local/bin/setsid", *script_file)
 	if cmd == nil {
 		return errors.New("Failed to generate execution command")
 	}
@@ -96,6 +104,7 @@ func (s *ShellExecutor) Run(config RunnerConfig, build Build) error {
 	if err != nil {
 		return errors.New("Failed to start process")
 	}
+	log.Debugln(config.ShortDescription(), build.Id, "Started build process")
 
 	// Wait for process to exit
 	command_finish := make(chan error, 1)
@@ -111,11 +120,13 @@ func (s *ShellExecutor) Run(config RunnerConfig, build Build) error {
 	var buildState BuildState
 
 	// Wait for signals: abort, timeout or finish
+	log.Debugln(config.ShortDescription(), build.Id, "Waiting for signals...")
 	select {
 	case <-abort:
-		// abort build
+		log.Println(config.ShortDescription(), build.Id, "Build got aborted.")
 		buildState = Failed
 	case <-time.After(time.Second * time.Duration(build.Timeout)):
+		log.Println(config.ShortDescription(), build.Id, "Build timedout.")
 		// command timeout
 		if err := cmd.Process.Kill(); err != nil {
 		}
@@ -123,26 +134,28 @@ func (s *ShellExecutor) Run(config RunnerConfig, build Build) error {
 	case err := <-command_finish:
 		// command finished
 		if err != nil {
+			log.Println(config.ShortDescription(), build.Id, "Build failed with", err)
 			buildState = Failed
 		} else {
+			log.Println(config.ShortDescription(), build.Id, "Build succeeded.")
 			buildState = Success
 		}
 	}
 
 	// wait for update log routine to finish
+	log.Debugln(config.ShortDescription(), build.Id, "Waiting for build log updater to finish")
 	finishBuildLog <- true
+	log.Debugln(config.ShortDescription(), build.Id, "Build log updater finished.")
 
 	// Send final build state to server
 	for {
-		switch sendBuildLog(config, build.Id, build_log.Name(), buildState) {
-		case UpdateSucceeded:
-			return nil
-		case UpdateAbort:
-			return nil
-		case UpdateFailed:
+		if sendBuildLog(config, build.Id, build_log.Name(), buildState) != UpdateFailed {
+			break
+		} else {
 			time.Sleep(3 * time.Second)
 		}
 	}
 
+	log.Println(config.ShortDescription(), build.Id, "Build finished.")
 	return nil
 }

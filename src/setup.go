@@ -67,6 +67,8 @@ func setup(c *cli.Context) {
 		log.Fatalf("Failed to register this runner. Perhaps your SSH key is invalid or you are having network problems")
 	}
 
+	runner_config.Token = result.Token
+
 	config.Runners = append(config.Runners, runner_config)
 
 	var new_config bytes.Buffer

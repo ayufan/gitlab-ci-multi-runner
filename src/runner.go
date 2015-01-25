@@ -5,9 +5,12 @@ import (
 	"errors"
 	"github.com/codegangsta/cli"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 func failBuild(config RunnerConfig, build Build, err error) {
+	log.Println(config.ShortDescription(), build.Id, "Build failed", err)
 	for {
 		error_buffer := bytes.NewBufferString(err.Error())
 		result := UpdateBuild(config, build.Id, Failed, error_buffer)

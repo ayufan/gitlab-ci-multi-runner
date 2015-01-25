@@ -1,13 +1,13 @@
 package src
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"io"
-	"errors"
-	"net/http"
 	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -23,41 +23,41 @@ const (
 type BuildState string
 
 const (
-	Pending BuildState	= "pending"
-	Running				= "running"
-	Failed				= "failed"
-	Success				= "success"
+	Pending BuildState = "pending"
+	Running            = "running"
+	Failed             = "failed"
+	Success            = "success"
 )
 
 type GetBuildRequest struct {
-	Token                string     `json:"token,omitempty"`
+	Token string `json:"token,omitempty"`
 }
 
 type GetBuildResponse struct {
-	Id                   int        `json:"token,omitempty"`
-	ProjectId            int        `json:"project_id,omitempty"`
-	Commands             string     `json:"commands,omitempty"`
-	RepoURL              string     `json:"repo_url,omitempty"`
-	Sha                  string     `json:"sha,omitempty"`
-	RefName              string     `json:"ref,omitempty"`
-	BeforeSha            string     `json:"before_sha,omitempty"`
-	AllowGitFetch        bool       `json:"allow_git_fetch,omitempty"`
-	Timeout              int        `json:"timeout,omitempty"`
+	Id            int    `json:"id,omitempty"`
+	ProjectId     int    `json:"project_id,omitempty"`
+	Commands      string `json:"commands,omitempty"`
+	RepoURL       string `json:"repo_url,omitempty"`
+	Sha           string `json:"sha,omitempty"`
+	RefName       string `json:"ref,omitempty"`
+	BeforeSha     string `json:"before_sha,omitempty"`
+	AllowGitFetch bool   `json:"allow_git_fetch,omitempty"`
+	Timeout       int    `json:"timeout,omitempty"`
 }
 
 type RegisterRunnerRequest struct {
-	Token                string     `json:"token,omitempty"`
-	Hostname             string     `json:"hostname,omitempty"`
+	Token    string `json:"token,omitempty"`
+	Hostname string `json:"hostname,omitempty"`
 }
 
 type RegisterRunnerResponse struct {
-	Token                string     `json:"token,omitempty"`
+	Token string `json:"token,omitempty"`
 }
 
 type UpdateBuildRequest struct {
-	Token                string     `json:"token,omitempty"`
-	State                BuildState `json:"state,omitempty"`
-	Trace                string     `json:"trace,omitempty"`
+	Token string     `json:"token,omitempty"`
+	State BuildState `json:"state,omitempty"`
+	Trace string     `json:"trace,omitempty"`
 }
 
 func sendJsonRequest(url string, method string, statusCode int, request interface{}, response interface{}) int {
@@ -116,7 +116,7 @@ func putJson(url string, statusCode int, request interface{}, response interface
 }
 
 func readPayload(r io.Reader) ([]byte, error) {
-	maxPayloadSize := int64(1 << 63 - 1)
+	maxPayloadSize := int64(1<<63 - 1)
 	maxPayloadSize = int64(10 << 20) // 10 MB is a lot of text.
 	b, err := ioutil.ReadAll(io.LimitReader(r, maxPayloadSize+1))
 	if err != nil {
@@ -130,7 +130,7 @@ func readPayload(r io.Reader) ([]byte, error) {
 }
 
 func getUrl(baseURL string, request string, a ...interface{}) string {
-	return fmt.Sprintf("%s/api/v1/%s", baseURL, fmt.Sprintf(request, a...));
+	return fmt.Sprintf("%s/api/v1/%s", baseURL, fmt.Sprintf(request, a...))
 }
 
 func GetBuild(config RunnerConfig) *GetBuildResponse {
@@ -142,15 +142,24 @@ func GetBuild(config RunnerConfig) *GetBuildResponse {
 	result := postJson(getUrl(config.URL, "builds/register.json"), 201, &request, &response)
 
 	switch result {
-	case 201:	return &response
-	case 403:	return nil
-	default:	return nil
+	case 201:
+		log.Println(config.ShortDescription(), "Checking for builds...", "received")
+		return &response
+	case 403:
+		log.Println(config.ShortDescription(), "Checking for builds...", "forbidden")
+		return nil
+	case 404:
+		log.Println(config.ShortDescription(), "Checking for builds...", "nothing")
+		return nil
+	default:
+		log.Println(config.ShortDescription(), "Checking for builds...", "failed")
+		return nil
 	}
 }
 
 func RegisterRunner(config RunnerConfig) *RegisterRunnerResponse {
 	request := RegisterRunnerRequest{
-		Token: config.Token,
+		Token:    config.Token,
 		Hostname: config.Name,
 	}
 
@@ -158,8 +167,15 @@ func RegisterRunner(config RunnerConfig) *RegisterRunnerResponse {
 	result := postJson(getUrl(config.URL, "runners/register.json"), 201, &request, &response)
 
 	switch result {
-	case 201:	return &response
-	default:	return nil
+	case 201:
+		log.Println(config.ShortDescription(), "Registering runner...", "succeeded")
+		return &response
+	case 403:
+		log.Println(config.ShortDescription(), "Registering runner...", "forbidden")
+		return nil
+	default:
+		log.Println(config.ShortDescription(), "Registering runner...", "failed")
+		return nil
 	}
 }
 
@@ -175,10 +191,19 @@ func UpdateBuild(config RunnerConfig, id int, state BuildState, trace io.Reader)
 		Trace: string(data),
 	}
 
-	result := putJson(getUrl(config.URL, "builds/%d.json", id), 201, &request, nil)
+	result := putJson(getUrl(config.URL, "builds/%d.json", id), 200, &request, nil)
 	switch result {
-	case 201: return UpdateSucceeded
-	case 404: return UpdateAbort
-	default:  return UpdateFailed
+	case 200:
+		log.Println(config.ShortDescription(), id, "Submitting build to coordinator...", "ok")
+		return UpdateSucceeded
+	case 404:
+		log.Println(config.ShortDescription(), id, "Submitting build to coordinator...", "aborted")
+		return UpdateAbort
+	case 403:
+		log.Println(config.ShortDescription(), id, "Submitting build to coordinator...", "forbidden")
+		return UpdateAbort
+	default:
+		log.Println(config.ShortDescription(), id, "Submitting build to coordinator...", "failed")
+		return UpdateFailed
 	}
 }
