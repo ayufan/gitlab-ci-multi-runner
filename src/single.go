@@ -32,7 +32,7 @@ func runSingle(c *cli.Context) {
 		Token: c.String("token"),
 	}
 
-	println("Starting runner for", runner_config.URL, "with token", runner_config.Token, "...")
+	log.Println("Starting runner for", runner_config.URL, "with token", runner_config.ShortDescription(), "...")
 
 	for {
 		new_build := GetBuild(runner_config)

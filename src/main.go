@@ -62,6 +62,13 @@ func Main() {
 			Flags:     []cli.Flag{flRegistrationToken, flURL, flHostname},
 			Action:    setup,
 		},
+		{
+			Name:      "run",
+			ShortName: "r",
+			Usage:     "run multi runner",
+			Flags:     []cli.Flag{flConfigFile},
+			Action:    runMulti,
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {

@@ -19,8 +19,8 @@ func setup(c *cli.Context) {
 		Concurrent: 1,
 	}
 
-	if _, err := os.Stat(flConfigFile.Value); err == nil {
-		if _, err := toml.DecodeFile(flConfigFile.Value, &config); err != nil {
+	if _, err := os.Stat(c.String("config")); err == nil {
+		if _, err := toml.DecodeFile(c.String("config"), &config); err != nil {
 			panic(err)
 		}
 	}
