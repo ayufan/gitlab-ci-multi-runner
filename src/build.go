@@ -9,23 +9,50 @@ import (
 
 type Build struct {
 	GetBuildResponse
+	Name string
 }
 
-func (b *Build) projectDir() string {
-	return fmt.Sprintf("project-%d", b.ProjectId)
+func (b *Build) isNameUnique(other_builds []*Build) bool {
+	for _, other_build := range other_builds {
+		if b.Name == other_build.Name {
+			return false
+		}
+	}
+	return true
+}
+
+func (b *Build) GenerateUniqueName(prefix string, other_builds []*Build) {
+	for i := 0; ; i++ {
+		b.Name = fmt.Sprintf("%s-project-%d-%d", prefix, b.ProjectId, i)
+		if b.isNameUnique(other_builds) {
+			return
+		}
+	}
+}
+
+func (b *Build) ProjectUniqueName() string {
+	if len(b.Name) == 0 {
+		return fmt.Sprintf("project-%d", b.ProjectId)
+	} else {
+		return b.Name
+	}
+}
+
+func (b *Build) ProjectDir() string {
+	return b.ProjectUniqueName()
 }
 
 func (b *Build) writeCloneCmd(w *bufio.Writer, builds_dir string) {
 	w.WriteString(fmt.Sprintf("mkdir -p %s && ", builds_dir))
 	w.WriteString(fmt.Sprintf("cd %s && ", builds_dir))
-	w.WriteString(fmt.Sprintf("rm -rf %s && ", b.projectDir()))
-	w.WriteString(fmt.Sprintf("git clone %s %s && ", b.RepoURL, b.projectDir()))
-	w.WriteString(fmt.Sprintf("cd %s\n", b.projectDir()))
+	w.WriteString(fmt.Sprintf("rm -rf %s && ", b.ProjectDir()))
+	w.WriteString(fmt.Sprintf("git clone %s %s && ", b.RepoURL, b.ProjectDir()))
+	w.WriteString(fmt.Sprintf("cd %s\n", b.ProjectDir()))
 }
 
 func (b *Build) writeFetchCmd(w *bufio.Writer, builds_dir string) {
-	w.WriteString(fmt.Sprintf("if [[ -d %s/%s/.git ]]; then\n", builds_dir, b.projectDir()))
-	w.WriteString(fmt.Sprintf("cd %s/%s && ", builds_dir, b.projectDir()))
+	w.WriteString(fmt.Sprintf("if [[ -d %s/%s/.git ]]; then\n", builds_dir, b.ProjectDir()))
+	w.WriteString(fmt.Sprintf("cd %s/%s && ", builds_dir, b.ProjectDir()))
 	w.WriteString(fmt.Sprintf("git clean -fdx && "))
 	w.WriteString(fmt.Sprintf("git reset --hard && "))
 	w.WriteString(fmt.Sprintf("git remote set-url origin %s &&", b.RepoURL))

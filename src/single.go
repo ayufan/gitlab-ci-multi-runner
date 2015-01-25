@@ -41,7 +41,10 @@ func runSingle(c *cli.Context) {
 		}
 
 		new_job := Job{
-			Build:  &Build{*new_build},
+			Build: &Build{
+				GetBuildResponse: *new_build,
+				Name:             "",
+			},
 			Runner: &runner_config,
 		}
 

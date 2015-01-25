@@ -1,12 +1,11 @@
 package src
 
 import (
-	"os"
+	"fmt"
 	"time"
 
 	"github.com/codegangsta/cli"
 
-	"github.com/BurntSushi/toml"
 	log "github.com/Sirupsen/logrus"
 )
 
@@ -54,60 +53,28 @@ func startNewJob(config *Config, jobs []*Job, finish chan *Job) *Job {
 
 	log.Debugln(len(jobs), "Received new job for", runner_config.ShortDescription(), "build", new_build.Id)
 	new_job := &Job{
-		Build:  &Build{*new_build},
+		Build: &Build{
+			GetBuildResponse: *new_build,
+			Name:             "",
+		},
 		Runner: runner_config,
 		Finish: finish,
 	}
+
+	build_prefix := fmt.Sprintf("runner-%s-", runner_config.ShortDescription())
+
+	other_builds := []*Build{}
+	for _, other_job := range jobs {
+		other_builds = append(other_builds, other_job.Build)
+	}
+	new_job.Build.GenerateUniqueName(build_prefix, other_builds)
 
 	go new_job.Run()
 	return new_job
 }
 
-func loadConfig(config_file string) (Config, time.Time, error) {
-	config := Config{}
-
-	info, err := os.Stat(config_file)
-	if err != nil {
-		return config, time.Time{}, err
-	}
-
-	if _, err = toml.DecodeFile(config_file, &config); err != nil {
-		return config, info.ModTime(), err
-	}
-
-	if config.Concurrent == 0 {
-		config.Concurrent = 1
-	}
-
-	return config, info.ModTime(), nil
-}
-
-func reloadConfig(config_file string, config_time time.Time, reload_config chan Config) {
-	for {
-		time.Sleep(RELOAD_CONFIG_INTERVAL * time.Second)
-
-		info, err := os.Stat(config_file)
-		if err != nil {
-			log.Errorln("Failed to stat config", err)
-			continue
-		}
-
-		if config_time.Before(info.ModTime()) {
-			config_time = info.ModTime()
-
-			new_config, _, err := loadConfig(config_file)
-			if err != nil {
-				log.Errorln("Failed to load config", err)
-				continue
-			}
-
-			reload_config <- new_config
-		}
-	}
-}
-
 func runMulti(c *cli.Context) {
-	config, config_time, err := loadConfig(c.String("config"))
+	config, config_time, err := LoadConfig(c.String("config"))
 	if err != nil {
 		panic(err)
 	}
@@ -118,7 +85,7 @@ func runMulti(c *cli.Context) {
 	job_finish := make(chan *Job)
 
 	reload_config := make(chan Config)
-	go reloadConfig(c.String("config"), config_time, reload_config)
+	go ReloadConfig(c.String("config"), config_time, reload_config)
 
 	for {
 		new_job := startNewJob(&config, jobs, job_finish)
