@@ -20,6 +20,12 @@ type RunnerConfig struct {
 	BuildsDir string `toml:"builds_dir"`
 
 	ShellScript string `toml:"shell_script"`
+
+	DockerHost         string   `toml:"docker_host"`
+	DockerImage        string   `toml:"docker_image"`
+	DockerPrivileged   bool     `toml:"docker_privileged`
+	DockerDisableCache bool     `toml:"docker_disable_cache"`
+	DockerVolumes      []string `toml:"docker_volumes"`
 }
 
 type BaseConfig struct {
@@ -31,14 +37,6 @@ type BaseConfig struct {
 type Config struct {
 	BaseConfig
 	ModTime time.Time
-}
-
-func (c *RunnerConfig) GetBuildsDir() string {
-	if len(c.BuildsDir) == 0 {
-		return "tmp/builds"
-	} else {
-		return c.BuildsDir
-	}
 }
 
 func (c *RunnerConfig) ShortDescription() string {

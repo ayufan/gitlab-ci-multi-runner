@@ -15,7 +15,10 @@ type ShellExecutor struct {
 }
 
 func (s *ShellExecutor) Run(config RunnerConfig, build Build) error {
-	builds_dir := config.GetBuildsDir()
+	builds_dir := "tmp/builds"
+	if len(config.BuildsDir) != 0 {
+		builds_dir = c.BuildsDir
+	}
 
 	// generate build script
 	script_file := build.Generate(builds_dir)
