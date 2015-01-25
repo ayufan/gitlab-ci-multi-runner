@@ -1,16 +1,16 @@
 package src
 
 type RunnerConfig struct {
-	Name     string `json:"name"`
-	URL      string `json:"url"`
-	Token    string `json:"token"`
-	Limit    int    `json:"limit"`
-	Executor string `json:"executor"`
+	Name     string `toml:"name",omitempty`
+	URL      string `toml:"url"`
+	Token    string `toml:"token"`
+	Limit    int    `toml:"limit",omitempty`
+	Executor string `toml:"executor",omitempty`
 }
 
 type Config struct {
-	Concurrent int            `json:"concurrent"`
-	Runners    []RunnerConfig `json:"runners"`
+	Concurrent int             `toml:"concurrent"`
+	Runners    []*RunnerConfig `toml:"runners"`
 }
 
 func (c RunnerConfig) ShortDescription() string {

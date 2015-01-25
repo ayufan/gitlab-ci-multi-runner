@@ -69,7 +69,7 @@ func setup(c *cli.Context) {
 
 	runner_config.Token = result.Token
 
-	config.Runners = append(config.Runners, runner_config)
+	config.Runners = append(config.Runners, &runner_config)
 
 	var new_config bytes.Buffer
 	new_buffer := bufio.NewWriter(&new_config)

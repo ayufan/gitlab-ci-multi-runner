@@ -30,7 +30,7 @@ func sendBuildLog(config RunnerConfig, buildId int, build_log string, state Buil
 func updateBuildLog(config RunnerConfig, buildId int, build_log string, abort chan bool, finished chan bool) {
 	for {
 		select {
-		case <-time.After(time.Second * 3):
+		case <-time.After(UPDATE_INTERVAL * time.Second):
 			log.Debugln(config.ShortDescription(), buildId, "updateBuildLog", "Updating...")
 			switch sendBuildLog(config, buildId, build_log, Running, "") {
 			case UpdateSucceeded:
@@ -132,7 +132,7 @@ func (s *ShellExecutor) Run(config RunnerConfig, build Build) error {
 		log.Println(config.ShortDescription(), build.Id, "Build got aborted.")
 		buildState = Failed
 
-	case <-time.After(time.Second * time.Duration(build.Timeout)):
+	case <-time.After(time.Duration(build.Timeout) * time.Second):
 		log.Println(config.ShortDescription(), build.Id, "Build timedout.")
 		// command timeout
 		if err := cmd.Process.Kill(); err != nil {
@@ -158,14 +158,16 @@ func (s *ShellExecutor) Run(config RunnerConfig, build Build) error {
 	log.Debugln(config.ShortDescription(), build.Id, "Build log updater finished.")
 
 	// Send final build state to server
-	for {
-		if sendBuildLog(config, build.Id, build_log.Name(), buildState, buildMessage) != UpdateFailed {
-			break
-		} else {
-			time.Sleep(3 * time.Second)
+	go func() {
+		for {
+			if sendBuildLog(config, build.Id, build_log.Name(), buildState, buildMessage) != UpdateFailed {
+				break
+			} else {
+				time.Sleep(UPDATE_RETRY_INTERVAL * time.Second)
+			}
 		}
-	}
 
-	log.Println(config.ShortDescription(), build.Id, "Build finished.")
+		log.Println(config.ShortDescription(), build.Id, "Build finished.")
+	}()
 	return nil
 }

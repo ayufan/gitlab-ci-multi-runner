@@ -20,7 +20,7 @@ func failBuild(config RunnerConfig, build Build, err error) {
 		case UpdateAbort:
 			return
 		case UpdateFailed:
-			time.Sleep(3 * time.Second)
+			time.Sleep(UPDATE_RETRY_INTERVAL * time.Second)
 			continue
 		}
 	}
@@ -37,7 +37,7 @@ func runSingle(c *cli.Context) {
 	for {
 		new_build := GetBuild(runner_config)
 		if new_build == nil {
-			time.Sleep(3 * time.Second)
+			time.Sleep(CHECK_INTERVAL * time.Second)
 			continue
 		}
 
