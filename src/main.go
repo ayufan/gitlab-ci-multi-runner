@@ -4,8 +4,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/codegangsta/cli"
 	log "github.com/Sirupsen/logrus"
+	"github.com/codegangsta/cli"
 )
 
 func Main() {
@@ -49,11 +49,11 @@ func Main() {
 
 	app.Commands = []cli.Command{
 		{
-			Name:      "run",
-			ShortName: "r",
+			Name:      "run-single",
+			ShortName: "rs",
 			Usage:     "start single runner",
 			Flags:     []cli.Flag{flToken, flURL},
-			Action:    run,
+			Action:    runSingle,
 		},
 		{
 			Name:      "setup",

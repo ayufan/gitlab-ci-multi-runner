@@ -26,7 +26,7 @@ func failBuild(config RunnerConfig, build Build, err error) {
 	}
 }
 
-func run(c *cli.Context) {
+func runSingle(c *cli.Context) {
 	runner_config := RunnerConfig{
 		URL:   c.String("URL"),
 		Token: c.String("token"),
