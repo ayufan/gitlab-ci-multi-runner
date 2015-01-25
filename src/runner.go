@@ -1,10 +1,10 @@
 package src
 
 import (
-	"errors"
-	"time"
 	"bytes"
+	"errors"
 	"github.com/codegangsta/cli"
+	"time"
 )
 
 func failBuild(config RunnerConfig, build Build, err error) {
@@ -25,9 +25,11 @@ func failBuild(config RunnerConfig, build Build, err error) {
 
 func run(c *cli.Context) {
 	runner_config := RunnerConfig{
-		URL: flURL.Value,
-		Token: flToken.Value,
+		URL:   c.String("URL"),
+		Token: c.String("token"),
 	}
+
+	println("Starting runner for", runner_config.URL, "with token", runner_config.Token, "...")
 
 	for {
 		new_build := GetBuild(runner_config)

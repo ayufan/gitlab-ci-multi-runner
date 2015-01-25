@@ -12,11 +12,11 @@ var (
 		EnvVar: "CONFIG_FILE",
 	}
 	flURL = cli.StringFlag{
-	Name:   "URL",
-	Value:  "",
-	Usage:  "Runner URL",
-	EnvVar: "RUNNER_URL",
-}
+		Name:   "URL",
+		Value:  "",
+		Usage:  "Runner URL",
+		EnvVar: "RUNNER_URL",
+	}
 	flToken = cli.StringFlag{
 		Name:   "token",
 		Value:  "",
@@ -24,15 +24,15 @@ var (
 		EnvVar: "RUNNER_TOKEN",
 	}
 	flRegistrationToken = cli.StringFlag{
-	Name:   "registration-token",
-	Value:  "",
-	Usage:  "Runner's registration token",
-	EnvVar: "REGISTRATION_TOKEN",
-}
+		Name:   "registration-token",
+		Value:  "",
+		Usage:  "Runner's registration token",
+		EnvVar: "REGISTRATION_TOKEN",
+	}
 	flHostname = cli.StringFlag{
-	Name: "hostname",
-	Value: "",
-	Usage: "Runner's registration hostname",
-	EnvVar: "HOSTNAME",
-}
+		Name:   "hostname",
+		Value:  "",
+		Usage:  "Runner's registration hostname",
+		EnvVar: "HOSTNAME",
+	}
 )

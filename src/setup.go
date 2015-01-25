@@ -1,15 +1,15 @@
 package src
 
 import (
-	"log"
-	"bytes"
-	"os"
 	"bufio"
-	"strings"
+	"bytes"
 	"io/ioutil"
+	"log"
+	"os"
+	"strings"
 
-	"github.com/codegangsta/cli"
 	"github.com/BurntSushi/toml"
+	"github.com/codegangsta/cli"
 )
 
 func setup(c *cli.Context) {
@@ -26,8 +26,8 @@ func setup(c *cli.Context) {
 	}
 
 	runner_config := RunnerConfig{
-		URL: flURL.Value,
-		Token: flRegistrationToken.Value,
+		URL:   c.String("URL"),
+		Token: c.String("registration-token"),
 		Limit: 1,
 	}
 
@@ -64,7 +64,7 @@ func setup(c *cli.Context) {
 
 	result := RegisterRunner(runner_config)
 	if result == nil {
-		log.Fatalf("Failed to register this runner. Perhaps your SSH key is invalid or you are having network problems");
+		log.Fatalf("Failed to register this runner. Perhaps your SSH key is invalid or you are having network problems")
 	}
 
 	config.Runners = append(config.Runners, runner_config)
