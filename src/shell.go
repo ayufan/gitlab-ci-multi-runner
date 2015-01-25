@@ -52,7 +52,7 @@ func updateBuildLog(config RunnerConfig, buildId int, build_log string, abort ch
 }
 
 func (s *ShellExecutor) Run(config RunnerConfig, build Build) error {
-	builds_dir := config.BuildsDir
+	builds_dir := config.GetBuildsDir()
 
 	// generate build script
 	script_file := build.Generate(builds_dir)

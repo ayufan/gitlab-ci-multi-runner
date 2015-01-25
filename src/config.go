@@ -23,6 +23,14 @@ type Config struct {
 	Runners    []*RunnerConfig `toml:"runners"`
 }
 
+func (c *RunnerConfig) GetBuildsDir() string {
+	if len(c.BuildsDir) == 0 {
+		return "tmp/builds"
+	} else {
+		return c.BuildsDir
+	}
+}
+
 func (c *RunnerConfig) ShortDescription() string {
 	return c.Token[0:8]
 }
