@@ -2,14 +2,20 @@ package src
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
+	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 type Build struct {
 	GetBuildResponse
-	Name string
+	Name     string
+	BuildLog string
 }
 
 func (b *Build) isNameUnique(other_builds []*Build) bool {
@@ -99,4 +105,51 @@ func (b *Build) Generate(builds_dir string) *string {
 
 	name := file.Name()
 	return &name
+}
+
+func (b *Build) SendTrace(config RunnerConfig, state BuildState, extraMessage string) UpdateState {
+	file, err := os.Open(b.BuildLog)
+	if err != nil {
+		return UpdateBuild(config, b.Id, state, bytes.NewBufferString(""))
+	}
+	defer file.Close()
+
+	buffer := io.MultiReader(file, bytes.NewBufferString(extraMessage))
+	return UpdateBuild(config, b.Id, state, buffer)
+}
+
+func (b *Build) WatchTrace(config RunnerConfig, abort chan bool, finished chan bool) {
+	for {
+		select {
+		case <-time.After(UPDATE_INTERVAL * time.Second):
+			log.Debugln(config.ShortDescription(), b.Id, "updateBuildLog", "Updating...")
+			switch b.SendTrace(config, Running, "") {
+			case UpdateSucceeded:
+			case UpdateAbort:
+				log.Debugln(config.ShortDescription(), b.Id, "updateBuildLog", "Sending abort request...")
+				abort <- true
+				log.Debugln(config.ShortDescription(), b.Id, "updateBuildLog", "Waiting for finished flag...")
+				<-finished
+				log.Debugln(config.ShortDescription(), b.Id, "updateBuildLog", "Thread finished.")
+				return
+			case UpdateFailed:
+			}
+
+		case <-finished:
+			log.Debugln(config.ShortDescription(), b.Id, "updateBuildLog", "Received finish.")
+			return
+		}
+	}
+}
+
+func (b *Build) FinishBuild(config RunnerConfig, buildState BuildState, buildMessage string) {
+	for {
+		if b.SendTrace(config, buildState, buildMessage) != UpdateFailed {
+			break
+		} else {
+			time.Sleep(UPDATE_RETRY_INTERVAL * time.Second)
+		}
+	}
+
+	log.Println(config.ShortDescription(), b.Id, "Build finished.")
 }

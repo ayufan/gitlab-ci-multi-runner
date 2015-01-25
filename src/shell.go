@@ -1,10 +1,8 @@
 package src
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -14,41 +12,6 @@ import (
 )
 
 type ShellExecutor struct {
-}
-
-func sendBuildLog(config RunnerConfig, buildId int, build_log string, state BuildState, extraMessage string) UpdateState {
-	file, err := os.Open(build_log)
-	if err != nil {
-		return UpdateBuild(config, buildId, state, bytes.NewBufferString(""))
-	}
-	defer file.Close()
-
-	buffer := io.MultiReader(file, bytes.NewBufferString(extraMessage))
-	return UpdateBuild(config, buildId, state, buffer)
-}
-
-func updateBuildLog(config RunnerConfig, buildId int, build_log string, abort chan bool, finished chan bool) {
-	for {
-		select {
-		case <-time.After(UPDATE_INTERVAL * time.Second):
-			log.Debugln(config.ShortDescription(), buildId, "updateBuildLog", "Updating...")
-			switch sendBuildLog(config, buildId, build_log, Running, "") {
-			case UpdateSucceeded:
-			case UpdateAbort:
-				log.Debugln(config.ShortDescription(), buildId, "updateBuildLog", "Sending abort request...")
-				abort <- true
-				log.Debugln(config.ShortDescription(), buildId, "updateBuildLog", "Waiting for finished flag...")
-				<-finished
-				log.Debugln(config.ShortDescription(), buildId, "updateBuildLog", "Thread finished.")
-				return
-			case UpdateFailed:
-			}
-
-		case <-finished:
-			log.Debugln(config.ShortDescription(), buildId, "updateBuildLog", "Received finish.")
-			return
-		}
-	}
 }
 
 func (s *ShellExecutor) Run(config RunnerConfig, build Build) error {
@@ -69,6 +32,7 @@ func (s *ShellExecutor) Run(config RunnerConfig, build Build) error {
 	}
 	defer build_log.Close()
 	defer os.Remove(build_log.Name())
+	build.BuildLog = build_log.Name()
 	log.Debugln(config.ShortDescription(), build.Id, "Created build log:", build_log.Name())
 
 	shell_script := config.ShellScript
@@ -122,7 +86,7 @@ func (s *ShellExecutor) Run(config RunnerConfig, build Build) error {
 	// Update build log
 	abort := make(chan bool, 1)
 	finishBuildLog := make(chan bool)
-	go updateBuildLog(config, build.Id, build_log.Name(), abort, finishBuildLog)
+	go build.WatchTrace(config, abort, finishBuildLog)
 
 	if build.Timeout <= 0 {
 		build.Timeout = DEFAULT_TIMEOUT
@@ -130,6 +94,7 @@ func (s *ShellExecutor) Run(config RunnerConfig, build Build) error {
 
 	var buildState BuildState
 	var buildMessage string
+
 	// Wait for signals: abort, timeout or finish
 	log.Debugln(config.ShortDescription(), build.Id, "Waiting for signals...")
 	select {
@@ -163,16 +128,6 @@ func (s *ShellExecutor) Run(config RunnerConfig, build Build) error {
 	log.Debugln(config.ShortDescription(), build.Id, "Build log updater finished.")
 
 	// Send final build state to server
-	go func() {
-		for {
-			if sendBuildLog(config, build.Id, build_log.Name(), buildState, buildMessage) != UpdateFailed {
-				break
-			} else {
-				time.Sleep(UPDATE_RETRY_INTERVAL * time.Second)
-			}
-		}
-
-		log.Println(config.ShortDescription(), build.Id, "Build finished.")
-	}()
+	go build.FinishBuild(config, buildState, buildMessage)
 	return nil
 }
