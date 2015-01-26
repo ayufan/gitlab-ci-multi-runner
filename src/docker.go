@@ -12,7 +12,7 @@ import (
 )
 
 type DockerExecutor struct {
-	BaseExecutor
+	AbstractExecutor
 	client    *docker.Client
 	image     *docker.Image
 	container *docker.Container
@@ -168,7 +168,7 @@ func (s *DockerExecutor) getSshAuthMethods() []ssh.AuthMethod {
 }
 
 func (s *DockerExecutor) Prepare(config *RunnerConfig, build *Build) error {
-	err := s.BaseExecutor.Prepare(config, build)
+	err := s.AbstractExecutor.Prepare(config, build)
 	if err != nil {
 		return err
 	}
@@ -194,5 +194,5 @@ func (s *DockerExecutor) Cleanup() {
 		s.container = nil
 	}
 
-	s.BaseExecutor.Cleanup()
+	s.AbstractExecutor.Cleanup()
 }

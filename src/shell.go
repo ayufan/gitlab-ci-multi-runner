@@ -7,7 +7,7 @@ import (
 )
 
 type ShellExecutor struct {
-	BaseExecutor
+	AbstractExecutor
 	cmd *exec.Cmd
 }
 
@@ -46,5 +46,5 @@ func (s *ShellExecutor) Cleanup() {
 		s.cmd.Process.Kill()
 	}
 
-	s.BaseExecutor.Cleanup()
+	s.AbstractExecutor.Cleanup()
 }
