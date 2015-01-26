@@ -32,12 +32,12 @@ func askExecutor(r *bufio.Reader, result *string) {
 }
 
 func askDocker(r *bufio.Reader, runner_config *RunnerConfig) {
-	ask(r, "Please enter the docker image:", &runner_config.DockerImage)
+	ask(r, "Please enter the Docker image (eg. ruby:2.1):", &runner_config.DockerImage)
 }
 
 func askSsh(r *bufio.Reader, runner_config *RunnerConfig) {
-	ask(r, "Please enter the docker SSH user:", &runner_config.SshUser)
-	ask(r, "Please enter the docker SSH password:", &runner_config.SshPassword)
+	ask(r, "Please enter the SSH user (eg. root):", &runner_config.SshUser)
+	ask(r, "Please enter the SSH password (eg. docker.io):", &runner_config.SshPassword)
 }
 
 func setup(c *cli.Context) {
