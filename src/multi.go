@@ -58,7 +58,6 @@ func startNewJob(config *Config, jobs []*Job, finish chan *Job) *Job {
 			Name:             "",
 		},
 		Runner: runner_config,
-		Finish: finish,
 	}
 
 	build_prefix := fmt.Sprintf("runner-%s-", runner_config.ShortDescription())
@@ -69,7 +68,10 @@ func startNewJob(config *Config, jobs []*Job, finish chan *Job) *Job {
 	}
 	new_job.Build.GenerateUniqueName(build_prefix, other_builds)
 
-	go new_job.Run()
+	go func() {
+		new_job.Run()
+		finish <- new_job
+	}()
 	return new_job
 }
 

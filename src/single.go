@@ -48,7 +48,6 @@ func runSingle(c *cli.Context) {
 			Runner: &runner_config,
 		}
 
-		go new_job.Run()
-		<-new_job.Finish
+		new_job.Run()
 	}
 }

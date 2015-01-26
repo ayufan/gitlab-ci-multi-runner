@@ -7,8 +7,8 @@ type Executor interface {
 	Cleanup()
 }
 
-func GetExecutor(config RunnerConfig) Executor {
-	switch config.Executor {
+func GetExecutor(executor string) Executor {
+	switch executor {
 	case "shell", "":
 		return &ShellExecutor{
 			AbstractExecutor: AbstractExecutor{

@@ -11,7 +11,6 @@ import (
 type Job struct {
 	Build  *Build
 	Runner *RunnerConfig
-	Finish chan *Job
 }
 
 func (j *Job) fail(config RunnerConfig, build Build, err error) {
@@ -32,30 +31,25 @@ func (j *Job) fail(config RunnerConfig, build Build, err error) {
 }
 
 func (j *Job) Run() error {
-	executor := GetExecutor(*j.Runner)
+	var err error
+	executor := GetExecutor(j.Runner.Executor)
 	if executor == nil {
-		err := errors.New("couldn't get executor")
-		j.Finish <- j
-		failBuild(*j.Runner, *j.Build, err)
-		return err
+		err = errors.New("executor not found")
 	}
-
-	err := executor.Prepare(j.Runner, j.Build)
+	if err == nil {
+		err = executor.Prepare(j.Runner, j.Build)
+	}
 	if err == nil {
 		err = executor.Start()
 	}
 	if err == nil {
 		err = executor.Wait()
 	}
-	executor.Cleanup()
-
 	if err != nil {
-		j.Finish <- j
-		failBuild(*j.Runner, *j.Build, err)
-		return err
+		go failBuild(*j.Runner, *j.Build, err)
 	}
-
-	// notify about job finish
-	j.Finish <- j
-	return nil
+	if executor != nil {
+		executor.Cleanup()
+	}
+	return err
 }
