@@ -2,7 +2,6 @@ package src
 
 import (
 	"crypto/md5"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -93,7 +92,7 @@ func (s *DockerExecutor) connect() (*docker.Client, error) {
 		endpoint = os.Getenv("DOCKER_HOST")
 	}
 	if len(endpoint) == 0 {
-		return nil, errors.New("No DOCKER_HOST defined")
+		endpoint = "unix:///var/run/docker.sock"
 	}
 	client, err := docker.NewClient(endpoint)
 	if err != nil {
