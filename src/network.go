@@ -157,24 +157,25 @@ func GetBuild(config RunnerConfig) *GetBuildResponse {
 	}
 }
 
-func RegisterRunner(config RunnerConfig) *RegisterRunnerResponse {
+func RegisterRunner(url string, token string, hostname string) *RegisterRunnerResponse {
 	request := RegisterRunnerRequest{
-		Token:    config.Token,
-		Hostname: config.Name,
+		Token:    token,
+		Hostname: hostname,
 	}
 
 	var response RegisterRunnerResponse
-	result := postJson(getUrl(config.URL, "runners/register.json"), 201, &request, &response)
+	result := postJson(getUrl(url, "runners/register.json"), 201, &request, &response)
+	shortToken := token[0:8]
 
 	switch result {
 	case 201:
-		log.Println(config.ShortDescription(), "Registering runner...", "succeeded")
+		log.Println(shortToken, "Registering runner...", "succeeded")
 		return &response
 	case 403:
-		log.Println(config.ShortDescription(), "Registering runner...", "forbidden")
+		log.Println(shortToken, "Registering runner...", "forbidden")
 		return nil
 	default:
-		log.Println(config.ShortDescription(), "Registering runner...", "failed")
+		log.Println(shortToken, "Registering runner...", "failed")
 		return nil
 	}
 }

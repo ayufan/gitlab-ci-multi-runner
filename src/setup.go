@@ -9,6 +9,37 @@ import (
 	"github.com/codegangsta/cli"
 )
 
+func ask(r *bufio.Reader, prompt string, result *string) {
+	for len(*result) == 0 {
+		log.Println(prompt)
+		data, _, err := r.ReadLine()
+		if err != nil {
+			panic(err)
+		}
+		*result = string(data)
+		*result = strings.TrimSpace(*result)
+	}
+}
+
+func askExecutor(r *bufio.Reader, result *string) {
+	for {
+		ask(r, "Please enter the executor: shell, docker, docker-ssh?", result)
+		switch *result {
+		case "shell", "docker", "docker-ssh":
+			return
+		}
+	}
+}
+
+func askDocker(r *bufio.Reader, runner_config *RunnerConfig) {
+	ask(r, "Please enter the docker image:", &runner_config.DockerImage)
+}
+
+func askSsh(r *bufio.Reader, runner_config *RunnerConfig) {
+	ask(r, "Please enter the docker SSH user:", &runner_config.SshUser)
+	ask(r, "Please enter the docker SSH password:", &runner_config.SshPassword)
+}
+
 func setup(c *cli.Context) {
 	log.SetFlags(0)
 
@@ -23,49 +54,38 @@ func setup(c *cli.Context) {
 		panic(err)
 	}
 
-	runner_config := RunnerConfig{
-		URL:   c.String("url"),
-		Token: c.String("registration-token"),
-	}
+	url := c.String("url")
+	registrationToken := c.String("registration-token")
+	hostName := c.String("hostname")
 
 	bio := bufio.NewReader(os.Stdin)
-	for len(runner_config.URL) == 0 {
-		log.Printf("Please enter the gitlab-ci coordinator URL (e.g. http://gitlab-ci.org:3000/ )")
-		data, _, err := bio.ReadLine()
-		if err != nil {
-			panic(err)
-		}
-		runner_config.URL = string(data)
-		runner_config.URL = strings.TrimSpace(runner_config.URL)
-	}
+	ask(bio, "Please enter the gitlab-ci coordinator URL (e.g. http://gitlab-ci.org:3000/ )", &url)
+	ask(bio, "Please enter the gitlab-ci token for this runner", &registrationToken)
+	ask(bio, "Please enter the gitlab-ci hostname for this runner", &hostName)
 
-	for len(runner_config.Name) == 0 {
-		log.Printf("Please enter the gitlab-ci hostname for this runner:")
-		data, _, err := bio.ReadLine()
-		if err != nil {
-			panic(err)
-		}
-		runner_config.Name = string(data)
-		runner_config.Name = strings.TrimSpace(runner_config.Name)
-	}
-
-	for len(runner_config.Token) == 0 {
-		log.Printf("Please enter the gitlab-ci token for this runner:")
-		data, _, err := bio.ReadLine()
-		if err != nil {
-			panic(err)
-		}
-		runner_config.Token = string(data)
-		runner_config.Token = strings.TrimSpace(runner_config.Token)
-	}
-
-	result := RegisterRunner(runner_config)
+	result := RegisterRunner(url, registrationToken, hostName)
 	if result == nil {
 		log.Fatalf("Failed to register this runner. Perhaps your SSH key is invalid or you are having network problems")
 	}
 
-	runner_config.Token = result.Token
-	runner_config.DockerVolumes = []string{"/test", "/second"}
+	runner_config := RunnerConfig{
+		URL:   url,
+		Name:  hostName,
+		Token: result.Token,
+	}
+
+	askExecutor(bio, &runner_config.Executor)
+
+	switch runner_config.Executor {
+	case "shell":
+	case "docker", "docker-ssh":
+		askDocker(bio, &runner_config)
+	}
+
+	switch runner_config.Executor {
+	case "docker-ssh":
+		askSsh(bio, &runner_config)
+	}
 
 	config.Runners = append(config.Runners, &runner_config)
 
