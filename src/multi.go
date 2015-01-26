@@ -44,8 +44,12 @@ func (mr *MultiRunner) requestNewJob() (*GetBuildResponse, *RunnerConfig) {
 		if healthy {
 			mr.healthy[runner.UniqueID()] = 0
 		} else {
-			mr.healthy[runner.UniqueID()] = mr.healthy[runner.UniqueID()] + 1
-			log.Println("Runner", runner.ShortDescription(), "is not healthy")
+			value := mr.healthy[runner.UniqueID()] + 1
+			mr.healthy[runner.UniqueID()] = value
+
+			if value >= HEALTHY_CHECKS {
+				mr.errorln("Runner", runner.ShortDescription(), "is not healthy and will be disabled!")
+			}
 		}
 	}
 
@@ -89,6 +93,11 @@ func (mr *MultiRunner) startNewJob(finish chan *Job) *Job {
 		finish <- new_job
 	}()
 	return new_job
+}
+
+func (mr *MultiRunner) errorln(args ...interface{}) {
+	args = append([]interface{}{len(mr.jobs)}, args...)
+	log.Errorln(args...)
 }
 
 func (mr *MultiRunner) debugln(args ...interface{}) {

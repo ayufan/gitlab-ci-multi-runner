@@ -137,13 +137,13 @@ func GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 		log.Println(config.ShortDescription(), "Checking for builds...", "received")
 		return &response, true
 	case 403:
-		log.Println(config.ShortDescription(), "Checking for builds...", "forbidden")
+		log.Errorln(config.ShortDescription(), "Checking for builds...", "forbidden")
 		return nil, false
 	case 404:
-		log.Println(config.ShortDescription(), "Checking for builds...", "nothing")
+		log.Infoln(config.ShortDescription(), "Checking for builds...", "nothing")
 		return nil, true
 	default:
-		log.Println(config.ShortDescription(), "Checking for builds...", "failed")
+		log.Warningln(config.ShortDescription(), "Checking for builds...", "failed")
 		return nil, true
 	}
 }
@@ -163,10 +163,10 @@ func RegisterRunner(url string, token string, hostname string) *RegisterRunnerRe
 		log.Println(shortToken, "Registering runner...", "succeeded")
 		return &response
 	case 403:
-		log.Println(shortToken, "Registering runner...", "forbidden")
+		log.Errorln(shortToken, "Registering runner...", "forbidden")
 		return nil
 	default:
-		log.Println(shortToken, "Registering runner...", "failed")
+		log.Warningln(shortToken, "Registering runner...", "failed")
 		return nil
 	}
 }
@@ -189,13 +189,13 @@ func UpdateBuild(config RunnerConfig, id int, state BuildState, trace io.Reader)
 		log.Println(config.ShortDescription(), id, "Submitting build to coordinator...", "ok")
 		return UpdateSucceeded
 	case 404:
-		log.Println(config.ShortDescription(), id, "Submitting build to coordinator...", "aborted")
+		log.Warningln(config.ShortDescription(), id, "Submitting build to coordinator...", "aborted")
 		return UpdateAbort
 	case 403:
-		log.Println(config.ShortDescription(), id, "Submitting build to coordinator...", "forbidden")
+		log.Errorln(config.ShortDescription(), id, "Submitting build to coordinator...", "forbidden")
 		return UpdateAbort
 	default:
-		log.Println(config.ShortDescription(), id, "Submitting build to coordinator...", "failed")
+		log.Warningln(config.ShortDescription(), id, "Submitting build to coordinator...", "failed")
 		return UpdateFailed
 	}
 }
