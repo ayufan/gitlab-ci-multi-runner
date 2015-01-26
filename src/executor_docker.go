@@ -51,6 +51,9 @@ func (s *DockerExecutor) addVolume(binds *[]string, cache_dir string, volume str
 	volumeDir := s.volumeDir(cache_dir, s.build.ProjectUniqueName(), volume)
 	*binds = append(*binds, fmt.Sprintf("%s:%s:rw", volumeDir, volume))
 	s.debugln("Using", volumeDir, "for", volume)
+
+	// TODO: this is potentially insecure
+	os.MkdirAll(volumeDir, 0777)
 }
 
 func (s *DockerExecutor) createVolumes(image *docker.Image, builds_dir string) ([]string, error) {
