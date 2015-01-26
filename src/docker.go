@@ -1,19 +1,15 @@
 package src
 
 import (
-	"bytes"
 	"crypto/md5"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"code.google.com/p/go.crypto/ssh"
 	"github.com/fsouza/go-dockerclient"
 )
-
-type DockerMode string
 
 type DockerExecutor struct {
 	BaseExecutor
@@ -199,132 +195,4 @@ func (s *DockerExecutor) Cleanup() {
 	}
 
 	s.BaseExecutor.Cleanup()
-}
-
-type DockerCommandExecutor struct {
-	DockerExecutor
-}
-
-func (s *DockerCommandExecutor) Start() error {
-	// Create container
-	container, err := s.createContainer(s.image, []string{"bash"})
-	if err != nil {
-		return err
-	}
-	s.container = container
-
-	// Wait for process to exit
-	go func() {
-		attach_container_opts := docker.AttachToContainerOptions{
-			Container:    container.ID,
-			InputStream:  bytes.NewBuffer(s.script_data),
-			OutputStream: s.build_log,
-			ErrorStream:  s.build_log,
-			Logs:         true,
-			Stream:       true,
-			Stdin:        true,
-			Stdout:       true,
-			Stderr:       true,
-			RawTerminal:  false,
-		}
-
-		s.debugln("Attach to container")
-		err := s.client.AttachToContainer(attach_container_opts)
-		if err != nil {
-			s.buildFinish <- err
-			return
-		}
-
-		s.debugln("Wait for container")
-		exit_code, err := s.client.WaitContainer(container.ID)
-		if err != nil {
-			s.buildFinish <- err
-			return
-		}
-
-		if exit_code == 0 {
-			s.buildFinish <- nil
-		} else {
-			s.buildFinish <- errors.New(fmt.Sprintf("exit code", exit_code))
-		}
-	}()
-	return nil
-}
-
-type DockerSshExecutor struct {
-	DockerExecutor
-	sshClient  *ssh.Client
-	sshSession *ssh.Session
-}
-
-func (s *DockerSshExecutor) Start() error {
-	// Create container
-	container, err := s.createContainer(s.image, []string{})
-	if err != nil {
-		return err
-	}
-	s.container = container
-
-	container_data, err := s.client.InspectContainer(container.ID)
-	if err != nil {
-		return err
-	}
-
-	ssh_config := &ssh.ClientConfig{
-		User: s.config.SshUser,
-		Auth: s.getSshAuthMethods(),
-	}
-
-	ssh_host := s.config.SshHost
-	if len(ssh_host) == 0 {
-		ssh_host = container_data.NetworkSettings.IPAddress
-	}
-
-	ssh_port := s.config.SshPort
-	if len(ssh_port) == 0 {
-		ssh_port = "22"
-	}
-
-	s.debugln("Connecting to", ssh_host, ssh_port, "as", ssh_config.User)
-	ssh_connection, err := ssh.Dial("tcp", ssh_host+":"+ssh_port, ssh_config)
-	if err != nil {
-		for i := 0; i < 3 && err != nil; i++ {
-			time.Sleep(SSH_RETRY_INTERVAL * time.Second)
-			ssh_connection, err = ssh.Dial("tcp", ssh_host+":"+ssh_port, ssh_config)
-		}
-		if err != nil {
-			return err
-		}
-	}
-	s.sshClient = ssh_connection
-
-	s.debugln("Creating new session...")
-	ssh_session, err := ssh_connection.NewSession()
-	if err != nil {
-		return err
-	}
-	s.sshSession = ssh_session
-
-	// Wait for process to exit
-	go func() {
-		s.debugln("Running new command...")
-		ssh_session.Stdin = bytes.NewBuffer(s.script_data)
-		ssh_session.Stdout = s.build_log
-		ssh_session.Stderr = s.build_log
-		err := ssh_session.Run("bash")
-		s.debugln("Ssh command finished with", err)
-		s.buildFinish <- err
-	}()
-	return nil
-}
-
-func (s *DockerSshExecutor) Cleanup() {
-	if s.sshSession != nil {
-		s.sshSession.Close()
-	}
-	if s.sshClient != nil {
-		s.sshClient.Close()
-	}
-
-	s.DockerExecutor.Cleanup()
 }
