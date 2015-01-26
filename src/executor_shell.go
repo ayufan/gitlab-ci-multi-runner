@@ -11,7 +11,19 @@ type ShellExecutor struct {
 	cmd *exec.Cmd
 }
 
+func (s *ShellExecutor) Prepare(config *RunnerConfig, build *Build) error {
+	err := s.AbstractExecutor.Prepare(config, build)
+	if err != nil {
+		return err
+	}
+
+	s.println("Using Shell executor...")
+	return nil
+}
+
 func (s *ShellExecutor) Start() error {
+	s.println("Starting shell command...")
+
 	shell_script := s.config.ShellScript
 	if len(shell_script) == 0 {
 		shell_script = "setsid"

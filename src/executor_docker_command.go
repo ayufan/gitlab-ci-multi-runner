@@ -13,6 +13,8 @@ type DockerCommandExecutor struct {
 }
 
 func (s *DockerCommandExecutor) Start() error {
+	s.println("Starting Docker command...")
+
 	// Create container
 	container, err := s.createContainer(s.image, []string{"bash"})
 	if err != nil {
@@ -35,14 +37,14 @@ func (s *DockerCommandExecutor) Start() error {
 			RawTerminal:  false,
 		}
 
-		s.debugln("Attach to container")
+		s.debugln("Attaching to container...")
 		err := s.client.AttachToContainer(attach_container_opts)
 		if err != nil {
 			s.buildFinish <- err
 			return
 		}
 
-		s.debugln("Wait for container")
+		s.debugln("Waiting for container...")
 		exit_code, err := s.client.WaitContainer(container.ID)
 		if err != nil {
 			s.buildFinish <- err
@@ -52,7 +54,7 @@ func (s *DockerCommandExecutor) Start() error {
 		if exit_code == 0 {
 			s.buildFinish <- nil
 		} else {
-			s.buildFinish <- errors.New(fmt.Sprintf("exit code", exit_code))
+			s.buildFinish <- errors.New(fmt.Sprintf("exit code %d", exit_code))
 		}
 	}()
 	return nil

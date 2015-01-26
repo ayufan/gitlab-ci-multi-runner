@@ -23,6 +23,7 @@ func (s *DockerExecutor) volumeDir(cache_dir string, project_name string, volume
 }
 
 func (s *DockerExecutor) getImage(imageName string, pullImage bool) (*docker.Image, error) {
+	s.debugln("Looking for image", imageName, "...")
 	image, err := s.client.InspectImage(imageName)
 	if err == nil {
 		return image, nil
@@ -49,7 +50,7 @@ func (s *DockerExecutor) getImage(imageName string, pullImage bool) (*docker.Ima
 func (s *DockerExecutor) addVolume(binds *[]string, cache_dir string, volume string) {
 	volumeDir := s.volumeDir(cache_dir, s.build.ProjectUniqueName(), volume)
 	*binds = append(*binds, fmt.Sprintf("%s:%s:rw", volumeDir, volume))
-	s.debugln("Using", volumeDir, "for", volume)
+	s.debugln("Using", volumeDir, "for", volume, "...")
 
 	// TODO: this is potentially insecure
 	os.MkdirAll(volumeDir, 0777)
@@ -86,7 +87,6 @@ func (s *DockerExecutor) createVolumes(image *docker.Image, builds_dir string) (
 }
 
 func (s *DockerExecutor) connect() (*docker.Client, error) {
-	// Connect to docker
 	endpoint := s.config.DockerHost
 	if len(endpoint) == 0 {
 		endpoint = os.Getenv("DOCKER_HOST")
@@ -103,7 +103,6 @@ func (s *DockerExecutor) connect() (*docker.Client, error) {
 }
 
 func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*docker.Container, error) {
-	s.debugln("Creating contaier")
 	create_container_opts := docker.CreateContainerOptions{
 		Name: s.build.ProjectUniqueName(),
 		Config: &docker.Config{
@@ -127,7 +126,7 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 	}
 
 	if !s.config.DockerDisableCache {
-		s.debugln("Creating cache dirs")
+		s.debugln("Creating cache directories...")
 		binds, err := s.createVolumes(image, s.builds_dir)
 		if err != nil {
 			return nil, err
@@ -135,12 +134,13 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 		create_container_opts.HostConfig.Binds = binds
 	}
 
+	s.debugln("Creating contaier...")
 	container, err := s.client.CreateContainer(create_container_opts)
 	if err != nil {
 		return nil, err
 	}
 
-	s.debugln("Starting container")
+	s.debugln("Starting container", container.ID, "...")
 	err = s.client.StartContainer(container.ID, create_container_opts.HostConfig)
 	if err != nil {
 		go s.removeContainer(container.ID)
@@ -156,7 +156,8 @@ func (s *DockerExecutor) removeContainer(id string) {
 		RemoveVolumes: true,
 		Force:         true,
 	}
-	s.client.RemoveContainer(remove_container_opts)
+	err := s.client.RemoveContainer(remove_container_opts)
+	s.debugln("Removed container", id, "with", err)
 }
 
 func (s *DockerExecutor) getSshAuthMethods() []ssh.AuthMethod {
@@ -174,6 +175,8 @@ func (s *DockerExecutor) Prepare(config *RunnerConfig, build *Build) error {
 	if err != nil {
 		return err
 	}
+
+	s.println("Using Docker executor with image", s.config.DockerImage, "...")
 
 	client, err := s.connect()
 	if err != nil {

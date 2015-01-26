@@ -15,6 +15,8 @@ type DockerSshExecutor struct {
 }
 
 func (s *DockerSshExecutor) Start() error {
+	s.println("Starting SSH command...")
+
 	// Create container
 	container, err := s.createContainer(s.image, []string{})
 	if err != nil {
@@ -75,12 +77,12 @@ func (s *DockerSshExecutor) Start() error {
 
 	// Wait for process to exit
 	go func() {
-		s.debugln("Running SSH command...")
+		s.debugln("Will run SSH command...")
 		ssh_session.Stdin = buffer
 		ssh_session.Stdout = s.BuildLog
 		ssh_session.Stderr = s.BuildLog
 		err := ssh_session.Run("bash")
-		s.debugln("Ssh command finished with", err)
+		s.debugln("SSH command finished with", err)
 		s.buildFinish <- err
 	}()
 	return nil

@@ -8,6 +8,15 @@ import (
 	"strings"
 )
 
+type BuildState string
+
+const (
+	Pending BuildState = "pending"
+	Running            = "running"
+	Failed             = "failed"
+	Success            = "success"
+)
+
 type Build struct {
 	GetBuildResponse
 	Name     string

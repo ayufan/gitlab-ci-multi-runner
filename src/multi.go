@@ -55,7 +55,6 @@ func startNewJob(config *Config, jobs []*Job, finish chan *Job) *Job {
 	new_job := &Job{
 		Build: &Build{
 			GetBuildResponse: *new_build,
-			Name:             "",
 		},
 		Runner: runner_config,
 	}

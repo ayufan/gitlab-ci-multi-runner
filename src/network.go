@@ -20,15 +20,6 @@ const (
 	UpdateFailed
 )
 
-type BuildState string
-
-const (
-	Pending BuildState = "pending"
-	Running            = "running"
-	Failed             = "failed"
-	Success            = "success"
-)
-
 type GetBuildRequest struct {
 	Token string `json:"token,omitempty"`
 }
