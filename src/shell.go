@@ -8,6 +8,7 @@ import (
 
 type ShellExecutor struct {
 	BaseExecutor
+	cmd *exec.Cmd
 }
 
 func (s *ShellExecutor) Start() error {
@@ -17,29 +18,33 @@ func (s *ShellExecutor) Start() error {
 	}
 
 	// Create execution command
-	cmd := exec.Command(shell_script, "bash", "--login")
-	if cmd == nil {
+	s.cmd = exec.Command(shell_script, "bash", "--login")
+	if s.cmd == nil {
 		return errors.New("Failed to generate execution command")
 	}
 
-	cmd.Env = append(s.build.GetEnv(), s.config.Environment...)
-	cmd.Stdin = bytes.NewReader(s.script_data)
-	cmd.Stdout = s.build_log
-	cmd.Stderr = s.build_log
+	s.cmd.Env = append(s.build.GetEnv(), s.config.Environment...)
+	s.cmd.Stdin = bytes.NewReader(s.script_data)
+	s.cmd.Stdout = s.build_log
+	s.cmd.Stderr = s.build_log
 
 	// Start process
-	err := cmd.Start()
+	err := s.cmd.Start()
 	if err != nil {
 		return errors.New("Failed to start process")
 	}
 
 	// Wait for process to exit
 	go func() {
-		s.buildFinish <- cmd.Wait()
+		s.buildFinish <- s.cmd.Wait()
 	}()
-
-	s.buildAbortFunc = func(e *BaseExecutor) {
-		cmd.Process.Kill()
-	}
 	return nil
+}
+
+func (s *ShellExecutor) Cleanup() {
+	if s.cmd != nil {
+		s.cmd.Process.Kill()
+	}
+
+	s.BaseExecutor.Cleanup()
 }

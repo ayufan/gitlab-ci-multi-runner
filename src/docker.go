@@ -17,14 +17,9 @@ type DockerMode string
 
 type DockerExecutor struct {
 	BaseExecutor
-}
-
-type DockerCommandExecutor struct {
-	DockerExecutor
-}
-
-type DockerSshExecutor struct {
-	DockerExecutor
+	client    *docker.Client
+	image     *docker.Image
+	container *docker.Container
 }
 
 func (s *DockerExecutor) volumeDir(cache_dir string, project_name string, volume string) string {
@@ -32,28 +27,28 @@ func (s *DockerExecutor) volumeDir(cache_dir string, project_name string, volume
 	return fmt.Sprintf("%s/%s/%x", cache_dir, project_name, hash)
 }
 
-func (s *DockerExecutor) getImage(client *docker.Client) (*docker.Image, error) {
-	image, err := client.InspectImage(s.config.DockerImage)
+func (s *DockerExecutor) getImage(imageName string, pullImage bool) (*docker.Image, error) {
+	image, err := s.client.InspectImage(imageName)
 	if err == nil {
 		return image, nil
 	}
 
-	if s.config.DockerDisablePull {
+	if !pullImage {
 		return nil, err
 	}
 
-	s.println("Pulling docker image", s.config.DockerImage, "...")
+	s.println("Pulling docker image", imageName, "...")
 	pull_image_opts := docker.PullImageOptions{
-		Repository: s.config.DockerImage,
+		Repository: imageName,
 		Registry:   s.config.DockerRegistry,
 	}
 
-	err = client.PullImage(pull_image_opts, docker.AuthConfiguration{})
+	err = s.client.PullImage(pull_image_opts, docker.AuthConfiguration{})
 	if err != nil {
 		return nil, err
 	}
 
-	return client.InspectImage(s.config.DockerImage)
+	return s.client.InspectImage(imageName)
 }
 
 func (s *DockerExecutor) addVolume(binds *[]string, cache_dir string, volume string) {
@@ -62,7 +57,7 @@ func (s *DockerExecutor) addVolume(binds *[]string, cache_dir string, volume str
 	s.debugln("Using", volumeDir, "for", volume)
 }
 
-func (s *DockerExecutor) createVolumes(client *docker.Client, image *docker.Image, builds_dir string) ([]string, error) {
+func (s *DockerExecutor) createVolumes(image *docker.Image, builds_dir string) ([]string, error) {
 	cache_dir := "tmp/docker-cache"
 	if len(s.config.DockerCacheDir) != 0 {
 		cache_dir = s.config.DockerCacheDir
@@ -109,7 +104,7 @@ func (s *DockerExecutor) connect() (*docker.Client, error) {
 	return client, nil
 }
 
-func (s *DockerExecutor) createContainer(client *docker.Client, image *docker.Image, cmd []string) (*docker.Container, error) {
+func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*docker.Container, error) {
 	s.debugln("Creating contaier")
 	create_container_opts := docker.CreateContainerOptions{
 		Name: s.build.ProjectUniqueName(),
@@ -135,35 +130,35 @@ func (s *DockerExecutor) createContainer(client *docker.Client, image *docker.Im
 
 	if !s.config.DockerDisableCache {
 		s.debugln("Creating cache dirs")
-		binds, err := s.createVolumes(client, image, s.builds_dir)
+		binds, err := s.createVolumes(image, s.builds_dir)
 		if err != nil {
 			return nil, err
 		}
 		create_container_opts.HostConfig.Binds = binds
 	}
 
-	container, err := client.CreateContainer(create_container_opts)
+	container, err := s.client.CreateContainer(create_container_opts)
 	if err != nil {
 		return nil, err
 	}
 
 	s.debugln("Starting container")
-	err = client.StartContainer(container.ID, create_container_opts.HostConfig)
+	err = s.client.StartContainer(container.ID, create_container_opts.HostConfig)
 	if err != nil {
-		go s.removeContainer(client, container.ID)
+		go s.removeContainer(container.ID)
 		return nil, err
 	}
 
 	return container, nil
 }
 
-func (s *DockerExecutor) removeContainer(client *docker.Client, id string) {
+func (s *DockerExecutor) removeContainer(id string) {
 	remove_container_opts := docker.RemoveContainerOptions{
 		ID:            id,
 		RemoveVolumes: true,
 		Force:         true,
 	}
-	client.RemoveContainer(remove_container_opts)
+	s.client.RemoveContainer(remove_container_opts)
 }
 
 func (s *DockerExecutor) getSshAuthMethods() []ssh.AuthMethod {
@@ -176,23 +171,47 @@ func (s *DockerExecutor) getSshAuthMethods() []ssh.AuthMethod {
 	return methods
 }
 
-func (s *DockerCommandExecutor) Start() error {
+func (s *DockerExecutor) Prepare(config *RunnerConfig, build *Build) error {
+	err := s.BaseExecutor.Prepare(config, build)
+	if err != nil {
+		return err
+	}
+
 	client, err := s.connect()
 	if err != nil {
 		return err
 	}
+	s.client = client
 
 	// Get image
-	image, err := s.getImage(client)
+	image, err := s.getImage(s.config.DockerImage, !s.config.DockerDisablePull)
 	if err != nil {
 		return err
+	}
+	s.image = image
+	return nil
+}
+
+func (s *DockerExecutor) Cleanup() {
+	if s.container != nil {
+		s.removeContainer(s.container.ID)
+		s.container = nil
 	}
 
+	s.BaseExecutor.Cleanup()
+}
+
+type DockerCommandExecutor struct {
+	DockerExecutor
+}
+
+func (s *DockerCommandExecutor) Start() error {
 	// Create container
-	container, err := s.createContainer(client, image, []string{"bash"})
+	container, err := s.createContainer(s.image, []string{"bash"})
 	if err != nil {
 		return err
 	}
+	s.container = container
 
 	// Wait for process to exit
 	go func() {
@@ -210,14 +229,14 @@ func (s *DockerCommandExecutor) Start() error {
 		}
 
 		s.debugln("Attach to container")
-		err := client.AttachToContainer(attach_container_opts)
+		err := s.client.AttachToContainer(attach_container_opts)
 		if err != nil {
 			s.buildFinish <- err
 			return
 		}
 
 		s.debugln("Wait for container")
-		exit_code, err := client.WaitContainer(container.ID)
+		exit_code, err := s.client.WaitContainer(container.ID)
 		if err != nil {
 			s.buildFinish <- err
 			return
@@ -229,33 +248,24 @@ func (s *DockerCommandExecutor) Start() error {
 			s.buildFinish <- errors.New(fmt.Sprintf("exit code", exit_code))
 		}
 	}()
-
-	s.buildAbortFunc = func(e *BaseExecutor) {
-		s.removeContainer(client, container.ID)
-	}
 	return nil
 }
 
+type DockerSshExecutor struct {
+	DockerExecutor
+	sshClient  *ssh.Client
+	sshSession *ssh.Session
+}
+
 func (s *DockerSshExecutor) Start() error {
-	client, err := s.connect()
-	if err != nil {
-		return err
-	}
-
-	// Get image
-	image, err := s.getImage(client)
-	if err != nil {
-		return err
-	}
-
 	// Create container
-	container, err := s.createContainer(client, image, []string{})
+	container, err := s.createContainer(s.image, []string{})
 	if err != nil {
 		return err
 	}
-	defer s.removeContainer(client, container.ID)
+	s.container = container
 
-	container_data, err := client.InspectContainer(container.ID)
+	container_data, err := s.client.InspectContainer(container.ID)
 	if err != nil {
 		return err
 	}
@@ -286,12 +296,14 @@ func (s *DockerSshExecutor) Start() error {
 			return err
 		}
 	}
+	s.sshClient = ssh_connection
 
 	s.debugln("Creating new session...")
 	ssh_session, err := ssh_connection.NewSession()
 	if err != nil {
 		return err
 	}
+	s.sshSession = ssh_session
 
 	// Wait for process to exit
 	go func() {
@@ -303,9 +315,16 @@ func (s *DockerSshExecutor) Start() error {
 		s.debugln("Ssh command finished with", err)
 		s.buildFinish <- err
 	}()
-
-	s.buildAbortFunc = func(e *BaseExecutor) {
-		ssh_session.Close()
-	}
 	return nil
+}
+
+func (s *DockerSshExecutor) Cleanup() {
+	if s.sshSession != nil {
+		s.sshSession.Close()
+	}
+	if s.sshClient != nil {
+		s.sshClient.Close()
+	}
+
+	s.DockerExecutor.Cleanup()
 }

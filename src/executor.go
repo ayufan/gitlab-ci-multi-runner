@@ -19,22 +19,22 @@ func GetExecutor(config RunnerConfig) Executor {
 	switch config.Executor {
 	case "shell", "":
 		return &ShellExecutor{
-			BaseExecutor{
+			BaseExecutor: BaseExecutor{
 				DefaultBuildsDir: "tmp/builds",
 			},
 		}
 	case "docker":
 		return &DockerCommandExecutor{
-			DockerExecutor{
-				BaseExecutor{
+			DockerExecutor: DockerExecutor{
+				BaseExecutor: BaseExecutor{
 					DefaultBuildsDir: "/builds",
 				},
 			},
 		}
 	case "docker-ssh":
 		return &DockerSshExecutor{
-			DockerExecutor{
-				BaseExecutor{
+			DockerExecutor: DockerExecutor{
+				BaseExecutor: BaseExecutor{
 					DefaultBuildsDir: "builds",
 				},
 			},
@@ -54,8 +54,6 @@ type BaseExecutor struct {
 	buildFinish      chan error
 	script_data      []byte
 	build_log        io.WriteCloser
-
-	buildAbortFunc func(e *BaseExecutor)
 }
 
 func (e *BaseExecutor) debugln(args ...interface{}) {
@@ -124,18 +122,10 @@ func (e *BaseExecutor) Wait() error {
 		log.Println(e.config.ShortDescription(), e.build.Id, "Build got aborted.")
 		buildState = Failed
 
-		if e.buildAbortFunc != nil {
-			e.buildAbortFunc(e)
-		}
-
 	case <-time.After(time.Duration(buildTimeout) * time.Second):
 		log.Println(e.config.ShortDescription(), e.build.Id, "Build timedout.")
 		buildState = Failed
 		buildMessage = fmt.Sprintf("\nCI Timeout. Execution took longer then %d seconds", buildTimeout)
-
-		if e.buildAbortFunc != nil {
-			e.buildAbortFunc(e)
-		}
 
 	case err := <-e.buildFinish:
 		// command finished
