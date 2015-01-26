@@ -23,6 +23,7 @@ type AbstractExecutor struct {
 	BuildLog         *os.File
 	BuildStarted     time.Time
 	BuildFinished    time.Time
+	BuildDuration    time.Duration
 }
 
 func (e *AbstractExecutor) FinishBuild(config RunnerConfig, buildState BuildState, extraMessage string) {
@@ -97,7 +98,7 @@ func (e *AbstractExecutor) Prepare(config *RunnerConfig, build *Build) error {
 	e.buildLogFinish = make(chan bool)
 	e.BuildStarted = time.Now()
 
-	log.println("Starting build...")
+	e.println("Starting build...")
 
 	// Generate build script
 	e.builds_dir = e.DefaultBuildsDir
@@ -164,7 +165,8 @@ func (e *AbstractExecutor) Wait() error {
 	}
 
 	e.BuildFinished = time.Now()
-	e.println("Build took", e.BuildFinished.Sub(e.BuildStarted), "second(s)")
+	e.BuildDuration = e.BuildFinished.Sub(e.BuildStarted)
+	e.println("Build took", e.BuildDuration)
 
 	// wait for update log routine to finish
 	e.debugln("Waiting for build log updater to finish")
