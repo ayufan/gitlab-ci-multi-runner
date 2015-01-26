@@ -2,6 +2,7 @@ package src
 
 import (
 	"bytes"
+	"io"
 	"time"
 
 	"code.google.com/p/go.crypto/ssh"
@@ -54,17 +55,28 @@ func (s *DockerSshExecutor) Start() error {
 	}
 	s.sshClient = ssh_connection
 
-	s.debugln("Creating new session...")
+	s.debugln("Creating SSH session...")
 	ssh_session, err := ssh_connection.NewSession()
 	if err != nil {
 		return err
 	}
 	s.sshSession = ssh_session
 
+	// Setup environment variables
+	var envVariables bytes.Buffer
+	for _, keyValue := range append(s.build.GetEnv(), s.config.Environment...) {
+		envVariables.WriteString("export " + ShellEscape(keyValue) + "\n")
+	}
+
+	buffer := io.MultiReader(
+		&envVariables,
+		bytes.NewBuffer(s.script_data),
+	)
+
 	// Wait for process to exit
 	go func() {
-		s.debugln("Running new command...")
-		ssh_session.Stdin = bytes.NewBuffer(s.script_data)
+		s.debugln("Running SSH command...")
+		ssh_session.Stdin = buffer
 		ssh_session.Stdout = s.build_log
 		ssh_session.Stderr = s.build_log
 		err := ssh_session.Run("bash")
