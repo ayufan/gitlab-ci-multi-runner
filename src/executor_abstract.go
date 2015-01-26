@@ -1,8 +1,11 @@
 package src
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -17,7 +20,61 @@ type AbstractExecutor struct {
 	buildLogFinish   chan bool
 	buildFinish      chan error
 	script_data      []byte
-	build_log        io.WriteCloser
+	BuildLog         *os.File
+}
+
+func (e *AbstractExecutor) FinishBuild(config RunnerConfig, buildState BuildState, extraMessage string) {
+	var buildLog []byte
+	if e.BuildLog != nil {
+		buildLog, _ = ioutil.ReadFile(e.BuildLog.Name())
+	}
+
+	go func() {
+		for {
+			buffer := io.MultiReader(bytes.NewReader(buildLog), bytes.NewBufferString(extraMessage))
+			if UpdateBuild(config, e.build.Id, buildState, buffer) != UpdateFailed {
+				break
+			} else {
+				time.Sleep(UPDATE_RETRY_INTERVAL * time.Second)
+			}
+		}
+
+		e.println("Build finished.")
+	}()
+}
+
+func (e *AbstractExecutor) WatchTrace(config RunnerConfig, abort chan bool, finished chan bool) {
+	for {
+		select {
+		case <-time.After(UPDATE_INTERVAL * time.Second):
+			if e.BuildLog == nil {
+				<-finished
+				return
+			}
+
+			file, err := os.Open(e.BuildLog.Name())
+			if err != nil {
+				continue
+			}
+			defer file.Close()
+
+			switch UpdateBuild(config, e.build.Id, Running, file) {
+			case UpdateSucceeded:
+			case UpdateAbort:
+				e.debugln("updateBuildLog", "Sending abort request...")
+				abort <- true
+				e.debugln("updateBuildLog", "Waiting for finished flag...")
+				<-finished
+				e.debugln("updateBuildLog", "Thread finished.")
+				return
+			case UpdateFailed:
+			}
+
+		case <-finished:
+			e.debugln("updateBuildLog", "Received finish.")
+			return
+		}
+	}
 }
 
 func (e *AbstractExecutor) debugln(args ...interface{}) {
@@ -50,21 +107,19 @@ func (e *AbstractExecutor) Prepare(config *RunnerConfig, build *Build) error {
 	e.script_data = script
 
 	// Create build log
-	build_log, err := e.build.CreateBuildLog()
+	build_log, err := ioutil.TempFile("", "build_log")
 	if err != nil {
 		return err
 	}
-	e.build_log = build_log
+	e.BuildLog = build_log
+	e.debugln("Created build log:", build_log.Name())
 	return nil
 }
 
 func (e *AbstractExecutor) Cleanup() {
-	if e.build != nil {
-		e.build.DeleteBuildLog()
-	}
-
-	if e.build_log != nil {
-		e.build_log.Close()
+	if e.BuildLog != nil {
+		os.Remove(e.BuildLog.Name())
+		e.BuildLog.Close()
 	}
 }
 
@@ -72,7 +127,7 @@ func (e *AbstractExecutor) Wait() error {
 	var buildState BuildState
 	var buildMessage string
 
-	go e.build.WatchTrace(*e.config, e.buildAbort, e.buildLogFinish)
+	go e.WatchTrace(*e.config, e.buildAbort, e.buildLogFinish)
 
 	buildTimeout := e.build.Timeout
 	if buildTimeout <= 0 {
@@ -109,6 +164,6 @@ func (e *AbstractExecutor) Wait() error {
 	log.Debugln(e.config.ShortDescription(), e.build.Id, "Build log updater finished.")
 
 	// Send final build state to server
-	e.build.FinishBuild(*e.config, buildState, buildMessage)
+	e.FinishBuild(*e.config, buildState, buildMessage)
 	return nil
 }

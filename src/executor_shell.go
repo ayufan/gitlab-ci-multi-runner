@@ -25,8 +25,8 @@ func (s *ShellExecutor) Start() error {
 
 	s.cmd.Env = append(s.build.GetEnv(), s.config.Environment...)
 	s.cmd.Stdin = bytes.NewReader(s.script_data)
-	s.cmd.Stdout = s.build_log
-	s.cmd.Stderr = s.build_log
+	s.cmd.Stdout = s.BuildLog
+	s.cmd.Stderr = s.BuildLog
 
 	// Start process
 	err := s.cmd.Start()

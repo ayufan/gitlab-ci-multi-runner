@@ -77,8 +77,8 @@ func (s *DockerSshExecutor) Start() error {
 	go func() {
 		s.debugln("Running SSH command...")
 		ssh_session.Stdin = buffer
-		ssh_session.Stdout = s.build_log
-		ssh_session.Stderr = s.build_log
+		ssh_session.Stdout = s.BuildLog
+		ssh_session.Stderr = s.BuildLog
 		err := ssh_session.Run("bash")
 		s.debugln("Ssh command finished with", err)
 		s.buildFinish <- err

@@ -3,15 +3,9 @@ package src
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"os"
 	"strings"
-	"time"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 type Build struct {
@@ -106,92 +100,21 @@ func (build *Build) Generate(builds_dir string) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func (b *Build) ReadBuildLog() io.ReadCloser {
-	file, err := os.Open(b.BuildLog)
-	if err != nil {
-		return nil
-	}
-	return file
-}
-
-func (b *Build) WatchTrace(config RunnerConfig, abort chan bool, finished chan bool) {
-	for {
-		select {
-		case <-time.After(UPDATE_INTERVAL * time.Second):
-			file := b.ReadBuildLog()
-			if file == nil {
-				continue
-			}
-			defer file.Close()
-			switch UpdateBuild(config, b.Id, Running, file) {
-			case UpdateSucceeded:
-			case UpdateAbort:
-				log.Debugln(config.ShortDescription(), b.Id, "updateBuildLog", "Sending abort request...")
-				abort <- true
-				log.Debugln(config.ShortDescription(), b.Id, "updateBuildLog", "Waiting for finished flag...")
-				<-finished
-				log.Debugln(config.ShortDescription(), b.Id, "updateBuildLog", "Thread finished.")
-				return
-			case UpdateFailed:
-			}
-
-		case <-finished:
-			log.Debugln(config.ShortDescription(), b.Id, "updateBuildLog", "Received finish.")
-			return
-		}
-	}
-}
-
-func (b *Build) FinishBuild(config RunnerConfig, buildState BuildState, extraMessage string) {
-	build, _ := ioutil.ReadFile(b.BuildLog)
-
-	go func() {
-		for {
-			buffer := io.MultiReader(bytes.NewReader(build), bytes.NewBufferString(extraMessage))
-			if UpdateBuild(config, b.Id, buildState, buffer) != UpdateFailed {
-				break
-			} else {
-				time.Sleep(UPDATE_RETRY_INTERVAL * time.Second)
-			}
-		}
-
-		log.Println(config.ShortDescription(), b.Id, "Build finished.")
-	}()
-}
-
 func (build *Build) GetEnv() []string {
 	return []string{
-		"CI_SERVER=yes",
-		"CI_SERVER_NAME=GitLab CI",
-		"CI_SERVER_VERSION=",
-		"CI_SERVER_REVISION=",
 		fmt.Sprintf("CI_BUILD_REF=%s", build.Sha),
 		fmt.Sprintf("CI_BUILD_BEFORE_SHA=%s", build.BeforeSha),
 		fmt.Sprintf("CI_BUILD_REF_NAME=%s", build.RefName),
 		fmt.Sprintf("CI_BUILD_ID=%d", build.Id),
 		fmt.Sprintf("CI_BUILD_REPO=%s", build.RepoURL),
 		fmt.Sprintf("CI_PROJECT_ID=%d", build.ProjectId),
+		"CI_SERVER=yes",
+		"CI_SERVER_NAME=GitLab CI",
+		"CI_SERVER_VERSION=",
+		"CI_SERVER_REVISION=",
 		"RUBYLIB=",
 		"RUBYOPT=",
 		"BNDLE_BIN_PATH=",
 		"BUNDLE_GEMFILE=",
-	}
-}
-
-func (build *Build) CreateBuildLog() (io.WriteCloser, error) {
-	// create build log
-	build_log, err := ioutil.TempFile("", "build_log")
-	if err != nil {
-		return nil, errors.New("Failed to create build log file")
-	}
-	build.BuildLog = build_log.Name()
-	log.Debugln(build.Id, "Created build log:", build_log.Name())
-	return build_log, nil
-}
-
-func (build *Build) DeleteBuildLog() {
-	if len(build.BuildLog) != 0 {
-		os.Remove(build.BuildLog)
-		build.BuildLog = ""
 	}
 }
