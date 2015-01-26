@@ -40,7 +40,15 @@ func (j *Job) Run() error {
 		return err
 	}
 
-	err := executor.Run(*j.Runner, *j.Build)
+	err := executor.Prepare(j.Runner, j.Build)
+	if err == nil {
+		err = executor.Start()
+	}
+	if err == nil {
+		err = executor.Wait()
+	}
+	executor.Cleanup()
+
 	if err != nil {
 		j.Finish <- j
 		failBuild(*j.Runner, *j.Build, err)

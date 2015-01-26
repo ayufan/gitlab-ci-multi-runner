@@ -35,4 +35,10 @@ var (
 		Usage:  "Runner's registration hostname",
 		EnvVar: "HOSTNAME",
 	}
+	flDockerHost = cli.StringFlag{
+		Name:   "docker-host",
+		Value:  "",
+		Usage:  "Docker endpoint URL",
+		EnvVar: "DOCKER_HOST",
+	}
 )

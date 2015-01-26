@@ -3,10 +3,12 @@ package src
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -48,82 +50,80 @@ func (b *Build) ProjectDir() string {
 	return b.ProjectUniqueName()
 }
 
-func (b *Build) writeCloneCmd(w *bufio.Writer, builds_dir string) {
-	w.WriteString(fmt.Sprintf("mkdir -p %s && ", builds_dir))
-	w.WriteString(fmt.Sprintf("cd %s && ", builds_dir))
-	w.WriteString(fmt.Sprintf("rm -rf %s && ", b.ProjectDir()))
-	w.WriteString(fmt.Sprintf("git clone %s %s && ", b.RepoURL, b.ProjectDir()))
-	w.WriteString(fmt.Sprintf("cd %s\n", b.ProjectDir()))
+func (b *Build) writeCloneCmd(w io.Writer, builds_dir string) {
+	io.WriteString(w, fmt.Sprintf("mkdir -p %s && ", builds_dir))
+	io.WriteString(w, fmt.Sprintf("cd %s && ", builds_dir))
+	io.WriteString(w, fmt.Sprintf("rm -rf %s && ", b.ProjectDir()))
+	io.WriteString(w, fmt.Sprintf("git clone %s %s && ", b.RepoURL, b.ProjectDir()))
+	io.WriteString(w, fmt.Sprintf("cd %s\n", b.ProjectDir()))
 }
 
-func (b *Build) writeFetchCmd(w *bufio.Writer, builds_dir string) {
-	w.WriteString(fmt.Sprintf("if [[ -d %s/%s/.git ]]; then\n", builds_dir, b.ProjectDir()))
-	w.WriteString(fmt.Sprintf("cd %s/%s && ", builds_dir, b.ProjectDir()))
-	w.WriteString(fmt.Sprintf("git clean -fdx && "))
-	w.WriteString(fmt.Sprintf("git reset --hard && "))
-	w.WriteString(fmt.Sprintf("git remote set-url origin %s &&", b.RepoURL))
-	w.WriteString(fmt.Sprintf("git fetch origin\n"))
-	w.WriteString(fmt.Sprintf("else\n"))
+func (b *Build) writeFetchCmd(w io.Writer, builds_dir string) {
+	io.WriteString(w, fmt.Sprintf("if [[ -d %s/%s/.git ]]; then\n", builds_dir, b.ProjectDir()))
+	io.WriteString(w, fmt.Sprintf("cd %s/%s && ", builds_dir, b.ProjectDir()))
+	io.WriteString(w, fmt.Sprintf("git clean -fdx && "))
+	io.WriteString(w, fmt.Sprintf("git reset --hard && "))
+	io.WriteString(w, fmt.Sprintf("git remote set-url origin %s && ", b.RepoURL))
+	io.WriteString(w, fmt.Sprintf("git fetch origin\n"))
+	io.WriteString(w, fmt.Sprintf("else\n"))
 	b.writeCloneCmd(w, builds_dir)
-	w.WriteString(fmt.Sprintf("fi\n"))
+	io.WriteString(w, fmt.Sprintf("fi\n"))
 }
 
-func (b *Build) writeCheckoutCmd(w *bufio.Writer, builds_dir string) {
-	w.WriteString(fmt.Sprintf("git checkout %s && ", b.RefName))
-	w.WriteString(fmt.Sprintf("git reset --hard %s\n", b.Sha))
+func (b *Build) writeCheckoutCmd(w io.Writer, builds_dir string) {
+	io.WriteString(w, fmt.Sprintf("git checkout %s && ", b.RefName))
+	io.WriteString(w, fmt.Sprintf("git reset --hard %s\n", b.Sha))
 }
 
-func (b *Build) Generate(builds_dir string) *string {
-	file, err := ioutil.TempFile("", "build_script")
+func (build *Build) Generate(builds_dir string) ([]byte, error) {
+	var b bytes.Buffer
+	w := bufio.NewWriter(&b)
+
+	io.WriteString(w, "#!/usr/bin/env bash\n")
+	io.WriteString(w, "\n")
+	io.WriteString(w, "echo Using $(hostname)\n")
+	io.WriteString(w, "\n")
+	io.WriteString(w, "trap 'kill -s INT 0' EXIT\n")
+	io.WriteString(w, "set -evo pipefail\n")
+	io.WriteString(w, "\n")
+
+	if build.AllowGitFetch {
+		build.writeFetchCmd(w, builds_dir)
+	} else {
+		build.writeCloneCmd(w, builds_dir)
+	}
+
+	build.writeCheckoutCmd(w, builds_dir)
+	io.WriteString(w, "\n")
+
+	commands := build.Commands
+	commands = strings.Replace(commands, "\r\n", "\n", -1)
+
+	io.WriteString(w, commands)
+
+	w.Flush()
+
+	return b.Bytes(), nil
+}
+
+func (b *Build) ReadBuildLog() io.ReadCloser {
+	file, err := os.Open(b.BuildLog)
 	if err != nil {
 		return nil
 	}
-
-	os.Chmod(file.Name(), os.ModePerm&0700)
-
-	w := bufio.NewWriter(file)
-	defer w.Flush()
-
-	w.WriteString("#!/usr/bin/env bash\n")
-	w.WriteString("\n")
-	w.WriteString("echo Using $(hostname)\n")
-	w.WriteString("\n")
-	w.WriteString("trap 'kill -s INT 0' EXIT\n")
-	w.WriteString("set -evo pipefail\n")
-	w.WriteString("\n")
-
-	if b.AllowGitFetch {
-		b.writeFetchCmd(w, builds_dir)
-	} else {
-		b.writeCloneCmd(w, builds_dir)
-	}
-
-	b.writeCheckoutCmd(w, builds_dir)
-	w.WriteString("\n")
-
-	w.WriteString(b.Commands)
-
-	name := file.Name()
-	return &name
-}
-
-func (b *Build) SendTrace(config RunnerConfig, state BuildState, extraMessage string) UpdateState {
-	file, err := os.Open(b.BuildLog)
-	if err != nil {
-		return UpdateBuild(config, b.Id, state, bytes.NewBufferString(""))
-	}
-	defer file.Close()
-
-	buffer := io.MultiReader(file, bytes.NewBufferString(extraMessage))
-	return UpdateBuild(config, b.Id, state, buffer)
+	return file
 }
 
 func (b *Build) WatchTrace(config RunnerConfig, abort chan bool, finished chan bool) {
 	for {
 		select {
 		case <-time.After(UPDATE_INTERVAL * time.Second):
-			log.Debugln(config.ShortDescription(), b.Id, "updateBuildLog", "Updating...")
-			switch b.SendTrace(config, Running, "") {
+			file := b.ReadBuildLog()
+			if file == nil {
+				continue
+			}
+			defer file.Close()
+			switch UpdateBuild(config, b.Id, Running, file) {
 			case UpdateSucceeded:
 			case UpdateAbort:
 				log.Debugln(config.ShortDescription(), b.Id, "updateBuildLog", "Sending abort request...")
@@ -142,14 +142,56 @@ func (b *Build) WatchTrace(config RunnerConfig, abort chan bool, finished chan b
 	}
 }
 
-func (b *Build) FinishBuild(config RunnerConfig, buildState BuildState, buildMessage string) {
-	for {
-		if b.SendTrace(config, buildState, buildMessage) != UpdateFailed {
-			break
-		} else {
-			time.Sleep(UPDATE_RETRY_INTERVAL * time.Second)
-		}
-	}
+func (b *Build) FinishBuild(config RunnerConfig, buildState BuildState, extraMessage string) {
+	build, _ := ioutil.ReadFile(b.BuildLog)
 
-	log.Println(config.ShortDescription(), b.Id, "Build finished.")
+	go func() {
+		for {
+			buffer := io.MultiReader(bytes.NewReader(build), bytes.NewBufferString(extraMessage))
+			if UpdateBuild(config, b.Id, buildState, buffer) != UpdateFailed {
+				break
+			} else {
+				time.Sleep(UPDATE_RETRY_INTERVAL * time.Second)
+			}
+		}
+
+		log.Println(config.ShortDescription(), b.Id, "Build finished.")
+	}()
+}
+
+func (build *Build) GetEnv() []string {
+	return []string{
+		"CI_SERVER=yes",
+		"CI_SERVER_NAME=GitLab CI",
+		"CI_SERVER_VERSION=",
+		"CI_SERVER_REVISION=",
+		fmt.Sprintf("CI_BUILD_REF=%s", build.Sha),
+		fmt.Sprintf("CI_BUILD_BEFORE_SHA=%s", build.BeforeSha),
+		fmt.Sprintf("CI_BUILD_REF_NAME=%s", build.RefName),
+		fmt.Sprintf("CI_BUILD_ID=%d", build.Id),
+		fmt.Sprintf("CI_BUILD_REPO=%s", build.RepoURL),
+		fmt.Sprintf("CI_PROJECT_ID=%d", build.ProjectId),
+		"RUBYLIB=",
+		"RUBYOPT=",
+		"BNDLE_BIN_PATH=",
+		"BUNDLE_GEMFILE=",
+	}
+}
+
+func (build *Build) CreateBuildLog() (io.WriteCloser, error) {
+	// create build log
+	build_log, err := ioutil.TempFile("", "build_log")
+	if err != nil {
+		return nil, errors.New("Failed to create build log file")
+	}
+	build.BuildLog = build_log.Name()
+	log.Debugln(build.Id, "Created build log:", build_log.Name())
+	return build_log, nil
+}
+
+func (build *Build) DeleteBuildLog() {
+	if len(build.BuildLog) != 0 {
+		os.Remove(build.BuildLog)
+		build.BuildLog = ""
+	}
 }

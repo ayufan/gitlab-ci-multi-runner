@@ -19,13 +19,25 @@ type RunnerConfig struct {
 	Executor  string `toml:"executor"`
 	BuildsDir string `toml:"builds_dir"`
 
+	Environment []string `toml:"environment"`
+
 	ShellScript string `toml:"shell_script"`
 
 	DockerHost         string   `toml:"docker_host"`
 	DockerImage        string   `toml:"docker_image"`
-	DockerPrivileged   bool     `toml:"docker_privileged`
+	DockerPrivileged   bool     `toml:"docker_privileged"`
 	DockerDisableCache bool     `toml:"docker_disable_cache"`
+	DockerDisablePull  bool     `toml:"docker_disable_pull"`
 	DockerVolumes      []string `toml:"docker_volumes"`
+	DockerCacheDir     string   `toml:"docker_cache_dir"`
+	DockerRegistry     string   `toml:"docker_registry"`
+	DockerExtraHosts   []string `toml:"docker_extra_hosts"`
+	DockerLinks        []string `toml:"docker_links"`
+
+	SshUser     string `toml:"ssh_user"`
+	SshPassword string `toml:"ssh_password"`
+	SshHost     string `toml:"ssh_host"`
+	SshPort     string `toml:"ssh_port"`
 }
 
 type BaseConfig struct {

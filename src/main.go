@@ -43,7 +43,6 @@ func Main() {
 		if !c.IsSet("log-level") && !c.IsSet("l") && c.Bool("debug") {
 			log.SetLevel(log.DebugLevel)
 		}
-
 		return nil
 	}
 
@@ -52,7 +51,7 @@ func Main() {
 			Name:      "run-single",
 			ShortName: "rs",
 			Usage:     "start single runner",
-			Flags:     []cli.Flag{flToken, flURL},
+			Flags:     []cli.Flag{flToken, flURL, &flDockerHost},
 			Action:    runSingle,
 		},
 		{
@@ -68,6 +67,17 @@ func Main() {
 			Usage:     "run multi runner",
 			Flags:     []cli.Flag{flConfigFile},
 			Action:    runMulti,
+		},
+		{
+			Name:      "test",
+			ShortName: "t",
+			Usage:     "test",
+			Flags:     []cli.Flag{&flConfigFile, &flDockerHost},
+			Action: func(cli *cli.Context) {
+				println("Hello world")
+				println("Config:", flConfigFile.Value)
+				println("Docker HOST:", cli.String("docker-host"))
+			},
 		},
 	}
 

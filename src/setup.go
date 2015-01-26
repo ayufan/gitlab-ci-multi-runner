@@ -24,9 +24,8 @@ func setup(c *cli.Context) {
 	}
 
 	runner_config := RunnerConfig{
-		URL:   c.String("URL"),
+		URL:   c.String("url"),
 		Token: c.String("registration-token"),
-		Limit: 1,
 	}
 
 	bio := bufio.NewReader(os.Stdin)
@@ -66,6 +65,7 @@ func setup(c *cli.Context) {
 	}
 
 	runner_config.Token = result.Token
+	runner_config.DockerVolumes = []string{"/test", "/second"}
 
 	config.Runners = append(config.Runners, &runner_config)
 
