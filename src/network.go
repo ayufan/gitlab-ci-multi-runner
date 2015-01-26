@@ -124,7 +124,7 @@ func getUrl(baseURL string, request string, a ...interface{}) string {
 	return fmt.Sprintf("%s/api/v1/%s", baseURL, fmt.Sprintf(request, a...))
 }
 
-func GetBuild(config RunnerConfig) *GetBuildResponse {
+func GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 	request := GetBuildRequest{
 		Token: config.Token,
 	}
@@ -135,16 +135,16 @@ func GetBuild(config RunnerConfig) *GetBuildResponse {
 	switch result {
 	case 201:
 		log.Println(config.ShortDescription(), "Checking for builds...", "received")
-		return &response
+		return &response, true
 	case 403:
 		log.Println(config.ShortDescription(), "Checking for builds...", "forbidden")
-		return nil
+		return nil, false
 	case 404:
 		log.Println(config.ShortDescription(), "Checking for builds...", "nothing")
-		return nil
+		return nil, true
 	default:
 		log.Println(config.ShortDescription(), "Checking for builds...", "failed")
-		return nil
+		return nil, true
 	}
 }
 

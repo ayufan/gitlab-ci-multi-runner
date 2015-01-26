@@ -55,6 +55,10 @@ func (c *RunnerConfig) ShortDescription() string {
 	return c.Token[0:8]
 }
 
+func (c *RunnerConfig) UniqueID() string {
+	return c.URL + c.Token
+}
+
 func (config *Config) LoadConfig(config_file string) error {
 	info, err := os.Stat(config_file)
 	if err != nil {

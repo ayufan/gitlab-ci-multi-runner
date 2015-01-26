@@ -3,6 +3,7 @@ package src
 import (
 	"bytes"
 	"github.com/codegangsta/cli"
+	"os"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -34,7 +35,11 @@ func runSingle(c *cli.Context) {
 	log.Println("Starting runner for", runner_config.URL, "with token", runner_config.ShortDescription(), "...")
 
 	for {
-		new_build := GetBuild(runner_config)
+		new_build, healthy := GetBuild(runner_config)
+		if !healthy {
+			log.Println("Runner died, beacuse it's not healthy!")
+			os.Exit(1)
+		}
 		if new_build == nil {
 			time.Sleep(CHECK_INTERVAL * time.Second)
 			continue

@@ -9,14 +9,24 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-func requestNewJob(config *Config, jobs []*Job) (*GetBuildResponse, *RunnerConfig) {
-	for _, runner := range config.Runners {
+type MultiRunner struct {
+	config  Config
+	jobs    []*Job
+	healthy map[string]int
+}
+
+func (mr *MultiRunner) requestNewJob() (*GetBuildResponse, *RunnerConfig) {
+	for _, runner := range mr.config.Runners {
 		if runner == nil {
 			continue
 		}
 
+		if mr.healthy[runner.UniqueID()] >= HEALTHY_CHECKS {
+			continue
+		}
+
 		count := 0
-		for _, job := range jobs {
+		for _, job := range mr.jobs {
 			if job.Runner == runner {
 				count += 1
 			}
@@ -26,23 +36,30 @@ func requestNewJob(config *Config, jobs []*Job) (*GetBuildResponse, *RunnerConfi
 			continue
 		}
 
-		new_build := GetBuild(*runner)
+		new_build, healthy := GetBuild(*runner)
 		if new_build != nil {
 			return new_build, runner
+		}
+
+		if healthy {
+			mr.healthy[runner.UniqueID()] = 0
+		} else {
+			mr.healthy[runner.UniqueID()] = mr.healthy[runner.UniqueID()] + 1
+			log.Println("Runner", runner.ShortDescription(), "is not healthy")
 		}
 	}
 
 	return nil, nil
 }
 
-func startNewJob(config *Config, jobs []*Job, finish chan *Job) *Job {
-	if config.Concurrent <= len(jobs) {
+func (mr *MultiRunner) startNewJob(finish chan *Job) *Job {
+	if mr.config.Concurrent <= len(mr.jobs) {
 		return nil
 	}
 
-	log.Debugln(len(jobs), "Requesting a new job...")
+	log.Debugln(len(mr.jobs), "Requesting a new job...")
 
-	new_build, runner_config := requestNewJob(config, jobs)
+	new_build, runner_config := mr.requestNewJob()
 	if new_build == nil {
 		return nil
 	}
@@ -51,7 +68,7 @@ func startNewJob(config *Config, jobs []*Job, finish chan *Job) *Job {
 		return nil
 	}
 
-	log.Debugln(len(jobs), "Received new job for", runner_config.ShortDescription(), "build", new_build.Id)
+	log.Debugln(len(mr.jobs), "Received new job for", runner_config.ShortDescription(), "build", new_build.Id)
 	new_job := &Job{
 		Build: &Build{
 			GetBuildResponse: *new_build,
@@ -62,7 +79,7 @@ func startNewJob(config *Config, jobs []*Job, finish chan *Job) *Job {
 	build_prefix := fmt.Sprintf("runner-%s", runner_config.ShortDescription())
 
 	other_builds := []*Build{}
-	for _, other_job := range jobs {
+	for _, other_job := range mr.jobs {
 		other_builds = append(other_builds, other_job.Build)
 	}
 	new_job.Build.GenerateUniqueName(build_prefix, other_builds)
@@ -74,49 +91,68 @@ func startNewJob(config *Config, jobs []*Job, finish chan *Job) *Job {
 	return new_job
 }
 
+func (mr *MultiRunner) debugln(args ...interface{}) {
+	args = append([]interface{}{len(mr.jobs)}, args...)
+	log.Debugln(args...)
+}
+
+func (mr *MultiRunner) println(args ...interface{}) {
+	args = append([]interface{}{len(mr.jobs)}, args...)
+	log.Println(args...)
+}
+
+func (mr *MultiRunner) addJob(newJob *Job) {
+	mr.jobs = append(mr.jobs, newJob)
+	mr.debugln("Added a new job", newJob)
+}
+
+func (mr *MultiRunner) removeJob(deleteJob *Job) bool {
+	for idx, job := range mr.jobs {
+		if job == deleteJob {
+			mr.jobs[idx] = mr.jobs[len(mr.jobs)-1]
+			mr.jobs = mr.jobs[:len(mr.jobs)-1]
+			mr.debugln("Removed job", deleteJob)
+			return true
+		}
+	}
+	return false
+}
+
 func runMulti(c *cli.Context) {
-	config := Config{}
-	err := config.LoadConfig(c.String("config"))
+	mr := MultiRunner{
+		healthy: map[string]int{},
+	}
+	err := mr.config.LoadConfig(c.String("config"))
 	if err != nil {
 		panic(err)
 	}
 
-	config.SetChdir()
+	mr.config.SetChdir()
+	mr.println("Starting multi-runner from", c.String("config"), "...")
 
-	log.Println("Starting multi-runner from", c.String("config"), "...")
-
-	jobs := []*Job{}
 	job_finish := make(chan *Job)
-
 	reload_config := make(chan Config)
-	go ReloadConfig(c.String("config"), config.ModTime, reload_config)
+	go ReloadConfig(c.String("config"), mr.config.ModTime, reload_config)
 
 	for {
-		new_job := startNewJob(&config, jobs, job_finish)
+		new_job := mr.startNewJob(job_finish)
 		if new_job != nil {
-			jobs = append(jobs, new_job)
-			log.Debugln(len(jobs), "Added a new job", new_job)
+			mr.addJob(new_job)
 		}
 
 		select {
 		case finished_job := <-job_finish:
-			log.Debugln(len(jobs), "Job finished", finished_job)
-			for idx, job := range jobs {
-				if job == finished_job {
-					jobs[idx] = jobs[len(jobs)-1]
-					jobs = jobs[:len(jobs)-1]
-					log.Debugln(len(jobs), "Removed finished job", finished_job)
-					break
-				}
-			}
+			mr.debugln("Job finished", finished_job)
+			mr.removeJob(finished_job)
 
 		case new_config := <-reload_config:
-			log.Debugln(len(jobs), "Config reloaded.")
-			config = new_config
-			config.SetChdir()
+			mr.debugln("Config reloaded.")
+			mr.healthy = map[string]int{}
+			mr.config = new_config
+			mr.config.SetChdir()
 
 		case <-time.After(CHECK_INTERVAL * time.Second):
-			log.Debugln(len(jobs), "Check interval fired")
+			mr.debugln("Check interval fired")
 		}
 	}
 }
