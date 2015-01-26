@@ -60,7 +60,7 @@ func startNewJob(config *Config, jobs []*Job, finish chan *Job) *Job {
 		Runner: runner_config,
 	}
 
-	build_prefix := fmt.Sprintf("runner-%s-", runner_config.ShortDescription())
+	build_prefix := fmt.Sprintf("runner-%s", runner_config.ShortDescription())
 
 	other_builds := []*Build{}
 	for _, other_job := range jobs {
