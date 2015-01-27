@@ -9,7 +9,7 @@ import (
 	"github.com/codegangsta/cli"
 )
 
-func ask(r *bufio.Reader, prompt string, result *string) {
+func ask(r *bufio.Reader, prompt string, result *string, allow_empty ...bool) {
 	for len(*result) == 0 {
 		log.Println(prompt)
 		data, _, err := r.ReadLine()
@@ -18,14 +18,18 @@ func ask(r *bufio.Reader, prompt string, result *string) {
 		}
 		*result = string(data)
 		*result = strings.TrimSpace(*result)
+
+		if len(allow_empty) > 0 && allow_empty[0] && len(*result) == 0 {
+			return
+		}
 	}
 }
 
 func askExecutor(r *bufio.Reader, result *string) {
 	for {
-		ask(r, "Please enter the executor: shell, docker, docker-ssh?", result)
+		ask(r, "Please enter the executor: shell, docker, docker-ssh, ssh?", result)
 		switch *result {
-		case "shell", "docker", "docker-ssh":
+		case "shell", "docker", "docker-ssh", "ssh":
 			return
 		}
 	}
@@ -36,8 +40,12 @@ func askDocker(r *bufio.Reader, runner_config *RunnerConfig) {
 	ask(r, "Please enter the Docker image (eg. ruby:2.1):", &runner_config.Docker.Image)
 }
 
-func askSsh(r *bufio.Reader, runner_config *RunnerConfig) {
+func askSsh(r *bufio.Reader, runner_config *RunnerConfig, serverless bool) {
 	runner_config.Ssh = &SshConfig{}
+	if !serverless {
+		ask(r, "Please enter the SSH server address (eg. my.server.com):", &runner_config.Ssh.Host)
+		ask(r, "Please enter the SSH server port (eg. 22):", &runner_config.Ssh.Port, true)
+	}
 	ask(r, "Please enter the SSH user (eg. root):", &runner_config.Ssh.User)
 	ask(r, "Please enter the SSH password (eg. docker.io):", &runner_config.Ssh.Password)
 }
@@ -79,14 +87,15 @@ func setup(c *cli.Context) {
 	askExecutor(bio, &runner_config.Executor)
 
 	switch runner_config.Executor {
-	case "shell":
 	case "docker", "docker-ssh":
 		askDocker(bio, &runner_config)
 	}
 
 	switch runner_config.Executor {
+	case "ssh":
+		askSsh(bio, &runner_config, false)
 	case "docker-ssh":
-		askSsh(bio, &runner_config)
+		askSsh(bio, &runner_config, true)
 	}
 
 	config.Runners = append(config.Runners, &runner_config)

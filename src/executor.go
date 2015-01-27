@@ -31,6 +31,12 @@ func GetExecutor(executor string) Executor {
 				},
 			},
 		}
+	case "ssh":
+		return &SshExecutor{
+			AbstractExecutor: AbstractExecutor{
+				DefaultBuildsDir: "builds",
+			},
+		}
 	default:
 		return nil
 	}
