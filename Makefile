@@ -1,4 +1,4 @@
-all: linux-386 linux darwin-386 darwin windows-386 windows
+all: linux-386 linux darwin-386 darwin
 
 linux-386:
 	GOOS=linux GOARCH=386 bash -c 'go build -o out/gitlab-ci-multirunner-$$GOOS-$$GOARCH$$GOEXT'
