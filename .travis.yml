@@ -1,0 +1,26 @@
+sudo: false
+language: go
+go:
+- '1.4'
+install:
+- go get github.com/mitchellh/gox
+- gox -build-toolchain -os="linux" -os="darwin"
+- go get github.com/tools/godep
+- godep restore
+script:
+- make test
+- make build
+deploy:
+  provider: releases
+  api_key:
+    secure: WBb1z0GV1uD8pB/UMDVqiqIFHcgxl2fngF9Qg8Obe0IJIuBN8ak4H1ulYKYcRgguJjefMG/OnPT2xHCsSme+OanxBcGDiYijG1vVmBqnMV8wTK5ulqkgSz7QVH4oCmdqd8WnHKqqqXmLUARRAUkvKFDCf2mq6qyAy+wKw7jPluI=
+  file:
+    - out/gitlab-ci-multi-runner-linux-arm
+    - out/gitlab-ci-multi-runner-linux-386
+    - out/gitlab-ci-multi-runner-linux-amd64
+    - out/gitlab-ci-multi-runner-darwin-386
+    - out/gitlab-ci-multi-runner-darwin-amd64
+  on:
+    repo: ayufan/gitlab-ci-multi-runner
+    tags: true
+    all_branches: true
