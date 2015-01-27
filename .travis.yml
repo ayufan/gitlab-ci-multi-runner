@@ -3,12 +3,16 @@ language: go
 go:
 - '1.4'
 install:
-- go get github.com/mitchellh/gox
-- gox -build-toolchain -os="linux" -os="darwin"
 - go get github.com/tools/godep
 - godep restore
+before_script:
+- sed -i "s/^const VERSION .*\$/const VERSION = \"${TRAVIS_TAG:-$TRAVIS_BRANCH} ($(git rev-parse --short HEAD))\"/g" src/consts.go
+- cat src/consts.go | grep VERSION
 script:
 - make test
+before_deploy:
+- go get github.com/mitchellh/gox
+- gox -build-toolchain -os="linux" -os="darwin" -os="windows"
 - make build
 deploy:
   provider: releases

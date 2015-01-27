@@ -12,7 +12,7 @@ func Main() {
 	app := cli.NewApp()
 	app.Name = path.Base(os.Args[0])
 	app.Usage = "a GitLab-CI Multi Runner"
-	app.Version = "0.1.0"
+	app.Version = VERSION
 	app.Author = "Kamil Trzciński"
 	app.Email = "ayufan@ayufan.eu"
 
