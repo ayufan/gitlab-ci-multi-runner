@@ -1,0 +1,60 @@
+concurrent = 4
+root_dir = ""
+
+[[runners]]
+  name = "ruby-2.1"
+  url = "https://CI/"
+  token = "TOKEN"
+  limit = 2
+  executor = "shell"
+  builds_dir = ""
+
+[[runners]]
+  name = "ruby-2.1-docker"
+  url = "https://CI/"
+  token = "TOKEN"
+  limit = 0
+  executor = "docker"
+  builds_dir = ""
+  [runners.docker]
+    host = ""
+    image = "ruby:2.1"
+    privileged = false
+    disable_cache = false
+    disable_pull = false
+    cache_dir = ""
+    registry = ""
+
+[[runners]]
+  name = "ruby-2.1-docker-ssh"
+  url = "https://CI/"
+  token = "TOKEN"
+  limit = 0
+  executor = "docker-ssh"
+  builds_dir = ""
+  [runners.docker]
+    host = ""
+    image = "ubuntu-upstart:14.04"
+    privileged = false
+    disable_cache = false
+    disable_pull = false
+    cache_dir = ""
+    registry = ""
+  [runners.ssh]
+    port = "22"
+    user = "root"
+    password = "docker.io"
+
+
+[[runners]]
+  name = "production-server"
+  url = "https://CI/"
+  token = "TOKEN"
+  limit = 0
+  executor = "ssh"
+  builds_dir = ""
+  [runners.ssh]
+    host = "my-production-server"
+    port = "22"
+    user = "root"
+    password = "production-server-password"
