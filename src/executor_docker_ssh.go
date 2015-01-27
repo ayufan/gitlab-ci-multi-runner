@@ -14,7 +14,7 @@ func (s *DockerSshExecutor) Start() error {
 		return errors.New("Missing SSH configuration")
 	}
 
-	s.println("Starting SSH command...")
+	s.debugln("Starting SSH command...")
 
 	// Create container
 	container, err := s.createContainer(s.image, []string{})
