@@ -86,8 +86,22 @@ func (e *AbstractExecutor) debugln(args ...interface{}) {
 }
 
 func (e *AbstractExecutor) println(args ...interface{}) {
+	if e.BuildLog != nil {
+		e.BuildLog.WriteString(fmt.Sprintln(args...))
+	}
+
 	args = append([]interface{}{e.config.ShortDescription(), e.build.Id}, args...)
 	log.Println(args...)
+}
+
+func (e *AbstractExecutor) errorln(args ...interface{}) {
+	// write to log file
+	if e.BuildLog != nil {
+		e.BuildLog.WriteString(fmt.Sprintln(args...))
+	}
+
+	args = append([]interface{}{e.config.ShortDescription(), e.build.Id}, args...)
+	log.Errorln(args...)
 }
 
 func (e *AbstractExecutor) Prepare(config *RunnerConfig, build *Build) error {
