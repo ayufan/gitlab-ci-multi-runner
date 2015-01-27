@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/fsouza/go-dockerclient"
 )
@@ -15,6 +16,7 @@ type DockerExecutor struct {
 	client    *docker.Client
 	image     *docker.Image
 	container *docker.Container
+	services  []*docker.Container
 }
 
 func (s *DockerExecutor) volumeDir(cache_dir string, project_name string, volume string) string {
@@ -86,6 +88,76 @@ func (s *DockerExecutor) createVolumes(image *docker.Image, builds_dir string) (
 	return binds, nil
 }
 
+func (s *DockerExecutor) splitServiceAndVersion(service string) (string, string) {
+	splits := strings.SplitN(service, ":", 2)
+	switch len(splits) {
+	case 1:
+		return splits[0], "latest"
+
+	case 2:
+		return splits[0], splits[1]
+
+	default:
+		return "", ""
+	}
+}
+
+func (s *DockerExecutor) createService(service, version string) (*docker.Container, error) {
+	if len(service) == 0 {
+		return nil, errors.New("Invalid service name")
+	}
+
+	serviceImage, err := s.getImage(service+":"+version, !s.config.Docker.DisablePull)
+	if err != nil {
+		return nil, err
+	}
+
+	createContainerOpts := docker.CreateContainerOptions{
+		Name: s.build.ProjectUniqueName() + "-" + service,
+		Config: &docker.Config{
+			Hostname: s.build.ProjectUniqueName(),
+			Image:    serviceImage.ID,
+			Env:      s.config.Environment,
+		},
+		HostConfig: &docker.HostConfig{
+			RestartPolicy: docker.NeverRestart(),
+		},
+	}
+
+	s.debugln("Creating service container", createContainerOpts.Name, "...")
+	container, err := s.client.CreateContainer(createContainerOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	s.debugln("Starting service container", container.ID, "...")
+	err = s.client.StartContainer(container.ID, createContainerOpts.HostConfig)
+	if err != nil {
+		go s.removeContainer(container.ID)
+		return nil, err
+	}
+
+	return container, nil
+}
+
+func (s *DockerExecutor) createServices() ([]string, error) {
+	var links []string
+
+	for _, serviceDescription := range s.config.Docker.Services {
+		service, version := s.splitServiceAndVersion(serviceDescription)
+		container, err := s.createService(service, version)
+		if err != nil {
+			return links, err
+		}
+
+		s.debugln("Created service", service, version, "as", container.ID)
+		links = append(links, container.Name+":"+service)
+		s.services = append(s.services, container)
+	}
+
+	return links, nil
+}
+
 func (s *DockerExecutor) connect() (*docker.Client, error) {
 	endpoint := s.config.Docker.Host
 	if len(endpoint) == 0 {
@@ -125,6 +197,13 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 		},
 	}
 
+	s.debugln("Creating services...")
+	links, err := s.createServices()
+	if err != nil {
+		return nil, err
+	}
+	create_container_opts.HostConfig.Links = append(create_container_opts.HostConfig.Links, links...)
+
 	if !s.config.Docker.DisableCache {
 		s.debugln("Creating cache directories...")
 		binds, err := s.createVolumes(image, s.builds_dir)
@@ -134,9 +213,12 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 		create_container_opts.HostConfig.Binds = binds
 	}
 
-	s.debugln("Creating contaier...")
+	s.debugln("Creating container", create_container_opts.Name, "...")
 	container, err := s.client.CreateContainer(create_container_opts)
 	if err != nil {
+		if container != nil {
+			go s.removeContainer(container.ID)
+		}
 		return nil, err
 	}
 
@@ -188,6 +270,10 @@ func (s *DockerExecutor) Prepare(config *RunnerConfig, build *Build) error {
 }
 
 func (s *DockerExecutor) Cleanup() {
+	for _, service := range s.services {
+		s.removeContainer(service.ID)
+	}
+
 	if s.container != nil {
 		s.removeContainer(s.container.ID)
 		s.container = nil

@@ -29,6 +29,7 @@ type DockerConfig struct {
 	Registry     string   `toml:"registry"`
 	ExtraHosts   []string `toml:"extra_hosts"`
 	Links        []string `toml:"links"`
+	Services     []string `toml:"services"`
 }
 
 type RunnerConfig struct {
