@@ -54,6 +54,7 @@ func (b *Build) ProjectDir() string {
 }
 
 func (b *Build) writeCloneCmd(w io.Writer, builds_dir string) {
+	io.WriteString(w, "echo Clonning repository...\n")
 	io.WriteString(w, fmt.Sprintf("mkdir -p %s && ", builds_dir))
 	io.WriteString(w, fmt.Sprintf("cd %s && ", builds_dir))
 	io.WriteString(w, fmt.Sprintf("rm -rf %s && ", b.ProjectDir()))
@@ -63,6 +64,7 @@ func (b *Build) writeCloneCmd(w io.Writer, builds_dir string) {
 
 func (b *Build) writeFetchCmd(w io.Writer, builds_dir string) {
 	io.WriteString(w, fmt.Sprintf("if [[ -d %s/%s/.git ]]; then\n", builds_dir, b.ProjectDir()))
+	io.WriteString(w, "echo Fetching changes...\n")
 	io.WriteString(w, fmt.Sprintf("cd %s/%s && ", builds_dir, b.ProjectDir()))
 	io.WriteString(w, fmt.Sprintf("git clean -fdx && "))
 	io.WriteString(w, fmt.Sprintf("git reset --hard && "))
@@ -74,22 +76,26 @@ func (b *Build) writeFetchCmd(w io.Writer, builds_dir string) {
 }
 
 func (b *Build) writeCheckoutCmd(w io.Writer, builds_dir string) {
-	io.WriteString(w, fmt.Sprintf("git checkout %s && ", b.RefName))
+	io.WriteString(w, fmt.Sprintf("echo Checkouting %s as %s...\n", b.Sha[0:8], b.RefName))
+	io.WriteString(w, fmt.Sprintf("git checkout -B %s %s && ", b.RefName, b.Sha))
 	io.WriteString(w, fmt.Sprintf("git reset --hard %s\n", b.Sha))
 }
 
-func (build *Build) Generate(builds_dir string) ([]byte, error) {
+func (build *Build) Generate(builds_dir string, hostname string) ([]byte, error) {
 	var b bytes.Buffer
 	w := bufio.NewWriter(&b)
 
 	io.WriteString(w, "#!/usr/bin/env bash\n")
 	io.WriteString(w, "\n")
-	io.WriteString(w, "echo Using $(hostname)\n")
+	if len(hostname) != 0 {
+		io.WriteString(w, fmt.Sprintf("echo Running $(hostname) on %s...\n", ShellEscape(hostname)))
+	} else {
+		io.WriteString(w, "echo Running $(hostname)...\n")
+	}
 	io.WriteString(w, "\n")
 	io.WriteString(w, "trap 'kill -s INT 0' EXIT\n")
-	io.WriteString(w, "set -evo pipefail\n")
-	io.WriteString(w, "\n")
 
+	io.WriteString(w, "\n")
 	if build.AllowGitFetch {
 		build.writeFetchCmd(w, builds_dir)
 	} else {
@@ -97,6 +103,8 @@ func (build *Build) Generate(builds_dir string) ([]byte, error) {
 	}
 
 	build.writeCheckoutCmd(w, builds_dir)
+	io.WriteString(w, "\n")
+	io.WriteString(w, "set -evo pipefail\n")
 	io.WriteString(w, "\n")
 
 	commands := build.Commands

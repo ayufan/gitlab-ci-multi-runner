@@ -13,6 +13,7 @@ func GetExecutor(executor string) Executor {
 		return &ShellExecutor{
 			AbstractExecutor: AbstractExecutor{
 				DefaultBuildsDir: "tmp/builds",
+				ShowHostname:     false,
 			},
 		}
 	case "docker":
@@ -20,6 +21,7 @@ func GetExecutor(executor string) Executor {
 			DockerExecutor: DockerExecutor{
 				AbstractExecutor: AbstractExecutor{
 					DefaultBuildsDir: "/builds",
+					ShowHostname:     true,
 				},
 			},
 		}
@@ -28,6 +30,7 @@ func GetExecutor(executor string) Executor {
 			DockerExecutor: DockerExecutor{
 				AbstractExecutor: AbstractExecutor{
 					DefaultBuildsDir: "builds",
+					ShowHostname:     true,
 				},
 			},
 		}
@@ -35,6 +38,7 @@ func GetExecutor(executor string) Executor {
 		return &SshExecutor{
 			AbstractExecutor: AbstractExecutor{
 				DefaultBuildsDir: "builds",
+				ShowHostname:     true,
 			},
 		}
 	default:

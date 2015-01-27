@@ -13,6 +13,7 @@ import (
 
 type AbstractExecutor struct {
 	DefaultBuildsDir string
+	ShowHostname     bool
 	config           *RunnerConfig
 	build            *Build
 	builds_dir       string
@@ -114,13 +115,18 @@ func (e *AbstractExecutor) Prepare(config *RunnerConfig, build *Build) error {
 
 	e.println("Starting build...")
 
+	var hostname string
+	if e.ShowHostname {
+		hostname, _ = os.Hostname()
+	}
+
 	// Generate build script
 	e.builds_dir = e.DefaultBuildsDir
 	if len(e.config.BuildsDir) != 0 {
 		e.builds_dir = e.config.BuildsDir
 	}
 
-	script, err := e.build.Generate(e.builds_dir)
+	script, err := e.build.Generate(e.builds_dir, hostname)
 	if err != nil {
 		return err
 	}
