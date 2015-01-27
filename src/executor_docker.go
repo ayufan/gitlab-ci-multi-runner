@@ -2,11 +2,11 @@ package src
 
 import (
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"code.google.com/p/go.crypto/ssh"
 	"github.com/fsouza/go-dockerclient"
 )
 
@@ -36,7 +36,7 @@ func (s *DockerExecutor) getImage(imageName string, pullImage bool) (*docker.Ima
 	s.println("Pulling docker image", imageName, "...")
 	pull_image_opts := docker.PullImageOptions{
 		Repository: imageName,
-		Registry:   s.config.DockerRegistry,
+		Registry:   s.config.Docker.Registry,
 	}
 
 	err = s.client.PullImage(pull_image_opts, docker.AuthConfiguration{})
@@ -58,8 +58,8 @@ func (s *DockerExecutor) addVolume(binds *[]string, cache_dir string, volume str
 
 func (s *DockerExecutor) createVolumes(image *docker.Image, builds_dir string) ([]string, error) {
 	cache_dir := "tmp/docker-cache"
-	if len(s.config.DockerCacheDir) != 0 {
-		cache_dir = s.config.DockerCacheDir
+	if len(s.config.Docker.CacheDir) != 0 {
+		cache_dir = s.config.Docker.CacheDir
 	}
 
 	cache_dir, err := filepath.Abs(cache_dir)
@@ -69,7 +69,7 @@ func (s *DockerExecutor) createVolumes(image *docker.Image, builds_dir string) (
 
 	var binds []string
 
-	for _, volume := range s.config.DockerVolumes {
+	for _, volume := range s.config.Docker.Volumes {
 		s.addVolume(&binds, cache_dir, volume)
 	}
 
@@ -87,7 +87,7 @@ func (s *DockerExecutor) createVolumes(image *docker.Image, builds_dir string) (
 }
 
 func (s *DockerExecutor) connect() (*docker.Client, error) {
-	endpoint := s.config.DockerHost
+	endpoint := s.config.Docker.Host
 	if len(endpoint) == 0 {
 		endpoint = os.Getenv("DOCKER_HOST")
 	}
@@ -118,14 +118,14 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 			Cmd:          cmd,
 		},
 		HostConfig: &docker.HostConfig{
-			Privileged:    s.config.DockerPrivileged,
+			Privileged:    s.config.Docker.Privileged,
 			RestartPolicy: docker.NeverRestart(),
-			ExtraHosts:    s.config.DockerExtraHosts,
-			Links:         s.config.DockerLinks,
+			ExtraHosts:    s.config.Docker.ExtraHosts,
+			Links:         s.config.Docker.Links,
 		},
 	}
 
-	if !s.config.DockerDisableCache {
+	if !s.config.Docker.DisableCache {
 		s.debugln("Creating cache directories...")
 		binds, err := s.createVolumes(image, s.builds_dir)
 		if err != nil {
@@ -160,23 +160,17 @@ func (s *DockerExecutor) removeContainer(id string) {
 	s.debugln("Removed container", id, "with", err)
 }
 
-func (s *DockerExecutor) getSshAuthMethods() []ssh.AuthMethod {
-	var methods []ssh.AuthMethod
-
-	if len(s.config.SshPassword) != 0 {
-		methods = append(methods, ssh.Password(s.config.SshPassword))
-	}
-
-	return methods
-}
-
 func (s *DockerExecutor) Prepare(config *RunnerConfig, build *Build) error {
 	err := s.AbstractExecutor.Prepare(config, build)
 	if err != nil {
 		return err
 	}
 
-	s.println("Using Docker executor with image", s.config.DockerImage, "...")
+	s.println("Using Docker executor with image", s.config.Docker.Image, "...")
+
+	if config.Docker == nil {
+		return errors.New("Missing docker configuration")
+	}
 
 	client, err := s.connect()
 	if err != nil {
@@ -185,7 +179,7 @@ func (s *DockerExecutor) Prepare(config *RunnerConfig, build *Build) error {
 	s.client = client
 
 	// Get image
-	image, err := s.getImage(s.config.DockerImage, !s.config.DockerDisablePull)
+	image, err := s.getImage(s.config.Docker.Image, !s.config.Docker.DisablePull)
 	if err != nil {
 		return err
 	}

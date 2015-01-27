@@ -11,6 +11,26 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+type SshConfig struct {
+	User     string `toml:"user"`
+	Password string `toml:"password"`
+	Host     string `toml:"host"`
+	Port     string `toml:"port"`
+}
+
+type DockerConfig struct {
+	Host         string   `toml:"host"`
+	Image        string   `toml:"image"`
+	Privileged   bool     `toml:"privileged"`
+	DisableCache bool     `toml:"disable_cache"`
+	DisablePull  bool     `toml:"disable_pull"`
+	Volumes      []string `toml:"volumes"`
+	CacheDir     string   `toml:"cache_dir"`
+	Registry     string   `toml:"registry"`
+	ExtraHosts   []string `toml:"extra_hosts"`
+	Links        []string `toml:"links"`
+}
+
 type RunnerConfig struct {
 	Name      string `toml:"name"`
 	URL       string `toml:"url"`
@@ -23,21 +43,8 @@ type RunnerConfig struct {
 
 	ShellScript string `toml:"shell_script"`
 
-	DockerHost         string   `toml:"docker_host"`
-	DockerImage        string   `toml:"docker_image"`
-	DockerPrivileged   bool     `toml:"docker_privileged"`
-	DockerDisableCache bool     `toml:"docker_disable_cache"`
-	DockerDisablePull  bool     `toml:"docker_disable_pull"`
-	DockerVolumes      []string `toml:"docker_volumes"`
-	DockerCacheDir     string   `toml:"docker_cache_dir"`
-	DockerRegistry     string   `toml:"docker_registry"`
-	DockerExtraHosts   []string `toml:"docker_extra_hosts"`
-	DockerLinks        []string `toml:"docker_links"`
-
-	SshUser     string `toml:"ssh_user"`
-	SshPassword string `toml:"ssh_password"`
-	SshHost     string `toml:"ssh_host"`
-	SshPort     string `toml:"ssh_port"`
+	Ssh    *SshConfig    `toml:"ssh"`
+	Docker *DockerConfig `toml:"docker"`
 }
 
 type BaseConfig struct {

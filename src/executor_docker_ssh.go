@@ -2,6 +2,7 @@ package src
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"time"
 
@@ -14,7 +15,21 @@ type DockerSshExecutor struct {
 	sshSession *ssh.Session
 }
 
+func (s *DockerSshExecutor) getSshAuthMethods() []ssh.AuthMethod {
+	var methods []ssh.AuthMethod
+
+	if len(s.config.Ssh.Password) != 0 {
+		methods = append(methods, ssh.Password(s.config.Ssh.Password))
+	}
+
+	return methods
+}
+
 func (s *DockerSshExecutor) Start() error {
+	if s.config.Ssh == nil {
+		return errors.New("Missing SSH configuration")
+	}
+
 	s.println("Starting SSH command...")
 
 	// Create container
@@ -30,16 +45,16 @@ func (s *DockerSshExecutor) Start() error {
 	}
 
 	ssh_config := &ssh.ClientConfig{
-		User: s.config.SshUser,
+		User: s.config.Ssh.User,
 		Auth: s.getSshAuthMethods(),
 	}
 
-	ssh_host := s.config.SshHost
+	ssh_host := s.config.Ssh.Host
 	if len(ssh_host) == 0 {
 		ssh_host = container_data.NetworkSettings.IPAddress
 	}
 
-	ssh_port := s.config.SshPort
+	ssh_port := s.config.Ssh.Port
 	if len(ssh_port) == 0 {
 		ssh_port = "22"
 	}
