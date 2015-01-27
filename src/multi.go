@@ -20,6 +20,21 @@ type MultiRunner struct {
 	healthy map[string]*RunnerHealth
 }
 
+func (mr *MultiRunner) errorln(args ...interface{}) {
+	args = append([]interface{}{len(mr.jobs)}, args...)
+	log.Errorln(args...)
+}
+
+func (mr *MultiRunner) debugln(args ...interface{}) {
+	args = append([]interface{}{len(mr.jobs)}, args...)
+	log.Debugln(args...)
+}
+
+func (mr *MultiRunner) println(args ...interface{}) {
+	args = append([]interface{}{len(mr.jobs)}, args...)
+	log.Println(args...)
+}
+
 func (mr *MultiRunner) getHealth(runner *RunnerConfig) *RunnerHealth {
 	if mr.healthy == nil {
 		mr.healthy = map[string]*RunnerHealth{}
@@ -138,21 +153,6 @@ func (mr *MultiRunner) startNewJob(finish chan *Job) *Job {
 		finish <- new_job
 	}()
 	return new_job
-}
-
-func (mr *MultiRunner) errorln(args ...interface{}) {
-	args = append([]interface{}{len(mr.jobs)}, args...)
-	log.Errorln(args...)
-}
-
-func (mr *MultiRunner) debugln(args ...interface{}) {
-	args = append([]interface{}{len(mr.jobs)}, args...)
-	log.Debugln(args...)
-}
-
-func (mr *MultiRunner) println(args ...interface{}) {
-	args = append([]interface{}{len(mr.jobs)}, args...)
-	log.Println(args...)
 }
 
 func (mr *MultiRunner) addJob(newJob *Job) {
