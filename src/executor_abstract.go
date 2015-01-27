@@ -180,7 +180,7 @@ func (e *AbstractExecutor) Wait() error {
 
 	e.BuildFinished = time.Now()
 	e.BuildDuration = e.BuildFinished.Sub(e.BuildStarted)
-	e.println("Build took", e.BuildDuration)
+	log.Println(e.config.ShortDescription(), e.build.Id, "Build took", e.BuildDuration)
 
 	// wait for update log routine to finish
 	e.debugln("Waiting for build log updater to finish")
