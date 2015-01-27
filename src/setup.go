@@ -105,5 +105,5 @@ func setup(c *cli.Context) {
 		panic(err)
 	}
 
-	log.Printf("Runner registered successfully. Feel free to start it!")
+	log.Printf("Runner registered successfully. Feel free to start it, but if it's running already the config should be automatically reloaded!")
 }
