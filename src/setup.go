@@ -2,16 +2,16 @@ package src
 
 import (
 	"bufio"
-	"log"
 	"os"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 )
 
 func ask(r *bufio.Reader, prompt string, result *string, allow_empty ...bool) {
 	for len(*result) == 0 {
-		log.Println(prompt)
+		println(prompt)
 		data, _, err := r.ReadLine()
 		if err != nil {
 			panic(err)
@@ -51,8 +51,6 @@ func askSsh(r *bufio.Reader, runner_config *RunnerConfig, serverless bool) {
 }
 
 func setup(c *cli.Context) {
-	log.SetFlags(0)
-
 	file, err := os.OpenFile(c.String("config"), os.O_APPEND|os.O_CREATE, 0600)
 	if file != nil {
 		file.Close()

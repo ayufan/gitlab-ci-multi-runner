@@ -51,14 +51,14 @@ func Main() {
 			Name:      "run-single",
 			ShortName: "rs",
 			Usage:     "start single runner",
-			Flags:     []cli.Flag{flToken, flURL, &flDockerHost},
+			Flags:     []cli.Flag{flToken, flURL},
 			Action:    runSingle,
 		},
 		{
 			Name:      "setup",
 			ShortName: "s",
 			Usage:     "setup a new runner",
-			Flags:     []cli.Flag{flRegistrationToken, flURL, flHostname, flConfigFile},
+			Flags:     []cli.Flag{flRegistrationToken, flURL, flHostname, flConfigFile, flTags},
 			Action:    setup,
 		},
 		{
@@ -67,17 +67,6 @@ func Main() {
 			Usage:     "run multi runner",
 			Flags:     []cli.Flag{flConfigFile},
 			Action:    runMulti,
-		},
-		{
-			Name:      "test",
-			ShortName: "t",
-			Usage:     "test",
-			Flags:     []cli.Flag{&flConfigFile, &flDockerHost},
-			Action: func(cli *cli.Context) {
-				println("Hello world")
-				println("Config:", flConfigFile.Value)
-				println("Docker HOST:", cli.String("docker-host"))
-			},
 		},
 	}
 
