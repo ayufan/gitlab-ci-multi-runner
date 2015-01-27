@@ -9,10 +9,60 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+type RunnerHealth struct {
+	failures  int
+	lastCheck time.Time
+}
+
 type MultiRunner struct {
 	config  Config
 	jobs    []*Job
-	healthy map[string]int
+	healthy map[string]*RunnerHealth
+}
+
+func (mr *MultiRunner) getHealth(runner *RunnerConfig) *RunnerHealth {
+	if mr.healthy == nil {
+		mr.healthy = map[string]*RunnerHealth{}
+	}
+	health := mr.healthy[runner.UniqueID()]
+	if health == nil {
+		health = &RunnerHealth{
+			lastCheck: time.Now(),
+		}
+		mr.healthy[runner.UniqueID()] = health
+	}
+	return health
+}
+
+func (mr *MultiRunner) isHealthy(runner *RunnerConfig) bool {
+	health := mr.getHealth(runner)
+	if health.failures < HEALTHY_CHECKS {
+		return true
+	}
+
+	if time.Since(health.lastCheck) > HEALTH_CHECK_INTERVAL*time.Second {
+		mr.errorln("Runner", runner.ShortDescription(), "is not healthy, but will be checked!")
+		health.failures = 0
+		health.lastCheck = time.Now()
+		return true
+	}
+
+	return false
+}
+
+func (mr *MultiRunner) makeHealthy(runner *RunnerConfig) {
+	health := mr.getHealth(runner)
+	health.failures = 0
+	health.lastCheck = time.Now()
+}
+
+func (mr *MultiRunner) makeUnhealthy(runner *RunnerConfig) {
+	health := mr.getHealth(runner)
+	health.failures++
+
+	if health.failures >= HEALTHY_CHECKS {
+		mr.errorln("Runner", runner.ShortDescription(), "is not healthy and will be disabled!")
+	}
 }
 
 func (mr *MultiRunner) requestNewJob() (*GetBuildResponse, *RunnerConfig) {
@@ -21,7 +71,7 @@ func (mr *MultiRunner) requestNewJob() (*GetBuildResponse, *RunnerConfig) {
 			continue
 		}
 
-		if mr.healthy[runner.UniqueID()] >= HEALTHY_CHECKS {
+		if !mr.isHealthy(runner) {
 			continue
 		}
 
@@ -42,14 +92,9 @@ func (mr *MultiRunner) requestNewJob() (*GetBuildResponse, *RunnerConfig) {
 		}
 
 		if healthy {
-			mr.healthy[runner.UniqueID()] = 0
+			mr.makeHealthy(runner)
 		} else {
-			value := mr.healthy[runner.UniqueID()] + 1
-			mr.healthy[runner.UniqueID()] = value
-
-			if value >= HEALTHY_CHECKS {
-				mr.errorln("Runner", runner.ShortDescription(), "is not healthy and will be disabled!")
-			}
+			mr.makeUnhealthy(runner)
 		}
 	}
 
@@ -128,9 +173,7 @@ func (mr *MultiRunner) removeJob(deleteJob *Job) bool {
 }
 
 func runMulti(c *cli.Context) {
-	mr := MultiRunner{
-		healthy: map[string]int{},
-	}
+	mr := MultiRunner{}
 	err := mr.config.LoadConfig(c.String("config"))
 	if err != nil {
 		panic(err)
@@ -156,7 +199,7 @@ func runMulti(c *cli.Context) {
 
 		case new_config := <-reload_config:
 			mr.debugln("Config reloaded.")
-			mr.healthy = map[string]int{}
+			mr.healthy = nil
 			mr.config = new_config
 			mr.config.SetChdir()
 
