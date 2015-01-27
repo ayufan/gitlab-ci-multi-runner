@@ -67,13 +67,15 @@ func setup(c *cli.Context) {
 	url := c.String("url")
 	registrationToken := c.String("registration-token")
 	hostName := c.String("hostname")
+	tags := c.String("tag-list")
 
 	bio := bufio.NewReader(os.Stdin)
 	ask(bio, "Please enter the gitlab-ci coordinator URL (e.g. http://gitlab-ci.org:3000/ )", &url)
 	ask(bio, "Please enter the gitlab-ci token for this runner", &registrationToken)
 	ask(bio, "Please enter the gitlab-ci hostname for this runner", &hostName)
+	ask(bio, "Please enter the tag list separated by comma or leave it empty", &tags, true)
 
-	result := RegisterRunner(url, registrationToken, hostName)
+	result := RegisterRunner(url, registrationToken, hostName, tags)
 	if result == nil {
 		log.Fatalf("Failed to register this runner. Perhaps your SSH key is invalid or you are having network problems")
 	}

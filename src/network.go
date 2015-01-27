@@ -39,6 +39,7 @@ type GetBuildResponse struct {
 type RegisterRunnerRequest struct {
 	Token    string `json:"token,omitempty"`
 	Hostname string `json:"hostname,omitempty"`
+	Tags     string `json:"tag_list,omitempty"`
 }
 
 type RegisterRunnerResponse struct {
@@ -148,10 +149,11 @@ func GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 	}
 }
 
-func RegisterRunner(url string, token string, hostname string) *RegisterRunnerResponse {
+func RegisterRunner(url, token, hostname, tags string) *RegisterRunnerResponse {
 	request := RegisterRunnerRequest{
 		Token:    token,
 		Hostname: hostname,
+		Tags:     tags,
 	}
 
 	var response RegisterRunnerResponse

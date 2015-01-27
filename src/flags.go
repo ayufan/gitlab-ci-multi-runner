@@ -35,6 +35,12 @@ var (
 		Usage:  "Runner's registration hostname",
 		EnvVar: "HOSTNAME",
 	}
+	flTags = cli.StringFlag{
+		Name:   "tag-list",
+		Value:  "",
+		Usage:  "Runner's tag list separated by comma",
+		EnvVar: "REGISTRATION_TAG_LIST",
+	}
 	flDockerHost = cli.StringFlag{
 		Name:   "docker-host",
 		Value:  "",

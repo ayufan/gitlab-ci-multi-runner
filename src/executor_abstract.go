@@ -19,7 +19,7 @@ type AbstractExecutor struct {
 	buildAbort       chan bool
 	buildLogFinish   chan bool
 	buildFinish      chan error
-	script_data      []byte
+	BuildScript      []byte
 	BuildLog         *os.File
 	BuildStarted     time.Time
 	BuildFinished    time.Time
@@ -124,7 +124,7 @@ func (e *AbstractExecutor) Prepare(config *RunnerConfig, build *Build) error {
 	if err != nil {
 		return err
 	}
-	e.script_data = script
+	e.BuildScript = script
 
 	// Create build log
 	build_log, err := ioutil.TempFile("", "build_log")
