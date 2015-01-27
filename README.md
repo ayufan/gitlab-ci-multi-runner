@@ -7,6 +7,8 @@ This project was made as Go learning opportunity. The initial release was create
 
 **This is ALPHA. It should work, but also may not.**
 
+[![Build Status](https://travis-ci.org/ayufan/gitlab-ci-multi-runner.svg?branch=master)](https://travis-ci.org/ayufan/gitlab-ci-multi-runner)
+
 ### Requirements
 
 **None. This project is designed for the Linux and OS X operating systems.**
@@ -145,6 +147,7 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
       volumes = ["/data", "/home/project/cache"]
       extra_hosts = ["other-host:127.0.0.1"]
       links = ["mysql_container:mysql"]
+      services = ["mysql", "redis:2.8", "postgres:9"]
     ```
     
     This defines the Docker Container parameters:
@@ -158,6 +161,7 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
     * `volumes` - specify additional volumes that should be cached
     * `extra_hosts` - specify hosts that should be defined in container environment
     * `links` - specify containers which should be linked with building container
+    * `services` - specify additional services that should be run with build. Please visit [Docker Registry](https://registry.hub.docker.com/) for list of available applications. Each service will be run in separate container and linked to the build.
 
 1. The [runners.ssh] section:
     ```
