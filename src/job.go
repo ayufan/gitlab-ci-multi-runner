@@ -13,11 +13,11 @@ type Job struct {
 	Runner *RunnerConfig
 }
 
-func (j *Job) fail(config RunnerConfig, build Build, err error) {
-	log.Println(config.ShortDescription(), build.Id, "Build failed", err)
+func (j *Job) fail(err error) {
+	log.Errorln(j.Runner.ShortDescription(), j.Build.Id, "Build failed", err)
 	for {
 		error_buffer := bytes.NewBufferString(err.Error())
-		result := UpdateBuild(config, build.Id, Failed, error_buffer)
+		result := UpdateBuild(*j.Runner, j.Build.Id, Failed, error_buffer)
 		switch result {
 		case UpdateSucceeded:
 			return
@@ -46,7 +46,7 @@ func (j *Job) Run() error {
 		err = executor.Wait()
 	}
 	if err != nil {
-		go failBuild(*j.Runner, *j.Build, err)
+		go j.fail(err)
 	}
 	if executor != nil {
 		executor.Cleanup()
