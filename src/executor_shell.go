@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"os/exec"
-	"syscall"
 )
 
 type ShellExecutor struct {
@@ -36,10 +35,7 @@ func (s *ShellExecutor) Start() error {
 		return errors.New("Failed to generate execution command")
 	}
 
-	// Create process group
-	s.cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
-	}
+	SetProcessGroup(s.cmd)
 
 	// Fill process environment variables
 	s.cmd.Env = append(s.build.GetEnv(), s.config.Environment...)
@@ -61,18 +57,6 @@ func (s *ShellExecutor) Start() error {
 }
 
 func (s *ShellExecutor) Cleanup() {
-	if s.cmd != nil {
-		process := s.cmd.Process
-		if process != nil {
-			if process.Pid > 0 {
-				s.debugln("Killing process group", process.Pid)
-				syscall.Kill(-process.Pid, syscall.SIGABRT)
-			}
-
-			// doing normal kill
-			process.Kill()
-		}
-	}
-
+	KillProcessGroup(s.cmd)
 	s.AbstractExecutor.Cleanup()
 }

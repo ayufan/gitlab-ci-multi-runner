@@ -20,6 +20,8 @@ deploy:
     - out/gitlab-ci-multi-runner-linux-amd64
     - out/gitlab-ci-multi-runner-darwin-386
     - out/gitlab-ci-multi-runner-darwin-amd64
+    - out/gitlab-ci-multi-runner-windows-386.exe
+    - out/gitlab-ci-multi-runner-windows-amd64.exe
   on:
     repo: ayufan/gitlab-ci-multi-runner
     tags: true

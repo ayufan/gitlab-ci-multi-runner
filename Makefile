@@ -1,7 +1,7 @@
 all: build
 
 build:
-	gox -os="linux" -os="darwin" -output="out/{{.Dir}}-{{.OS}}-{{.Arch}}"
+	gox -os="linux" -os="darwin" -os="windows" -output="out/{{.Dir}}-{{.OS}}-{{.Arch}}"
 
 test:
 	go test
