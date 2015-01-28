@@ -2,6 +2,7 @@ package src
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/codegangsta/cli"
@@ -15,9 +16,11 @@ type RunnerHealth struct {
 }
 
 type MultiRunner struct {
-	config  Config
-	jobs    []*Job
-	healthy map[string]*RunnerHealth
+	config      *Config
+	jobs        []*Job
+	jobsLock    sync.RWMutex
+	healthy     map[string]*RunnerHealth
+	healthyLock sync.Mutex
 }
 
 func (mr *MultiRunner) errorln(args ...interface{}) {
@@ -36,6 +39,9 @@ func (mr *MultiRunner) println(args ...interface{}) {
 }
 
 func (mr *MultiRunner) getHealth(runner *RunnerConfig) *RunnerHealth {
+	mr.healthyLock.Lock()
+	defer mr.healthyLock.Unlock()
+
 	if mr.healthy == nil {
 		mr.healthy = map[string]*RunnerHealth{}
 	}
@@ -80,87 +86,18 @@ func (mr *MultiRunner) makeUnhealthy(runner *RunnerConfig) {
 	}
 }
 
-func (mr *MultiRunner) requestNewJob() (*GetBuildResponse, *RunnerConfig) {
-	for _, runner := range mr.config.Runners {
-		if runner == nil {
-			continue
-		}
-
-		if !mr.isHealthy(runner) {
-			continue
-		}
-
-		count := 0
-		for _, job := range mr.jobs {
-			if job.Runner == runner {
-				count += 1
-			}
-		}
-
-		if runner.Limit > 0 && count >= runner.Limit {
-			continue
-		}
-
-		new_build, healthy := GetBuild(*runner)
-		if new_build != nil {
-			return new_build, runner
-		}
-
-		if healthy {
-			mr.makeHealthy(runner)
-		} else {
-			mr.makeUnhealthy(runner)
-		}
-	}
-
-	return nil, nil
-}
-
-func (mr *MultiRunner) startNewJob(finish chan *Job) *Job {
-	if mr.config.Concurrent <= len(mr.jobs) {
-		return nil
-	}
-
-	log.Debugln(len(mr.jobs), "Requesting a new job...")
-
-	new_build, runner_config := mr.requestNewJob()
-	if new_build == nil {
-		return nil
-	}
-	if runner_config == nil {
-		// this shouldn't happen
-		return nil
-	}
-
-	log.Debugln(len(mr.jobs), "Received new job for", runner_config.ShortDescription(), "build", new_build.Id)
-	new_job := &Job{
-		Build: &Build{
-			GetBuildResponse: *new_build,
-		},
-		Runner: runner_config,
-	}
-
-	build_prefix := fmt.Sprintf("runner-%s", runner_config.ShortDescription())
-
-	other_builds := []*Build{}
-	for _, other_job := range mr.jobs {
-		other_builds = append(other_builds, other_job.Build)
-	}
-	new_job.Build.GenerateUniqueName(build_prefix, other_builds)
-
-	go func() {
-		new_job.Run()
-		finish <- new_job
-	}()
-	return new_job
-}
-
 func (mr *MultiRunner) addJob(newJob *Job) {
+	mr.jobsLock.Lock()
+	defer mr.jobsLock.Unlock()
+
 	mr.jobs = append(mr.jobs, newJob)
 	mr.debugln("Added a new job", newJob)
 }
 
 func (mr *MultiRunner) removeJob(deleteJob *Job) bool {
+	mr.jobsLock.Lock()
+	defer mr.jobsLock.Unlock()
+
 	for idx, job := range mr.jobs {
 		if job == deleteJob {
 			mr.jobs[idx] = mr.jobs[len(mr.jobs)-1]
@@ -172,8 +109,112 @@ func (mr *MultiRunner) removeJob(deleteJob *Job) bool {
 	return false
 }
 
+func (mr *MultiRunner) jobsForRunner(runner *RunnerConfig) int {
+	mr.jobsLock.RLock()
+	defer mr.jobsLock.RUnlock()
+
+	count := 0
+	for _, job := range mr.jobs {
+		if job.Runner == runner {
+			count += 1
+		}
+	}
+	return count
+}
+
+func (mr *MultiRunner) getAllBuilds() []*Build {
+	mr.jobsLock.RLock()
+	defer mr.jobsLock.RUnlock()
+
+	other_builds := []*Build{}
+	for _, other_job := range mr.jobs {
+		other_builds = append(other_builds, other_job.Build)
+	}
+
+	return other_builds
+}
+
+func (mr *MultiRunner) requestJob(runner *RunnerConfig) *Job {
+	if runner == nil {
+		return nil
+	}
+
+	if !mr.isHealthy(runner) {
+		return nil
+	}
+
+	count := mr.jobsForRunner(runner)
+	if runner.Limit > 0 && count >= runner.Limit {
+		return nil
+	}
+
+	new_build, healthy := GetBuild(*runner)
+	if healthy {
+		mr.makeHealthy(runner)
+	} else {
+		mr.makeUnhealthy(runner)
+	}
+
+	if new_build == nil {
+		return nil
+	}
+
+	log.Debugln(len(mr.jobs), "Received new job for", runner.ShortDescription(), "build", new_build.Id)
+	new_job := &Job{
+		Build: &Build{
+			GetBuildResponse: *new_build,
+		},
+		Runner: runner,
+	}
+
+	build_prefix := fmt.Sprintf("runner-%s", runner.ShortDescription())
+	new_job.Build.GenerateUniqueName(build_prefix, mr.getAllBuilds())
+	return new_job
+}
+
+func (mr *MultiRunner) feedRunners(runners chan *RunnerConfig) {
+	for {
+		mr.debugln("Feeding runners to channel")
+		config := mr.config
+		for _, runner := range config.Runners {
+			runners <- runner
+		}
+		time.Sleep(CHECK_INTERVAL * time.Second)
+	}
+}
+
+func (mr *MultiRunner) processRunners(id int, stop_worker chan bool, runners chan *RunnerConfig) {
+	mr.debugln("Starting worker", id)
+	for {
+		select {
+		case runner := <-runners:
+			mr.debugln("Checking runner", runner, "on", id)
+			new_job := mr.requestJob(runner)
+			if new_job == nil {
+				break
+			}
+
+			mr.addJob(new_job)
+			new_job.Run()
+			mr.removeJob(new_job)
+
+		case <-stop_worker:
+			mr.debugln("Stopping worker", id)
+			return
+		}
+	}
+}
+
+func (mr *MultiRunner) startWorkers(start_worker chan int, stop_worker chan bool, runners chan *RunnerConfig) {
+	for {
+		id := <-start_worker
+		go mr.processRunners(id, stop_worker, runners)
+	}
+}
+
 func runMulti(c *cli.Context) {
 	mr := MultiRunner{}
+	mr.config = &Config{}
 	err := mr.config.LoadConfig(c.String("config"))
 	if err != nil {
 		panic(err)
@@ -182,29 +223,38 @@ func runMulti(c *cli.Context) {
 	mr.config.SetChdir()
 	mr.println("Starting multi-runner from", c.String("config"), "...")
 
-	job_finish := make(chan *Job)
 	reload_config := make(chan Config)
 	go ReloadConfig(c.String("config"), mr.config.ModTime, reload_config)
 
+	runners := make(chan *RunnerConfig)
+	go mr.feedRunners(runners)
+
+	start_worker := make(chan int)
+	stop_worker := make(chan bool)
+	go mr.startWorkers(start_worker, stop_worker, runners)
+
+	current_workers := 0
+	worker_index := 0
+
 	for {
-		new_job := mr.startNewJob(job_finish)
-		if new_job != nil {
-			mr.addJob(new_job)
+		jobs_limit := mr.config.Concurrent
+
+		for current_workers > jobs_limit {
+			stop_worker <- true
+			current_workers--
 		}
 
-		select {
-		case finished_job := <-job_finish:
-			mr.debugln("Job finished", finished_job)
-			mr.removeJob(finished_job)
-
-		case new_config := <-reload_config:
-			mr.debugln("Config reloaded.")
-			mr.healthy = nil
-			mr.config = new_config
-			mr.config.SetChdir()
-
-		case <-time.After(CHECK_INTERVAL * time.Second):
-			mr.debugln("Check interval fired")
+		for current_workers < jobs_limit {
+			start_worker <- worker_index
+			current_workers++
+			worker_index++
 		}
+
+		new_config := <-reload_config
+		new_config.SetChdir()
+
+		mr.debugln("Config reloaded.")
+		mr.healthy = nil
+		mr.config = &new_config
 	}
 }
