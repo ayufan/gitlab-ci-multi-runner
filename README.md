@@ -60,10 +60,8 @@ This project was made as Go learning opportunity. The initial release was create
 	https://ci.gitlab.org/
 	Please enter the gitlab-ci token for this runner
 	xxx
-	Please enter the gitlab-ci hostname for this runner
+	Please enter the gitlab-ci description for this runner
 	my-runner
-	Please enter the tag list separated by comma or leave it empty
-	linux, lab, worker, ruby
 	INFO[0034] fcf5c619 Registering runner... succeeded
 	Please enter the executor: shell, docker, docker-ssh, ssh?
 	docker

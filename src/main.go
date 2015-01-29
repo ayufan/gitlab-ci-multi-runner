@@ -58,14 +58,14 @@ func Main() {
 			Name:      "setup",
 			ShortName: "s",
 			Usage:     "setup a new runner",
-			Flags:     []cli.Flag{flRegistrationToken, flURL, flHostname, flConfigFile, flTags},
+			Flags:     []cli.Flag{flRegistrationToken, flURL, flDescription, flConfigFile, flTags, flExecutor},
 			Action:    setup,
 		},
 		{
 			Name:      "run",
 			ShortName: "r",
 			Usage:     "run multi runner",
-			Flags:     []cli.Flag{flConfigFile},
+			Flags:     []cli.Flag{flDockerHost, flConfigFile},
 			Action:    runMulti,
 		},
 	}

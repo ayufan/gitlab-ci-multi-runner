@@ -15,7 +15,7 @@ var (
 		Name:   "url",
 		Value:  "",
 		Usage:  "Runner URL",
-		EnvVar: "RUNNER_URL",
+		EnvVar: "CI_SERVER_URL",
 	}
 	flToken = cli.StringFlag{
 		Name:   "token",
@@ -29,17 +29,23 @@ var (
 		Usage:  "Runner's registration token",
 		EnvVar: "REGISTRATION_TOKEN",
 	}
-	flHostname = cli.StringFlag{
-		Name:   "hostname",
+	flDescription = cli.StringFlag{
+		Name:   "description",
 		Value:  "",
-		Usage:  "Runner's registration hostname",
-		EnvVar: "HOSTNAME",
+		Usage:  "Runner's registration description",
+		EnvVar: "RUNNER_DESCRIPTION",
 	}
 	flTags = cli.StringFlag{
 		Name:   "tag-list",
 		Value:  "",
 		Usage:  "Runner's tag list separated by comma",
-		EnvVar: "REGISTRATION_TAG_LIST",
+		EnvVar: "RUNNER_TAG_LIST",
+	}
+	flExecutor = cli.StringFlag{
+		Name:   "executor",
+		Value:  "",
+		Usage:  "Select executor, eg. shell, docker, etc.",
+		EnvVar: "RUNNER_EXECUTOR",
 	}
 	flDockerHost = cli.StringFlag{
 		Name:   "docker-host",
