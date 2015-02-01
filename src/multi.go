@@ -17,24 +17,25 @@ type RunnerHealth struct {
 
 type MultiRunner struct {
 	config      *Config
-	jobs        []*Job
-	jobsLock    sync.RWMutex
+	allBuilds   []*Build
+	builds      []*Build
+	buildsLock  sync.RWMutex
 	healthy     map[string]*RunnerHealth
 	healthyLock sync.Mutex
 }
 
 func (mr *MultiRunner) errorln(args ...interface{}) {
-	args = append([]interface{}{len(mr.jobs)}, args...)
+	args = append([]interface{}{len(mr.builds)}, args...)
 	log.Errorln(args...)
 }
 
 func (mr *MultiRunner) debugln(args ...interface{}) {
-	args = append([]interface{}{len(mr.jobs)}, args...)
+	args = append([]interface{}{len(mr.builds)}, args...)
 	log.Debugln(args...)
 }
 
 func (mr *MultiRunner) println(args ...interface{}) {
-	args = append([]interface{}{len(mr.jobs)}, args...)
+	args = append([]interface{}{len(mr.builds)}, args...)
 	log.Println(args...)
 }
 
@@ -86,55 +87,40 @@ func (mr *MultiRunner) makeUnhealthy(runner *RunnerConfig) {
 	}
 }
 
-func (mr *MultiRunner) addJob(newJob *Job) {
-	mr.jobsLock.Lock()
-	defer mr.jobsLock.Unlock()
+func (mr *MultiRunner) addBuild(newBuild *Build) {
+	mr.buildsLock.Lock()
+	defer mr.buildsLock.Unlock()
 
-	mr.jobs = append(mr.jobs, newJob)
-	mr.debugln("Added a new job", newJob)
+	mr.builds = append(mr.builds, newBuild)
+	mr.allBuilds = append(mr.allBuilds, newBuild)
+	mr.debugln("Added a new build", newBuild)
 }
 
-func (mr *MultiRunner) removeJob(deleteJob *Job) bool {
-	mr.jobsLock.Lock()
-	defer mr.jobsLock.Unlock()
+func (mr *MultiRunner) removeBuild(deleteBuild *Build) bool {
+	mr.buildsLock.Lock()
+	defer mr.buildsLock.Unlock()
 
-	for idx, job := range mr.jobs {
-		if job == deleteJob {
-			mr.jobs[idx] = mr.jobs[len(mr.jobs)-1]
-			mr.jobs = mr.jobs[:len(mr.jobs)-1]
-			mr.debugln("Removed job", deleteJob)
+	for idx, build := range mr.builds {
+		if build == deleteBuild {
+			mr.builds = append(mr.builds[0:idx], mr.builds[idx+1:]...)
+			mr.debugln("Build removed", deleteBuild)
 			return true
 		}
 	}
 	return false
 }
 
-func (mr *MultiRunner) jobsForRunner(runner *RunnerConfig) int {
-	mr.jobsLock.RLock()
-	defer mr.jobsLock.RUnlock()
-
+func (mr *MultiRunner) buildsForRunner(runner *RunnerConfig) int {
 	count := 0
-	for _, job := range mr.jobs {
-		if job.Runner == runner {
+	for _, build := range mr.builds {
+		if build.Runner == runner {
 			count += 1
 		}
 	}
 	return count
 }
 
-func (mr *MultiRunner) getAllBuilds() []*Build {
-	mr.jobsLock.RLock()
-	defer mr.jobsLock.RUnlock()
-
-	other_builds := []*Build{}
-	for _, other_job := range mr.jobs {
-		other_builds = append(other_builds, other_job.Build)
-	}
-
-	return other_builds
-}
-
-func (mr *MultiRunner) requestJob(runner *RunnerConfig) *Job {
+func (mr *MultiRunner) requestBuild(runner *RunnerConfig) *Build {
 	if runner == nil {
 		return nil
 	}
@@ -143,33 +129,31 @@ func (mr *MultiRunner) requestJob(runner *RunnerConfig) *Job {
 		return nil
 	}
 
-	count := mr.jobsForRunner(runner)
+	count := mr.buildsForRunner(runner)
 	if runner.Limit > 0 && count >= runner.Limit {
 		return nil
 	}
 
-	new_build, healthy := GetBuild(*runner)
+	build_data, healthy := GetBuild(*runner)
 	if healthy {
 		mr.makeHealthy(runner)
 	} else {
 		mr.makeUnhealthy(runner)
 	}
 
-	if new_build == nil {
+	if build_data == nil {
 		return nil
 	}
 
-	log.Debugln(len(mr.jobs), "Received new job for", runner.ShortDescription(), "build", new_build.Id)
-	new_job := &Job{
-		Build: &Build{
-			GetBuildResponse: *new_build,
-		},
-		Runner: runner,
+	mr.debugln("Received new build for", runner.ShortDescription(), "build", build_data.Id)
+	new_build := &Build{
+		GetBuildResponse: *build_data,
+		Runner:           runner,
 	}
 
 	build_prefix := fmt.Sprintf("runner-%s", runner.ShortDescription())
-	new_job.Build.GenerateUniqueName(build_prefix, mr.getAllBuilds())
-	return new_job
+	new_build.GenerateUniqueName(build_prefix, mr.builds)
+	return new_build
 }
 
 func (mr *MultiRunner) feedRunners(runners chan *RunnerConfig) {
@@ -189,14 +173,14 @@ func (mr *MultiRunner) processRunners(id int, stop_worker chan bool, runners cha
 		select {
 		case runner := <-runners:
 			mr.debugln("Checking runner", runner, "on", id)
-			new_job := mr.requestJob(runner)
+			new_job := mr.requestBuild(runner)
 			if new_job == nil {
 				break
 			}
 
-			mr.addJob(new_job)
+			mr.addBuild(new_job)
 			new_job.Run()
-			mr.removeJob(new_job)
+			mr.removeBuild(new_job)
 
 		case <-stop_worker:
 			mr.debugln("Stopping worker", id)
@@ -215,6 +199,8 @@ func (mr *MultiRunner) startWorkers(start_worker chan int, stop_worker chan bool
 func runMulti(c *cli.Context) {
 	mr := MultiRunner{}
 	mr.config = &Config{}
+	mr.allBuilds = []*Build{}
+	mr.builds = []*Build{}
 	err := mr.config.LoadConfig(c.String("config"))
 	if err != nil {
 		panic(err)
@@ -237,14 +223,14 @@ func runMulti(c *cli.Context) {
 	worker_index := 0
 
 	for {
-		jobs_limit := mr.config.Concurrent
+		build_limit := mr.config.Concurrent
 
-		for current_workers > jobs_limit {
+		for current_workers > build_limit {
 			stop_worker <- true
 			current_workers--
 		}
 
-		for current_workers < jobs_limit {
+		for current_workers < build_limit {
 			start_worker <- worker_index
 			current_workers++
 			worker_index++

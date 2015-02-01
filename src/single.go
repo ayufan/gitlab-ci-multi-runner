@@ -9,32 +9,28 @@ import (
 )
 
 func runSingle(c *cli.Context) {
-	runner_config := RunnerConfig{
+	runner := RunnerConfig{
 		URL:   c.String("URL"),
 		Token: c.String("token"),
 	}
 
-	log.Println("Starting runner for", runner_config.URL, "with token", runner_config.ShortDescription(), "...")
+	log.Println("Starting runner for", runner.URL, "with token", runner.ShortDescription(), "...")
 
 	for {
-		new_build, healthy := GetBuild(runner_config)
+		build_data, healthy := GetBuild(runner)
 		if !healthy {
 			log.Println("Runner died, beacuse it's not healthy!")
 			os.Exit(1)
 		}
-		if new_build == nil {
+		if build_data == nil {
 			time.Sleep(CHECK_INTERVAL * time.Second)
 			continue
 		}
 
-		new_job := Job{
-			Build: &Build{
-				GetBuildResponse: *new_build,
-				Name:             "",
-			},
-			Runner: &runner_config,
+		new_build := Build{
+			GetBuildResponse: *build_data,
+			Runner:           &runner,
 		}
-
-		new_job.Run()
+		new_build.Run()
 	}
 }

@@ -3,9 +3,13 @@ package src
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
+	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 type BuildState string
@@ -19,8 +23,13 @@ const (
 
 type Build struct {
 	GetBuildResponse
-	Name     string
-	BuildLog string
+	Name          string        `json:"name"`
+	BuildLog      string        `json:"-"`
+	BuildState    BuildState    `json:"build_state"`
+	BuildStarted  time.Time     `json:"build_started"`
+	BuildFinished time.Time     `json:"build_finished"`
+	BuildDuration time.Duration `json:"build_duration"`
+	Runner        *RunnerConfig `json:"runner"`
 }
 
 func (b *Build) isNameUnique(other_builds []*Build) bool {
@@ -134,4 +143,45 @@ func (build *Build) GetEnv() []string {
 		"BNDLE_BIN_PATH=",
 		"BUNDLE_GEMFILE=",
 	}
+}
+
+func (build *Build) fail(err error) {
+	log.Errorln(build.Runner.ShortDescription(), build.Id, "Build failed", err)
+	for {
+		error_buffer := bytes.NewBufferString(err.Error())
+		result := UpdateBuild(*build.Runner, build.Id, Failed, error_buffer)
+		switch result {
+		case UpdateSucceeded:
+			return
+		case UpdateAbort:
+			return
+		case UpdateFailed:
+			time.Sleep(UPDATE_RETRY_INTERVAL * time.Second)
+			continue
+		}
+	}
+}
+
+func (build *Build) Run() error {
+	var err error
+	executor := GetExecutor(build.Runner.Executor)
+	if executor == nil {
+		err = errors.New("executor not found")
+	}
+	if err == nil {
+		err = executor.Prepare(build.Runner, build)
+	}
+	if err == nil {
+		err = executor.Start()
+	}
+	if err == nil {
+		err = executor.Wait()
+	}
+	if err != nil {
+		go build.fail(err)
+	}
+	if executor != nil {
+		executor.Cleanup()
+	}
+	return err
 }

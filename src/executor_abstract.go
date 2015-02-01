@@ -22,9 +22,6 @@ type AbstractExecutor struct {
 	buildFinish      chan error
 	BuildScript      []byte
 	BuildLog         *os.File
-	BuildStarted     time.Time
-	BuildFinished    time.Time
-	BuildDuration    time.Duration
 }
 
 func (e *AbstractExecutor) FinishBuild(config RunnerConfig, buildState BuildState, extraMessage string) {
@@ -111,7 +108,8 @@ func (e *AbstractExecutor) Prepare(config *RunnerConfig, build *Build) error {
 	e.buildAbort = make(chan bool, 1)
 	e.buildFinish = make(chan error, 1)
 	e.buildLogFinish = make(chan bool)
-	e.BuildStarted = time.Now()
+	build.BuildStarted = time.Now()
+	build.BuildState = Pending
 
 	e.println("Starting build...")
 
@@ -184,9 +182,10 @@ func (e *AbstractExecutor) Wait() error {
 		}
 	}
 
-	e.BuildFinished = time.Now()
-	e.BuildDuration = e.BuildFinished.Sub(e.BuildStarted)
-	log.Println(e.config.ShortDescription(), e.build.Id, "Build took", e.BuildDuration)
+	e.build.BuildState = buildState
+	e.build.BuildFinished = time.Now()
+	e.build.BuildDuration = e.build.BuildFinished.Sub(e.build.BuildStarted)
+	e.println("Build took", e.build.BuildDuration)
 
 	// wait for update log routine to finish
 	e.debugln("Waiting for build log updater to finish")
