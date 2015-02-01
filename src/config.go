@@ -12,51 +12,51 @@ import (
 )
 
 type SshConfig struct {
-	User     string `toml:"user"`
-	Password string `toml:"password"`
-	Host     string `toml:"host"`
-	Port     string `toml:"port"`
+	User     string `toml:"user" json:"user"`
+	Password string `toml:"password" json:"password"`
+	Host     string `toml:"host" json:"host"`
+	Port     string `toml:"port" json:"port"`
 }
 
 type DockerConfig struct {
-	Host         string   `toml:"host"`
-	Image        string   `toml:"image"`
-	Privileged   bool     `toml:"privileged"`
-	DisableCache bool     `toml:"disable_cache"`
-	DisablePull  bool     `toml:"disable_pull"`
-	Volumes      []string `toml:"volumes"`
-	CacheDir     string   `toml:"cache_dir"`
-	Registry     string   `toml:"registry"`
-	ExtraHosts   []string `toml:"extra_hosts"`
-	Links        []string `toml:"links"`
-	Services     []string `toml:"services"`
+	Host         string   `toml:"host" json:"host"`
+	Image        string   `toml:"image" json:"image"`
+	Privileged   bool     `toml:"privileged" json:"privileged"`
+	DisableCache bool     `toml:"disable_cache" json:"disable_cache"`
+	DisablePull  bool     `toml:"disable_pull" json:"disable_pull"`
+	Volumes      []string `toml:"volumes" json:"volumes"`
+	CacheDir     string   `toml:"cache_dir" json:"cache_dir"`
+	Registry     string   `toml:"registry" json:"registry"`
+	ExtraHosts   []string `toml:"extra_hosts" json:"extra_hosts"`
+	Links        []string `toml:"links" json:"links"`
+	Services     []string `toml:"services" json:"services"`
 }
 
 type RunnerConfig struct {
-	Name      string `toml:"name"`
-	URL       string `toml:"url"`
-	Token     string `toml:"token"`
-	Limit     int    `toml:"limit"`
-	Executor  string `toml:"executor"`
-	BuildsDir string `toml:"builds_dir"`
+	Name      string `toml:"name" json:"name"`
+	URL       string `toml:"url" json:"url"`
+	Token     string `toml:"token" json:"token"`
+	Limit     int    `toml:"limit" json:"limit"`
+	Executor  string `toml:"executor" json:"executor"`
+	BuildsDir string `toml:"builds_dir" json:"builds_dir"`
 
-	Environment []string `toml:"environment"`
+	Environment []string `toml:"environment" json:"environment"`
 
-	ShellScript string `toml:"shell_script"`
+	ShellScript string `toml:"shell_script" json:"shell_script"`
 
-	Ssh    *SshConfig    `toml:"ssh"`
-	Docker *DockerConfig `toml:"docker"`
+	Ssh    *SshConfig    `toml:"ssh" json:"ssh"`
+	Docker *DockerConfig `toml:"docker" json:"docker"`
 }
 
 type BaseConfig struct {
-	Concurrent int             `toml:"concurrent"`
-	RootDir    string          `toml:"root_dir"`
-	Runners    []*RunnerConfig `toml:"runners"`
+	Concurrent int             `toml:"concurrent" json:"concurrent"`
+	RootDir    string          `toml:"root_dir" json:"root_dir"`
+	Runners    []*RunnerConfig `toml:"runners" json:"runners"`
 }
 
 type Config struct {
 	BaseConfig
-	ModTime time.Time
+	ModTime time.Time `json:"-"`
 }
 
 func (c *RunnerConfig) ShortDescription() string {

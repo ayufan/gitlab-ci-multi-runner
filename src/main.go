@@ -65,7 +65,7 @@ func Main() {
 			Name:      "run",
 			ShortName: "r",
 			Usage:     "run multi runner",
-			Flags:     []cli.Flag{flDockerHost, flConfigFile},
+			Flags:     []cli.Flag{flDockerHost, flConfigFile, flListenAddr},
 			Action:    runMulti,
 		},
 	}

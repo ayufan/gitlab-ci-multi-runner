@@ -206,6 +206,14 @@ func runMulti(c *cli.Context) {
 		panic(err)
 	}
 
+	mrs := MultiRunnerServer{
+		MultiRunner: &mr,
+	}
+
+	if listenAddr := c.String("listen-addr"); len(listenAddr) > 0 {
+		mrs.listenAddresses = []string{listenAddr}
+	}
+
 	mr.config.SetChdir()
 	mr.println("Starting multi-runner from", c.String("config"), "...")
 
@@ -218,6 +226,8 @@ func runMulti(c *cli.Context) {
 	start_worker := make(chan int)
 	stop_worker := make(chan bool)
 	go mr.startWorkers(start_worker, stop_worker, runners)
+
+	go mrs.Run()
 
 	current_workers := 0
 	worker_index := 0

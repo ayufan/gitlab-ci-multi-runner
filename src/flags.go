@@ -53,4 +53,10 @@ var (
 		Usage:  "Docker endpoint URL",
 		EnvVar: "DOCKER_HOST",
 	}
+	flListenAddr = cli.StringFlag{
+		Name:   "listen-addr",
+		Value:  "",
+		Usage:  "API listen address, eg. :8080",
+		EnvVar: "API_LISTEN",
+	}
 )
