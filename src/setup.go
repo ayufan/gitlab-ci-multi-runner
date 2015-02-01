@@ -3,6 +3,7 @@ package src
 import (
 	"bufio"
 	"os"
+	"strconv"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -35,9 +36,40 @@ func askExecutor(r *bufio.Reader, result *string) {
 	}
 }
 
+func askForDockerService(r *bufio.Reader, service string, docker_config *DockerConfig) bool {
+	for {
+		var result string
+		ask(r, "If you want to enable "+service+" please enter version (X.Y) or enter latest?", &result, true)
+		if len(result) == 0 {
+			return false
+		}
+		if result != "latest" {
+			_, err := strconv.ParseFloat(result, 32)
+			if err != nil {
+				println("Invalid version specified", err)
+				continue
+			}
+		}
+		docker_config.Services = append(docker_config.Services, service+":"+result)
+		return true
+	}
+}
+
 func askDocker(r *bufio.Reader, runner_config *RunnerConfig) {
-	runner_config.Docker = &DockerConfig{}
-	ask(r, "Please enter the Docker image (eg. ruby:2.1):", &runner_config.Docker.Image)
+	docker_config := &DockerConfig{}
+	ask(r, "Please enter the Docker image (eg. ruby:2.1):", &docker_config.Image)
+
+	if askForDockerService(r, "mysql", docker_config) {
+		runner_config.Environment = append(runner_config.Environment, "MYSQL_ALLOW_EMPTY_PASSWORD=1")
+	}
+
+	askForDockerService(r, "postgres", docker_config)
+	askForDockerService(r, "redis", docker_config)
+	askForDockerService(r, "mongodb", docker_config)
+
+	docker_config.Volumes = append(docker_config.Volumes, "/cache")
+
+	runner_config.Docker = docker_config
 }
 
 func askSsh(r *bufio.Reader, runner_config *RunnerConfig, serverless bool) {
