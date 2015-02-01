@@ -1,3 +1,8 @@
+v 0.1.4
+- Remove Job and merge it into Build
+- Introduce simple API server
+- Ask for services during setup
+
 v 0.1.3
 - Optimize setup
 - Optimize multi-runner setup - making it more concurrent
