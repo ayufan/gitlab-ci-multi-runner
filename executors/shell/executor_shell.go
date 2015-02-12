@@ -1,30 +1,34 @@
-package src
+package shell
 
 import (
 	"bytes"
 	"errors"
 	"os/exec"
+
+	"github.com/ayufan/gitlab-ci-multi-runner/common"
+	"github.com/ayufan/gitlab-ci-multi-runner/executors"
+	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
 )
 
 type ShellExecutor struct {
-	AbstractExecutor
+	executors.AbstractExecutor
 	cmd *exec.Cmd
 }
 
-func (s *ShellExecutor) Prepare(config *RunnerConfig, build *Build) error {
+func (s *ShellExecutor) Prepare(config *common.RunnerConfig, build *common.Build) error {
 	err := s.AbstractExecutor.Prepare(config, build)
 	if err != nil {
 		return err
 	}
 
-	s.println("Using Shell executor...")
+	s.Println("Using Shell executor...")
 	return nil
 }
 
 func (s *ShellExecutor) Start() error {
-	s.println("Starting shell command...")
+	s.Println("Starting shell command...")
 
-	shell_script := s.config.ShellScript
+	shell_script := s.Config.ShellScript
 	if len(shell_script) == 0 {
 		shell_script = "bash"
 	}
@@ -35,10 +39,10 @@ func (s *ShellExecutor) Start() error {
 		return errors.New("Failed to generate execution command")
 	}
 
-	SetProcessGroup(s.cmd)
+	helpers.SetProcessGroup(s.cmd)
 
 	// Fill process environment variables
-	s.cmd.Env = append(s.build.GetEnv(), s.config.Environment...)
+	s.cmd.Env = append(s.Build.GetEnv(), s.Config.Environment...)
 	s.cmd.Stdin = bytes.NewReader(s.BuildScript)
 	s.cmd.Stdout = s.BuildLog
 	s.cmd.Stderr = s.BuildLog
@@ -51,12 +55,12 @@ func (s *ShellExecutor) Start() error {
 
 	// Wait for process to exit
 	go func() {
-		s.buildFinish <- s.cmd.Wait()
+		s.BuildFinish <- s.cmd.Wait()
 	}()
 	return nil
 }
 
 func (s *ShellExecutor) Cleanup() {
-	KillProcessGroup(s.cmd)
+	helpers.KillProcessGroup(s.cmd)
 	s.AbstractExecutor.Cleanup()
 }

@@ -1,4 +1,4 @@
-package src
+package helpers
 
 // https://github.com/zimbatm/direnv/blob/master/shell.go
 

@@ -1,11 +1,9 @@
-package src
+package common
 
 const DEFAULT_TIMEOUT = 7200
 const CHECK_INTERVAL = 3
 const UPDATE_INTERVAL = 3
 const UPDATE_RETRY_INTERVAL = 3
 const RELOAD_CONFIG_INTERVAL = 3
-const SSH_RETRY_INTERVAL = 3
 const HEALTHY_CHECKS = 3
 const HEALTH_CHECK_INTERVAL = 3600
-const VERSION = "dev"

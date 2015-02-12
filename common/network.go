@@ -1,4 +1,4 @@
-package src
+package common
 
 import (
 	"bytes"

@@ -1,4 +1,4 @@
-package src
+package ssh
 
 import (
 	"bytes"
@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"code.google.com/p/go.crypto/ssh"
+
+	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
 )
 
 type SshCommand struct {
@@ -72,7 +74,7 @@ func (s *SshCommand) Run() error {
 
 	var envVariables bytes.Buffer
 	for _, keyValue := range s.Environment {
-		envVariables.WriteString("export " + ShellEscape(keyValue) + "\n")
+		envVariables.WriteString("export " + helpers.ShellEscape(keyValue) + "\n")
 	}
 
 	s.session.Stdin = io.MultiReader(

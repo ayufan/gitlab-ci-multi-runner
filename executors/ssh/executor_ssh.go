@@ -1,32 +1,35 @@
-package src
+package ssh
 
 import (
 	"errors"
+
+	"github.com/ayufan/gitlab-ci-multi-runner/executors"
+	"github.com/ayufan/gitlab-ci-multi-runner/ssh"
 )
 
 type SshExecutor struct {
-	AbstractExecutor
-	sshCommand SshCommand
+	executors.AbstractExecutor
+	sshCommand ssh.SshCommand
 }
 
 func (s *SshExecutor) Start() error {
-	if s.config.Ssh == nil {
+	if s.Config.Ssh == nil {
 		return errors.New("Missing SSH configuration")
 	}
 
-	s.println("Starting SSH command...")
+	s.Println("Starting SSH command...")
 
 	// Create SSH command
-	s.sshCommand = SshCommand{
-		SshConfig:   *s.config.Ssh,
-		Environment: append(s.build.GetEnv(), s.config.Environment...),
+	s.sshCommand = ssh.SshCommand{
+		SshConfig:   *s.Config.Ssh,
+		Environment: append(s.Build.GetEnv(), s.Config.Environment...),
 		Command:     "bash",
 		Stdin:       s.BuildScript,
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,
 	}
 
-	s.println("Connecting to SSH server...")
+	s.Println("Connecting to SSH server...")
 	err := s.sshCommand.Connect()
 	if err != nil {
 		return err
@@ -34,10 +37,10 @@ func (s *SshExecutor) Start() error {
 
 	// Wait for process to exit
 	go func() {
-		s.debugln("Will run SSH command...")
+		s.Debugln("Will run SSH command...")
 		err := s.sshCommand.Run()
-		s.debugln("SSH command finished with", err)
-		s.buildFinish <- err
+		s.Debugln("SSH command finished with", err)
+		s.BuildFinish <- err
 	}()
 	return nil
 }

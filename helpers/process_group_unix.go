@@ -1,6 +1,6 @@
 // +build darwin dragonfly freebsd linux netbsd openbsd
 
-package src
+package helpers
 
 import (
 	"os/exec"

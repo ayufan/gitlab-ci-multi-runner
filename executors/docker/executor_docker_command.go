@@ -1,4 +1,4 @@
-package src
+package docker
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ type DockerCommandExecutor struct {
 }
 
 func (s *DockerCommandExecutor) Start() error {
-	s.println("Starting Docker command...")
+	s.Println("Starting Docker command...")
 
 	// Create container
 	container, err := s.createContainer(s.image, []string{"bash"})
@@ -37,24 +37,24 @@ func (s *DockerCommandExecutor) Start() error {
 			RawTerminal:  false,
 		}
 
-		s.debugln("Attaching to container...")
+		s.Debugln("Attaching to container...")
 		err := s.client.AttachToContainer(attach_container_opts)
 		if err != nil {
-			s.buildFinish <- err
+			s.BuildFinish <- err
 			return
 		}
 
-		s.debugln("Waiting for container...")
+		s.Debugln("Waiting for container...")
 		exit_code, err := s.client.WaitContainer(container.ID)
 		if err != nil {
-			s.buildFinish <- err
+			s.BuildFinish <- err
 			return
 		}
 
 		if exit_code == 0 {
-			s.buildFinish <- nil
+			s.BuildFinish <- nil
 		} else {
-			s.buildFinish <- errors.New(fmt.Sprintf("exit code %d", exit_code))
+			s.BuildFinish <- errors.New(fmt.Sprintf("exit code %d", exit_code))
 		}
 	}()
 	return nil

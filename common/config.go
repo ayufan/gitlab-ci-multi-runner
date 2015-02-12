@@ -1,4 +1,4 @@
-package src
+package common
 
 import (
 	"bufio"
@@ -9,14 +9,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 	log "github.com/Sirupsen/logrus"
+	"github.com/ayufan/gitlab-ci-multi-runner/ssh"
 )
-
-type SshConfig struct {
-	User     string `toml:"user" json:"user"`
-	Password string `toml:"password" json:"password"`
-	Host     string `toml:"host" json:"host"`
-	Port     string `toml:"port" json:"port"`
-}
 
 type DockerConfig struct {
 	Host         string   `toml:"host" json:"host"`
@@ -44,8 +38,8 @@ type RunnerConfig struct {
 
 	ShellScript string `toml:"shell_script" json:"shell_script"`
 
-	Ssh    *SshConfig    `toml:"ssh" json:"ssh"`
-	Docker *DockerConfig `toml:"docker" json:"docker"`
+	Ssh    *ssh.SshConfig `toml:"ssh" json:"ssh"`
+	Docker *DockerConfig  `toml:"docker" json:"docker"`
 }
 
 type BaseConfig struct {

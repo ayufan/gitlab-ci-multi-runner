@@ -1,4 +1,4 @@
-package src
+package commands
 
 import (
 	"bufio"
@@ -8,6 +8,9 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
+
+	"github.com/ayufan/gitlab-ci-multi-runner/common"
+	"github.com/ayufan/gitlab-ci-multi-runner/ssh"
 )
 
 func ask(r *bufio.Reader, prompt string, result *string, allow_empty ...bool) {
@@ -36,7 +39,7 @@ func askExecutor(r *bufio.Reader, result *string) {
 	}
 }
 
-func askForDockerService(r *bufio.Reader, service string, docker_config *DockerConfig) bool {
+func askForDockerService(r *bufio.Reader, service string, docker_config *common.DockerConfig) bool {
 	for {
 		var result string
 		ask(r, "If you want to enable "+service+" please enter version (X.Y) or enter latest?", &result, true)
@@ -55,8 +58,8 @@ func askForDockerService(r *bufio.Reader, service string, docker_config *DockerC
 	}
 }
 
-func askDocker(r *bufio.Reader, runner_config *RunnerConfig) {
-	docker_config := &DockerConfig{}
+func askDocker(r *bufio.Reader, runner_config *common.RunnerConfig) {
+	docker_config := &common.DockerConfig{}
 	ask(r, "Please enter the Docker image (eg. ruby:2.1):", &docker_config.Image)
 
 	if askForDockerService(r, "mysql", docker_config) {
@@ -72,8 +75,8 @@ func askDocker(r *bufio.Reader, runner_config *RunnerConfig) {
 	runner_config.Docker = docker_config
 }
 
-func askSsh(r *bufio.Reader, runner_config *RunnerConfig, serverless bool) {
-	runner_config.Ssh = &SshConfig{}
+func askSsh(r *bufio.Reader, runner_config *common.RunnerConfig, serverless bool) {
+	runner_config.Ssh = &ssh.SshConfig{}
 	if !serverless {
 		ask(r, "Please enter the SSH server address (eg. my.server.com):", &runner_config.Ssh.Host)
 		ask(r, "Please enter the SSH server port (eg. 22):", &runner_config.Ssh.Port, true)
@@ -82,13 +85,13 @@ func askSsh(r *bufio.Reader, runner_config *RunnerConfig, serverless bool) {
 	ask(r, "Please enter the SSH password (eg. docker.io):", &runner_config.Ssh.Password)
 }
 
-func setup(c *cli.Context) {
+func runSetup(c *cli.Context) {
 	file, err := os.OpenFile(c.String("config"), os.O_APPEND|os.O_CREATE, 0600)
 	if file != nil {
 		file.Close()
 	}
 
-	config := Config{}
+	config := common.Config{}
 	err = config.LoadConfig(c.String("config"))
 	if err != nil {
 		panic(err)
@@ -105,12 +108,12 @@ func setup(c *cli.Context) {
 	ask(bio, "Please enter the gitlab-ci description for this runner", &description)
 	// ask(bio, "Please enter the tag list separated by comma or leave it empty", &tags, true)
 
-	result := RegisterRunner(url, registrationToken, description, tags)
+	result := common.RegisterRunner(url, registrationToken, description, tags)
 	if result == nil {
 		log.Fatalf("Failed to register this runner. Perhaps your SSH key is invalid or you are having network problems")
 	}
 
-	runner_config := RunnerConfig{
+	runner_config := common.RunnerConfig{
 		URL:      url,
 		Name:     description,
 		Token:    result.Token,
@@ -140,3 +143,50 @@ func setup(c *cli.Context) {
 
 	log.Printf("Runner registered successfully. Feel free to start it, but if it's running already the config should be automatically reloaded!")
 }
+
+var (
+	CmdRunSetup = cli.Command{
+		Name:      "setup",
+		ShortName: "s",
+		Usage:     "setup a new runner",
+		Action:    runSetup,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:   "registration-token",
+				Value:  "",
+				Usage:  "Runner's registration token",
+				EnvVar: "REGISTRATION_TOKEN",
+			},
+			cli.StringFlag{
+				Name:   "url",
+				Value:  "",
+				Usage:  "Runner URL",
+				EnvVar: "CI_SERVER_URL",
+			},
+			cli.StringFlag{
+				Name:   "description",
+				Value:  "",
+				Usage:  "Runner's registration description",
+				EnvVar: "RUNNER_DESCRIPTION",
+			},
+			cli.StringFlag{
+				Name:   "config",
+				Value:  "config.toml",
+				Usage:  "Config file",
+				EnvVar: "CONFIG_FILE",
+			},
+			cli.StringFlag{
+				Name:   "tag-list",
+				Value:  "",
+				Usage:  "Runner's tag list separated by comma",
+				EnvVar: "RUNNER_TAG_LIST",
+			},
+			cli.StringFlag{
+				Name:   "executor",
+				Value:  "",
+				Usage:  "Select executor, eg. shell, docker, etc.",
+				EnvVar: "RUNNER_EXECUTOR",
+			},
+		},
+	}
+)

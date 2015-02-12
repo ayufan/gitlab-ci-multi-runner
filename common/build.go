@@ -1,4 +1,4 @@
-package src
+package common
 
 import (
 	"bufio"
@@ -10,6 +10,8 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+
+	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
 )
 
 type BuildState string
@@ -97,7 +99,7 @@ func (build *Build) Generate(builds_dir string, hostname string) ([]byte, error)
 	io.WriteString(w, "#!/usr/bin/env bash\n")
 	io.WriteString(w, "\n")
 	if len(hostname) != 0 {
-		io.WriteString(w, fmt.Sprintf("echo Running $(hostname) on %s...\n", ShellEscape(hostname)))
+		io.WriteString(w, fmt.Sprintf("echo Running $(hostname) on %s...\n", helpers.ShellEscape(hostname)))
 	} else {
 		io.WriteString(w, "echo Running $(hostname)...\n")
 	}
