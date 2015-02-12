@@ -6,8 +6,8 @@ install:
 - go get github.com/tools/godep
 - godep restore
 before_script:
-- sed -i "s/^const VERSION .*\$/const VERSION = \"${TRAVIS_TAG:-$TRAVIS_BRANCH} ($(git rev-parse --short HEAD))\"/g" src/consts.go
-- cat src/consts.go | grep VERSION
+- echo -e "package commands\n\nconst VERSION = \"${TRAVIS_TAG:-$TRAVIS_BRANCH} ($(git rev-parse --short HEAD))\"\n" > commands/version.go
+- cat commands/version.go | grep VERSION
 script:
 - make test
 before_deploy:
@@ -29,4 +29,3 @@ deploy:
   on:
     repo: ayufan/gitlab-ci-multi-runner
     tags: true
-    all_branches: true

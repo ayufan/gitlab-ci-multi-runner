@@ -1,3 +1,7 @@
+v 0.1.5
+- Added Parallels executor which can use snapshots for fast revert (only OSX supported)
+- Refactored sources
+
 v 0.1.4
 - Remove Job and merge it into Build
 - Introduce simple API server
