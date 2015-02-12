@@ -108,7 +108,7 @@ func (s *ParallelsExecutor) createVm() error {
 
 	templateName := s.Config.Parallels.TemplateName
 	if templateName == "" {
-		templateName = baseImage + "_template"
+		templateName = baseImage + "-template"
 	}
 
 	if !prl.Exist(templateName) {
@@ -159,6 +159,10 @@ func (s *ParallelsExecutor) Prepare(config *common.RunnerConfig, build *common.B
 		return errors.New("Missing Parallels configuration")
 	}
 
+	if s.Config.Parallels.BaseName == "" {
+		return errors.New("Missing BaseName setting from Parallels config")
+	}
+
 	version, err := prl.Version()
 	if err != nil {
 		return err
@@ -167,7 +171,7 @@ func (s *ParallelsExecutor) Prepare(config *common.RunnerConfig, build *common.B
 	s.Debugln("Using Parallels", version, "executor...")
 
 	if s.Config.Parallels.DisableSnapshots {
-		s.vmName = s.Build.ProjectRunnerName
+		s.vmName = s.Config.Parallels.BaseName + "-" + s.Build.ProjectRunnerName
 		if prl.Exist(s.vmName) {
 			s.Debugln("Deleting old VM...")
 			prl.Stop(s.vmName)
