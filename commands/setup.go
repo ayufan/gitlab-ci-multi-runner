@@ -31,9 +31,8 @@ func ask(r *bufio.Reader, prompt string, result *string, allow_empty ...bool) {
 
 func askExecutor(r *bufio.Reader, result *string) {
 	for {
-		ask(r, "Please enter the executor: shell, docker, docker-ssh, ssh?", result)
-		switch *result {
-		case "shell", "docker", "docker-ssh", "ssh":
+		ask(r, "Please enter the executor: shell, docker, docker-ssh, ssh, parallels?", result)
+		if common.GetExecutor(*result) != nil {
 			return
 		}
 	}
@@ -73,6 +72,12 @@ func askDocker(r *bufio.Reader, runner_config *common.RunnerConfig) {
 	docker_config.Volumes = append(docker_config.Volumes, "/cache")
 
 	runner_config.Docker = docker_config
+}
+
+func askParallels(r *bufio.Reader, runner_config *common.RunnerConfig) {
+	parallels_config := &common.ParallelsConfig{}
+	ask(r, "Please enter the Parallels VM (eg. my-vm):", &parallels_config.BaseName)
+	runner_config.Parallels = parallels_config
 }
 
 func askSsh(r *bufio.Reader, runner_config *common.RunnerConfig, serverless bool) {
@@ -125,12 +130,16 @@ func runSetup(c *cli.Context) {
 	switch runner_config.Executor {
 	case "docker", "docker-ssh":
 		askDocker(bio, &runner_config)
+	case "parallels":
+		askParallels(bio, &runner_config)
 	}
 
 	switch runner_config.Executor {
 	case "ssh":
 		askSsh(bio, &runner_config, false)
 	case "docker-ssh":
+		askSsh(bio, &runner_config, true)
+	case "parallels":
 		askSsh(bio, &runner_config, true)
 	}
 

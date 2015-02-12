@@ -28,7 +28,7 @@ This project was made as Go learning opportunity. The initial release was create
 * Works on Ubuntu, Debian and OS X (should also work on other Linux distributions)
 * Allows to customize job running environment
 * Automatic configuration reload without restart
-* Easy to use setup with support for docker, docker-ssh or ssh running environments
+* Easy to use setup with support for docker, docker-ssh, parallels or ssh running environments
 * Enables caching of Docker containers
 
 ### Install and initial configuration
@@ -136,6 +136,7 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
     * **docker** - run build using Docker container - this requires the presence of *[runners.docker]*
     * **docker-ssh** - run build using Docker container, but connect to it with SSH - this requires the presence of *[runners.docker]* and *[runners.ssh]*
     * **ssh** - run build remotely with SSH - this requires the presence of *[runners.ssh]*
+    * **parallels** - run build using Parallels VM, but connect to it with SSH - this requires the presence of *[runners.parallels]* and *[runners.ssh]*
 
 1. The [runners.docker] section:
     ```
@@ -165,6 +166,19 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
     * `extra_hosts` - specify hosts that should be defined in container environment
     * `links` - specify containers which should be linked with building container
     * `services` - specify additional services that should be run with build. Please visit [Docker Registry](https://registry.hub.docker.com/) for list of available applications. Each service will be run in separate container and linked to the build.
+
+1. The [runners.parallels] section:
+    ```
+    [runners.parallels]
+      base_name = "my-parallels-image"
+      template_name = ""
+      disable_snapshots = false
+    ```
+
+    This defines the Parallels parameters:
+    * `base_name` - name of Parallels VM which will be cloned
+    * `template_name` - custom name of Parallels VM linked template (optional)
+    * `disable_snapshots` - if disabled the VMs will be destroyed after build
 
 1. The [runners.ssh] section:
     ```
