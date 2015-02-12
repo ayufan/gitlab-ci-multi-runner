@@ -3,6 +3,8 @@ package docker
 import (
 	"errors"
 
+	"github.com/ayufan/gitlab-ci-multi-runner/common"
+	"github.com/ayufan/gitlab-ci-multi-runner/executors"
 	"github.com/ayufan/gitlab-ci-multi-runner/ssh"
 )
 
@@ -60,4 +62,17 @@ func (s *DockerSshExecutor) Start() error {
 func (s *DockerSshExecutor) Cleanup() {
 	s.sshCommand.Cleanup()
 	s.DockerExecutor.Cleanup()
+}
+
+func init() {
+	common.RegisterExecutor("docker-ssh", func() common.Executor {
+		return &DockerSshExecutor{
+			DockerExecutor: DockerExecutor{
+				AbstractExecutor: executors.AbstractExecutor{
+					DefaultBuildsDir: "builds",
+					ShowHostname:     true,
+				},
+			},
+		}
+	})
 }

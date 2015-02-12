@@ -1,5 +1,9 @@
 package common
 
+import (
+	log "github.com/Sirupsen/logrus"
+)
+
 type Executor interface {
 	Prepare(config *RunnerConfig, build *Build) error
 	Start() error
@@ -10,6 +14,8 @@ type Executor interface {
 var executors map[string]func() Executor
 
 func RegisterExecutor(executor string, closure func() Executor) {
+	log.Debugln("Registering", executor, "executor...")
+
 	if executors == nil {
 		executors = make(map[string]func() Executor)
 	}

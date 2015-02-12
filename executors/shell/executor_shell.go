@@ -64,3 +64,14 @@ func (s *ShellExecutor) Cleanup() {
 	helpers.KillProcessGroup(s.cmd)
 	s.AbstractExecutor.Cleanup()
 }
+
+func init() {
+	common.RegisterExecutor("shell", func() common.Executor {
+		return &ShellExecutor{
+			AbstractExecutor: executors.AbstractExecutor{
+				DefaultBuildsDir: "tmp/builds",
+				ShowHostname:     false,
+			},
+		}
+	})
+}

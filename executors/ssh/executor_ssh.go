@@ -3,6 +3,7 @@ package ssh
 import (
 	"errors"
 
+	"github.com/ayufan/gitlab-ci-multi-runner/common"
 	"github.com/ayufan/gitlab-ci-multi-runner/executors"
 	"github.com/ayufan/gitlab-ci-multi-runner/ssh"
 )
@@ -48,4 +49,15 @@ func (s *SshExecutor) Start() error {
 func (s *SshExecutor) Cleanup() {
 	s.sshCommand.Cleanup()
 	s.AbstractExecutor.Cleanup()
+}
+
+func init() {
+	common.RegisterExecutor("ssh", func() common.Executor {
+		return &SshExecutor{
+			AbstractExecutor: executors.AbstractExecutor{
+				DefaultBuildsDir: "builds",
+				ShowHostname:     true,
+			},
+		}
+	})
 }

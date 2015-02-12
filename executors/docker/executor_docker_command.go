@@ -6,6 +6,9 @@ import (
 	"fmt"
 
 	"github.com/fsouza/go-dockerclient"
+
+	"github.com/ayufan/gitlab-ci-multi-runner/common"
+	"github.com/ayufan/gitlab-ci-multi-runner/executors"
 )
 
 type DockerCommandExecutor struct {
@@ -58,4 +61,17 @@ func (s *DockerCommandExecutor) Start() error {
 		}
 	}()
 	return nil
+}
+
+func init() {
+	common.RegisterExecutor("docker", func() common.Executor {
+		return &DockerCommandExecutor{
+			DockerExecutor: DockerExecutor{
+				AbstractExecutor: executors.AbstractExecutor{
+					DefaultBuildsDir: "/builds",
+					ShowHostname:     true,
+				},
+			},
+		}
+	})
 }
