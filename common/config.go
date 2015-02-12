@@ -26,6 +26,12 @@ type DockerConfig struct {
 	Services     []string `toml:"services" json:"services"`
 }
 
+type ParallelsConfig struct {
+	BaseName         string `toml:"base_name" json:"base_name"`
+	TemplateName     string `toml:"template_name" json:"template_name"`
+	DisableSnapshots bool   `toml:"disable_snapshots" json:"disable_snapshots"`
+}
+
 type RunnerConfig struct {
 	Name      string `toml:"name" json:"name"`
 	URL       string `toml:"url" json:"url"`
@@ -38,8 +44,9 @@ type RunnerConfig struct {
 
 	ShellScript string `toml:"shell_script" json:"shell_script"`
 
-	Ssh    *ssh.SshConfig `toml:"ssh" json:"ssh"`
-	Docker *DockerConfig  `toml:"docker" json:"docker"`
+	Ssh       *ssh.SshConfig   `toml:"ssh" json:"ssh"`
+	Docker    *DockerConfig    `toml:"docker" json:"docker"`
+	Parallels *ParallelsConfig `toml:"parallels" json:"parallels"`
 }
 
 type BaseConfig struct {

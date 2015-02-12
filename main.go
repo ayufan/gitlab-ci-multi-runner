@@ -9,6 +9,7 @@ import (
 
 	"github.com/ayufan/gitlab-ci-multi-runner/commands"
 	_ "github.com/ayufan/gitlab-ci-multi-runner/executors/docker"
+	_ "github.com/ayufan/gitlab-ci-multi-runner/executors/parallels"
 	_ "github.com/ayufan/gitlab-ci-multi-runner/executors/shell"
 	_ "github.com/ayufan/gitlab-ci-multi-runner/executors/ssh"
 )
