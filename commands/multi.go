@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -153,8 +152,7 @@ func (mr *MultiRunner) requestBuild(runner *common.RunnerConfig) *common.Build {
 		Runner:           runner,
 	}
 
-	build_prefix := fmt.Sprintf("runner-%s", runner.ShortDescription())
-	new_build.GenerateUniqueName(build_prefix, mr.builds)
+	new_build.PrepareBuildParameters(mr.builds)
 	return new_build
 }
 

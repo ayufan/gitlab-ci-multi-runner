@@ -25,39 +25,68 @@ const (
 
 type Build struct {
 	GetBuildResponse
-	Name          string        `json:"name"`
 	BuildLog      string        `json:"-"`
 	BuildState    BuildState    `json:"build_state"`
 	BuildStarted  time.Time     `json:"build_started"`
 	BuildFinished time.Time     `json:"build_finished"`
 	BuildDuration time.Duration `json:"build_duration"`
 	Runner        *RunnerConfig `json:"runner"`
+
+	GlobalId   int    `json:"global_id"`
+	GlobalName string `json:"global_name"`
+
+	RunnerId   int    `json:"runner_id"`
+	RunnerName string `json:"runner_name"`
+
+	ProjectRunnerId   int    `json:"project_runner_id"`
+	ProjectRunnerName string `json:"name"`
 }
 
-func (b *Build) isNameUnique(other_builds []*Build) bool {
+func (b *Build) PrepareBuildParameters(other_builds []*Build) {
+	globals := make(map[int]bool)
+	runners := make(map[int]bool)
+	project_runners := make(map[int]bool)
+
 	for _, other_build := range other_builds {
-		if b.Name == other_build.Name {
-			return false
+		globals[other_build.GlobalId] = true
+
+		if other_build.Runner != b.Runner {
+			continue
+		}
+		runners[other_build.RunnerId] = true
+
+		if other_build.ProjectId != b.ProjectId {
+			continue
+		}
+		project_runners[other_build.ProjectId] = true
+	}
+
+	for i := 0; ; i++ {
+		if !globals[i] {
+			b.GlobalName = fmt.Sprintf("concurrent-%d", i)
+			break
 		}
 	}
-	return true
-}
 
-func (b *Build) GenerateUniqueName(prefix string, other_builds []*Build) {
 	for i := 0; ; i++ {
-		b.Name = fmt.Sprintf("%s-project-%d-%d", prefix, b.ProjectId, i)
-		if b.isNameUnique(other_builds) {
-			return
+		if !runners[i] {
+			b.RunnerName = fmt.Sprintf("runner-%s-concurrent-%d",
+				b.Runner.ShortDescription(), i)
+			break
+		}
+	}
+
+	for i := 0; ; i++ {
+		if !project_runners[i] {
+			b.ProjectRunnerName = fmt.Sprintf("runner-%s-project-%d-concurrent-%d",
+				b.Runner.ShortDescription(), b.ProjectId, i)
+			break
 		}
 	}
 }
 
 func (b *Build) ProjectUniqueName() string {
-	if len(b.Name) == 0 {
-		return fmt.Sprintf("project-%d", b.ProjectId)
-	} else {
-		return b.Name
-	}
+	return b.ProjectRunnerName
 }
 
 func (b *Build) ProjectDir() string {
