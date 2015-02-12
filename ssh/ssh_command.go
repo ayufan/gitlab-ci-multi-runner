@@ -20,8 +20,9 @@ type SshCommand struct {
 	Stdout      io.Writer
 	Stderr      io.Writer
 
-	client  *ssh.Client
-	session *ssh.Session
+	ConnectRetries int
+
+	client *ssh.Client
 }
 
 func (s *SshCommand) getSshAuthMethods() []ssh.AuthMethod {
@@ -47,29 +48,50 @@ func (s *SshCommand) Connect() error {
 		Auth: s.getSshAuthMethods(),
 	}
 
-	client, err := ssh.Dial("tcp", s.Host+":"+s.Port, config)
-	if err != nil {
-		for i := 0; i < 3 && err != nil; i++ {
-			time.Sleep(SSH_RETRY_INTERVAL * time.Second)
-			client, err = ssh.Dial("tcp", s.Host+":"+s.Port, config)
-		}
-		if err != nil {
-			return err
-		}
+	connectRetries := s.ConnectRetries
+	if connectRetries == 0 {
+		connectRetries = 3
 	}
-	s.client = client
 
-	session, err := client.NewSession()
+	var finalError error
+
+	for i := 0; i < connectRetries; i++ {
+		client, err := ssh.Dial("tcp", s.Host+":"+s.Port, config)
+		if err == nil {
+			s.client = client
+			return nil
+		}
+		time.Sleep(SSH_RETRY_INTERVAL * time.Second)
+		finalError = err
+	}
+
+	return finalError
+}
+
+func (s *SshCommand) Exec(cmd string) error {
+	if s.client == nil {
+		return errors.New("Not connected")
+	}
+
+	session, err := s.client.NewSession()
 	if err != nil {
 		return err
 	}
-	s.session = session
-	return nil
+	session.Stdout = s.Stdout
+	session.Stderr = s.Stderr
+	err = session.Run(cmd)
+	session.Close()
+	return err
 }
 
 func (s *SshCommand) Run() error {
-	if s.session == nil {
+	if s.client == nil {
 		return errors.New("Not connected")
+	}
+
+	session, err := s.client.NewSession()
+	if err != nil {
+		return err
 	}
 
 	var envVariables bytes.Buffer
@@ -77,20 +99,18 @@ func (s *SshCommand) Run() error {
 		envVariables.WriteString("export " + helpers.ShellEscape(keyValue) + "\n")
 	}
 
-	s.session.Stdin = io.MultiReader(
+	session.Stdin = io.MultiReader(
 		&envVariables,
 		bytes.NewBuffer(s.Stdin),
 	)
-	s.session.Stdout = s.Stdout
-	s.session.Stderr = s.Stderr
-	err := s.session.Run(s.Command)
+	session.Stdout = s.Stdout
+	session.Stderr = s.Stderr
+	err = session.Run(s.Command)
+	session.Close()
 	return err
 }
 
 func (s *SshCommand) Cleanup() {
-	if s.session != nil {
-		s.session.Close()
-	}
 	if s.client != nil {
 		s.client.Close()
 	}
