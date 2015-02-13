@@ -50,7 +50,7 @@ func (b *Build) PrepareBuildParameters(other_builds []*Build) {
 	for _, other_build := range other_builds {
 		globals[other_build.GlobalId] = true
 
-		if other_build.Runner != b.Runner {
+		if other_build.Runner.ShortDescription() != b.Runner.ShortDescription() {
 			continue
 		}
 		runners[other_build.RunnerId] = true
@@ -58,11 +58,12 @@ func (b *Build) PrepareBuildParameters(other_builds []*Build) {
 		if other_build.ProjectId != b.ProjectId {
 			continue
 		}
-		project_runners[other_build.ProjectId] = true
+		project_runners[other_build.ProjectRunnerId] = true
 	}
 
 	for i := 0; ; i++ {
 		if !globals[i] {
+			b.GlobalId = i
 			b.GlobalName = fmt.Sprintf("concurrent-%d", i)
 			break
 		}
@@ -70,6 +71,7 @@ func (b *Build) PrepareBuildParameters(other_builds []*Build) {
 
 	for i := 0; ; i++ {
 		if !runners[i] {
+			b.RunnerId = i
 			b.RunnerName = fmt.Sprintf("runner-%s-concurrent-%d",
 				b.Runner.ShortDescription(), i)
 			break
@@ -78,6 +80,7 @@ func (b *Build) PrepareBuildParameters(other_builds []*Build) {
 
 	for i := 0; ; i++ {
 		if !project_runners[i] {
+			b.ProjectRunnerId = i
 			b.ProjectRunnerName = fmt.Sprintf("runner-%s-project-%d-concurrent-%d",
 				b.Runner.ShortDescription(), b.ProjectId, i)
 			break
