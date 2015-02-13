@@ -118,9 +118,8 @@ func (s *DockerExecutor) createService(service, version string) (*docker.Contain
 	createContainerOpts := docker.CreateContainerOptions{
 		Name: s.Build.ProjectUniqueName() + "-" + service,
 		Config: &docker.Config{
-			Hostname: s.Build.ProjectUniqueName(),
-			Image:    serviceImage.ID,
-			Env:      s.Config.Environment,
+			Image: serviceImage.ID,
+			Env:   s.Config.Environment,
 		},
 		HostConfig: &docker.HostConfig{
 			RestartPolicy: docker.NeverRestart(),
@@ -178,10 +177,15 @@ func (s *DockerExecutor) connect() (*docker.Client, error) {
 }
 
 func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*docker.Container, error) {
+	hostname := s.Config.Docker.Hostname
+	if hostname == "" {
+		hostname = s.Build.ProjectUniqueName()
+	}
+
 	create_container_opts := docker.CreateContainerOptions{
 		Name: s.Build.ProjectUniqueName(),
 		Config: &docker.Config{
-			Hostname:     s.Build.ProjectUniqueName(),
+			Hostname:     hostname,
 			Image:        image.ID,
 			Tty:          false,
 			AttachStdin:  true,

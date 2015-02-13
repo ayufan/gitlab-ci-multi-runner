@@ -14,6 +14,7 @@ import (
 
 type DockerConfig struct {
 	Host         string   `toml:"host" json:"host"`
+	Hostname     string   `toml:"hostname" json:"hostname"`
 	Image        string   `toml:"image" json:"image"`
 	Privileged   bool     `toml:"privileged" json:"privileged"`
 	DisableCache bool     `toml:"disable_cache" json:"disable_cache"`

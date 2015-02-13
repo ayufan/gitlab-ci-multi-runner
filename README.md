@@ -142,6 +142,7 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
     ```
     [runners.docker]
       host = ""
+      hostname = ""
       image = "ruby:2.1"
       privileged = false
       disable_cache = false
@@ -155,7 +156,8 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
     ```
     
     This defines the Docker Container parameters:
-    * `host` - use custom Docker endpoint, by default *DOCKER_HOST* environment is used or *"unix:///var/run/docker.sock"*
+    * `host` - specify custom Docker endpoint, by default *DOCKER_HOST* environment is used or *"unix:///var/run/docker.sock"*
+    * `hostname` - specify custom hostname for Docker container
     * `image` - use this image to run builds
     * `privileged` - make container run in Privileged mode (insecure)
     * `disable_cache` - disable automatic
