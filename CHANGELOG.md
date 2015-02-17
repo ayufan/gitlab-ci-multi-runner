@@ -1,3 +1,6 @@
+v 0.1.6
+- Remove Docker containers before starting job
+
 v 0.1.5
 - Added Parallels executor which can use snapshots for fast revert (only OSX supported)
 - Refactored sources

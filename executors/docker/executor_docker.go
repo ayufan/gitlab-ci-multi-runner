@@ -115,8 +115,13 @@ func (s *DockerExecutor) createService(service, version string) (*docker.Contain
 		return nil, err
 	}
 
+	containerName := s.Build.ProjectUniqueName() + "-" + service
+
+	// this will fail potentially some builds if there's name collision
+	s.removeContainer(containerName)
+
 	createContainerOpts := docker.CreateContainerOptions{
-		Name: s.Build.ProjectUniqueName() + "-" + service,
+		Name: containerName,
 		Config: &docker.Config{
 			Image: serviceImage.ID,
 			Env:   s.Config.Environment,
@@ -182,8 +187,13 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 		hostname = s.Build.ProjectUniqueName()
 	}
 
+	containerName := s.Build.ProjectUniqueName()
+
+	// this will fail potentially some builds if there's name collision
+	s.removeContainer(containerName)
+
 	create_container_opts := docker.CreateContainerOptions{
-		Name: s.Build.ProjectUniqueName(),
+		Name: containerName,
 		Config: &docker.Config{
 			Hostname:     hostname,
 			Image:        image.ID,
@@ -239,7 +249,7 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 	return container, nil
 }
 
-func (s *DockerExecutor) removeContainer(id string) {
+func (s *DockerExecutor) removeContainer(id string) error {
 	remove_container_opts := docker.RemoveContainerOptions{
 		ID:            id,
 		RemoveVolumes: true,
@@ -247,6 +257,7 @@ func (s *DockerExecutor) removeContainer(id string) {
 	}
 	err := s.client.RemoveContainer(remove_container_opts)
 	s.Debugln("Removed container", id, "with", err)
+	return err
 }
 
 func (s *DockerExecutor) Prepare(config *common.RunnerConfig, build *common.Build) error {
