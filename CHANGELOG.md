@@ -1,3 +1,6 @@
+v 0.1.7
+- Fixed git checkout
+
 v 0.1.6
 - Remove Docker containers before starting job
 
