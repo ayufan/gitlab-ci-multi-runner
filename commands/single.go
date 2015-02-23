@@ -33,6 +33,7 @@ func runSingle(c *cli.Context) {
 			GetBuildResponse: *build_data,
 			Runner:           &runner,
 		}
+		new_build.PrepareBuildParameters([]*common.Build{})
 		new_build.Run()
 	}
 }
