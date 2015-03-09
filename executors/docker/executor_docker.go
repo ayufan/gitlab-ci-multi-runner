@@ -115,7 +115,7 @@ func (s *DockerExecutor) createService(service, version string) (*docker.Contain
 		return nil, err
 	}
 
-	containerName := s.Build.ProjectUniqueName() + "-" + service
+	containerName := s.Build.ProjectUniqueName() + "-" + strings.Replace(service, "/", "__", -1)
 
 	// this will fail potentially some builds if there's name collision
 	s.removeContainer(containerName)
@@ -158,7 +158,7 @@ func (s *DockerExecutor) createServices() ([]string, error) {
 		}
 
 		s.Debugln("Created service", service, version, "as", container.ID)
-		links = append(links, container.Name+":"+service)
+		links = append(links, container.Name+":"+strings.Replace(service, "/", "__", -1))
 		s.services = append(s.services, container)
 	}
 
