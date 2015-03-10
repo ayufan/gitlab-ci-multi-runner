@@ -1,3 +1,6 @@
+v 0.1.9
+- Fixed problem with resetting ruby environment
+
 v 0.1.8
 - Allow to use prefixed services
 - Allow to run on Heroku
