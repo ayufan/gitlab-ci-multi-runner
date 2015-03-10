@@ -131,9 +131,9 @@ func (build *Build) Generate(builds_dir string, hostname string) ([]byte, error)
 	io.WriteString(w, "#!/usr/bin/env bash\n")
 	io.WriteString(w, "\n")
 	if len(hostname) != 0 {
-		io.WriteString(w, fmt.Sprintf("echo Running $(hostname) on %s...\n", helpers.ShellEscape(hostname)))
+		io.WriteString(w, fmt.Sprintf("echo Running on $(hostname) via %s...\n", helpers.ShellEscape(hostname)))
 	} else {
-		io.WriteString(w, "echo Running $(hostname)...\n")
+		io.WriteString(w, "echo Running on $(hostname)...\n")
 	}
 	io.WriteString(w, "\n")
 	io.WriteString(w, "trap 'kill -s INT 0' EXIT\n")
@@ -148,8 +148,10 @@ func (build *Build) Generate(builds_dir string, hostname string) ([]byte, error)
 
 	build.writeCheckoutCmd(w, builds_dir)
 	io.WriteString(w, "\n")
-	io.WriteString(w, "set -v\n")
-	io.WriteString(w, "\n")
+	if !build.Runner.DisableVerbose {
+		io.WriteString(w, "set -v\n")
+		io.WriteString(w, "\n")
+	}
 
 	commands := build.Commands
 	commands = strings.Replace(commands, "\r\n", "\n", -1)

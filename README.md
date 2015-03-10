@@ -119,6 +119,7 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
       builds_dir = ""
       shell_script = ""
       environment = ["ENV=value", "LC_ALL=en_US.UTF-8"]
+      disable_verbose = false
     ```
 
     This defines one runner entry:
