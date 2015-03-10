@@ -175,10 +175,6 @@ func (build *Build) GetEnv() []string {
 		"CI_SERVER_NAME=GitLab CI",
 		"CI_SERVER_VERSION=",
 		"CI_SERVER_REVISION=",
-		"RUBYLIB=",
-		"RUBYOPT=",
-		"BNDLE_BIN_PATH=",
-		"BUNDLE_GEMFILE=",
 	}
 }
 
