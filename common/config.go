@@ -41,7 +41,8 @@ type RunnerConfig struct {
 	Executor  string `toml:"executor" json:"executor"`
 	BuildsDir string `toml:"builds_dir" json:"builds_dir"`
 
-	Environment []string `toml:"environment" json:"environment"`
+	CleanEnvironment  bool     `toml:"clean_environment" json:"clean_environment"`
+	Environment       []string `toml:"environment" json:"environment"`
 
 	ShellScript    string `toml:"shell_script" json:"shell_script"`
 	DisableVerbose bool   `toml:"disable_verbose" json:"disable_verbose"`

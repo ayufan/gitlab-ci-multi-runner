@@ -3,6 +3,7 @@ package shell
 import (
 	"bytes"
 	"errors"
+	"os"
 	"os/exec"
 
 	"github.com/ayufan/gitlab-ci-multi-runner/common"
@@ -41,8 +42,14 @@ func (s *ShellExecutor) Start() error {
 
 	helpers.SetProcessGroup(s.cmd)
 
+	// Inherit environment from current process
+	if !s.Config.CleanEnvironment {
+		s.cmd.Env = os.Environ()
+	}
+
 	// Fill process environment variables
-	s.cmd.Env = append(s.Build.GetEnv(), s.Config.Environment...)
+	s.cmd.Env = append(s.cmd.Env, s.Build.GetEnv()...)
+	s.cmd.Env = append(s.cmd.Env, s.Config.Environment...)
 	s.cmd.Stdin = bytes.NewReader(s.BuildScript)
 	s.cmd.Stdout = s.BuildLog
 	s.cmd.Stderr = s.BuildLog

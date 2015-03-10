@@ -119,10 +119,11 @@ func runSetup(c *cli.Context) {
 	}
 
 	runner_config := common.RunnerConfig{
-		URL:      url,
-		Name:     description,
-		Token:    result.Token,
-		Executor: c.String("executor"),
+		URL:              url,
+		Name:             description,
+		Token:            result.Token,
+		Executor:         c.String("executor"),
+		CleanEnvironment: c.Bool("clean_environment"),
 	}
 
 	askExecutor(bio, &runner_config.Executor)
@@ -195,6 +196,11 @@ var (
 				Value:  "",
 				Usage:  "Select executor, eg. shell, docker, etc.",
 				EnvVar: "RUNNER_EXECUTOR",
+			},
+			cli.BoolFlag{
+				Name:   "clean_environment",
+				Usage:  "do not inherit any environment vars from parent process (default: false)",
+				EnvVar: "RUNNER_CLEANENVIRONMENT",
 			},
 		},
 	}

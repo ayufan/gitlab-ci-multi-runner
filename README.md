@@ -118,6 +118,7 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
       executor = "docker"
       builds_dir = ""
       shell_script = ""
+      clean_environment = false
       environment = ["ENV=value", "LC_ALL=en_US.UTF-8"]
       disable_verbose = false
     ```
@@ -129,6 +130,8 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
     * `limit` - limit how many jobs can be handled concurrently by this token. 0 simply means don't limit.
     * `executor` - select how project should be built. See below.
     * `builds_dir` - directory where builds will be stored in context of selected executor (Locally, Docker, SSH)
+    * `clean_environment` - do not inherit any environment variables from the multi-runner process
+    * `environment` - append or overwrite environment variables
 
 1. The EXECUTORS:
 

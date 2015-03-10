@@ -8,6 +8,7 @@ root_dir = ""
   limit = 2
   executor = "shell"
   builds_dir = ""
+  clean_environment = false
 
 [[runners]]
   name = "ruby-2.1-docker"
