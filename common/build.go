@@ -137,7 +137,7 @@ func (build *Build) Generate(builds_dir string, hostname string) ([]byte, error)
 	}
 	io.WriteString(w, "\n")
 	io.WriteString(w, "trap 'kill -s INT 0' EXIT\n")
-	io.WriteString(w, "set -xeo pipefail\n")
+	io.WriteString(w, "set -eo pipefail\n")
 
 	io.WriteString(w, "\n")
 	if build.AllowGitFetch {
