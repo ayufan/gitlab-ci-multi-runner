@@ -1,3 +1,10 @@
+v 0.1.8
+- Allow to use prefixed services
+- Allow to run on Heroku
+- Inherit environment variables by default for shell scripts
+- Mute git messages during checkout
+- Remove some unused internal messages from build log
+
 v 0.1.7
 - Fixed git checkout
 
