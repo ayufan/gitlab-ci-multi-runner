@@ -18,7 +18,7 @@ func (s *SshExecutor) Start() error {
 		return errors.New("Missing SSH configuration")
 	}
 
-	s.Println("Starting SSH command...")
+	s.Debugln("Starting SSH command...")
 
 	// Create SSH command
 	s.sshCommand = ssh.SshCommand{
@@ -30,7 +30,7 @@ func (s *SshExecutor) Start() error {
 		Stderr:      s.BuildLog,
 	}
 
-	s.Println("Connecting to SSH server...")
+	s.Debugln("Connecting to SSH server...")
 	err := s.sshCommand.Connect()
 	if err != nil {
 		return err

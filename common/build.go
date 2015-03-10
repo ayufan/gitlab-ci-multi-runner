@@ -110,7 +110,7 @@ func (b *Build) writeFetchCmd(w io.Writer, builds_dir string) {
 	io.WriteString(w, "echo Fetching changes...\n")
 	io.WriteString(w, fmt.Sprintf("cd %s/%s\n", builds_dir, b.ProjectDir()))
 	io.WriteString(w, fmt.Sprintf("git clean -fdx\n"))
-	io.WriteString(w, fmt.Sprintf("git reset --hard\n"))
+	io.WriteString(w, fmt.Sprintf("git reset --hard > /dev/null\n"))
 	io.WriteString(w, fmt.Sprintf("git remote set-url origin %s\n", b.RepoURL))
 	io.WriteString(w, fmt.Sprintf("git fetch origin\n"))
 	io.WriteString(w, fmt.Sprintf("else\n"))
@@ -120,8 +120,8 @@ func (b *Build) writeFetchCmd(w io.Writer, builds_dir string) {
 
 func (b *Build) writeCheckoutCmd(w io.Writer, builds_dir string) {
 	io.WriteString(w, fmt.Sprintf("echo Checkouting %s as %s...\n", b.Sha[0:8], b.RefName))
-	io.WriteString(w, fmt.Sprintf("git checkout -B %s %s\n", b.RefName, b.Sha))
-	io.WriteString(w, fmt.Sprintf("git reset --hard %s\n", b.Sha))
+	io.WriteString(w, fmt.Sprintf("git checkout -B %s %s > /dev/null\n", b.RefName, b.Sha))
+	io.WriteString(w, fmt.Sprintf("git reset --hard %s > /dev/null\n", b.Sha))
 }
 
 func (build *Build) Generate(builds_dir string, hostname string) ([]byte, error) {
@@ -137,7 +137,7 @@ func (build *Build) Generate(builds_dir string, hostname string) ([]byte, error)
 	}
 	io.WriteString(w, "\n")
 	io.WriteString(w, "trap 'kill -s INT 0' EXIT\n")
-	io.WriteString(w, "set -eo pipefail\n")
+	io.WriteString(w, "set -xeo pipefail\n")
 
 	io.WriteString(w, "\n")
 	if build.AllowGitFetch {

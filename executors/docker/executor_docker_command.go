@@ -16,7 +16,7 @@ type DockerCommandExecutor struct {
 }
 
 func (s *DockerCommandExecutor) Start() error {
-	s.Println("Starting Docker command...")
+	s.Debugln("Starting Docker command...")
 
 	// Create container
 	container, err := s.createContainer(s.image, []string{"bash"})

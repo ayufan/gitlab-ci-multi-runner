@@ -26,7 +26,7 @@ func (s *ShellExecutor) Prepare(config *common.RunnerConfig, build *common.Build
 }
 
 func (s *ShellExecutor) Start() error {
-	s.Println("Starting shell command...")
+	s.Debugln("Starting shell command...")
 
 	shell_script := s.Config.ShellScript
 	if len(shell_script) == 0 {

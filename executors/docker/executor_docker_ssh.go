@@ -43,7 +43,7 @@ func (s *DockerSshExecutor) Start() error {
 	}
 	s.sshCommand.Host = container_data.NetworkSettings.IPAddress
 
-	s.Println("Connecting to SSH server...")
+	s.Debugln("Connecting to SSH server...")
 	err = s.sshCommand.Connect()
 	if err != nil {
 		return err
