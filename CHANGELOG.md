@@ -1,3 +1,6 @@
+v 0.1.10
+- Wait for docker service to come up (Loïc Guitaut)
+
 v 0.1.9
 - Fixed problem with resetting ruby environment
 

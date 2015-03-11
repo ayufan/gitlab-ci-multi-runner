@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/fsouza/go-dockerclient"
 
@@ -120,6 +122,7 @@ func (s *DockerExecutor) createService(service, version string) (*docker.Contain
 	// this will fail potentially some builds if there's name collision
 	s.removeContainer(containerName)
 
+	s.Println("Starting service", service+":"+version, "...")
 	createContainerOpts := docker.CreateContainerOptions{
 		Name: containerName,
 		Config: &docker.Config{
@@ -144,14 +147,6 @@ func (s *DockerExecutor) createService(service, version string) (*docker.Contain
 		return nil, err
 	}
 
-	if !s.Config.Docker.DisableWait {
-		err = s.waitForContainer(container)
-		if err != nil {
-			go s.removeContainer(container.ID)
-			return nil, err
-		}
-	}
-
 	return container, nil
 }
 
@@ -168,6 +163,25 @@ func (s *DockerExecutor) createServices() ([]string, error) {
 		s.Debugln("Created service", service, version, "as", container.ID)
 		links = append(links, container.Name+":"+strings.Replace(service, "/", "__", -1))
 		s.services = append(s.services, container)
+	}
+
+	waitForServicesTimeout := common.DEFAULT_WAIT_FOR_SERVICES_TIMEOUT
+	if s.Config.Docker.WaitForServicesTimeout != nil {
+		waitForServicesTimeout = *s.Config.Docker.WaitForServicesTimeout
+	}
+
+	// wait for all services to came up
+	if waitForServicesTimeout > 0 && len(s.services) > 0 {
+		s.Println("Waiting for services to be up and running...")
+		wg := sync.WaitGroup{}
+		for _, service := range s.services {
+			wg.Add(1)
+			go func(service *docker.Container) {
+				s.waitForServiceContainer(service, time.Duration(waitForServicesTimeout)*time.Second)
+				wg.Done()
+			}(service)
+		}
+		wg.Wait()
 	}
 
 	return links, nil
@@ -308,8 +322,12 @@ func (s *DockerExecutor) Cleanup() {
 	s.AbstractExecutor.Cleanup()
 }
 
-func (s *DockerExecutor) waitForContainer(container *docker.Container) (error) {
+func (s *DockerExecutor) waitForServiceContainer(container *docker.Container, timeout time.Duration) error {
 	waitImage, err := s.getImage("aanand/wait", !s.Config.Docker.DisablePull)
+	if err != nil {
+		return err
+	}
+
 	waitContainerOpts := docker.CreateContainerOptions{
 		Config: &docker.Config{
 			Image: waitImage.ID,
@@ -319,7 +337,7 @@ func (s *DockerExecutor) waitForContainer(container *docker.Container) (error) {
 			Links:         []string{container.Name + ":" + container.Name},
 		},
 	}
-	s.Debugln("Waiting for service container", container.ID, "to be up and running...")
+	s.Debugln("Waiting for service container", container.Name, "to be up and running...")
 	waitContainer, err := s.client.CreateContainer(waitContainerOpts)
 	if err != nil {
 		return err
@@ -329,9 +347,24 @@ func (s *DockerExecutor) waitForContainer(container *docker.Container) (error) {
 	if err != nil {
 		return err
 	}
-	_, err = s.client.WaitContainer(waitContainer.ID)
-	if err != nil {
-		return err
+
+	waitResult := make(chan error, 1)
+	go func() {
+		statusCode, err := s.client.WaitContainer(waitContainer.ID)
+		if err == nil && statusCode != 0 {
+			err = errors.New(fmt.Sprintf("Status code: %d", statusCode))
+		}
+		waitResult <- err
+	}()
+
+	// these are warnings and they don't make the build fail
+	select {
+	case err := <-waitResult:
+		if err != nil {
+			s.Println("Service", container.Name, "probably didn't start properly", err)
+		}
+	case <-time.After(timeout):
+		s.Println("Service", container.Name, "didn't respond in timely maner:", timeout, "Consider modifying wait_for_services_timeout.")
 	}
 	return nil
 }

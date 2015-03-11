@@ -13,19 +13,19 @@ import (
 )
 
 type DockerConfig struct {
-	Host         string   `toml:"host" json:"host"`
-	Hostname     string   `toml:"hostname" json:"hostname"`
-	Image        string   `toml:"image" json:"image"`
-	Privileged   bool     `toml:"privileged" json:"privileged"`
-	DisableCache bool     `toml:"disable_cache" json:"disable_cache"`
-	DisablePull  bool     `toml:"disable_pull" json:"disable_pull"`
-	DisableWait  bool     `toml:"disable_wait" json:"disable_wait"`
-	Volumes      []string `toml:"volumes" json:"volumes"`
-	CacheDir     string   `toml:"cache_dir" json:"cache_dir"`
-	Registry     string   `toml:"registry" json:"registry"`
-	ExtraHosts   []string `toml:"extra_hosts" json:"extra_hosts"`
-	Links        []string `toml:"links" json:"links"`
-	Services     []string `toml:"services" json:"services"`
+	Host                   string   `toml:"host" json:"host"`
+	Hostname               string   `toml:"hostname" json:"hostname"`
+	Image                  string   `toml:"image" json:"image"`
+	Privileged             bool     `toml:"privileged" json:"privileged"`
+	DisableCache           bool     `toml:"disable_cache" json:"disable_cache"`
+	DisablePull            bool     `toml:"disable_pull" json:"disable_pull"`
+	Volumes                []string `toml:"volumes" json:"volumes"`
+	CacheDir               string   `toml:"cache_dir" json:"cache_dir"`
+	Registry               string   `toml:"registry" json:"registry"`
+	ExtraHosts             []string `toml:"extra_hosts" json:"extra_hosts"`
+	Links                  []string `toml:"links" json:"links"`
+	Services               []string `toml:"services" json:"services"`
+	WaitForServicesTimeout *int     `toml:"wait_for_services_timeout" json:"wait_for_services_timeout"`
 }
 
 type ParallelsConfig struct {
