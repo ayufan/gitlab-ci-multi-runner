@@ -62,7 +62,6 @@ build-rpm:
 		-p out/rpm/$(TYPE)/$(ARCH)/$(NAME).rpm \
 		--rpm-compression bzip2 --rpm-os linux \
 		--force \
-		--deb-compression bzip2 \
 		--after-install packaging/$(TYPE)/scripts/postinst.rpm \
 		--before-remove packaging/$(TYPE)/scripts/prerm.rpm \
 		--url https://github.com/ayufan/gitlab-ci-multi-runner \
@@ -77,10 +76,12 @@ build-rpm:
 packagecloud-deb:
 	package_cloud push ayufan/gitlab-ci-multi-runner/debian/wheezy out/deb/sysv/*/*.deb
 	package_cloud push ayufan/gitlab-ci-multi-runner/debian/jessie out/deb/systemd/*/*.deb
+
+	package_cloud push ayufan/gitlab-ci-multi-runner/ubuntu/precise out/deb/upstart/*/*.deb
 	package_cloud push ayufan/gitlab-ci-multi-runner/ubuntu/trusty out/deb/upstart/*/*.deb
-	package_cloud push ayufan/gitlab-ci-multi-runner/ubuntu/utopic out/deb/systemd/*/*.deb
+	package_cloud push ayufan/gitlab-ci-multi-runner/ubuntu/utopic out/deb/sysv/*/*.deb
 
 packagecloud-rpm:
-	package_cloud push ayufan/gitlab-ci-multi-runner/centos/7 out/rpm/systemd/*/*.deb
+	package_cloud push ayufan/gitlab-ci-multi-runner/el/7 out/rpm/systemd/*/*.rpm
 
 FORCE:

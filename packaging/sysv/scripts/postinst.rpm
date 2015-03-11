@@ -8,14 +8,6 @@ usermod -aG docker gitlab_ci_multi_runner || true
 touch ~gitlab_ci_multi_runner/config.toml
 chown gitlab_ci_multi_runner:gitlab_ci_multi_runner ~gitlab_ci_multi_runner/config.toml
 chmod 0600 ~gitlab_ci_multi_runner/config.toml
-if which systemctl > /dev/null; then
-  systemctl daemon-reload || :
-  systemctl enable gitlab-ci-multi-runner || :
-  systemctl restart gitlab-ci-multi-runner || :
-else
-  echo "Couldn't find systemd to control GitLab CI Multi Runner, cannot proceed."
-  echo "Open an issue and tell us about your system."
-  exit 1
-fi
+service gitlab-ci-multi-runner start || :
 
 exit 0

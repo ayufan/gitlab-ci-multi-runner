@@ -7,7 +7,7 @@ case "$1" in
 
   configure)
     if ! id -u gitlab_ci_multi_runner >/dev/null 2>/dev/null; then
-      adduser --disabled-login --gecos 'GitLab CI Multi Runner' gitlab_ci_multi_runner
+      useradd --comment 'GitLab CI Multi Runner' --create-home gitlab_ci_multi_runner
     fi
     usermod -aG docker gitlab_ci_multi_runner || true
     touch ~gitlab_ci_multi_runner/config.toml
