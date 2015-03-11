@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+
+initctl stop gitlab-ci-multi-runner || :

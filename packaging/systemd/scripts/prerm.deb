@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+
+if [ $1 = "remove" ] ; then
+    if which systemctl > /dev/null; then
+		systemctl --no-reload disable gitlab-ci-multi-runner || :
+		systemctl stop gitlab-ci-multi-runner || :
+    fi
+fi

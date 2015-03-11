@@ -2,18 +2,26 @@ sudo: false
 language: go
 go:
 - '1.4'
+env:
+  global:
+    secure: COMQYKj9O6GUuoDRa5OVfOT8i4m1f/JDH6LaGLI8Nkb84oaq9fgvpjVMBgUcWbYT52UXt3NNy7N8B3d8VEmCHvBIjZh296OhHsAvFf9hvcjx5POjKXODV1rwdgtyYafaLUPllCBe/lLKn819ktD3PB1tjxQ0//r4APW82W4wpYs=
 install:
 - go get github.com/tools/godep
 - godep restore
 before_script:
-- echo -e "package commands\n\nconst VERSION = \"${TRAVIS_TAG:-$TRAVIS_BRANCH} ($(git rev-parse --short HEAD))\"\n" > commands/version.go
-- cat commands/version.go | grep VERSION
+- make version
 script:
 - make test
 before_deploy:
 - go get github.com/mitchellh/gox
 - gox -build-toolchain -os="linux" -os="darwin" -os="windows"
+- gem install package_cloud
+- gem install fpm
 - make build
+- make deb
+- make rpm
+- make packagecloud-deb
+- make packagecloud-rpm
 deploy:
   provider: releases
   api_key:

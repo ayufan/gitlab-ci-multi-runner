@@ -1,0 +1,33 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+  abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+  configure)
+    if ! id -u gitlab_ci_multi_runner >/dev/null 2>/dev/null; then
+      adduser --disabled-login --gecos 'GitLab CI Multi Runner' gitlab_ci_multi_runner
+    fi
+    usermod -aG docker gitlab_ci_multi_runner || true
+    touch ~gitlab_ci_multi_runner/config.toml
+    chown gitlab_ci_multi_runner:gitlab_ci_multi_runner ~gitlab_ci_multi_runner/config.toml
+    chmod 0600 ~gitlab_ci_multi_runner/config.toml
+    if which systemctl > /dev/null; then
+      systemctl daemon-reload || :
+      systemctl enable gitlab-ci-multi-runner || :
+      systemctl restart gitlab-ci-multi-runner || :
+    else
+      echo "Couldn't find systemd to control GitLab CI Multi Runner, cannot proceed."
+      echo "Open an issue and tell us about your system."
+      exit 1
+    fi
+    ;;
+
+  *)
+    echo "postinst called with unknown argument \`$1'" >&2
+    exit 1
+    ;;
+esac
+
+exit 0
