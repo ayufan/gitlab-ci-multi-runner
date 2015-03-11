@@ -144,6 +144,14 @@ func (s *DockerExecutor) createService(service, version string) (*docker.Contain
 		return nil, err
 	}
 
+	if !s.Config.Docker.DisableWait {
+		err = s.waitForContainer(container)
+		if err != nil {
+			go s.removeContainer(container.ID)
+			return nil, err
+		}
+	}
+
 	return container, nil
 }
 
@@ -298,4 +306,32 @@ func (s *DockerExecutor) Cleanup() {
 	}
 
 	s.AbstractExecutor.Cleanup()
+}
+
+func (s *DockerExecutor) waitForContainer(container *docker.Container) (error) {
+	waitImage, err := s.getImage("aanand/wait", !s.Config.Docker.DisablePull)
+	waitContainerOpts := docker.CreateContainerOptions{
+		Config: &docker.Config{
+			Image: waitImage.ID,
+		},
+		HostConfig: &docker.HostConfig{
+			RestartPolicy: docker.NeverRestart(),
+			Links:         []string{container.Name + ":" + container.Name},
+		},
+	}
+	s.Debugln("Waiting for service container", container.ID, "to be up and running...")
+	waitContainer, err := s.client.CreateContainer(waitContainerOpts)
+	if err != nil {
+		return err
+	}
+	defer s.removeContainer(waitContainer.ID)
+	err = s.client.StartContainer(waitContainer.ID, waitContainerOpts.HostConfig)
+	if err != nil {
+		return err
+	}
+	_, err = s.client.WaitContainer(waitContainer.ID)
+	if err != nil {
+		return err
+	}
+	return nil
 }

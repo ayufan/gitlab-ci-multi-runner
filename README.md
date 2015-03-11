@@ -151,6 +151,7 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
       privileged = false
       disable_cache = false
       disable_pull = false
+      disable_wait = false
       cache_dir = ""
       registry = ""
       volumes = ["/data", "/home/project/cache"]
@@ -166,6 +167,7 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
     * `privileged` - make container run in Privileged mode (insecure)
     * `disable_cache` - disable automatic
     * `disable_pull` - disable automatic image pulling if not found
+    * `disable_wait` - disable automatic wait for services to be up and running
     * `cache_dir` - specify where Docker caches should be stored (this can be absolute or relative to current working directory)
     * `registry` - specify custom Docker registry to be used
     * `volumes` - specify additional volumes that should be cached
