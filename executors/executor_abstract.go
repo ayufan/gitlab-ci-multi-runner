@@ -138,21 +138,12 @@ func (e *AbstractExecutor) Prepare(config *common.RunnerConfig, build *common.Bu
 	}
 	e.BuildLog = build_log
 	e.Debugln("Created build log:", build_log.Name())
+	go e.WatchTrace(*e.Config, e.BuildAbort, e.BuildLogFinish)
 	return nil
 }
 
-func (e *AbstractExecutor) Cleanup() {
-	if e.BuildLog != nil {
-		os.Remove(e.BuildLog.Name())
-		e.BuildLog.Close()
-	}
-}
-
 func (e *AbstractExecutor) Wait() error {
-	var buildState common.BuildState
-	var buildMessage string
-
-	go e.WatchTrace(*e.Config, e.BuildAbort, e.BuildLogFinish)
+	e.Build.BuildState = common.Running
 
 	buildTimeout := e.Build.Timeout
 	if buildTimeout <= 0 {
@@ -164,36 +155,50 @@ func (e *AbstractExecutor) Wait() error {
 	select {
 	case <-e.BuildAbort:
 		log.Println(e.Config.ShortDescription(), e.Build.Id, "Build got aborted.")
-		buildState = common.Failed
+		e.Build.BuildState = common.Failed
+		e.Build.BuildMessage = "\nBuild got aborted"
 
 	case <-time.After(time.Duration(buildTimeout) * time.Second):
 		log.Println(e.Config.ShortDescription(), e.Build.Id, "Build timedout.")
-		buildState = common.Failed
-		buildMessage = fmt.Sprintf("\nCI Timeout. Execution took longer then %d seconds", buildTimeout)
+		e.Build.BuildState = common.Failed
+		e.Build.BuildMessage = fmt.Sprintf("\nCI Timeout. Execution took longer then %d seconds", buildTimeout)
 
 	case err := <-e.BuildFinish:
-		// command finished
 		if err != nil {
-			log.Println(e.Config.ShortDescription(), e.Build.Id, "Build failed with", err)
-			buildState = common.Failed
-			buildMessage = fmt.Sprintf("\nBuild failed with %v", err)
-		} else {
-			log.Println(e.Config.ShortDescription(), e.Build.Id, "Build succeeded.")
-			buildState = common.Success
+			return err
 		}
+
+		log.Println(e.Config.ShortDescription(), e.Build.Id, "Build succeeded.")
+		e.Build.BuildState = common.Success
+		e.Build.BuildMessage = "\n"
+	}
+	return nil
+}
+
+func (e *AbstractExecutor) Finish(err error) {
+	if err != nil {
+		e.Build.BuildState = common.Failed
+		e.Build.BuildMessage = fmt.Sprintf("\nBuild failed with %v", err)
 	}
 
-	e.Build.BuildState = buildState
 	e.Build.BuildFinished = time.Now()
 	e.Build.BuildDuration = e.Build.BuildFinished.Sub(e.Build.BuildStarted)
 	e.Debugln("Build took", e.Build.BuildDuration)
 
-	// wait for update log routine to finish
-	e.Debugln("Waiting for build log updater to finish")
-	e.BuildLogFinish <- true
-	e.Debugln("Build log updater finished.")
+	if e.BuildLog != nil {
+		// wait for update log routine to finish
+		e.Debugln("Waiting for build log updater to finish")
+		e.BuildLogFinish <- true
+		e.Debugln("Build log updater finished.")
+	}
 
 	// Send final build state to server
-	e.FinishBuild(*e.Config, buildState, buildMessage)
-	return nil
+	e.FinishBuild(*e.Config, e.Build.BuildState, e.Build.BuildMessage)
+}
+
+func (e *AbstractExecutor) Cleanup() {
+	if e.BuildLog != nil {
+		os.Remove(e.BuildLog.Name())
+		e.BuildLog.Close()
+	}
 }

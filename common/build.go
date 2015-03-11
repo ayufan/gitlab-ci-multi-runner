@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
-
 	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
 )
 
@@ -30,6 +28,7 @@ type Build struct {
 	BuildStarted  time.Time     `json:"build_started"`
 	BuildFinished time.Time     `json:"build_finished"`
 	BuildDuration time.Duration `json:"build_duration"`
+	BuildMessage  string        `json:"build_message"`
 	Runner        *RunnerConfig `json:"runner"`
 
 	GlobalId   int    `json:"global_id"`
@@ -178,23 +177,6 @@ func (build *Build) GetEnv() []string {
 	}
 }
 
-func (build *Build) fail(err error) {
-	log.Errorln(build.Runner.ShortDescription(), build.Id, "Build failed", err)
-	for {
-		error_buffer := bytes.NewBufferString(err.Error())
-		result := UpdateBuild(*build.Runner, build.Id, Failed, error_buffer)
-		switch result {
-		case UpdateSucceeded:
-			return
-		case UpdateAbort:
-			return
-		case UpdateFailed:
-			time.Sleep(UPDATE_RETRY_INTERVAL * time.Second)
-			continue
-		}
-	}
-}
-
 func (build *Build) Run() error {
 	var err error
 	executor := GetExecutor(build.Runner.Executor)
@@ -210,9 +192,7 @@ func (build *Build) Run() error {
 	if err == nil {
 		err = executor.Wait()
 	}
-	if err != nil {
-		go build.fail(err)
-	}
+	executor.Finish(err)
 	if executor != nil {
 		executor.Cleanup()
 	}

@@ -8,6 +8,7 @@ type Executor interface {
 	Prepare(config *RunnerConfig, build *Build) error
 	Start() error
 	Wait() error
+	Finish(err error)
 	Cleanup()
 }
 
