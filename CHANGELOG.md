@@ -1,3 +1,6 @@
+v 0.1.11
+- Package as .deb and .rpm and push it to packagecloud.io (for now)
+
 v 0.1.10
 - Wait for docker service to come up (Loïc Guitaut)
 - Send build log as early as possible
