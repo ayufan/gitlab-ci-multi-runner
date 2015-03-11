@@ -31,21 +31,29 @@ This project was made as Go learning opportunity. The initial release was create
 * Easy to use setup with support for docker, docker-ssh, parallels or ssh running environments
 * Enables caching of Docker containers
 
-### Install and initial configuration (For Debian and Ubuntu)
+### Install and initial configuration (For Debian, Ubuntu and CentOS)
 
 1. If you want to use Docker runnner install it before:
   ```bash
   curl -sSL https://get.docker.com/ | sh
   ```
 
-1. Add package to apt-get
+1. Add package to apt-get or yum (**THESE REPOSITORIES ARE TEMPORARY AND ARE SUBJECT TO CHANGE**)
   ```bash
+  # For Debian/Ubuntu
   curl https://packagecloud.io/install/repositories/ayufan/gitlab-ci-multi-runner/script.deb | sudo bash
+
+  # For CentOS
+  curl https://packagecloud.io/install/repositories/ayufan/gitlab-ci-multi-runner/script.rpm | sudo bash
   ```
 
 1. Install `gitlab-ci-multi-runner`
   ```bash
+  # For Debian/Ubuntu
   apt-get install gitlab-ci-multi-runner
+
+  # For CentOS
+  yum install gitlab-ci-multi-runner
   ```
 
 1. Setup the runner
@@ -66,17 +74,21 @@ This project was made as Go learning opportunity. The initial release was create
   INFO[0037] Runner registered successfully. Feel free to start it, but if it's running already the config should be automatically reloaded!
   ```
 
-1. You are ready to build your projects!
+1. Runner should be started already and you are ready to build your projects!
 
 #### Update
 
 1. Simply execute to install latest version
   ```bash
+  # For Debian/Ubuntu  
   apt-get update
   apt-get install gitlab-ci-multi-runner
+
+  # For CentOS
+  yum install gitlab-ci-multi-runner
   ```
 
-### Install and initial configuration (For other systems)
+### Manual installation and configuration (For other systems)
 
 1. Simply download one of this binaries for your system:
 	```bash
@@ -98,10 +110,10 @@ This project was made as Go learning opportunity. The initial release was create
 
 1. Create a GitLab CI user (Linux)
 	```
-	sudo adduser --disabled-login --gecos 'GitLab Runner' gitlab_ci_runner
-	sudo usermod -aG docker gitlab_ci_runner
-	sudo su gitlab_ci_runner
-	cd ~/
+	sudo useradd --comment 'GitLab Runner' --create-home gitlab_ci_multi_runner
+	sudo usermod -aG docker gitlab_ci_multi_runner
+	sudo su gitlab_ci_multi_runner
+	cd
 	```
 
 1. Setup the runner
