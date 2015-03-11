@@ -87,7 +87,7 @@ This project was made as Go learning opportunity. The initial release was create
 1. Add to cron
 	```bash
 	$ crontab -e
-	@reboot gitlab-ci-multi-runner run &>log/gitlab-ci-multi-runner.log
+	@reboot gitlab-ci-multi-runner run &>gitlab-ci-multi-runner.log
 	```
 
 ### Extra projects?
