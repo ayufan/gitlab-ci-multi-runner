@@ -19,6 +19,7 @@ type DockerConfig struct {
 	Privileged   bool     `toml:"privileged" json:"privileged"`
 	DisableCache bool     `toml:"disable_cache" json:"disable_cache"`
 	DisablePull  bool     `toml:"disable_pull" json:"disable_pull"`
+	DisableWait  bool     `toml:"disable_wait" json:"disable_wait"`
 	Volumes      []string `toml:"volumes" json:"volumes"`
 	CacheDir     string   `toml:"cache_dir" json:"cache_dir"`
 	Registry     string   `toml:"registry" json:"registry"`
