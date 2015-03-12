@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 	"time"
+	"os"
 
 	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
 )
@@ -29,6 +30,7 @@ type Build struct {
 	BuildFinished time.Time     `json:"build_finished"`
 	BuildDuration time.Duration `json:"build_duration"`
 	BuildMessage  string        `json:"build_message"`
+	BuildAbort    chan os.Signal `json:"-"`
 	Runner        *RunnerConfig `json:"runner"`
 
 	GlobalId   int    `json:"global_id"`
@@ -41,7 +43,7 @@ type Build struct {
 	ProjectRunnerName string `json:"name"`
 }
 
-func (b *Build) PrepareBuildParameters(other_builds []*Build) {
+func (b *Build) Prepare(other_builds []*Build) {
 	globals := make(map[int]bool)
 	runners := make(map[int]bool)
 	project_runners := make(map[int]bool)
@@ -85,6 +87,8 @@ func (b *Build) PrepareBuildParameters(other_builds []*Build) {
 			break
 		}
 	}
+
+	b.BuildAbort = make(chan os.Signal, 1)
 }
 
 func (b *Build) ProjectUniqueName() string {

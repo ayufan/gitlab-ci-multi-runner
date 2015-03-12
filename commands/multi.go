@@ -3,6 +3,9 @@ package commands
 import (
 	"sync"
 	"time"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/codegangsta/cli"
 
@@ -23,6 +26,8 @@ type MultiRunner struct {
 	buildsLock  sync.RWMutex
 	healthy     map[string]*RunnerHealth
 	healthyLock sync.Mutex
+	finished	bool
+	abortBuilds chan os.Signal
 }
 
 func (mr *MultiRunner) errorln(args ...interface{}) {
@@ -152,12 +157,13 @@ func (mr *MultiRunner) requestBuild(runner *common.RunnerConfig) *common.Build {
 		Runner:           runner,
 	}
 
-	new_build.PrepareBuildParameters(mr.builds)
+	new_build.Prepare(mr.builds)
+	new_build.BuildAbort = mr.abortBuilds
 	return new_build
 }
 
 func (mr *MultiRunner) feedRunners(runners chan *common.RunnerConfig) {
-	for {
+	for !mr.finished {
 		mr.debugln("Feeding runners to channel")
 		config := mr.config
 		for _, runner := range config.Runners {
@@ -169,7 +175,7 @@ func (mr *MultiRunner) feedRunners(runners chan *common.RunnerConfig) {
 
 func (mr *MultiRunner) processRunners(id int, stop_worker chan bool, runners chan *common.RunnerConfig) {
 	mr.debugln("Starting worker", id)
-	for {
+	for !mr.finished {
 		select {
 		case runner := <-runners:
 			mr.debugln("Checking runner", runner, "on", id)
@@ -187,10 +193,11 @@ func (mr *MultiRunner) processRunners(id int, stop_worker chan bool, runners cha
 			return
 		}
 	}
+	<-stop_worker
 }
 
 func (mr *MultiRunner) startWorkers(start_worker chan int, stop_worker chan bool, runners chan *common.RunnerConfig) {
-	for {
+	for !mr.finished {
 		id := <-start_worker
 		go mr.processRunners(id, stop_worker, runners)
 	}
@@ -201,6 +208,7 @@ func RunMulti(c *cli.Context) {
 	mr.config = &common.Config{}
 	mr.allBuilds = []*common.Build{}
 	mr.builds = []*common.Build{}
+	mr.abortBuilds = make(chan os.Signal)
 	err := mr.config.LoadConfig(c.String("config"))
 	if err != nil {
 		panic(err)
@@ -229,30 +237,73 @@ func RunMulti(c *cli.Context) {
 
 	go mrs.Run()
 
+	signals := make(chan os.Signal, 2)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+
 	current_workers := 0
 	worker_index := 0
 
+	var signaled os.Signal
+
+finish_worker:
 	for {
 		build_limit := mr.config.Concurrent
 
 		for current_workers > build_limit {
-			stop_worker <- true
+			select {
+			case stop_worker <- true:
+			case signaled = <- signals:
+				break finish_worker
+			}
 			current_workers--
 		}
 
 		for current_workers < build_limit {
-			start_worker <- worker_index
+			select {
+			case start_worker <- worker_index:
+			case signaled = <- signals:
+				break finish_worker
+			}
 			current_workers++
 			worker_index++
 		}
 
-		new_config := <-reload_config
-		new_config.SetChdir()
+		select {
+		case new_config := <-reload_config:
+			new_config.SetChdir()
 
-		mr.debugln("Config reloaded.")
-		mr.healthy = nil
-		mr.config = &new_config
+			mr.debugln("Config reloaded.")
+			mr.healthy = nil
+			mr.config = &new_config
+
+		case signaled = <- signals:
+			break finish_worker
+		}
 	}
+
+	mr.errorln("Received signal:", signaled)
+	mr.finished = true
+
+	go func() {
+		new_signal := <- signals
+		mr.errorln("Received second signal:", new_signal)
+		os.Exit(1)
+	}()
+
+	// Pump signal to abort all builds
+	go func() {
+		for {
+			mr.abortBuilds <- signaled
+		}
+	}()
+
+	// Wait for workers to shutdown
+	for current_workers > 0 {
+		stop_worker <- true
+		current_workers--
+	}
+
+	mr.println("All workers stopped. Can exit now")
 }
 
 var (

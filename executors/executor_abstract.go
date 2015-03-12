@@ -31,18 +31,16 @@ func (e *AbstractExecutor) FinishBuild(config common.RunnerConfig, buildState co
 		buildLog, _ = ioutil.ReadFile(e.BuildLog.Name())
 	}
 
-	go func() {
-		for {
-			buffer := io.MultiReader(bytes.NewReader(buildLog), bytes.NewBufferString(extraMessage))
-			if common.UpdateBuild(config, e.Build.Id, buildState, buffer) != common.UpdateFailed {
-				break
-			} else {
-				time.Sleep(common.UPDATE_RETRY_INTERVAL * time.Second)
-			}
+	for {
+		buffer := io.MultiReader(bytes.NewReader(buildLog), bytes.NewBufferString(extraMessage))
+		if common.UpdateBuild(config, e.Build.Id, buildState, buffer) != common.UpdateFailed {
+			break
+		} else {
+			time.Sleep(common.UPDATE_RETRY_INTERVAL * time.Second)
 		}
+	}
 
-		e.Println("Build finished.")
-	}()
+	e.Println("Build finished.")
 }
 
 func (e *AbstractExecutor) WatchTrace(config common.RunnerConfig, abort chan bool, finished chan bool) {
@@ -162,6 +160,11 @@ func (e *AbstractExecutor) Wait() error {
 		log.Println(e.Config.ShortDescription(), e.Build.Id, "Build timedout.")
 		e.Build.BuildState = common.Failed
 		e.Build.BuildMessage = fmt.Sprintf("\nCI Timeout. Execution took longer then %d seconds", buildTimeout)
+
+	case signal := <-e.Build.BuildAbort:
+		log.Println(e.Config.ShortDescription(), e.Build.Id, "Build got aborted", signal)
+		e.Build.BuildState = common.Failed
+		e.Build.BuildMessage = fmt.Sprintf("\nBuild got aborted: %v", signal)
 
 	case err := <-e.BuildFinish:
 		if err != nil {
