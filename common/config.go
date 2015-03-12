@@ -42,8 +42,8 @@ type RunnerConfig struct {
 	Executor  string `toml:"executor" json:"executor"`
 	BuildsDir string `toml:"builds_dir" json:"builds_dir"`
 
-	CleanEnvironment  bool     `toml:"clean_environment" json:"clean_environment"`
-	Environment       []string `toml:"environment" json:"environment"`
+	CleanEnvironment bool     `toml:"clean_environment" json:"clean_environment"`
+	Environment      []string `toml:"environment" json:"environment"`
 
 	ShellScript    string `toml:"shell_script" json:"shell_script"`
 	DisableVerbose bool   `toml:"disable_verbose" json:"disable_verbose"`
@@ -108,31 +108,6 @@ func (config *Config) SaveConfig(config_file string) error {
 	}
 
 	return nil
-}
-
-func ReloadConfig(config_file string, config_time time.Time, reload_config chan Config) {
-	for {
-		time.Sleep(RELOAD_CONFIG_INTERVAL * time.Second)
-
-		info, err := os.Stat(config_file)
-		if err != nil {
-			log.Errorln("Failed to stat config", err)
-			continue
-		}
-
-		if config_time.Before(info.ModTime()) {
-			config_time = info.ModTime()
-
-			new_config := Config{}
-			err := new_config.LoadConfig(config_file)
-			if err != nil {
-				log.Errorln("Failed to load config", err)
-				continue
-			}
-
-			reload_config <- new_config
-		}
-	}
 }
 
 func (c *Config) SetChdir() {

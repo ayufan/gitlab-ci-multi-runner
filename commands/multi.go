@@ -1,11 +1,11 @@
 package commands
 
 import (
-	"sync"
-	"time"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
+	"time"
 
 	"github.com/codegangsta/cli"
 
@@ -21,12 +21,13 @@ type RunnerHealth struct {
 
 type MultiRunner struct {
 	config      *common.Config
+	configFile  string
 	allBuilds   []*common.Build
 	builds      []*common.Build
 	buildsLock  sync.RWMutex
 	healthy     map[string]*RunnerHealth
 	healthyLock sync.Mutex
-	finished	bool
+	finished    bool
 	abortBuilds chan os.Signal
 }
 
@@ -203,30 +204,43 @@ func (mr *MultiRunner) startWorkers(start_worker chan int, stop_worker chan bool
 	}
 }
 
+func (mr *MultiRunner) loadConfig() error {
+	new_config := common.Config{}
+	err := new_config.LoadConfig(mr.configFile)
+	if err != nil {
+		return err
+	}
+
+	new_config.SetChdir()
+	mr.healthy = nil
+	mr.config = &new_config
+	return nil
+}
+
 func RunMulti(c *cli.Context) {
-	mr := MultiRunner{}
-	mr.config = &common.Config{}
-	mr.allBuilds = []*common.Build{}
-	mr.builds = []*common.Build{}
-	mr.abortBuilds = make(chan os.Signal)
-	err := mr.config.LoadConfig(c.String("config"))
+	mr := MultiRunner{
+		configFile:  c.String("config"),
+		allBuilds:   []*common.Build{},
+		builds:      []*common.Build{},
+		abortBuilds: make(chan os.Signal),
+	}
+
+	mr.println("Starting multi-runner from", mr.configFile, "...")
+
+	err := mr.loadConfig()
 	if err != nil {
 		panic(err)
 	}
 
-	mrs := MultiRunnerServer{
-		MultiRunner: &mr,
-	}
-
+	// Start webserver
 	if listenAddr := c.String("listen-addr"); len(listenAddr) > 0 {
-		mrs.listenAddresses = []string{listenAddr}
+		mrs := MultiRunnerServer{
+			MultiRunner:     &mr,
+			listenAddresses: []string{listenAddr},
+		}
+
+		go mrs.Run()
 	}
-
-	mr.config.SetChdir()
-	mr.println("Starting multi-runner from", c.String("config"), "...")
-
-	reload_config := make(chan common.Config)
-	go common.ReloadConfig(c.String("config"), mr.config.ModTime, reload_config)
 
 	runners := make(chan *common.RunnerConfig)
 	go mr.feedRunners(runners)
@@ -235,10 +249,11 @@ func RunMulti(c *cli.Context) {
 	stop_worker := make(chan bool)
 	go mr.startWorkers(start_worker, stop_worker, runners)
 
-	go mrs.Run()
+	interrupt_signal := make(chan os.Signal, 2)
+	signal.Notify(interrupt_signal, os.Interrupt, syscall.SIGTERM)
 
-	signals := make(chan os.Signal, 2)
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	reload_signal := make(chan os.Signal, 1)
+	signal.Notify(reload_signal, syscall.SIGHUP)
 
 	current_workers := 0
 	worker_index := 0
@@ -252,7 +267,7 @@ finish_worker:
 		for current_workers > build_limit {
 			select {
 			case stop_worker <- true:
-			case signaled = <- signals:
+			case signaled = <-interrupt_signal:
 				break finish_worker
 			}
 			current_workers--
@@ -261,7 +276,7 @@ finish_worker:
 		for current_workers < build_limit {
 			select {
 			case start_worker <- worker_index:
-			case signaled = <- signals:
+			case signaled = <-interrupt_signal:
 				break finish_worker
 			}
 			current_workers++
@@ -269,14 +284,37 @@ finish_worker:
 		}
 
 		select {
-		case new_config := <-reload_config:
-			new_config.SetChdir()
+		case <-time.After(common.RELOAD_CONFIG_INTERVAL * time.Second):
+			info, err := os.Stat(mr.configFile)
+			if err != nil {
+				mr.errorln("Failed to stat config", err)
+				break
+			}
 
-			mr.debugln("Config reloaded.")
-			mr.healthy = nil
-			mr.config = &new_config
+			if !mr.config.ModTime.Before(info.ModTime()) {
+				break
+			}
 
-		case signaled = <- signals:
+			err = mr.loadConfig()
+			if err != nil {
+				mr.errorln("Failed to load config", err)
+				// don't reload the same file
+				mr.config.ModTime = info.ModTime()
+				break
+			}
+
+			mr.println("Config reloaded.")
+
+		case <-reload_signal:
+			err := mr.loadConfig()
+			if err != nil {
+				mr.errorln("Failed to load config", err)
+				break
+			}
+
+			mr.println("Config reloaded.")
+
+		case signaled = <-interrupt_signal:
 			break finish_worker
 		}
 	}
@@ -284,11 +322,7 @@ finish_worker:
 	mr.errorln("Received signal:", signaled)
 	mr.finished = true
 
-	go func() {
-		new_signal := <- signals
-		mr.errorln("Received second signal:", new_signal)
-		os.Exit(1)
-	}()
+	close := make(chan int)
 
 	// Pump signal to abort all builds
 	go func() {
@@ -297,13 +331,31 @@ finish_worker:
 		}
 	}()
 
-	// Wait for workers to shutdown
-	for current_workers > 0 {
-		stop_worker <- true
-		current_workers--
-	}
+	// Watch for second signal which will force to close process
+	go func() {
+		new_signal := <-interrupt_signal
+		mr.errorln("Forced exit:", new_signal)
+		close <- 1
+	}()
 
-	mr.println("All workers stopped. Can exit now")
+	// Wait for workers to shutdown
+	go func() {
+		for current_workers > 0 {
+			stop_worker <- true
+			current_workers--
+		}
+		mr.println("All workers stopped. Can exit now")
+		close <- 0
+	}()
+
+	// Timeout shutdown
+	go func() {
+		time.Sleep(common.SHUTDOWN_TIMEOUT * time.Second)
+		mr.errorln("Shutdown timedout.")
+		close <- 1
+	}()
+
+	os.Exit(<-close)
 }
 
 var (
