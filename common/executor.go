@@ -38,3 +38,13 @@ func GetExecutor(executor string) Executor {
 
 	return closure()
 }
+
+func GetExecutors() []string {
+	names := []string{}
+	if executors != nil {
+		for name, _ := range executors {
+			names = append(names, name)
+		}
+	}
+	return names
+}
