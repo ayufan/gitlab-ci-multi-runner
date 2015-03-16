@@ -9,6 +9,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	log "github.com/Sirupsen/logrus"
+	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
 	"github.com/ayufan/gitlab-ci-multi-runner/ssh"
 )
 
@@ -65,7 +66,7 @@ type Config struct {
 }
 
 func (c *RunnerConfig) ShortDescription() string {
-	return c.Token[0:8]
+	return helpers.ShortenToken(c.Token)
 }
 
 func (c *RunnerConfig) UniqueID() string {

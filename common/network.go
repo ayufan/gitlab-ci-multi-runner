@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
 )
 
 type UpdateState int
@@ -158,7 +159,7 @@ func RegisterRunner(url, token, description, tags string) *RegisterRunnerRespons
 
 	var response RegisterRunnerResponse
 	result := postJson(getUrl(url, "runners/register.json"), 201, &request, &response)
-	shortToken := token[0:8]
+	shortToken := helpers.ShortenToken(token)
 
 	switch result {
 	case 201:
@@ -168,7 +169,7 @@ func RegisterRunner(url, token, description, tags string) *RegisterRunnerRespons
 		log.Errorln(shortToken, "Registering runner...", "forbidden")
 		return nil
 	default:
-		log.Warningln(shortToken, "Registering runner...", "failed")
+		log.Errorln(shortToken, "Registering runner...", "failed")
 		return nil
 	}
 }
