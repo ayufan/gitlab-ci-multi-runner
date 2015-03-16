@@ -108,6 +108,10 @@ func putJson(url string, statusCode int, request interface{}, response interface
 	return sendJsonRequest(url, "PUT", statusCode, request, response)
 }
 
+func deleteJson(url string, statusCode int, response interface{}) int {
+	return sendJsonRequest(url, "DELETE", statusCode, nil, response)
+}
+
 func readPayload(r io.Reader) ([]byte, error) {
 	maxPayloadSize := int64(1<<63 - 1)
 	maxPayloadSize = int64(10 << 20) // 10 MB is a lot of text.
@@ -171,6 +175,23 @@ func RegisterRunner(url, token, description, tags string) *RegisterRunnerRespons
 	default:
 		log.Errorln(shortToken, "Registering runner...", "failed")
 		return nil
+	}
+}
+
+func DeleteRunner(url, token string) bool {
+	result := deleteJson(getUrl(url, "runners/delete?token=%v", token), 200, nil)
+	shortToken := helpers.ShortenToken(token)
+
+	switch result {
+	case 201:
+		log.Println(shortToken, "Deleting runner...", "succeeded")
+		return true
+	case 403:
+		log.Errorln(shortToken, "Deleting runner...", "forbidden")
+		return false
+	default:
+		log.Errorln(shortToken, "Deleting runner...", "failed", result)
+		return false
 	}
 }
 
