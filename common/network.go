@@ -54,18 +54,18 @@ type UpdateBuildRequest struct {
 }
 
 func sendJsonRequest(url string, method string, statusCode int, request interface{}, response interface{}) int {
-	var data *bytes.Reader
+	var body []byte
+	var err error
 
 	if request != nil {
-		body, err := json.Marshal(request)
+		body, err = json.Marshal(request)
 		if err != nil {
 			log.Errorf("Failed to marshal project object: %v", err)
 			return -1
 		}
-		data = bytes.NewReader(body)
 	}
 
-	req, err := http.NewRequest(method, url, data)
+	req, err := http.NewRequest(method, url, bytes.NewReader(body))
 	if err != nil {
 		log.Errorf("Failed to create NewRequest", err)
 		return -1
