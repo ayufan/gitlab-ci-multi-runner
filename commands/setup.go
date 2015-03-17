@@ -92,6 +92,7 @@ func (s *SetupContext) askForDockerService(service string, docker_config *common
 func (s *SetupContext) askDocker(runner_config *common.RunnerConfig) {
 	docker_config := &common.DockerConfig{}
 	docker_config.Image = s.ask("docker-image", "Please enter the Docker image (eg. ruby:2.1):")
+	docker_config.Privileged = s.Bool("docker-privileged")
 
 	if s.askForDockerService("mysql", docker_config) {
 		runner_config.Environment = append(runner_config.Environment, "MYSQL_ALLOW_EMPTY_PASSWORD=1")
@@ -151,7 +152,7 @@ func (s *SetupContext) askRunner() common.RunnerConfig {
 	url := s.ask("url", "Please enter the gitlab-ci coordinator URL (e.g. http://gitlab-ci.org:3000/):")
 	registrationToken := s.ask("registration-token", "Please enter the gitlab-ci token for this runner:")
 	description := s.ask("description", "Please enter the gitlab-ci description for this runner:")
-	tagList := s.ask("tag-list", "", true)
+	tagList := s.String("tag-list")
 
 	result := common.RegisterRunner(url, registrationToken, description, tagList)
 	if result == nil {
@@ -203,6 +204,7 @@ func runSetup(c *cli.Context) {
 	}
 
 	runnerConfig.Executor = s.askExecutor()
+	runnerConfig.DisableVerbose = s.Bool("disable-verbose-output")
 
 	switch runnerConfig.Executor {
 	case "docker", "docker-ssh":
@@ -286,6 +288,11 @@ var (
 				Usage:  "Select executor, eg. shell, docker, etc.",
 				EnvVar: "RUNNER_EXECUTOR",
 			},
+			cli.BoolFlag{
+				Name:   "disable-verbose-output",
+				Usage:  "Disables printing of shell commands to build log",
+				EnvVar: "RUNNER_DISABLE_VERBOSE_OUTPUT",
+			},
 
 			// Docker specific configuration
 			cli.StringFlag{
@@ -293,6 +300,11 @@ var (
 				Value:  "",
 				Usage:  "Docker image to use (eg. ruby:2.1)",
 				EnvVar: "DOCKER_IMAGE",
+			},
+			cli.BoolFlag{
+				Name:   "docker-privileged",
+				Usage:  "Run Docker containers in privileged mode (INSECURE)",
+				EnvVar: "DOCKER_PRIVILEGED",
 			},
 			cli.StringFlag{
 				Name:   "docker-mysql",
