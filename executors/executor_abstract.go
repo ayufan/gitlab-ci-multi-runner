@@ -37,7 +37,7 @@ func (e *AbstractExecutor) FinishBuild(config common.RunnerConfig, buildState co
 		if common.UpdateBuild(config, e.Build.ID, buildState, buffer) != common.UpdateFailed {
 			break
 		} else {
-			time.Sleep(common.UPDATE_RETRY_INTERVAL * time.Second)
+			time.Sleep(common.UpdateRetryInterval * time.Second)
 		}
 	}
 
@@ -47,7 +47,7 @@ func (e *AbstractExecutor) FinishBuild(config common.RunnerConfig, buildState co
 func (e *AbstractExecutor) WatchTrace(config common.RunnerConfig, abort chan bool, finished chan bool) {
 	for {
 		select {
-		case <-time.After(common.UPDATE_INTERVAL * time.Second):
+		case <-time.After(common.UpdateInterval * time.Second):
 			if e.BuildLog == nil {
 				<-finished
 				return
@@ -147,7 +147,7 @@ func (e *AbstractExecutor) Wait() error {
 
 	buildTimeout := e.Build.Timeout
 	if buildTimeout <= 0 {
-		buildTimeout = common.DEFAULT_TIMEOUT
+		buildTimeout = common.DefaultTimeout
 	}
 
 	// Wait for signals: abort, timeout or finish

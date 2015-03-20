@@ -1,11 +1,11 @@
 package common
 
-const DEFAULT_TIMEOUT = 7200
-const CHECK_INTERVAL = 3
-const UPDATE_INTERVAL = 3
-const UPDATE_RETRY_INTERVAL = 3
-const RELOAD_CONFIG_INTERVAL = 3
-const HEALTHY_CHECKS = 3
-const HEALTH_CHECK_INTERVAL = 3600
-const DEFAULT_WAIT_FOR_SERVICES_TIMEOUT = 30
-const SHUTDOWN_TIMEOUT = 30
+const DefaultTimeout = 7200
+const CheckInterval = 3
+const UpdateInterval = 3
+const UpdateRetryInterval = 3
+const ReloadConfigInterval = 3
+const HealthyChecks = 3
+const HealthCheckInterval = 3600
+const DefaultWaitForServicesTimeout = 30
+const ShutdownTimeout = 30

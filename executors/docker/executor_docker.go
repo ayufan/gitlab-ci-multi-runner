@@ -165,7 +165,7 @@ func (s *DockerExecutor) createServices() ([]string, error) {
 		s.services = append(s.services, container)
 	}
 
-	waitForServicesTimeout := common.DEFAULT_WAIT_FOR_SERVICES_TIMEOUT
+	waitForServicesTimeout := common.DefaultWaitForServicesTimeout
 	if s.Config.Docker.WaitForServicesTimeout != nil {
 		waitForServicesTimeout = *s.Config.Docker.WaitForServicesTimeout
 	}

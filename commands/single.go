@@ -78,7 +78,7 @@ func runSingle(c *cli.Context) {
 			os.Exit(1)
 		}
 		if buildData == nil {
-			time.Sleep(common.CHECK_INTERVAL * time.Second)
+			time.Sleep(common.CheckInterval * time.Second)
 			continue
 		}
 

@@ -61,7 +61,7 @@ func (s *Command) Connect() error {
 			s.client = client
 			return nil
 		}
-		time.Sleep(SSH_RETRY_INTERVAL * time.Second)
+		time.Sleep(sshRetryInterval * time.Second)
 		finalError = err
 	}
 

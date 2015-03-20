@@ -65,11 +65,11 @@ func (mr *MultiRunner) getHealth(runner *common.RunnerConfig) *RunnerHealth {
 
 func (mr *MultiRunner) isHealthy(runner *common.RunnerConfig) bool {
 	health := mr.getHealth(runner)
-	if health.failures < common.HEALTHY_CHECKS {
+	if health.failures < common.HealthyChecks {
 		return true
 	}
 
-	if time.Since(health.lastCheck) > common.HEALTH_CHECK_INTERVAL*time.Second {
+	if time.Since(health.lastCheck) > common.HealthCheckInterval*time.Second {
 		mr.errorln("Runner", runner.ShortDescription(), "is not healthy, but will be checked!")
 		health.failures = 0
 		health.lastCheck = time.Now()
@@ -89,7 +89,7 @@ func (mr *MultiRunner) makeUnhealthy(runner *common.RunnerConfig) {
 	health := mr.getHealth(runner)
 	health.failures++
 
-	if health.failures >= common.HEALTHY_CHECKS {
+	if health.failures >= common.HealthyChecks {
 		mr.errorln("Runner", runner.ShortDescription(), "is not healthy and will be disabled!")
 	}
 }
@@ -170,7 +170,7 @@ func (mr *MultiRunner) feedRunners(runners chan *common.RunnerConfig) {
 		for _, runner := range config.Runners {
 			runners <- runner
 		}
-		time.Sleep(common.CHECK_INTERVAL * time.Second)
+		time.Sleep(common.CheckInterval * time.Second)
 	}
 }
 
@@ -284,7 +284,7 @@ finish_worker:
 		}
 
 		select {
-		case <-time.After(common.RELOAD_CONFIG_INTERVAL * time.Second):
+		case <-time.After(common.ReloadConfigInterval * time.Second):
 			info, err := os.Stat(mr.configFile)
 			if err != nil {
 				mr.errorln("Failed to stat config", err)
@@ -350,7 +350,7 @@ finish_worker:
 
 	// Timeout shutdown
 	go func() {
-		time.Sleep(common.SHUTDOWN_TIMEOUT * time.Second)
+		time.Sleep(common.ShutdownTimeout * time.Second)
 		mr.errorln("Shutdown timedout.")
 		close <- 1
 	}()
