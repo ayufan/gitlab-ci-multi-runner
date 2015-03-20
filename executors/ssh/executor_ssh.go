@@ -23,7 +23,7 @@ func (s *SshExecutor) Start() error {
 	// Create SSH command
 	s.sshCommand = ssh.SshCommand{
 		SshConfig:   *s.Config.Ssh,
-		Environment: append(s.Build.GetEnv(), s.Config.Environment...),
+		Environment: append(s.BuildEnv, s.Config.Environment...),
 		Command:     "bash",
 		Stdin:       s.BuildScript,
 		Stdout:      s.BuildLog,

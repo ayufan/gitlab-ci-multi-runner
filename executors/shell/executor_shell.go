@@ -48,7 +48,7 @@ func (s *ShellExecutor) Start() error {
 	}
 
 	// Fill process environment variables
-	s.cmd.Env = append(s.cmd.Env, s.Build.GetEnv()...)
+	s.cmd.Env = append(s.cmd.Env, s.BuildEnv...)
 	s.cmd.Env = append(s.cmd.Env, s.Config.Environment...)
 	s.cmd.Stdin = bytes.NewReader(s.BuildScript)
 	s.cmd.Stdout = s.BuildLog

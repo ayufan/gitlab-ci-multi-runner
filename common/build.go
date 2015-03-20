@@ -24,14 +24,14 @@ const (
 
 type Build struct {
 	GetBuildResponse
-	BuildLog      string        `json:"-"`
-	BuildState    BuildState    `json:"build_state"`
-	BuildStarted  time.Time     `json:"build_started"`
-	BuildFinished time.Time     `json:"build_finished"`
-	BuildDuration time.Duration `json:"build_duration"`
-	BuildMessage  string        `json:"build_message"`
+	BuildLog      string         `json:"-"`
+	BuildState    BuildState     `json:"build_state"`
+	BuildStarted  time.Time      `json:"build_started"`
+	BuildFinished time.Time      `json:"build_finished"`
+	BuildDuration time.Duration  `json:"build_duration"`
+	BuildMessage  string         `json:"build_message"`
 	BuildAbort    chan os.Signal `json:"-"`
-	Runner        *RunnerConfig `json:"runner"`
+	Runner        *RunnerConfig  `json:"runner"`
 
 	GlobalId   int    `json:"global_id"`
 	GlobalName string `json:"global_name"`
@@ -127,7 +127,7 @@ func (b *Build) writeCheckoutCmd(w io.Writer, builds_dir string) {
 	io.WriteString(w, fmt.Sprintf("git reset --hard %s > /dev/null\n", b.Sha))
 }
 
-func (build *Build) Generate(builds_dir string, hostname string) ([]byte, error) {
+func (build *Build) Generate(builds_dir string, hostname string) ([]byte, []string, error) {
 	var b bytes.Buffer
 	w := bufio.NewWriter(&b)
 
@@ -163,22 +163,23 @@ func (build *Build) Generate(builds_dir string, hostname string) ([]byte, error)
 
 	w.Flush()
 
-	return b.Bytes(), nil
-}
-
-func (build *Build) GetEnv() []string {
-	return []string{
+	env := []string{
 		fmt.Sprintf("CI_BUILD_REF=%s", build.Sha),
 		fmt.Sprintf("CI_BUILD_BEFORE_SHA=%s", build.BeforeSha),
 		fmt.Sprintf("CI_BUILD_REF_NAME=%s", build.RefName),
 		fmt.Sprintf("CI_BUILD_ID=%d", build.Id),
 		fmt.Sprintf("CI_BUILD_REPO=%s", build.RepoURL),
+
 		fmt.Sprintf("CI_PROJECT_ID=%d", build.ProjectId),
+		fmt.Sprintf("CI_PROJECT_DIR=%s", builds_dir, build.ProjectDir()),
+
 		"CI_SERVER=yes",
 		"CI_SERVER_NAME=GitLab CI",
 		"CI_SERVER_VERSION=",
 		"CI_SERVER_REVISION=",
 	}
+
+	return b.Bytes(), env, nil
 }
 
 func (build *Build) Run() error {

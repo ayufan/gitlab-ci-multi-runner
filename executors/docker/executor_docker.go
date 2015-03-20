@@ -225,7 +225,7 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 			AttachStderr: true,
 			OpenStdin:    true,
 			StdinOnce:    true,
-			Env:          append(s.Build.GetEnv(), s.Config.Environment...),
+			Env:          append(s.BuildEnv, s.Config.Environment...),
 			Cmd:          cmd,
 		},
 		HostConfig: &docker.HostConfig{

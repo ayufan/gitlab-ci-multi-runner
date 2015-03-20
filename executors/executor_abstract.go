@@ -22,6 +22,7 @@ type AbstractExecutor struct {
 	BuildLogFinish   chan bool
 	BuildFinish      chan error
 	BuildScript      []byte
+	BuildEnv         []string
 	BuildLog         *os.File
 }
 
@@ -123,11 +124,12 @@ func (e *AbstractExecutor) Prepare(config *common.RunnerConfig, build *common.Bu
 		e.BuildsDir = e.Config.BuildsDir
 	}
 
-	script, err := e.Build.Generate(e.BuildsDir, hostname)
+	buildScript, buildEnv, err := e.Build.Generate(e.BuildsDir, hostname)
 	if err != nil {
 		return err
 	}
-	e.BuildScript = script
+	e.BuildScript = buildScript
+	e.BuildEnv = buildEnv
 
 	// Create build log
 	build_log, err := ioutil.TempFile("", "build_log")
