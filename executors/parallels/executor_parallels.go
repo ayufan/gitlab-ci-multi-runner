@@ -38,7 +38,7 @@ func (s *ParallelsExecutor) waitForIpAddress(vmName string, seconds int) (string
 
 	s.Debugln("Requesting IP address...")
 	for i := 0; i < seconds; i++ {
-		ipAddr, err := prl.IpAddress(macAddr)
+		ipAddr, err := prl.IPAddress(macAddr)
 		if err == nil {
 			s.Debugln("IP address found", ipAddr, "...")
 			s.ipAddress = ipAddr
@@ -120,7 +120,7 @@ func (s *ParallelsExecutor) createVm() error {
 	}
 
 	s.Debugln("Creating runner from VM template...")
-	err := prl.CreateOsVm(s.vmName, templateName)
+	err := prl.CreateOsVM(s.vmName, templateName)
 	if err != nil {
 		return err
 	}

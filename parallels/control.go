@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	PRLCTL_PATH = "prlctl"
-	DHCP_LEASES = "/Library/Preferences/Parallels/parallels_dhcp_leases"
+	prlctlPath = "prlctl"
+	dhcpLeases = "/Library/Preferences/Parallels/parallels_dhcp_leases"
 )
 
 func PrlctlOutput(args ...string) (string, error) {
@@ -31,7 +31,7 @@ func PrlctlOutput(args ...string) (string, error) {
 	var stdout, stderr bytes.Buffer
 
 	logrus.Debugf("Executing PrlctlOutput: %#v", args)
-	cmd := exec.Command(PRLCTL_PATH, args...)
+	cmd := exec.Command(prlctlPath, args...)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
@@ -85,7 +85,7 @@ func CreateTemplate(vmName, templateName string) error {
 	return Prlctl("clone", vmName, "--name", templateName, "--template", "--linked")
 }
 
-func CreateOsVm(vmName, templateName string) error {
+func CreateOsVM(vmName, templateName string) error {
 	return Prlctl("create", vmName, "--ostemplate", templateName)
 }
 
@@ -114,8 +114,8 @@ func GetDefaultSnapshot(vmName string) (string, error) {
 	return "", errors.New("No snapshot")
 }
 
-func RevertToSnapshot(vmName, snapshotId string) error {
-	return Prlctl("snapshot-switch", vmName, "--id", snapshotId)
+func RevertToSnapshot(vmName, snapshotID string) error {
+	return Prlctl("snapshot-switch", vmName, "--id", snapshotID)
 }
 
 func Start(vmName string) error {
@@ -189,25 +189,25 @@ func Mac(vmName string) (string, error) {
 	return mac, nil
 }
 
-// Finds the IP address of a VM connected that uses DHCP by its MAC address
+// IPAddress finds the IP address of a VM connected that uses DHCP by its MAC address
 //
 // Parses the file /Library/Preferences/Parallels/parallels_dhcp_leases
 // file contain a list of DHCP leases given by Parallels Desktop
 // Example line:
 // 10.211.55.181="1418921112,1800,001c42f593fb,ff42f593fb000100011c25b9ff001c42f593fb"
 // IP Address   ="Lease expiry, Lease time, MAC, MAC or DUID"
-func IpAddress(mac string) (string, error) {
+func IPAddress(mac string) (string, error) {
 	if len(mac) != 12 {
 		return "", fmt.Errorf("Not a valid MAC address: %s. It should be exactly 12 digits.", mac)
 	}
 
-	leases, err := ioutil.ReadFile(DHCP_LEASES)
+	leases, err := ioutil.ReadFile(dhcpLeases)
 	if err != nil {
 		return "", err
 	}
 
 	re := regexp.MustCompile("(.*)=\"(.*),(.*)," + strings.ToLower(mac) + ",.*\"")
-	mostRecentIp := ""
+	mostRecentIP := ""
 	mostRecentLease := uint64(0)
 	for _, l := range re.FindAllStringSubmatch(string(leases), -1) {
 		ip := l[1]
@@ -215,15 +215,15 @@ func IpAddress(mac string) (string, error) {
 		leaseTime, _ := strconv.ParseUint(l[3], 10, 32)
 		logrus.Debugf("Found lease: %s for MAC: %s, expiring at %d, leased for %d s.\n", ip, mac, expiry, leaseTime)
 		if mostRecentLease <= expiry-leaseTime {
-			mostRecentIp = ip
+			mostRecentIP = ip
 			mostRecentLease = expiry - leaseTime
 		}
 	}
 
-	if len(mostRecentIp) == 0 {
-		return "", fmt.Errorf("IP lease not found for MAC address %s in: %s\n", mac, DHCP_LEASES)
+	if len(mostRecentIP) == 0 {
+		return "", fmt.Errorf("IP lease not found for MAC address %s in: %s\n", mac, dhcpLeases)
 	}
 
-	logrus.Debugf("Found IP lease: %s for MAC address %s\n", mostRecentIp, mac)
-	return mostRecentIp, nil
+	logrus.Debugf("Found IP lease: %s for MAC address %s\n", mostRecentIP, mac)
+	return mostRecentIP, nil
 }
