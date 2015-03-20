@@ -29,13 +29,13 @@ func (s *ShellExecutor) Prepare(config *common.RunnerConfig, build *common.Build
 func (s *ShellExecutor) Start() error {
 	s.Debugln("Starting shell command...")
 
-	shell_script := s.Config.ShellScript
-	if len(shell_script) == 0 {
-		shell_script = "bash"
+	shellScript := s.Config.ShellScript
+	if len(shellScript) == 0 {
+		shellScript = "bash"
 	}
 
 	// Create execution command
-	s.cmd = exec.Command(shell_script)
+	s.cmd = exec.Command(shellScript)
 	if s.cmd == nil {
 		return errors.New("Failed to generate execution command")
 	}

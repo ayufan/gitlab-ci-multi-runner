@@ -8,12 +8,12 @@ import (
 	"github.com/ayufan/gitlab-ci-multi-runner/ssh"
 )
 
-type SshExecutor struct {
+type SSHExecutor struct {
 	executors.AbstractExecutor
 	sshCommand ssh.Command
 }
 
-func (s *SshExecutor) Start() error {
+func (s *SSHExecutor) Start() error {
 	if s.Config.SSH == nil {
 		return errors.New("Missing SSH configuration")
 	}
@@ -46,14 +46,14 @@ func (s *SshExecutor) Start() error {
 	return nil
 }
 
-func (s *SshExecutor) Cleanup() {
+func (s *SSHExecutor) Cleanup() {
 	s.sshCommand.Cleanup()
 	s.AbstractExecutor.Cleanup()
 }
 
 func init() {
 	common.RegisterExecutor("ssh", func() common.Executor {
-		return &SshExecutor{
+		return &SSHExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
 				DefaultBuildsDir: "builds",
 				ShowHostname:     true,

@@ -8,12 +8,12 @@ import (
 	"github.com/ayufan/gitlab-ci-multi-runner/ssh"
 )
 
-type DockerSshExecutor struct {
+type DockerSSHExecutor struct {
 	DockerExecutor
 	sshCommand ssh.Command
 }
 
-func (s *DockerSshExecutor) Start() error {
+func (s *DockerSSHExecutor) Start() error {
 	if s.Config.SSH == nil {
 		return errors.New("Missing SSH configuration")
 	}
@@ -27,7 +27,7 @@ func (s *DockerSshExecutor) Start() error {
 	}
 	s.container = container
 
-	container_data, err := s.client.InspectContainer(container.ID)
+	containerData, err := s.client.InspectContainer(container.ID)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func (s *DockerSshExecutor) Start() error {
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,
 	}
-	s.sshCommand.Host = container_data.NetworkSettings.IPAddress
+	s.sshCommand.Host = containerData.NetworkSettings.IPAddress
 
 	s.Debugln("Connecting to SSH server...")
 	err = s.sshCommand.Connect()
@@ -59,14 +59,14 @@ func (s *DockerSshExecutor) Start() error {
 	return nil
 }
 
-func (s *DockerSshExecutor) Cleanup() {
+func (s *DockerSSHExecutor) Cleanup() {
 	s.sshCommand.Cleanup()
 	s.DockerExecutor.Cleanup()
 }
 
 func init() {
 	common.RegisterExecutor("docker-ssh", func() common.Executor {
-		return &DockerSshExecutor{
+		return &DockerSSHExecutor{
 			DockerExecutor: DockerExecutor{
 				AbstractExecutor: executors.AbstractExecutor{
 					DefaultBuildsDir: "builds",

@@ -23,7 +23,7 @@ type ParallelsExecutor struct {
 	machineVerified bool
 }
 
-func (s *ParallelsExecutor) waitForIpAddress(vmName string, seconds int) (string, error) {
+func (s *ParallelsExecutor) waitForIPAddress(vmName string, seconds int) (string, error) {
 	var lastError error
 
 	if s.ipAddress != "" {
@@ -55,7 +55,7 @@ func (s *ParallelsExecutor) verifyMachine(vmName string) error {
 		return nil
 	}
 
-	ipAddr, err := s.waitForIpAddress(vmName, 120)
+	ipAddr, err := s.waitForIPAddress(vmName, 120)
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func (s *ParallelsExecutor) restoreFromSnapshot() error {
 	return nil
 }
 
-func (s *ParallelsExecutor) createVm() error {
+func (s *ParallelsExecutor) createVM() error {
 	baseImage := s.Config.Parallels.BaseName
 	if baseImage == "" {
 		return errors.New("Missing Image setting from Parallels config")
@@ -189,7 +189,7 @@ func (s *ParallelsExecutor) Prepare(config *common.RunnerConfig, build *common.B
 		}
 	} else {
 		s.Debugln("Creating new VM...")
-		err := s.createVm()
+		err := s.createVM()
 		if err != nil {
 			return err
 		}
@@ -243,7 +243,7 @@ func (s *ParallelsExecutor) Prepare(config *common.RunnerConfig, build *common.B
 }
 
 func (s *ParallelsExecutor) Start() error {
-	ipAddr, err := s.waitForIpAddress(s.vmName, 60)
+	ipAddr, err := s.waitForIPAddress(s.vmName, 60)
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,6 @@ package docker
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 
 	"github.com/fsouza/go-dockerclient"
@@ -27,7 +26,7 @@ func (s *DockerCommandExecutor) Start() error {
 
 	// Wait for process to exit
 	go func() {
-		attach_container_opts := docker.AttachToContainerOptions{
+		attachContainerOptions := docker.AttachToContainerOptions{
 			Container:    container.ID,
 			InputStream:  bytes.NewBuffer(s.BuildScript),
 			OutputStream: s.BuildLog,
@@ -41,23 +40,23 @@ func (s *DockerCommandExecutor) Start() error {
 		}
 
 		s.Debugln("Attaching to container...")
-		err := s.client.AttachToContainer(attach_container_opts)
+		err := s.client.AttachToContainer(attachContainerOptions)
 		if err != nil {
 			s.BuildFinish <- err
 			return
 		}
 
 		s.Debugln("Waiting for container...")
-		exit_code, err := s.client.WaitContainer(container.ID)
+		exitCode, err := s.client.WaitContainer(container.ID)
 		if err != nil {
 			s.BuildFinish <- err
 			return
 		}
 
-		if exit_code == 0 {
+		if exitCode == 0 {
 			s.BuildFinish <- nil
 		} else {
-			s.BuildFinish <- errors.New(fmt.Sprintf("exit code %d", exit_code))
+			s.BuildFinish <- fmt.Errorf("exit code %d", exitCode)
 		}
 	}()
 	return nil

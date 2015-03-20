@@ -24,9 +24,9 @@ type DockerExecutor struct {
 	services  []*docker.Container
 }
 
-func (s *DockerExecutor) volumeDir(cache_dir string, project_name string, volume string) string {
+func (s *DockerExecutor) volumeDir(cacheDir string, projectName string, volume string) string {
 	hash := md5.Sum([]byte(volume))
-	return fmt.Sprintf("%s/%s/%x", cache_dir, project_name, hash)
+	return fmt.Sprintf("%s/%s/%x", cacheDir, projectName, hash)
 }
 
 func (s *DockerExecutor) getImage(imageName string, pullImage bool) (*docker.Image, error) {
@@ -41,12 +41,12 @@ func (s *DockerExecutor) getImage(imageName string, pullImage bool) (*docker.Ima
 	}
 
 	s.Println("Pulling docker image", imageName, "...")
-	pull_image_opts := docker.PullImageOptions{
+	pullImageOptions := docker.PullImageOptions{
 		Repository: imageName,
 		Registry:   s.Config.Docker.Registry,
 	}
 
-	err = s.client.PullImage(pull_image_opts, docker.AuthConfiguration{})
+	err = s.client.PullImage(pullImageOptions, docker.AuthConfiguration{})
 	if err != nil {
 		return nil, err
 	}
@@ -54,8 +54,8 @@ func (s *DockerExecutor) getImage(imageName string, pullImage bool) (*docker.Ima
 	return s.client.InspectImage(imageName)
 }
 
-func (s *DockerExecutor) addVolume(binds *[]string, cache_dir string, volume string) {
-	volumeDir := s.volumeDir(cache_dir, s.Build.ProjectUniqueName(), volume)
+func (s *DockerExecutor) addVolume(binds *[]string, cacheDir string, volume string) {
+	volumeDir := s.volumeDir(cacheDir, s.Build.ProjectUniqueName(), volume)
 	*binds = append(*binds, fmt.Sprintf("%s:%s:rw", volumeDir, volume))
 	s.Debugln("Using", volumeDir, "for", volume, "...")
 
@@ -63,13 +63,13 @@ func (s *DockerExecutor) addVolume(binds *[]string, cache_dir string, volume str
 	os.MkdirAll(volumeDir, 0777)
 }
 
-func (s *DockerExecutor) createVolumes(image *docker.Image, builds_dir string) ([]string, error) {
-	cache_dir := "tmp/docker-cache"
+func (s *DockerExecutor) createVolumes(image *docker.Image, buildsDir string) ([]string, error) {
+	cacheDir := "tmp/docker-cache"
 	if len(s.Config.Docker.CacheDir) != 0 {
-		cache_dir = s.Config.Docker.CacheDir
+		cacheDir = s.Config.Docker.CacheDir
 	}
 
-	cache_dir, err := filepath.Abs(cache_dir)
+	cacheDir, err := filepath.Abs(cacheDir)
 	if err != nil {
 		return nil, err
 	}
@@ -77,17 +77,17 @@ func (s *DockerExecutor) createVolumes(image *docker.Image, builds_dir string) (
 	var binds []string
 
 	for _, volume := range s.Config.Docker.Volumes {
-		s.addVolume(&binds, cache_dir, volume)
+		s.addVolume(&binds, cacheDir, volume)
 	}
 
 	if image != nil {
-		for volume, _ := range image.Config.Volumes {
-			s.addVolume(&binds, cache_dir, volume)
+		for volume := range image.Config.Volumes {
+			s.addVolume(&binds, cacheDir, volume)
 		}
 	}
 
 	if s.Build.AllowGitFetch {
-		s.addVolume(&binds, cache_dir, builds_dir)
+		s.addVolume(&binds, cacheDir, buildsDir)
 	}
 
 	return binds, nil
@@ -214,7 +214,7 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 	// this will fail potentially some builds if there's name collision
 	s.removeContainer(containerName)
 
-	create_container_opts := docker.CreateContainerOptions{
+	createContainerOptions := docker.CreateContainerOptions{
 		Name: containerName,
 		Config: &docker.Config{
 			Hostname:     hostname,
@@ -241,7 +241,7 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 	if err != nil {
 		return nil, err
 	}
-	create_container_opts.HostConfig.Links = append(create_container_opts.HostConfig.Links, links...)
+	createContainerOptions.HostConfig.Links = append(createContainerOptions.HostConfig.Links, links...)
 
 	if !s.Config.Docker.DisableCache {
 		s.Debugln("Creating cache directories...")
@@ -249,11 +249,11 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 		if err != nil {
 			return nil, err
 		}
-		create_container_opts.HostConfig.Binds = binds
+		createContainerOptions.HostConfig.Binds = binds
 	}
 
-	s.Debugln("Creating container", create_container_opts.Name, "...")
-	container, err := s.client.CreateContainer(create_container_opts)
+	s.Debugln("Creating container", createContainerOptions.Name, "...")
+	container, err := s.client.CreateContainer(createContainerOptions)
 	if err != nil {
 		if container != nil {
 			go s.removeContainer(container.ID)
@@ -262,7 +262,7 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 	}
 
 	s.Debugln("Starting container", container.ID, "...")
-	err = s.client.StartContainer(container.ID, create_container_opts.HostConfig)
+	err = s.client.StartContainer(container.ID, createContainerOptions.HostConfig)
 	if err != nil {
 		go s.removeContainer(container.ID)
 		return nil, err
@@ -272,12 +272,12 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 }
 
 func (s *DockerExecutor) removeContainer(id string) error {
-	remove_container_opts := docker.RemoveContainerOptions{
+	removeContainerOptions := docker.RemoveContainerOptions{
 		ID:            id,
 		RemoveVolumes: true,
 		Force:         true,
 	}
-	err := s.client.RemoveContainer(remove_container_opts)
+	err := s.client.RemoveContainer(removeContainerOptions)
 	s.Debugln("Removed container", id, "with", err)
 	return err
 }
@@ -352,7 +352,7 @@ func (s *DockerExecutor) waitForServiceContainer(container *docker.Container, ti
 	go func() {
 		statusCode, err := s.client.WaitContainer(waitContainer.ID)
 		if err == nil && statusCode != 0 {
-			err = errors.New(fmt.Sprintf("Status code: %d", statusCode))
+			err = fmt.Errorf("Status code: %d", statusCode)
 		}
 		waitResult <- err
 	}()
