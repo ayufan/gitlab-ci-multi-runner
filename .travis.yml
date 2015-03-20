@@ -6,10 +6,12 @@ env:
     secure: COMQYKj9O6GUuoDRa5OVfOT8i4m1f/JDH6LaGLI8Nkb84oaq9fgvpjVMBgUcWbYT52UXt3NNy7N8B3d8VEmCHvBIjZh296OhHsAvFf9hvcjx5POjKXODV1rwdgtyYafaLUPllCBe/lLKn819ktD3PB1tjxQ0//r4APW82W4wpYs=
 install:
 - go get github.com/tools/godep
+- go get -u github.com/golang/lint/golint
 - godep restore
 before_script:
 - make version
 script:
+- 'golint ./... | grep -v "be unexported"'
 - make test
 before_deploy:
 - go get github.com/mitchellh/gox
