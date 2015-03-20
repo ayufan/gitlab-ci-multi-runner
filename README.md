@@ -265,42 +265,95 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
 
 ## Example integrations
 
-### How to configure runner for GitLab CI integration tests?
+### How to configure runner for GitLab CE integration tests? (uses confined Docker executor)
 
 1. Run setup
     ```bash
-    $ gitlab-ci-multi-runner-linux setup
-    Please enter the gitlab-ci coordinator URL (e.g. http://gitlab-ci.org:3000/ )
-    https://ci.gitlab.com/
-    Please enter the gitlab-ci token for this runner
-    REGISTRATION_TOKEN
-    Please enter the gitlab-ci description for this runner
-    my-gitlab-ci-runner
-    INFO[0047] 5bf4aa89 Registering runner... succeeded
-    Please enter the executor: shell, docker, docker-ssh, ssh?
-    docker
-    Please enter the Docker image (eg. ruby:2.1):
-    ruby:2.1
-    If you want to enable mysql please enter version (X.Y) or enter latest?
-    latest
-    If you want to enable postgres please enter version (X.Y) or enter latest?
-    latest
-    If you want to enable redis please enter version (X.Y) or enter latest?
-    latest
-    If you want to enable mongodb please enter version (X.Y) or enter latest?
-
-    INFO[0069] Runner registered successfully. Feel free to start it, but if it's running already the config should be automatically reloaded!
-    ```
-
-1. Run the multi-runner if you didn't already
-    ```bash
-    $ gitlab-ci-multi-runner-linux run
+    $ gitlab-ci-multi-runner setup \
+      --non-interactive \
+      --url "https://ci.gitlab.com/" \
+      --registration-token "REGISTRATION_TOKEN" \
+      --description "gitlab-ce-ruby-2.1" \
+      --executor "docker" \
+      --docker-image ruby:2.1 --docker-mysql latest \
+      --docker-postgres latest --docker-redis latest
     ```
 
 1. Add job to test with MySQL
     ```bash
     wget -q http://ftp.de.debian.org/debian/pool/main/p/phantomjs/phantomjs_1.9.0-1+b1_amd64.deb
     dpkg -i phantomjs_1.9.0-1+b1_amd64.deb
+
+    apt-get update -qq
+    apt-get install -y -qq libicu-dev libkrb5-dev cmake nodejs
+
+    bundle install --deployment --path /cache
+
+    cp config/application.yml.example config/application.yml
+
+    cp config/database.yml.mysql config/database.yml
+    sed -i 's/username:.*/username: root/g' config/database.yml
+    sed -i 's/password:.*/password:/g' config/database.yml
+    sed -i 's/# socket:.*/host: mysql/g' config/database.yml
+
+    cp config/resque.yml.example config/resque.yml
+    sed -i 's/localhost/redis/g' config/resque.yml
+
+    bundle exec rake db:create
+
+    bundle exec rake test_ci
+    ```
+
+1. Add job to test with PostgreSQL
+    ```bash
+    wget -q http://ftp.de.debian.org/debian/pool/main/p/phantomjs/phantomjs_1.9.0-1+b1_amd64.deb
+    dpkg -i phantomjs_1.9.0-1+b1_amd64.deb
+
+    apt-get update -qq
+    apt-get install -y -qq libicu-dev libkrb5-dev cmake nodejs
+
+    bundle install --deployment --path /cache
+
+    cp config/application.yml.example config/application.yml
+
+    cp config/database.yml.postgresql config/database.yml
+    sed -i 's/username:.*/username: postgres/g' config/database.yml
+    sed -i 's/password:.*/password:/g' config/database.yml
+    sed -i 's/pool:.*/&\n  host: postgres/g' config/database.yml
+
+    cp config/resque.yml.example config/resque.yml
+    sed -i 's/localhost/redis/g' config/resque.yml
+
+    bundle exec rake db:create
+
+    bundle exec rake test_ci
+    ```
+
+1. Voila! You now have GitLab CE integration testing instance with bundle caching. Push some commits to test it.
+
+1. Look into `config.toml` and tune it.
+
+### How to configure runner for GitLab CI integration tests? (uses confined Docker executor)
+
+1. Run setup
+    ```bash
+    $ gitlab-ci-multi-runner setup \
+      --non-interactive \
+      --url "https://ci.gitlab.com/" \
+      --registration-token "REGISTRATION_TOKEN" \
+      --description "gitlab-ci-ruby-2.1" \
+      --executor "docker" \
+      --docker-image ruby:2.1 --docker-mysql latest \
+      --docker-postgres latest --docker-redis latest
+    ```
+
+1. Add job to test with MySQL
+    ```bash
+    wget -q http://ftp.de.debian.org/debian/pool/main/p/phantomjs/phantomjs_1.9.0-1+b1_amd64.deb
+    dpkg -i phantomjs_1.9.0-1+b1_amd64.deb
+
+    apt-get update -qq
+    apt-get install -qq nodejs
 
     bundle install --deployment --path /cache
 
@@ -323,6 +376,9 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
     ```bash
     wget -q http://ftp.de.debian.org/debian/pool/main/p/phantomjs/phantomjs_1.9.0-1+b1_amd64.deb
     dpkg -i phantomjs_1.9.0-1+b1_amd64.deb
+
+    apt-get update -qq
+    apt-get install -qq nodejs
 
     bundle install --deployment --path /cache
 
@@ -351,7 +407,7 @@ Visit [Changelog](CHANGELOG.md) to view recent changes.
 
 ### FAQ
 
-1. Check help of setup, run and single:
+1. Check help `gitlab-ci-multi-runner`:
     ```bash
     gitlab-ci-multi-runner setup --help
     gitlab-ci-multi-runner run --help
