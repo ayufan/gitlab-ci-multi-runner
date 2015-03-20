@@ -113,7 +113,7 @@ func (s *SetupContext) askParallels(runnerConfig *common.RunnerConfig) {
 }
 
 func (s *SetupContext) askSSH(runnerConfig *common.RunnerConfig, serverless bool) {
-	runnerConfig.SSH = &ssh.SshConfig{}
+	runnerConfig.SSH = &ssh.Config{}
 	if !serverless {
 		runnerConfig.SSH.Host = s.ask("ssh-host", "Please enter the SSH server address (eg. my.server.com):")
 		runnerConfig.SSH.Port = s.ask("ssh-port", "Please enter the SSH server port (eg. 22):", true)

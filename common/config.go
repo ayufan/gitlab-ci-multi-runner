@@ -49,7 +49,7 @@ type RunnerConfig struct {
 	ShellScript    string `toml:"shell_script" json:"shell_script"`
 	DisableVerbose bool   `toml:"disable_verbose" json:"disable_verbose"`
 
-	SSH       *ssh.SshConfig   `toml:"ssh" json:"ssh"`
+	SSH       *ssh.Config      `toml:"ssh" json:"ssh"`
 	Docker    *DockerConfig    `toml:"docker" json:"docker"`
 	Parallels *ParallelsConfig `toml:"parallels" json:"parallels"`
 }

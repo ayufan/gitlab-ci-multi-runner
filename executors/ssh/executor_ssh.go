@@ -10,7 +10,7 @@ import (
 
 type SshExecutor struct {
 	executors.AbstractExecutor
-	sshCommand ssh.SshCommand
+	sshCommand ssh.Command
 }
 
 func (s *SshExecutor) Start() error {
@@ -21,8 +21,8 @@ func (s *SshExecutor) Start() error {
 	s.Debugln("Starting SSH command...")
 
 	// Create SSH command
-	s.sshCommand = ssh.SshCommand{
-		SshConfig:   *s.Config.SSH,
+	s.sshCommand = ssh.Command{
+		Config:      *s.Config.SSH,
 		Environment: append(s.BuildEnv, s.Config.Environment...),
 		Command:     "bash",
 		Stdin:       s.BuildScript,

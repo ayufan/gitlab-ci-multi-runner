@@ -17,7 +17,7 @@ type ParallelsExecutor struct {
 	executors.AbstractExecutor
 	cmd             *exec.Cmd
 	vmName          string
-	sshCommand      ssh.SshCommand
+	sshCommand      ssh.Command
 	provisioned     bool
 	ipAddress       string
 	machineVerified bool
@@ -61,8 +61,8 @@ func (s *ParallelsExecutor) verifyMachine(vmName string) error {
 	}
 
 	// Create SSH command
-	sshCommand := ssh.SshCommand{
-		SshConfig:      *s.Config.SSH,
+	sshCommand := ssh.Command{
+		Config:         *s.Config.SSH,
 		Command:        "exit 0",
 		Stdout:         s.BuildLog,
 		Stderr:         s.BuildLog,
@@ -249,8 +249,8 @@ func (s *ParallelsExecutor) Start() error {
 	}
 
 	s.Debugln("Starting SSH command...")
-	s.sshCommand = ssh.SshCommand{
-		SshConfig:   *s.Config.SSH,
+	s.sshCommand = ssh.Command{
+		Config:      *s.Config.SSH,
 		Environment: append(s.BuildEnv, s.Config.Environment...),
 		Command:     "bash",
 		Stdin:       s.BuildScript,

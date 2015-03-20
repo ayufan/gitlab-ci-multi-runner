@@ -10,7 +10,7 @@ import (
 
 type DockerSshExecutor struct {
 	DockerExecutor
-	sshCommand ssh.SshCommand
+	sshCommand ssh.Command
 }
 
 func (s *DockerSshExecutor) Start() error {
@@ -33,8 +33,8 @@ func (s *DockerSshExecutor) Start() error {
 	}
 
 	// Create SSH command
-	s.sshCommand = ssh.SshCommand{
-		SshConfig:   *s.Config.SSH,
+	s.sshCommand = ssh.Command{
+		Config:      *s.Config.SSH,
 		Environment: append(s.BuildEnv, s.Config.Environment...),
 		Command:     "bash",
 		Stdin:       s.BuildScript,

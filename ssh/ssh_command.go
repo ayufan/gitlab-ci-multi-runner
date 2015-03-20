@@ -11,8 +11,8 @@ import (
 	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
 )
 
-type SshCommand struct {
-	SshConfig
+type Command struct {
+	Config
 
 	Environment []string
 	Command     string
@@ -25,7 +25,7 @@ type SshCommand struct {
 	client *ssh.Client
 }
 
-func (s *SshCommand) getSshAuthMethods() []ssh.AuthMethod {
+func (s *Command) getSSHAuthMethods() []ssh.AuthMethod {
 	var methods []ssh.AuthMethod
 
 	if len(s.Password) != 0 {
@@ -35,7 +35,7 @@ func (s *SshCommand) getSshAuthMethods() []ssh.AuthMethod {
 	return methods
 }
 
-func (s *SshCommand) Connect() error {
+func (s *Command) Connect() error {
 	if len(s.User) == 0 {
 		s.User = "root"
 	}
@@ -45,7 +45,7 @@ func (s *SshCommand) Connect() error {
 
 	config := &ssh.ClientConfig{
 		User: s.User,
-		Auth: s.getSshAuthMethods(),
+		Auth: s.getSSHAuthMethods(),
 	}
 
 	connectRetries := s.ConnectRetries
@@ -68,7 +68,7 @@ func (s *SshCommand) Connect() error {
 	return finalError
 }
 
-func (s *SshCommand) Exec(cmd string) error {
+func (s *Command) Exec(cmd string) error {
 	if s.client == nil {
 		return errors.New("Not connected")
 	}
@@ -84,7 +84,7 @@ func (s *SshCommand) Exec(cmd string) error {
 	return err
 }
 
-func (s *SshCommand) Run() error {
+func (s *Command) Run() error {
 	if s.client == nil {
 		return errors.New("Not connected")
 	}
@@ -110,7 +110,7 @@ func (s *SshCommand) Run() error {
 	return err
 }
 
-func (s *SshCommand) Cleanup() {
+func (s *Command) Cleanup() {
 	if s.client != nil {
 		s.client.Close()
 	}
