@@ -1,3 +1,10 @@
+v 0.1.12
+- Abort all jobs if interrupt or SIGTERM is received
+- Runner now handles HUP and reloads config on-demand
+- Refactored runner setup allowing to non-interactive configuration of all questioned parameters
+- Added CI_PROJECT_DIR environment variable
+- Make golint happy (in most cases)
+
 v 0.1.11
 - Package as .deb and .rpm and push it to packagecloud.io (for now)
 

@@ -92,10 +92,10 @@ This project was made as Go learning opportunity. The initial release was create
 
 1. Simply download one of this binaries for your system:
 	```bash
-	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.10/gitlab-ci-multi-runner-linux-386
-	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.10/gitlab-ci-multi-runner-linux-amd64
-	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.10/gitlab-ci-multi-runner-darwin-386
-	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.10/gitlab-ci-multi-runner-darwin-amd64
+	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.12/gitlab-ci-multi-runner-linux-386
+	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.12/gitlab-ci-multi-runner-linux-amd64
+	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.12/gitlab-ci-multi-runner-darwin-386
+	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.12/gitlab-ci-multi-runner-darwin-amd64
 	```
 
 1. Give it permissions to execute:
@@ -345,14 +345,22 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
 
 1. Look into `config.toml` and tune it.
 
+### Changelog
+
+Visit [Changelog](CHANGELOG.md) to view recent changes.
+
 ### FAQ
 
-TBD
+1. Check help of setup, run and single:
+    ```bash
+    gitlab-ci-multi-runner setup --help
+    gitlab-ci-multi-runner run --help
+    gitlab-ci-multi-runner run-single --help
+    ```
 
 ### Future
 
 * It should be simple to add additional executors: DigitalOcean? Amazon EC2?
-* Deb package
 * Tests!
 
 ### Author
