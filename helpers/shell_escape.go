@@ -116,7 +116,7 @@ func ShellEscape(str string) string {
 		default:
 			hex(char)
 		}
-		i += 1
+		i++
 	}
 
 	if escape {
