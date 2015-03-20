@@ -14,7 +14,7 @@ type SshExecutor struct {
 }
 
 func (s *SshExecutor) Start() error {
-	if s.Config.Ssh == nil {
+	if s.Config.SSH == nil {
 		return errors.New("Missing SSH configuration")
 	}
 
@@ -22,7 +22,7 @@ func (s *SshExecutor) Start() error {
 
 	// Create SSH command
 	s.sshCommand = ssh.SshCommand{
-		SshConfig:   *s.Config.Ssh,
+		SshConfig:   *s.Config.SSH,
 		Environment: append(s.BuildEnv, s.Config.Environment...),
 		Command:     "bash",
 		Stdin:       s.BuildScript,

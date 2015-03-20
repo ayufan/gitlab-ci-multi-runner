@@ -23,15 +23,15 @@ type SetupContext struct {
 	reader     *bufio.Reader
 }
 
-func (s *SetupContext) ask(key, prompt string, allow_empty_optional ...bool) string {
-	allow_empty := len(allow_empty_optional) > 0 && allow_empty_optional[0]
+func (s *SetupContext) ask(key, prompt string, allowEmptyOptional ...bool) string {
+	allowEmpty := len(allowEmptyOptional) > 0 && allowEmptyOptional[0]
 
 	result := s.String(key)
 	result = strings.TrimSpace(result)
 
 	if s.Bool("non-interactive") || prompt == "" {
-		if result == "" && !allow_empty {
-			err := errors.New(fmt.Sprintf("The '%s' needs to be entered", key))
+		if result == "" && !allowEmpty {
+			err := fmt.Errorf("The '%s' needs to be entered", key)
 			panic(err)
 		}
 		return result
@@ -47,14 +47,14 @@ func (s *SetupContext) ask(key, prompt string, allow_empty_optional ...bool) str
 		if err != nil {
 			panic(err)
 		}
-		new_result := string(data)
-		new_result = strings.TrimSpace(new_result)
+		newResult := string(data)
+		newResult = strings.TrimSpace(newResult)
 
-		if new_result != "" {
-			return new_result
+		if newResult != "" {
+			return newResult
 		}
 
-		if allow_empty || result != "" {
+		if allowEmpty || result != "" {
 			return result
 		}
 	}
@@ -71,7 +71,7 @@ func (s *SetupContext) askExecutor() string {
 	}
 }
 
-func (s *SetupContext) askForDockerService(service string, docker_config *common.DockerConfig) bool {
+func (s *SetupContext) askForDockerService(service string, dockerConfig *common.DockerConfig) bool {
 	for {
 		result := s.ask("docker-"+service, "If you want to enable "+service+" please enter version (X.Y) or enter latest?", true)
 		if len(result) == 0 {
@@ -84,43 +84,43 @@ func (s *SetupContext) askForDockerService(service string, docker_config *common
 				continue
 			}
 		}
-		docker_config.Services = append(docker_config.Services, service+":"+result)
+		dockerConfig.Services = append(dockerConfig.Services, service+":"+result)
 		return true
 	}
 }
 
-func (s *SetupContext) askDocker(runner_config *common.RunnerConfig) {
-	docker_config := &common.DockerConfig{}
-	docker_config.Image = s.ask("docker-image", "Please enter the Docker image (eg. ruby:2.1):")
-	docker_config.Privileged = s.Bool("docker-privileged")
+func (s *SetupContext) askDocker(runnerConfig *common.RunnerConfig) {
+	dockerConfig := &common.DockerConfig{}
+	dockerConfig.Image = s.ask("docker-image", "Please enter the Docker image (eg. ruby:2.1):")
+	dockerConfig.Privileged = s.Bool("docker-privileged")
 
-	if s.askForDockerService("mysql", docker_config) {
-		runner_config.Environment = append(runner_config.Environment, "MYSQL_ALLOW_EMPTY_PASSWORD=1")
+	if s.askForDockerService("mysql", dockerConfig) {
+		runnerConfig.Environment = append(runnerConfig.Environment, "MYSQL_ALLOW_EMPTY_PASSWORD=1")
 	}
 
-	s.askForDockerService("postgres", docker_config)
-	s.askForDockerService("redis", docker_config)
-	s.askForDockerService("mongodb", docker_config)
+	s.askForDockerService("postgres", dockerConfig)
+	s.askForDockerService("redis", dockerConfig)
+	s.askForDockerService("mongodb", dockerConfig)
 
-	docker_config.Volumes = append(docker_config.Volumes, "/cache")
+	dockerConfig.Volumes = append(dockerConfig.Volumes, "/cache")
 
-	runner_config.Docker = docker_config
+	runnerConfig.Docker = dockerConfig
 }
 
-func (s *SetupContext) askParallels(runner_config *common.RunnerConfig) {
-	parallels_config := &common.ParallelsConfig{}
-	parallels_config.BaseName = s.ask("parallels-vm", "Please enter the Parallels VM (eg. my-vm):")
-	runner_config.Parallels = parallels_config
+func (s *SetupContext) askParallels(runnerConfig *common.RunnerConfig) {
+	parallelsConfig := &common.ParallelsConfig{}
+	parallelsConfig.BaseName = s.ask("parallels-vm", "Please enter the Parallels VM (eg. my-vm):")
+	runnerConfig.Parallels = parallelsConfig
 }
 
-func (s *SetupContext) askSsh(runner_config *common.RunnerConfig, serverless bool) {
-	runner_config.Ssh = &ssh.SshConfig{}
+func (s *SetupContext) askSSH(runnerConfig *common.RunnerConfig, serverless bool) {
+	runnerConfig.SSH = &ssh.SshConfig{}
 	if !serverless {
-		runner_config.Ssh.Host = s.ask("ssh-host", "Please enter the SSH server address (eg. my.server.com):")
-		runner_config.Ssh.Port = s.ask("ssh-port", "Please enter the SSH server port (eg. 22):", true)
+		runnerConfig.SSH.Host = s.ask("ssh-host", "Please enter the SSH server address (eg. my.server.com):")
+		runnerConfig.SSH.Port = s.ask("ssh-port", "Please enter the SSH server port (eg. 22):", true)
 	}
-	runner_config.Ssh.User = s.ask("ssh-user", "Please enter the SSH user (eg. root):")
-	runner_config.Ssh.Password = s.ask("ssh-password", "Please enter the SSH password (eg. docker.io):")
+	runnerConfig.SSH.User = s.ask("ssh-user", "Please enter the SSH user (eg. root):")
+	runnerConfig.SSH.Password = s.ask("ssh-password", "Please enter the SSH password (eg. docker.io):")
 }
 
 func (s *SetupContext) touchConfig() {
@@ -215,11 +215,11 @@ func runSetup(c *cli.Context) {
 
 	switch runnerConfig.Executor {
 	case "ssh":
-		s.askSsh(&runnerConfig, false)
+		s.askSSH(&runnerConfig, false)
 	case "docker-ssh":
-		s.askSsh(&runnerConfig, true)
+		s.askSSH(&runnerConfig, true)
 	case "parallels":
-		s.askSsh(&runnerConfig, true)
+		s.askSSH(&runnerConfig, true)
 	}
 
 	s.addRunner(&runnerConfig)

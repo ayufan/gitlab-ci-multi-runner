@@ -62,7 +62,7 @@ func (s *ParallelsExecutor) verifyMachine(vmName string) error {
 
 	// Create SSH command
 	sshCommand := ssh.SshCommand{
-		SshConfig:      *s.Config.Ssh,
+		SshConfig:      *s.Config.SSH,
 		Command:        "exit 0",
 		Stdout:         s.BuildLog,
 		Stderr:         s.BuildLog,
@@ -151,7 +151,7 @@ func (s *ParallelsExecutor) Prepare(config *common.RunnerConfig, build *common.B
 		return err
 	}
 
-	if s.Config.Ssh == nil {
+	if s.Config.SSH == nil {
 		return errors.New("Missing SSH configuration")
 	}
 
@@ -250,7 +250,7 @@ func (s *ParallelsExecutor) Start() error {
 
 	s.Debugln("Starting SSH command...")
 	s.sshCommand = ssh.SshCommand{
-		SshConfig:   *s.Config.Ssh,
+		SshConfig:   *s.Config.SSH,
 		Environment: append(s.BuildEnv, s.Config.Environment...),
 		Command:     "bash",
 		Stdin:       s.BuildScript,

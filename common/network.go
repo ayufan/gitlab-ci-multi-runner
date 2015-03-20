@@ -26,8 +26,8 @@ type GetBuildRequest struct {
 }
 
 type GetBuildResponse struct {
-	Id            int    `json:"id,omitempty"`
-	ProjectId     int    `json:"project_id,omitempty"`
+	ID            int    `json:"id,omitempty"`
+	ProjectID     int    `json:"project_id,omitempty"`
 	Commands      string `json:"commands,omitempty"`
 	RepoURL       string `json:"repo_url,omitempty"`
 	Sha           string `json:"sha,omitempty"`
@@ -53,7 +53,7 @@ type UpdateBuildRequest struct {
 	Trace string     `json:"trace,omitempty"`
 }
 
-func sendJsonRequest(url string, method string, statusCode int, request interface{}, response interface{}) int {
+func sendJSONRequest(url string, method string, statusCode int, request interface{}, response interface{}) int {
 	var body []byte
 	var err error
 
@@ -96,20 +96,20 @@ func sendJsonRequest(url string, method string, statusCode int, request interfac
 	return res.StatusCode
 }
 
-func getJson(url string, statusCode int, response interface{}) int {
-	return sendJsonRequest(url, "GET", statusCode, nil, response)
+func getJSON(url string, statusCode int, response interface{}) int {
+	return sendJSONRequest(url, "GET", statusCode, nil, response)
 }
 
-func postJson(url string, statusCode int, request interface{}, response interface{}) int {
-	return sendJsonRequest(url, "POST", statusCode, request, response)
+func postJSON(url string, statusCode int, request interface{}, response interface{}) int {
+	return sendJSONRequest(url, "POST", statusCode, request, response)
 }
 
-func putJson(url string, statusCode int, request interface{}, response interface{}) int {
-	return sendJsonRequest(url, "PUT", statusCode, request, response)
+func putJSON(url string, statusCode int, request interface{}, response interface{}) int {
+	return sendJSONRequest(url, "PUT", statusCode, request, response)
 }
 
-func deleteJson(url string, statusCode int, response interface{}) int {
-	return sendJsonRequest(url, "DELETE", statusCode, nil, response)
+func deleteJSON(url string, statusCode int, response interface{}) int {
+	return sendJSONRequest(url, "DELETE", statusCode, nil, response)
 }
 
 func readPayload(r io.Reader) ([]byte, error) {
@@ -126,7 +126,7 @@ func readPayload(r io.Reader) ([]byte, error) {
 	return b, nil
 }
 
-func getUrl(baseURL string, request string, a ...interface{}) string {
+func getURL(baseURL string, request string, a ...interface{}) string {
 	return fmt.Sprintf("%s/api/v1/%s", baseURL, fmt.Sprintf(request, a...))
 }
 
@@ -136,7 +136,7 @@ func GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 	}
 
 	var response GetBuildResponse
-	result := postJson(getUrl(config.URL, "builds/register.json"), 201, &request, &response)
+	result := postJSON(getURL(config.URL, "builds/register.json"), 201, &request, &response)
 
 	switch result {
 	case 201:
@@ -162,7 +162,7 @@ func RegisterRunner(url, token, description, tags string) *RegisterRunnerRespons
 	}
 
 	var response RegisterRunnerResponse
-	result := postJson(getUrl(url, "runners/register.json"), 201, &request, &response)
+	result := postJSON(getURL(url, "runners/register.json"), 201, &request, &response)
 	shortToken := helpers.ShortenToken(token)
 
 	switch result {
@@ -179,7 +179,7 @@ func RegisterRunner(url, token, description, tags string) *RegisterRunnerRespons
 }
 
 func DeleteRunner(url, token string) bool {
-	result := deleteJson(getUrl(url, "runners/delete?token=%v", token), 200, nil)
+	result := deleteJSON(getURL(url, "runners/delete?token=%v", token), 200, nil)
 	shortToken := helpers.ShortenToken(token)
 
 	switch result {
@@ -207,7 +207,7 @@ func UpdateBuild(config RunnerConfig, id int, state BuildState, trace io.Reader)
 		Trace: string(data),
 	}
 
-	result := putJson(getUrl(config.URL, "builds/%d.json", id), 200, &request, nil)
+	result := putJSON(getURL(config.URL, "builds/%d.json", id), 200, &request, nil)
 	switch result {
 	case 200:
 		log.Println(config.ShortDescription(), id, "Submitting build to coordinator...", "ok")

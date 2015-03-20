@@ -49,7 +49,7 @@ type RunnerConfig struct {
 	ShellScript    string `toml:"shell_script" json:"shell_script"`
 	DisableVerbose bool   `toml:"disable_verbose" json:"disable_verbose"`
 
-	Ssh       *ssh.SshConfig   `toml:"ssh" json:"ssh"`
+	SSH       *ssh.SshConfig   `toml:"ssh" json:"ssh"`
 	Docker    *DockerConfig    `toml:"docker" json:"docker"`
 	Parallels *ParallelsConfig `toml:"parallels" json:"parallels"`
 }
@@ -73,38 +73,38 @@ func (c *RunnerConfig) UniqueID() string {
 	return c.URL + c.Token
 }
 
-func (config *Config) LoadConfig(config_file string) error {
-	info, err := os.Stat(config_file)
+func (c *Config) LoadConfig(configFile string) error {
+	info, err := os.Stat(configFile)
 	if err != nil {
 		return err
 	}
 
-	if _, err = toml.DecodeFile(config_file, &config.BaseConfig); err != nil {
+	if _, err = toml.DecodeFile(configFile, &c.BaseConfig); err != nil {
 		return err
 	}
 
-	if config.Concurrent == 0 {
-		config.Concurrent = 1
+	if c.Concurrent == 0 {
+		c.Concurrent = 1
 	}
 
-	config.ModTime = info.ModTime()
+	c.ModTime = info.ModTime()
 	return nil
 }
 
-func (config *Config) SaveConfig(config_file string) error {
-	var new_config bytes.Buffer
-	new_buffer := bufio.NewWriter(&new_config)
+func (c *Config) SaveConfig(configFile string) error {
+	var newConfig bytes.Buffer
+	newBuffer := bufio.NewWriter(&newConfig)
 
-	if err := toml.NewEncoder(new_buffer).Encode(&config.BaseConfig); err != nil {
+	if err := toml.NewEncoder(newBuffer).Encode(&c.BaseConfig); err != nil {
 		log.Fatalf("Error encoding TOML: %s", err)
 		return err
 	}
 
-	if err := new_buffer.Flush(); err != nil {
+	if err := newBuffer.Flush(); err != nil {
 		return err
 	}
 
-	if err := ioutil.WriteFile(config_file, new_config.Bytes(), 0600); err != nil {
+	if err := ioutil.WriteFile(configFile, newConfig.Bytes(), 0600); err != nil {
 		return err
 	}
 

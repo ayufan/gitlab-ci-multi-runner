@@ -121,7 +121,7 @@ func (mr *MultiRunner) buildsForRunner(runner *common.RunnerConfig) int {
 	count := 0
 	for _, build := range mr.builds {
 		if build.Runner == runner {
-			count += 1
+			count++
 		}
 	}
 	return count
@@ -141,26 +141,26 @@ func (mr *MultiRunner) requestBuild(runner *common.RunnerConfig) *common.Build {
 		return nil
 	}
 
-	build_data, healthy := common.GetBuild(*runner)
+	buildData, healthy := common.GetBuild(*runner)
 	if healthy {
 		mr.makeHealthy(runner)
 	} else {
 		mr.makeUnhealthy(runner)
 	}
 
-	if build_data == nil {
+	if buildData == nil {
 		return nil
 	}
 
-	mr.debugln("Received new build for", runner.ShortDescription(), "build", build_data.Id)
-	new_build := &common.Build{
-		GetBuildResponse: *build_data,
+	mr.debugln("Received new build for", runner.ShortDescription(), "build", buildData.ID)
+	newBuild := &common.Build{
+		GetBuildResponse: *buildData,
 		Runner:           runner,
 	}
 
-	new_build.Prepare(mr.builds)
-	new_build.BuildAbort = mr.abortBuilds
-	return new_build
+	newBuild.Prepare(mr.builds)
+	newBuild.BuildAbort = mr.abortBuilds
+	return newBuild
 }
 
 func (mr *MultiRunner) feedRunners(runners chan *common.RunnerConfig) {
@@ -174,46 +174,46 @@ func (mr *MultiRunner) feedRunners(runners chan *common.RunnerConfig) {
 	}
 }
 
-func (mr *MultiRunner) processRunners(id int, stop_worker chan bool, runners chan *common.RunnerConfig) {
+func (mr *MultiRunner) processRunners(id int, stopWorker chan bool, runners chan *common.RunnerConfig) {
 	mr.debugln("Starting worker", id)
 	for !mr.finished {
 		select {
 		case runner := <-runners:
 			mr.debugln("Checking runner", runner, "on", id)
-			new_job := mr.requestBuild(runner)
-			if new_job == nil {
+			newJob := mr.requestBuild(runner)
+			if newJob == nil {
 				break
 			}
 
-			mr.addBuild(new_job)
-			new_job.Run()
-			mr.removeBuild(new_job)
+			mr.addBuild(newJob)
+			newJob.Run()
+			mr.removeBuild(newJob)
 
-		case <-stop_worker:
+		case <-stopWorker:
 			mr.debugln("Stopping worker", id)
 			return
 		}
 	}
-	<-stop_worker
+	<-stopWorker
 }
 
-func (mr *MultiRunner) startWorkers(start_worker chan int, stop_worker chan bool, runners chan *common.RunnerConfig) {
+func (mr *MultiRunner) startWorkers(startWorker chan int, stopWorker chan bool, runners chan *common.RunnerConfig) {
 	for !mr.finished {
-		id := <-start_worker
-		go mr.processRunners(id, stop_worker, runners)
+		id := <-startWorker
+		go mr.processRunners(id, stopWorker, runners)
 	}
 }
 
 func (mr *MultiRunner) loadConfig() error {
-	new_config := common.Config{}
-	err := new_config.LoadConfig(mr.configFile)
+	newConfig := common.Config{}
+	err := newConfig.LoadConfig(mr.configFile)
 	if err != nil {
 		return err
 	}
 
-	new_config.SetChdir()
+	newConfig.SetChdir()
 	mr.healthy = nil
-	mr.config = &new_config
+	mr.config = &newConfig
 	return nil
 }
 
@@ -245,42 +245,42 @@ func RunMulti(c *cli.Context) {
 	runners := make(chan *common.RunnerConfig)
 	go mr.feedRunners(runners)
 
-	start_worker := make(chan int)
-	stop_worker := make(chan bool)
-	go mr.startWorkers(start_worker, stop_worker, runners)
+	startWorker := make(chan int)
+	stopWorker := make(chan bool)
+	go mr.startWorkers(startWorker, stopWorker, runners)
 
-	interrupt_signal := make(chan os.Signal, 2)
-	signal.Notify(interrupt_signal, os.Interrupt, syscall.SIGTERM)
+	interruptSignal := make(chan os.Signal, 2)
+	signal.Notify(interruptSignal, os.Interrupt, syscall.SIGTERM)
 
-	reload_signal := make(chan os.Signal, 1)
-	signal.Notify(reload_signal, syscall.SIGHUP)
+	reloadSignal := make(chan os.Signal, 1)
+	signal.Notify(reloadSignal, syscall.SIGHUP)
 
-	current_workers := 0
-	worker_index := 0
+	currentWorkers := 0
+	workerIndex := 0
 
 	var signaled os.Signal
 
 finish_worker:
 	for {
-		build_limit := mr.config.Concurrent
+		buildLimit := mr.config.Concurrent
 
-		for current_workers > build_limit {
+		for currentWorkers > buildLimit {
 			select {
-			case stop_worker <- true:
-			case signaled = <-interrupt_signal:
+			case stopWorker <- true:
+			case signaled = <-interruptSignal:
 				break finish_worker
 			}
-			current_workers--
+			currentWorkers--
 		}
 
-		for current_workers < build_limit {
+		for currentWorkers < buildLimit {
 			select {
-			case start_worker <- worker_index:
-			case signaled = <-interrupt_signal:
+			case startWorker <- workerIndex:
+			case signaled = <-interruptSignal:
 				break finish_worker
 			}
-			current_workers++
-			worker_index++
+			currentWorkers++
+			workerIndex++
 		}
 
 		select {
@@ -305,7 +305,7 @@ finish_worker:
 
 			mr.println("Config reloaded.")
 
-		case <-reload_signal:
+		case <-reloadSignal:
 			err := mr.loadConfig()
 			if err != nil {
 				mr.errorln("Failed to load config", err)
@@ -314,7 +314,7 @@ finish_worker:
 
 			mr.println("Config reloaded.")
 
-		case signaled = <-interrupt_signal:
+		case signaled = <-interruptSignal:
 			break finish_worker
 		}
 	}
@@ -333,16 +333,16 @@ finish_worker:
 
 	// Watch for second signal which will force to close process
 	go func() {
-		new_signal := <-interrupt_signal
-		mr.errorln("Forced exit:", new_signal)
+		newSignal := <-interruptSignal
+		mr.errorln("Forced exit:", newSignal)
 		close <- 1
 	}()
 
 	// Wait for workers to shutdown
 	go func() {
-		for current_workers > 0 {
-			stop_worker <- true
-			current_workers--
+		for currentWorkers > 0 {
+			stopWorker <- true
+			currentWorkers--
 		}
 		mr.println("All workers stopped. Can exit now")
 		close <- 0

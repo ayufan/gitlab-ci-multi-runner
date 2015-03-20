@@ -34,7 +34,7 @@ func (e *AbstractExecutor) FinishBuild(config common.RunnerConfig, buildState co
 
 	for {
 		buffer := io.MultiReader(bytes.NewReader(buildLog), bytes.NewBufferString(extraMessage))
-		if common.UpdateBuild(config, e.Build.Id, buildState, buffer) != common.UpdateFailed {
+		if common.UpdateBuild(config, e.Build.ID, buildState, buffer) != common.UpdateFailed {
 			break
 		} else {
 			time.Sleep(common.UPDATE_RETRY_INTERVAL * time.Second)
@@ -59,7 +59,7 @@ func (e *AbstractExecutor) WatchTrace(config common.RunnerConfig, abort chan boo
 			}
 			defer file.Close()
 
-			switch common.UpdateBuild(config, e.Build.Id, common.Running, file) {
+			switch common.UpdateBuild(config, e.Build.ID, common.Running, file) {
 			case common.UpdateSucceeded:
 			case common.UpdateAbort:
 				e.Debugln("updateBuildLog", "Sending abort request...")
@@ -79,7 +79,7 @@ func (e *AbstractExecutor) WatchTrace(config common.RunnerConfig, abort chan boo
 }
 
 func (e *AbstractExecutor) Debugln(args ...interface{}) {
-	args = append([]interface{}{e.Config.ShortDescription(), e.Build.Id}, args...)
+	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
 	log.Debugln(args...)
 }
 
@@ -88,7 +88,7 @@ func (e *AbstractExecutor) Println(args ...interface{}) {
 		e.BuildLog.WriteString(fmt.Sprintln(args...))
 	}
 
-	args = append([]interface{}{e.Config.ShortDescription(), e.Build.Id}, args...)
+	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
 	log.Println(args...)
 }
 
@@ -98,7 +98,7 @@ func (e *AbstractExecutor) Errorln(args ...interface{}) {
 		e.BuildLog.WriteString(fmt.Sprintln(args...))
 	}
 
-	args = append([]interface{}{e.Config.ShortDescription(), e.Build.Id}, args...)
+	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
 	log.Errorln(args...)
 }
 
@@ -132,12 +132,12 @@ func (e *AbstractExecutor) Prepare(config *common.RunnerConfig, build *common.Bu
 	e.BuildEnv = buildEnv
 
 	// Create build log
-	build_log, err := ioutil.TempFile("", "build_log")
+	buildLog, err := ioutil.TempFile("", "build_log")
 	if err != nil {
 		return err
 	}
-	e.BuildLog = build_log
-	e.Debugln("Created build log:", build_log.Name())
+	e.BuildLog = buildLog
+	e.Debugln("Created build log:", buildLog.Name())
 	go e.WatchTrace(*e.Config, e.BuildAbort, e.BuildLogFinish)
 	return nil
 }
@@ -151,20 +151,20 @@ func (e *AbstractExecutor) Wait() error {
 	}
 
 	// Wait for signals: abort, timeout or finish
-	log.Debugln(e.Config.ShortDescription(), e.Build.Id, "Waiting for signals...")
+	log.Debugln(e.Config.ShortDescription(), e.Build.ID, "Waiting for signals...")
 	select {
 	case <-e.BuildAbort:
-		log.Println(e.Config.ShortDescription(), e.Build.Id, "Build got aborted.")
+		log.Println(e.Config.ShortDescription(), e.Build.ID, "Build got aborted.")
 		e.Build.BuildState = common.Failed
 		e.Build.BuildMessage = "\nBuild got aborted"
 
 	case <-time.After(time.Duration(buildTimeout) * time.Second):
-		log.Println(e.Config.ShortDescription(), e.Build.Id, "Build timedout.")
+		log.Println(e.Config.ShortDescription(), e.Build.ID, "Build timedout.")
 		e.Build.BuildState = common.Failed
 		e.Build.BuildMessage = fmt.Sprintf("\nCI Timeout. Execution took longer then %d seconds", buildTimeout)
 
 	case signal := <-e.Build.BuildAbort:
-		log.Println(e.Config.ShortDescription(), e.Build.Id, "Build got aborted", signal)
+		log.Println(e.Config.ShortDescription(), e.Build.ID, "Build got aborted", signal)
 		e.Build.BuildState = common.Failed
 		e.Build.BuildMessage = fmt.Sprintf("\nBuild got aborted: %v", signal)
 
@@ -173,7 +173,7 @@ func (e *AbstractExecutor) Wait() error {
 			return err
 		}
 
-		log.Println(e.Config.ShortDescription(), e.Build.Id, "Build succeeded.")
+		log.Println(e.Config.ShortDescription(), e.Build.ID, "Build succeeded.")
 		e.Build.BuildState = common.Success
 		e.Build.BuildMessage = "\n"
 	}

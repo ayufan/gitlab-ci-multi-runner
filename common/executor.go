@@ -42,7 +42,7 @@ func GetExecutor(executor string) Executor {
 func GetExecutors() []string {
 	names := []string{}
 	if executors != nil {
-		for name, _ := range executors {
+		for name := range executors {
 			names = append(names, name)
 		}
 	}

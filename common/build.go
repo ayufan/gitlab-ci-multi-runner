@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"time"
-	"os"
 
 	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
 )
@@ -33,38 +33,38 @@ type Build struct {
 	BuildAbort    chan os.Signal `json:"-"`
 	Runner        *RunnerConfig  `json:"runner"`
 
-	GlobalId   int    `json:"global_id"`
+	GlobalID   int    `json:"global_id"`
 	GlobalName string `json:"global_name"`
 
-	RunnerId   int    `json:"runner_id"`
+	RunnerID   int    `json:"runner_id"`
 	RunnerName string `json:"runner_name"`
 
-	ProjectRunnerId   int    `json:"project_runner_id"`
+	ProjectRunnerID   int    `json:"project_runner_id"`
 	ProjectRunnerName string `json:"name"`
 }
 
-func (b *Build) Prepare(other_builds []*Build) {
+func (b *Build) Prepare(otherBuilds []*Build) {
 	globals := make(map[int]bool)
 	runners := make(map[int]bool)
-	project_runners := make(map[int]bool)
+	projectRunners := make(map[int]bool)
 
-	for _, other_build := range other_builds {
-		globals[other_build.GlobalId] = true
+	for _, otherBuild := range otherBuilds {
+		globals[otherBuild.GlobalID] = true
 
-		if other_build.Runner.ShortDescription() != b.Runner.ShortDescription() {
+		if otherBuild.Runner.ShortDescription() != b.Runner.ShortDescription() {
 			continue
 		}
-		runners[other_build.RunnerId] = true
+		runners[otherBuild.RunnerID] = true
 
-		if other_build.ProjectId != b.ProjectId {
+		if otherBuild.ProjectID != b.ProjectID {
 			continue
 		}
-		project_runners[other_build.ProjectRunnerId] = true
+		projectRunners[otherBuild.ProjectRunnerID] = true
 	}
 
 	for i := 0; ; i++ {
 		if !globals[i] {
-			b.GlobalId = i
+			b.GlobalID = i
 			b.GlobalName = fmt.Sprintf("concurrent-%d", i)
 			break
 		}
@@ -72,7 +72,7 @@ func (b *Build) Prepare(other_builds []*Build) {
 
 	for i := 0; ; i++ {
 		if !runners[i] {
-			b.RunnerId = i
+			b.RunnerID = i
 			b.RunnerName = fmt.Sprintf("runner-%s-concurrent-%d",
 				b.Runner.ShortDescription(), i)
 			break
@@ -80,10 +80,10 @@ func (b *Build) Prepare(other_builds []*Build) {
 	}
 
 	for i := 0; ; i++ {
-		if !project_runners[i] {
-			b.ProjectRunnerId = i
+		if !projectRunners[i] {
+			b.ProjectRunnerID = i
 			b.ProjectRunnerName = fmt.Sprintf("runner-%s-project-%d-concurrent-%d",
-				b.Runner.ShortDescription(), b.ProjectId, i)
+				b.Runner.ShortDescription(), b.ProjectID, i)
 			break
 		}
 	}
@@ -99,37 +99,37 @@ func (b *Build) ProjectDir() string {
 	return b.ProjectUniqueName()
 }
 
-func (b *Build) writeCloneCmd(w io.Writer, builds_dir string) {
+func (b *Build) writeCloneCmd(w io.Writer, buildsDir string) {
 	io.WriteString(w, "echo Clonning repository...\n")
-	io.WriteString(w, fmt.Sprintf("mkdir -p %s\n", builds_dir))
-	io.WriteString(w, fmt.Sprintf("cd %s\n", builds_dir))
+	io.WriteString(w, fmt.Sprintf("mkdir -p %s\n", buildsDir))
+	io.WriteString(w, fmt.Sprintf("cd %s\n", buildsDir))
 	io.WriteString(w, fmt.Sprintf("rm -rf %s\n", b.ProjectDir()))
 	io.WriteString(w, fmt.Sprintf("git clone %s %s\n", b.RepoURL, b.ProjectDir()))
 	io.WriteString(w, fmt.Sprintf("cd %s\n", b.ProjectDir()))
 }
 
-func (b *Build) writeFetchCmd(w io.Writer, builds_dir string) {
-	io.WriteString(w, fmt.Sprintf("if [[ -d %s/%s/.git ]]; then\n", builds_dir, b.ProjectDir()))
+func (b *Build) writeFetchCmd(w io.Writer, buildsDir string) {
+	io.WriteString(w, fmt.Sprintf("if [[ -d %s/%s/.git ]]; then\n", buildsDir, b.ProjectDir()))
 	io.WriteString(w, "echo Fetching changes...\n")
-	io.WriteString(w, fmt.Sprintf("cd %s/%s\n", builds_dir, b.ProjectDir()))
+	io.WriteString(w, fmt.Sprintf("cd %s/%s\n", buildsDir, b.ProjectDir()))
 	io.WriteString(w, fmt.Sprintf("git clean -fdx\n"))
 	io.WriteString(w, fmt.Sprintf("git reset --hard > /dev/null\n"))
 	io.WriteString(w, fmt.Sprintf("git remote set-url origin %s\n", b.RepoURL))
 	io.WriteString(w, fmt.Sprintf("git fetch origin\n"))
 	io.WriteString(w, fmt.Sprintf("else\n"))
-	b.writeCloneCmd(w, builds_dir)
+	b.writeCloneCmd(w, buildsDir)
 	io.WriteString(w, fmt.Sprintf("fi\n"))
 }
 
-func (b *Build) writeCheckoutCmd(w io.Writer, builds_dir string) {
+func (b *Build) writeCheckoutCmd(w io.Writer, buildsDir string) {
 	io.WriteString(w, fmt.Sprintf("echo Checkouting %s as %s...\n", b.Sha[0:8], b.RefName))
 	io.WriteString(w, fmt.Sprintf("git checkout -B %s %s > /dev/null\n", b.RefName, b.Sha))
 	io.WriteString(w, fmt.Sprintf("git reset --hard %s > /dev/null\n", b.Sha))
 }
 
-func (build *Build) Generate(builds_dir string, hostname string) ([]byte, []string, error) {
-	var b bytes.Buffer
-	w := bufio.NewWriter(&b)
+func (b *Build) Generate(buildsDir string, hostname string) ([]byte, []string, error) {
+	var buffer bytes.Buffer
+	w := bufio.NewWriter(&buffer)
 
 	io.WriteString(w, "#!/usr/bin/env bash\n")
 	io.WriteString(w, "\n")
@@ -143,20 +143,20 @@ func (build *Build) Generate(builds_dir string, hostname string) ([]byte, []stri
 	io.WriteString(w, "set -eo pipefail\n")
 
 	io.WriteString(w, "\n")
-	if build.AllowGitFetch {
-		build.writeFetchCmd(w, builds_dir)
+	if b.AllowGitFetch {
+		b.writeFetchCmd(w, buildsDir)
 	} else {
-		build.writeCloneCmd(w, builds_dir)
+		b.writeCloneCmd(w, buildsDir)
 	}
 
-	build.writeCheckoutCmd(w, builds_dir)
+	b.writeCheckoutCmd(w, buildsDir)
 	io.WriteString(w, "\n")
-	if !build.Runner.DisableVerbose {
+	if !b.Runner.DisableVerbose {
 		io.WriteString(w, "set -v\n")
 		io.WriteString(w, "\n")
 	}
 
-	commands := build.Commands
+	commands := b.Commands
 	commands = strings.Replace(commands, "\r\n", "\n", -1)
 
 	io.WriteString(w, commands)
@@ -164,14 +164,14 @@ func (build *Build) Generate(builds_dir string, hostname string) ([]byte, []stri
 	w.Flush()
 
 	env := []string{
-		fmt.Sprintf("CI_BUILD_REF=%s", build.Sha),
-		fmt.Sprintf("CI_BUILD_BEFORE_SHA=%s", build.BeforeSha),
-		fmt.Sprintf("CI_BUILD_REF_NAME=%s", build.RefName),
-		fmt.Sprintf("CI_BUILD_ID=%d", build.Id),
-		fmt.Sprintf("CI_BUILD_REPO=%s", build.RepoURL),
+		fmt.Sprintf("CI_BUILD_REF=%s", b.Sha),
+		fmt.Sprintf("CI_BUILD_BEFORE_SHA=%s", b.BeforeSha),
+		fmt.Sprintf("CI_BUILD_REF_NAME=%s", b.RefName),
+		fmt.Sprintf("CI_BUILD_ID=%d", b.ID),
+		fmt.Sprintf("CI_BUILD_REPO=%s", b.RepoURL),
 
-		fmt.Sprintf("CI_PROJECT_ID=%d", build.ProjectId),
-		fmt.Sprintf("CI_PROJECT_DIR=%s", builds_dir, build.ProjectDir()),
+		fmt.Sprintf("CI_PROJECT_ID=%d", b.ProjectID),
+		fmt.Sprintf("CI_PROJECT_DIR=%s", buildsDir, b.ProjectDir()),
 
 		"CI_SERVER=yes",
 		"CI_SERVER_NAME=GitLab CI",
@@ -179,17 +179,17 @@ func (build *Build) Generate(builds_dir string, hostname string) ([]byte, []stri
 		"CI_SERVER_REVISION=",
 	}
 
-	return b.Bytes(), env, nil
+	return buffer.Bytes(), env, nil
 }
 
-func (build *Build) Run() error {
+func (b *Build) Run() error {
 	var err error
-	executor := GetExecutor(build.Runner.Executor)
+	executor := GetExecutor(b.Runner.Executor)
 	if executor == nil {
 		err = errors.New("executor not found")
 	}
 	if err == nil {
-		err = executor.Prepare(build.Runner, build)
+		err = executor.Prepare(b.Runner, b)
 	}
 	if err == nil {
 		err = executor.Start()

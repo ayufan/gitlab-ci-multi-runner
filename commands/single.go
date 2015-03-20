@@ -31,7 +31,7 @@ func runServer(addr string) error {
 	return nil
 }
 
-func runHerokuUrl(addr string) error {
+func runHerokuURL(addr string) error {
 	if len(addr) == 0 {
 		return nil
 	}
@@ -67,27 +67,27 @@ func runSingle(c *cli.Context) {
 	}
 
 	go runServer(c.String("addr"))
-	go runHerokuUrl(c.String("heroku-url"))
+	go runHerokuURL(c.String("heroku-url"))
 
 	log.Println("Starting runner for", runner.URL, "with token", runner.ShortDescription(), "...")
 
 	for {
-		build_data, healthy := common.GetBuild(runner)
+		buildData, healthy := common.GetBuild(runner)
 		if !healthy {
 			log.Println("Runner died, beacuse it's not healthy!")
 			os.Exit(1)
 		}
-		if build_data == nil {
+		if buildData == nil {
 			time.Sleep(common.CHECK_INTERVAL * time.Second)
 			continue
 		}
 
-		new_build := common.Build{
-			GetBuildResponse: *build_data,
+		newBuild := common.Build{
+			GetBuildResponse: *buildData,
 			Runner:           &runner,
 		}
-		new_build.Prepare([]*common.Build{})
-		new_build.Run()
+		newBuild.Prepare([]*common.Build{})
+		newBuild.Run()
 	}
 }
 
