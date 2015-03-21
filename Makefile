@@ -3,6 +3,7 @@ REVISION := $(shell git rev-parse --short HEAD || echo unknown)
 VERSION := $(shell git describe --tags || cat VERSION || echo dev)
 VERSION := $(shell echo $(VERSION) | sed -e 's/^v//g')
 ITTERATION := $(shell date +%s)
+PACKAGE_CLOUD ?= ayufan/gitlab-ci-multi-runner
 
 all: build
 
@@ -74,14 +75,24 @@ build-rpm:
 		packaging/$(TYPE)/root/=/
 
 packagecloud-deb:
-	package_cloud push ayufan/gitlab-ci-multi-runner/debian/wheezy out/deb/sysv/*/*.deb
-	package_cloud push ayufan/gitlab-ci-multi-runner/debian/jessie out/deb/systemd/*/*.deb
+	package_cloud push $(PACKAGE_CLOUD)/debian/wheezy out/deb/sysv/*/*.deb
+	package_cloud push $(PACKAGE_CLOUD)/debian/jessie out/deb/systemd/*/*.deb
 
-	package_cloud push ayufan/gitlab-ci-multi-runner/ubuntu/precise out/deb/upstart/*/*.deb
-	package_cloud push ayufan/gitlab-ci-multi-runner/ubuntu/trusty out/deb/upstart/*/*.deb
-	package_cloud push ayufan/gitlab-ci-multi-runner/ubuntu/utopic out/deb/sysv/*/*.deb
+	package_cloud push $(PACKAGE_CLOUD)/ubuntu/precise out/deb/upstart/*/*.deb
+	package_cloud push $(PACKAGE_CLOUD)/ubuntu/trusty out/deb/upstart/*/*.deb
+	package_cloud push $(PACKAGE_CLOUD)/ubuntu/utopic out/deb/sysv/*/*.deb
 
 packagecloud-rpm:
-	package_cloud push ayufan/gitlab-ci-multi-runner/el/7 out/rpm/systemd/*/*.rpm
+	package_cloud push $(PACKAGE_CLOUD)/el/7 out/rpm/systemd/*/*.rpm
+
+packagecloud-yank:
+ifneq ($(YANK),)
+	-for DIST in debian/wheezy debian/jessie ubuntu/precise ubuntu/trusty ubuntu/utopic; do \
+		package_cloud yank $(PACKAGE_CLOUD)/$$DIST $(NAME)_$(YANK)_amd64.deb; \
+		package_cloud yank $(PACKAGE_CLOUD)/$$DIST $(NAME)_$(YANK)_i386.deb; \
+	done
+	-package_cloud yank $(PACKAGE_CLOUD)/el/7 $(NAME)-$(YANK)-1.x86_64.rpm
+	-package_cloud yank $(PACKAGE_CLOUD)/el/7 $(NAME)-$(YANK)-1.386.rpm
+endif
 
 FORCE:
