@@ -56,7 +56,6 @@ type RunnerConfig struct {
 
 type BaseConfig struct {
 	Concurrent int             `toml:"concurrent" json:"concurrent"`
-	RootDir    string          `toml:"root_dir" json:"root_dir"`
 	Runners    []*RunnerConfig `toml:"runners" json:"runners"`
 }
 
@@ -109,13 +108,4 @@ func (c *Config) SaveConfig(configFile string) error {
 	}
 
 	return nil
-}
-
-func (c *Config) SetChdir() {
-	if len(c.RootDir) > 0 {
-		err := os.Chdir(c.RootDir)
-		if err != nil {
-			panic(err)
-		}
-	}
 }

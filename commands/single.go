@@ -92,12 +92,11 @@ func runSingle(c *cli.Context) {
 	}
 }
 
-var (
-	CmdRunSingle = cli.Command{
-		Name:      "run-single",
-		ShortName: "rs",
-		Usage:     "start single runner",
-		Action:    runSingle,
+func init() {
+	common.RegisterCommand(cli.Command{
+		Name:   "run-single",
+		Usage:  "start single runner",
+		Action: runSingle,
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:   "token",
@@ -142,5 +141,5 @@ var (
 				EnvVar: "RUNNER_BUILDS_DIR",
 			},
 		},
-	}
-)
+	})
+}

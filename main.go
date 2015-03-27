@@ -8,6 +8,7 @@ import (
 	"github.com/codegangsta/cli"
 
 	"github.com/ayufan/gitlab-ci-multi-runner/commands"
+	"github.com/ayufan/gitlab-ci-multi-runner/common"
 	_ "github.com/ayufan/gitlab-ci-multi-runner/executors/docker"
 	_ "github.com/ayufan/gitlab-ci-multi-runner/executors/parallels"
 	_ "github.com/ayufan/gitlab-ci-multi-runner/executors/shell"
@@ -53,11 +54,7 @@ func main() {
 		return nil
 	}
 
-	app.Commands = []cli.Command{
-		commands.CmdRunMulti,
-		commands.CmdRunSetup,
-		commands.CmdRunSingle,
-	}
+	app.Commands = common.GetCommands()
 
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)

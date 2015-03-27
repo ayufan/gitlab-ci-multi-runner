@@ -4,6 +4,7 @@ v 0.1.13
 - Select default shell for OS (bash for Unix, batch for Windows)
 - Added Windows Cmd support
 - Added Windows PowerShell support
+- Added the kardianos/service which allows to easily run gitlab-ci-multi-runner as service on different platforms
 
 v 0.1.12
 - Abort all jobs if interrupt or SIGTERM is received

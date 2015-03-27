@@ -232,8 +232,8 @@ func getHostname() string {
 	return hostname
 }
 
-var (
-	CmdRunSetup = cli.Command{
+func init() {
+	common.RegisterCommand(cli.Command{
 		Name:      "setup",
 		ShortName: "s",
 		Usage:     "setup a new runner",
@@ -357,5 +357,5 @@ var (
 				EnvVar: "SSH_USER",
 			},
 		},
-	}
-)
+	})
+}

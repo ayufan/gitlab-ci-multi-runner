@@ -8,9 +8,12 @@ import (
 	"time"
 
 	"github.com/codegangsta/cli"
+	"github.com/kardianos/service"
 
 	log "github.com/Sirupsen/logrus"
 
+	"errors"
+	"fmt"
 	"github.com/ayufan/gitlab-ci-multi-runner/common"
 )
 
@@ -20,15 +23,18 @@ type RunnerHealth struct {
 }
 
 type MultiRunner struct {
-	config      *common.Config
-	configFile  string
-	allBuilds   []*common.Build
-	builds      []*common.Build
-	buildsLock  sync.RWMutex
-	healthy     map[string]*RunnerHealth
-	healthyLock sync.Mutex
-	finished    bool
-	abortBuilds chan os.Signal
+	config          *common.Config
+	configFile      string
+	listenAddr      string
+	allBuilds       []*common.Build
+	builds          []*common.Build
+	buildsLock      sync.RWMutex
+	healthy         map[string]*RunnerHealth
+	healthyLock     sync.Mutex
+	finished        bool
+	abortBuilds     chan os.Signal
+	interruptSignal chan os.Signal
+	reloadSignal    chan os.Signal
 }
 
 func (mr *MultiRunner) errorln(args ...interface{}) {
@@ -217,13 +223,12 @@ func (mr *MultiRunner) loadConfig() error {
 	return nil
 }
 
-func RunMulti(c *cli.Context) {
-	mr := MultiRunner{
-		configFile:  c.String("config"),
-		allBuilds:   []*common.Build{},
-		builds:      []*common.Build{},
-		abortBuilds: make(chan os.Signal),
-	}
+func (mr *MultiRunner) Start(s service.Service) error {
+	mr.allBuilds = []*common.Build{}
+	mr.builds = []*common.Build{}
+	mr.abortBuilds = make(chan os.Signal)
+	mr.interruptSignal = make(chan os.Signal)
+	mr.reloadSignal = make(chan os.Signal, 1)
 
 	mr.println("Starting multi-runner from", mr.configFile, "...")
 
@@ -232,16 +237,23 @@ func RunMulti(c *cli.Context) {
 		panic(err)
 	}
 
-	// Start webserver
-	if listenAddr := c.String("listen-addr"); len(listenAddr) > 0 {
+	// Start web server
+	if len(mr.listenAddr) > 0 {
 		mrs := MultiRunnerServer{
-			MultiRunner:     &mr,
-			listenAddresses: []string{listenAddr},
+			MultiRunner:     mr,
+			listenAddresses: []string{mr.listenAddr},
 		}
 
 		go mrs.Run()
 	}
 
+	// Start should not block. Do the actual work async.
+	go mr.Run()
+
+	return nil
+}
+
+func (mr *MultiRunner) Run() {
 	runners := make(chan *common.RunnerConfig)
 	go mr.feedRunners(runners)
 
@@ -249,11 +261,7 @@ func RunMulti(c *cli.Context) {
 	stopWorker := make(chan bool)
 	go mr.startWorkers(startWorker, stopWorker, runners)
 
-	interruptSignal := make(chan os.Signal, 2)
-	signal.Notify(interruptSignal, os.Interrupt, syscall.SIGTERM)
-
-	reloadSignal := make(chan os.Signal, 1)
-	signal.Notify(reloadSignal, syscall.SIGHUP)
+	signal.Notify(mr.reloadSignal, syscall.SIGHUP)
 
 	currentWorkers := 0
 	workerIndex := 0
@@ -267,7 +275,7 @@ finish_worker:
 		for currentWorkers > buildLimit {
 			select {
 			case stopWorker <- true:
-			case signaled = <-interruptSignal:
+			case signaled = <-mr.interruptSignal:
 				break finish_worker
 			}
 			currentWorkers--
@@ -276,7 +284,7 @@ finish_worker:
 		for currentWorkers < buildLimit {
 			select {
 			case startWorker <- workerIndex:
-			case signaled = <-interruptSignal:
+			case signaled = <-mr.interruptSignal:
 				break finish_worker
 			}
 			currentWorkers++
@@ -305,7 +313,7 @@ finish_worker:
 
 			mr.println("Config reloaded.")
 
-		case <-reloadSignal:
+		case <-mr.reloadSignal:
 			err := mr.loadConfig()
 			if err != nil {
 				mr.errorln("Failed to load config", err)
@@ -314,15 +322,11 @@ finish_worker:
 
 			mr.println("Config reloaded.")
 
-		case signaled = <-interruptSignal:
+		case signaled = <-mr.interruptSignal:
 			break finish_worker
 		}
 	}
-
-	mr.errorln("Received signal:", signaled)
 	mr.finished = true
-
-	close := make(chan int)
 
 	// Pump signal to abort all builds
 	go func() {
@@ -331,39 +335,73 @@ finish_worker:
 		}
 	}()
 
-	// Watch for second signal which will force to close process
-	go func() {
-		newSignal := <-interruptSignal
-		mr.errorln("Forced exit:", newSignal)
-		close <- 1
-	}()
-
 	// Wait for workers to shutdown
-	go func() {
-		for currentWorkers > 0 {
-			stopWorker <- true
-			currentWorkers--
-		}
-		mr.println("All workers stopped. Can exit now")
-		close <- 0
-	}()
-
-	// Timeout shutdown
-	go func() {
-		time.Sleep(common.ShutdownTimeout * time.Second)
-		mr.errorln("Shutdown timedout.")
-		close <- 1
-	}()
-
-	os.Exit(<-close)
+	for currentWorkers > 0 {
+		stopWorker <- true
+		currentWorkers--
+	}
+	mr.println("All workers stopped. Can exit now")
+	os.Exit(0)
 }
 
-var (
-	CmdRunMulti = cli.Command{
+func (mr *MultiRunner) Stop(s service.Service) error {
+	mr.errorln("Requested service stop")
+	mr.interruptSignal <- os.Interrupt
+
+	signals := make(chan os.Signal)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case newSignal := <-signals:
+		return fmt.Errorf("forced exit:", newSignal)
+	case <-time.After(common.ShutdownTimeout * time.Second):
+		return errors.New("shutdown timedout")
+	}
+}
+
+func CreateService(c *cli.Context) service.Service {
+	svcConfig := &service.Config{
+		Name:        "gitlab-ci-multi-runner",
+		DisplayName: "GitLab-CI Multi-purpose Runner",
+		Description: "Unofficial GitLab CI runner written in Go",
+		Arguments:   []string{"run"},
+	}
+
+	mr := &MultiRunner{
+		configFile: c.String("config"),
+		listenAddr: c.String("listen-addr"),
+	}
+
+	s, err := service.New(mr, svcConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return s
+}
+
+func RunService(c *cli.Context) {
+	s := CreateService(c)
+	logger, err := s.Logger(nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if !service.Interactive() {
+		log.AddHook(&ServiceLogHook{logger})
+	}
+
+	err = s.Run()
+	if err != nil {
+		logger.Error(err)
+	}
+}
+
+func init() {
+	common.RegisterCommand(cli.Command{
 		Name:      "run",
 		ShortName: "r",
-		Usage:     "run multi runner",
-		Action:    RunMulti,
+		Usage:     "run multi runner service",
+		Action:    RunService,
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:   "docker-host",
@@ -384,5 +422,5 @@ var (
 				EnvVar: "API_LISTEN",
 			},
 		},
-	}
-)
+	})
+}
