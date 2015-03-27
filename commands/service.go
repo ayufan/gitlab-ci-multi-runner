@@ -64,6 +64,10 @@ func RunServiceControl(c *cli.Context) {
 		}
 	}
 
+	if wd := c.String("working-directory"); wd != "" {
+		svcConfig.Arguments = append(svcConfig.Arguments, "--working-directory", wd)
+	}
+
 	if config := c.String("config"); config != "" {
 		svcConfig.Arguments = append(svcConfig.Arguments, "--config", config)
 	}
@@ -87,12 +91,25 @@ func getCurrentUserName() string {
 	return ""
 }
 
+func getCurrentWorkingDirectory() string {
+	dir, err := os.Getwd()
+	if err == nil {
+		return dir
+	}
+	return ""
+}
+
 func init() {
 	flags := []cli.Flag{
 		cli.StringFlag{
 			Name:  "service-name, n",
 			Value: "gitlab-ci-multi-runner",
 			Usage: "Use different names for different services",
+		},
+		cli.StringFlag{
+			Name:  "working-directory, d",
+			Value: getCurrentWorkingDirectory(),
+			Usage: "Specify custom root directory where all data are stored",
 		},
 		cli.StringFlag{
 			Name:  "config, c",

@@ -23,18 +23,19 @@ type RunnerHealth struct {
 }
 
 type MultiRunner struct {
-	config          *common.Config
-	configFile      string
-	listenAddr      string
-	allBuilds       []*common.Build
-	builds          []*common.Build
-	buildsLock      sync.RWMutex
-	healthy         map[string]*RunnerHealth
-	healthyLock     sync.Mutex
-	finished        bool
-	abortBuilds     chan os.Signal
-	interruptSignal chan os.Signal
-	reloadSignal    chan os.Signal
+	config           *common.Config
+	configFile       string
+	workingDirectory string
+	listenAddr       string
+	allBuilds        []*common.Build
+	builds           []*common.Build
+	buildsLock       sync.RWMutex
+	healthy          map[string]*RunnerHealth
+	healthyLock      sync.Mutex
+	finished         bool
+	abortBuilds      chan os.Signal
+	interruptSignal  chan os.Signal
+	reloadSignal     chan os.Signal
 }
 
 func (mr *MultiRunner) errorln(args ...interface{}) {
@@ -217,7 +218,6 @@ func (mr *MultiRunner) loadConfig() error {
 		return err
 	}
 
-	newConfig.SetChdir()
 	mr.healthy = nil
 	mr.config = &newConfig
 	return nil
@@ -231,6 +231,13 @@ func (mr *MultiRunner) Start(s service.Service) error {
 	mr.reloadSignal = make(chan os.Signal, 1)
 
 	mr.println("Starting multi-runner from", mr.configFile, "...")
+
+	if len(mr.workingDirectory) > 0 {
+		err := os.Chdir(mr.workingDirectory)
+		if err != nil {
+			return err
+		}
+	}
 
 	err := mr.loadConfig()
 	if err != nil {
@@ -368,8 +375,9 @@ func CreateService(c *cli.Context) service.Service {
 	}
 
 	mr := &MultiRunner{
-		configFile: c.String("config"),
-		listenAddr: c.String("listen-addr"),
+		configFile:       c.String("config"),
+		workingDirectory: c.String("working-directory"),
+		listenAddr:       c.String("listen-addr"),
 	}
 
 	s, err := service.New(mr, svcConfig)
@@ -414,6 +422,10 @@ func init() {
 				Value:  "config.toml",
 				Usage:  "Config file",
 				EnvVar: "CONFIG_FILE",
+			},
+			cli.StringFlag{
+				Name:  "working-directory, d",
+				Usage: "Specify custom working directory",
 			},
 			cli.StringFlag{
 				Name:   "listen-addr",
