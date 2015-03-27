@@ -36,11 +36,17 @@ type MultiRunner struct {
 	abortBuilds      chan os.Signal
 	interruptSignal  chan os.Signal
 	reloadSignal     chan os.Signal
+	doneSignal       chan int
 }
 
 func (mr *MultiRunner) errorln(args ...interface{}) {
 	args = append([]interface{}{len(mr.builds)}, args...)
 	log.Errorln(args...)
+}
+
+func (mr *MultiRunner) warningln(args ...interface{}) {
+	args = append([]interface{}{len(mr.builds)}, args...)
+	log.Warningln(args...)
 }
 
 func (mr *MultiRunner) debugln(args ...interface{}) {
@@ -229,6 +235,7 @@ func (mr *MultiRunner) Start(s service.Service) error {
 	mr.abortBuilds = make(chan os.Signal)
 	mr.interruptSignal = make(chan os.Signal)
 	mr.reloadSignal = make(chan os.Signal, 1)
+	mr.doneSignal = make(chan int)
 
 	mr.println("Starting multi-runner from", mr.configFile, "...")
 
@@ -348,11 +355,11 @@ finish_worker:
 		currentWorkers--
 	}
 	mr.println("All workers stopped. Can exit now")
-	os.Exit(0)
+	mr.doneSignal <- 0
 }
 
 func (mr *MultiRunner) Stop(s service.Service) error {
-	mr.errorln("Requested service stop")
+	mr.warningln("Requested service stop")
 	mr.interruptSignal <- os.Interrupt
 
 	signals := make(chan os.Signal)
@@ -363,6 +370,8 @@ func (mr *MultiRunner) Stop(s service.Service) error {
 		return fmt.Errorf("forced exit:", newSignal)
 	case <-time.After(common.ShutdownTimeout * time.Second):
 		return errors.New("shutdown timedout")
+	case <-mr.doneSignal:
+		return nil
 	}
 }
 

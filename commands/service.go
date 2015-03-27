@@ -48,9 +48,16 @@ func (n *NullService) Stop(s service.Service) error {
 }
 
 func RunServiceControl(c *cli.Context) {
+	serviceName := c.String("service-name")
+	displayName := c.String("service-name")
+	if serviceName == "" {
+		serviceName = "gitlab-ci-multi-runner"
+		displayName = "GitLab-CI Multi-purpose Runner"
+	}
+
 	svcConfig := &service.Config{
-		Name:        c.String("service-name"),
-		DisplayName: "GitLab-CI Multi-purpose Runner",
+		Name:        serviceName,
+		DisplayName: displayName,
 		Description: "Unofficial GitLab CI runner written in Go",
 		Arguments:   []string{"run"},
 		UserName:    c.String("user"),
@@ -61,6 +68,7 @@ func RunServiceControl(c *cli.Context) {
 		svcConfig.Option = service.KeyValue{
 			"KeepAlive": true,
 			"RunAtLoad": true,
+			"Password":  c.String("password"),
 		}
 	}
 
@@ -103,26 +111,36 @@ func init() {
 	flags := []cli.Flag{
 		cli.StringFlag{
 			Name:  "service-name, n",
-			Value: "gitlab-ci-multi-runner",
+			Value: "",
 			Usage: "Use different names for different services",
-		},
-		cli.StringFlag{
-			Name:  "working-directory, d",
-			Value: getCurrentWorkingDirectory(),
-			Usage: "Specify custom root directory where all data are stored",
-		},
-		cli.StringFlag{
-			Name:  "config, c",
-			Value: "config.toml",
-			Usage: "Specify custom config file",
 		},
 	}
 
+	installFlags := flags
+	installFlags = append(installFlags, cli.StringFlag{
+		Name:  "working-directory, d",
+		Value: getCurrentWorkingDirectory(),
+		Usage: "Specify custom root directory where all data are stored",
+	})
+	installFlags = append(installFlags, cli.StringFlag{
+		Name:  "config, c",
+		Value: "config.toml",
+		Usage: "Specify custom config file",
+	})
+
 	if runtime.GOOS != "darwin" {
-		flags = append(flags, cli.StringFlag{
+		installFlags = append(installFlags, cli.StringFlag{
 			Name:  "user, u",
 			Value: getCurrentUserName(),
 			Usage: "Specify user-name to secure the runner",
+		})
+	}
+
+	if runtime.GOOS == "windows" {
+		installFlags = append(installFlags, cli.StringFlag{
+			Name:  "password, p",
+			Value: "",
+			Usage: "Specify user password to install service (required)",
 		})
 	}
 
@@ -130,7 +148,7 @@ func init() {
 		Name:   "install",
 		Usage:  "install service",
 		Action: RunServiceControl,
-		Flags:  flags,
+		Flags:  installFlags,
 	})
 	common.RegisterCommand(cli.Command{
 		Name:   "uninstall",
