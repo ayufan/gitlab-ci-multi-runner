@@ -5,15 +5,15 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-type Shell interface {
-	GetName() string
-	GenerateScript(build *Build) (ShellScript, error)
+type ShellScript struct {
+	Environment []string
+	Script      []byte
+	Command     string
 }
 
-type ShellScript interface {
-	GetEnv() []string
-	GetScript() []byte
-	GetCommand() string
+type Shell interface {
+	GetName() string
+	GenerateScript(build *Build) (*ShellScript, error)
 }
 
 var shells map[string]Shell
@@ -48,7 +48,7 @@ func GetShells() []string {
 	return names
 }
 
-func GenerateShellScript(name string, build *Build) (ShellScript, error) {
+func GenerateShellScript(name string, build *Build) (*ShellScript, error) {
 	shell := GetShell(name)
 	if shell == nil {
 		return nil, fmt.Errorf("shell %s not found", name)

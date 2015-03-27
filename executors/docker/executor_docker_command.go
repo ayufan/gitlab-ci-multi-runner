@@ -18,7 +18,7 @@ func (s *DockerCommandExecutor) Start() error {
 	s.Debugln("Starting Docker command...")
 
 	// Create container
-	container, err := s.createContainer(s.image, []string{"bash"})
+	container, err := s.createContainer(s.image, []string{s.ShellScript.Command})
 	if err != nil {
 		return err
 	}
@@ -28,7 +28,7 @@ func (s *DockerCommandExecutor) Start() error {
 	go func() {
 		attachContainerOptions := docker.AttachToContainerOptions{
 			Container:    container.ID,
-			InputStream:  bytes.NewBuffer(s.BuildScript),
+			InputStream:  bytes.NewBuffer(s.ShellScript.Script),
 			OutputStream: s.BuildLog,
 			ErrorStream:  s.BuildLog,
 			Logs:         true,

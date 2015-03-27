@@ -29,17 +29,6 @@ func (s *ShellExecutor) Prepare(config *common.RunnerConfig, build *common.Build
 func (s *ShellExecutor) Start() error {
 	s.Debugln("Starting shell command...")
 
-	shellScript := s.Config.ShellScript
-	if len(shellScript) == 0 {
-		shellScript = "bash"
-	}
-
-	// Create execution command
-	s.cmd = exec.Command(shellScript)
-	if s.cmd == nil {
-		return errors.New("Failed to generate execution command")
-	}
-
 	helpers.SetProcessGroup(s.cmd)
 
 	// Inherit environment from current process
@@ -48,9 +37,9 @@ func (s *ShellExecutor) Start() error {
 	}
 
 	// Fill process environment variables
-	s.cmd.Env = append(s.cmd.Env, s.BuildEnv...)
+	s.cmd.Env = append(s.cmd.Env, s.ShellScript.Environment...)
 	s.cmd.Env = append(s.cmd.Env, s.Config.Environment...)
-	s.cmd.Stdin = bytes.NewReader(s.BuildScript)
+	s.cmd.Stdin = bytes.NewReader(s.ShellScript.Script)
 	s.cmd.Stdout = s.BuildLog
 	s.cmd.Stderr = s.BuildLog
 

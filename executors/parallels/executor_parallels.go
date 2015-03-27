@@ -251,9 +251,9 @@ func (s *ParallelsExecutor) Start() error {
 	s.Debugln("Starting SSH command...")
 	s.sshCommand = ssh.Command{
 		Config:      *s.Config.SSH,
-		Environment: append(s.BuildEnv, s.Config.Environment...),
-		Command:     "bash",
-		Stdin:       s.BuildScript,
+		Environment: append(s.ShellScript.Environment, s.Config.Environment...),
+		Command:     s.ShellScript.Command,
+		Stdin:       s.ShellScript.Script,
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,
 	}

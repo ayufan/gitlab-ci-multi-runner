@@ -21,9 +21,8 @@ type AbstractExecutor struct {
 	BuildAbort       chan bool
 	BuildLogFinish   chan bool
 	BuildFinish      chan error
-	BuildScript      []byte
-	BuildEnv         []string
 	BuildLog         *os.File
+	ShellScript      *common.ShellScript
 }
 
 func (e *AbstractExecutor) FinishBuild(config common.RunnerConfig, buildState common.BuildState, extraMessage string) {
@@ -113,9 +112,8 @@ func (e *AbstractExecutor) Prepare(config *common.RunnerConfig, build *common.Bu
 
 	e.Println("Starting build...")
 
-	var hostname string
 	if e.ShowHostname {
-		hostname, _ = os.Hostname()
+		build.Hostname, _ = os.Hostname()
 	}
 
 	// Generate build script
@@ -123,13 +121,13 @@ func (e *AbstractExecutor) Prepare(config *common.RunnerConfig, build *common.Bu
 	if len(e.Config.BuildsDir) != 0 {
 		e.BuildsDir = e.Config.BuildsDir
 	}
+	build.BuildsDir = e.BuildsDir
 
-	buildScript, buildEnv, err := e.Build.Generate(e.BuildsDir, hostname)
+	shellScript, err := common.GenerateShellScript("bash", build)
 	if err != nil {
 		return err
 	}
-	e.BuildScript = buildScript
-	e.BuildEnv = buildEnv
+	e.ShellScript = shellScript
 
 	// Create build log
 	buildLog, err := ioutil.TempFile("", "build_log")

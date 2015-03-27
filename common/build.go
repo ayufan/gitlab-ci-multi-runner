@@ -1,16 +1,10 @@
 package common
 
 import (
-	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"os"
-	"strings"
 	"time"
-
-	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
 )
 
 type BuildState string
@@ -101,87 +95,8 @@ func (b *Build) ProjectDir() string {
 	return b.ProjectUniqueName()
 }
 
-func (b *Build) writeCloneCmd(w io.Writer, buildsDir string) {
-	io.WriteString(w, "echo Clonning repository...\n")
-	io.WriteString(w, fmt.Sprintf("mkdir -p %s\n", buildsDir))
-	io.WriteString(w, fmt.Sprintf("cd %s\n", buildsDir))
-	io.WriteString(w, fmt.Sprintf("rm -rf %s\n", b.ProjectDir()))
-	io.WriteString(w, fmt.Sprintf("git clone %s %s\n", b.RepoURL, b.ProjectDir()))
-	io.WriteString(w, fmt.Sprintf("cd %s\n", b.ProjectDir()))
-}
-
-func (b *Build) writeFetchCmd(w io.Writer, buildsDir string) {
-	io.WriteString(w, fmt.Sprintf("if [[ -d %s/%s/.git ]]; then\n", buildsDir, b.ProjectDir()))
-	io.WriteString(w, "echo Fetching changes...\n")
-	io.WriteString(w, fmt.Sprintf("cd %s/%s\n", buildsDir, b.ProjectDir()))
-	io.WriteString(w, fmt.Sprintf("git clean -fdx\n"))
-	io.WriteString(w, fmt.Sprintf("git reset --hard > /dev/null\n"))
-	io.WriteString(w, fmt.Sprintf("git remote set-url origin %s\n", b.RepoURL))
-	io.WriteString(w, fmt.Sprintf("git fetch origin\n"))
-	io.WriteString(w, fmt.Sprintf("else\n"))
-	b.writeCloneCmd(w, buildsDir)
-	io.WriteString(w, fmt.Sprintf("fi\n"))
-}
-
-func (b *Build) writeCheckoutCmd(w io.Writer, buildsDir string) {
-	io.WriteString(w, fmt.Sprintf("echo Checkouting %s as %s...\n", b.Sha[0:8], b.RefName))
-	io.WriteString(w, fmt.Sprintf("git checkout -B %s %s > /dev/null\n", b.RefName, b.Sha))
-	io.WriteString(w, fmt.Sprintf("git reset --hard %s > /dev/null\n", b.Sha))
-}
-
-func (b *Build) Generate(buildsDir string, hostname string) ([]byte, []string, error) {
-	var buffer bytes.Buffer
-	w := bufio.NewWriter(&buffer)
-
-	io.WriteString(w, "#!/usr/bin/env bash\n")
-	io.WriteString(w, "\n")
-	if len(hostname) != 0 {
-		io.WriteString(w, fmt.Sprintf("echo Running on $(hostname) via %s...\n", helpers.ShellEscape(hostname)))
-	} else {
-		io.WriteString(w, "echo Running on $(hostname)...\n")
-	}
-	io.WriteString(w, "\n")
-	io.WriteString(w, "trap 'kill -s INT 0' EXIT\n")
-	io.WriteString(w, "set -eo pipefail\n")
-
-	io.WriteString(w, "\n")
-	if b.AllowGitFetch {
-		b.writeFetchCmd(w, buildsDir)
-	} else {
-		b.writeCloneCmd(w, buildsDir)
-	}
-
-	b.writeCheckoutCmd(w, buildsDir)
-	io.WriteString(w, "\n")
-	if !b.Runner.DisableVerbose {
-		io.WriteString(w, "set -v\n")
-		io.WriteString(w, "\n")
-	}
-
-	commands := b.Commands
-	commands = strings.Replace(commands, "\r\n", "\n", -1)
-
-	io.WriteString(w, commands)
-
-	w.Flush()
-
-	env := []string{
-		fmt.Sprintf("CI_BUILD_REF=%s", b.Sha),
-		fmt.Sprintf("CI_BUILD_BEFORE_SHA=%s", b.BeforeSha),
-		fmt.Sprintf("CI_BUILD_REF_NAME=%s", b.RefName),
-		fmt.Sprintf("CI_BUILD_ID=%d", b.ID),
-		fmt.Sprintf("CI_BUILD_REPO=%s", b.RepoURL),
-
-		fmt.Sprintf("CI_PROJECT_ID=%d", b.ProjectID),
-		fmt.Sprintf("CI_PROJECT_DIR=%s", buildsDir, b.ProjectDir()),
-
-		"CI_SERVER=yes",
-		"CI_SERVER_NAME=GitLab CI",
-		"CI_SERVER_VERSION=",
-		"CI_SERVER_REVISION=",
-	}
-
-	return buffer.Bytes(), env, nil
+func (b *Build) FullProjectDir() string {
+	return fmt.Sprintf("%s/%s", b.BuildsDir, b.ProjectDir())
 }
 
 func (b *Build) Run() error {
