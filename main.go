@@ -12,6 +12,7 @@ import (
 	_ "github.com/ayufan/gitlab-ci-multi-runner/executors/parallels"
 	_ "github.com/ayufan/gitlab-ci-multi-runner/executors/shell"
 	_ "github.com/ayufan/gitlab-ci-multi-runner/executors/ssh"
+	_ "github.com/ayufan/gitlab-ci-multi-runner/shells"
 )
 
 func main() {

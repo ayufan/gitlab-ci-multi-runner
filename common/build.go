@@ -31,7 +31,9 @@ type Build struct {
 	BuildDuration time.Duration  `json:"build_duration"`
 	BuildMessage  string         `json:"build_message"`
 	BuildAbort    chan os.Signal `json:"-"`
-	Runner        *RunnerConfig  `json:"runner"`
+	BuildsDir     string
+	Hostname      string
+	Runner        *RunnerConfig `json:"runner"`
 
 	GlobalID   int    `json:"global_id"`
 	GlobalName string `json:"global_name"`
