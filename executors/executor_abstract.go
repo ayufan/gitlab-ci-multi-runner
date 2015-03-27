@@ -14,6 +14,7 @@ import (
 
 type AbstractExecutor struct {
 	DefaultBuildsDir string
+	DefaultShell     string
 	ShowHostname     bool
 	Config           *common.RunnerConfig
 	Build            *common.Build
@@ -123,7 +124,12 @@ func (e *AbstractExecutor) Prepare(config *common.RunnerConfig, build *common.Bu
 	}
 	build.BuildsDir = e.BuildsDir
 
-	shellScript, err := common.GenerateShellScript("bash", build)
+	shell := e.DefaultShell
+	if e.Config.Shell != nil {
+		shell = *e.Config.Shell
+	}
+
+	shellScript, err := common.GenerateShellScript(shell, build)
 	if err != nil {
 		return err
 	}

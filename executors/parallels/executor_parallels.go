@@ -294,6 +294,7 @@ func init() {
 		return &ParallelsExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
 				DefaultBuildsDir: "tmp/builds",
+				DefaultShell:     "bash",
 				ShowHostname:     true,
 			},
 		}
