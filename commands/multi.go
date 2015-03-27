@@ -367,7 +367,7 @@ func (mr *MultiRunner) Stop(s service.Service) error {
 
 	select {
 	case newSignal := <-signals:
-		return fmt.Errorf("forced exit:", newSignal)
+		return fmt.Errorf("forced exit: %v", newSignal)
 	case <-time.After(common.ShutdownTimeout * time.Second):
 		return errors.New("shutdown timedout")
 	case <-mr.doneSignal:
