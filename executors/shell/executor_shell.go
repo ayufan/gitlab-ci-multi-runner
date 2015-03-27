@@ -3,8 +3,10 @@ package shell
 import (
 	"bytes"
 	"errors"
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/ayufan/gitlab-ci-multi-runner/common"
 	"github.com/ayufan/gitlab-ci-multi-runner/executors"
@@ -13,7 +15,8 @@ import (
 
 type ShellExecutor struct {
 	executors.AbstractExecutor
-	cmd *exec.Cmd
+	cmd       *exec.Cmd
+	scriptDir string
 }
 
 func (s *ShellExecutor) Prepare(config *common.RunnerConfig, build *common.Build) error {
@@ -29,6 +32,12 @@ func (s *ShellExecutor) Prepare(config *common.RunnerConfig, build *common.Build
 func (s *ShellExecutor) Start() error {
 	s.Debugln("Starting shell command...")
 
+	// Create execution command
+	s.cmd = exec.Command(s.ShellScript.Command, s.ShellScript.Arguments...)
+	if s.cmd == nil {
+		return errors.New("Failed to generate execution command")
+	}
+
 	helpers.SetProcessGroup(s.cmd)
 
 	// Inherit environment from current process
@@ -39,9 +48,26 @@ func (s *ShellExecutor) Start() error {
 	// Fill process environment variables
 	s.cmd.Env = append(s.cmd.Env, s.ShellScript.Environment...)
 	s.cmd.Env = append(s.cmd.Env, s.Config.Environment...)
-	s.cmd.Stdin = bytes.NewReader(s.ShellScript.Script)
 	s.cmd.Stdout = s.BuildLog
 	s.cmd.Stderr = s.BuildLog
+
+	if s.ShellScript.PassFile {
+		scriptDir, err := ioutil.TempDir("", "build_script")
+		if err != nil {
+			return err
+		}
+		s.scriptDir = scriptDir
+
+		scriptFile := filepath.Join(scriptDir, "script."+s.ShellScript.Extension)
+		err = ioutil.WriteFile(scriptFile, s.ShellScript.Script, 0700)
+		if err != nil {
+			return err
+		}
+
+		s.cmd.Args = append(s.cmd.Args, scriptFile)
+	} else {
+		s.cmd.Stdin = bytes.NewReader(s.ShellScript.Script)
+	}
 
 	// Start process
 	err := s.cmd.Start()
@@ -58,6 +84,11 @@ func (s *ShellExecutor) Start() error {
 
 func (s *ShellExecutor) Cleanup() {
 	helpers.KillProcessGroup(s.cmd)
+
+	if s.scriptDir != "" {
+		os.RemoveAll(s.scriptDir)
+	}
+
 	s.AbstractExecutor.Cleanup()
 }
 

@@ -288,6 +288,10 @@ func (s *DockerExecutor) Prepare(config *common.RunnerConfig, build *common.Buil
 		return err
 	}
 
+	if s.ShellScript.PassFile {
+		return errors.New("Docker doesn't support shells that require script file")
+	}
+
 	s.Println("Using Docker executor with image", s.Config.Docker.Image, "...")
 
 	if config.Docker == nil {

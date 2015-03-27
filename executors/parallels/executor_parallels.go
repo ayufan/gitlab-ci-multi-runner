@@ -151,6 +151,10 @@ func (s *ParallelsExecutor) Prepare(config *common.RunnerConfig, build *common.B
 		return err
 	}
 
+	if s.ShellScript.PassFile {
+		return errors.New("Parallels doesn't support shells that require script file")
+	}
+
 	if s.Config.SSH == nil {
 		return errors.New("Missing SSH configuration")
 	}
@@ -252,7 +256,7 @@ func (s *ParallelsExecutor) Start() error {
 	s.sshCommand = ssh.Command{
 		Config:      *s.Config.SSH,
 		Environment: append(s.ShellScript.Environment, s.Config.Environment...),
-		Command:     s.ShellScript.Command,
+		Command:     s.ShellScript.GetFullCommand(),
 		Stdin:       s.ShellScript.Script,
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,

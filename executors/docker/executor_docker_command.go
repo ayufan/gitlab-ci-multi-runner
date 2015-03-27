@@ -18,7 +18,7 @@ func (s *DockerCommandExecutor) Start() error {
 	s.Debugln("Starting Docker command...")
 
 	// Create container
-	container, err := s.createContainer(s.image, []string{s.ShellScript.Command})
+	container, err := s.createContainer(s.image, s.ShellScript.GetCommandWithArguments())
 	if err != nil {
 		return err
 	}

@@ -134,6 +134,7 @@ func (e *AbstractExecutor) Prepare(config *common.RunnerConfig, build *common.Bu
 		return err
 	}
 	e.ShellScript = shellScript
+	e.Debugln("Shell script:", shellScript)
 
 	// Create build log
 	buildLog, err := ioutil.TempFile("", "build_log")

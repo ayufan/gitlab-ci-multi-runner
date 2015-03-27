@@ -36,7 +36,7 @@ func (s *DockerSSHExecutor) Start() error {
 	s.sshCommand = ssh.Command{
 		Config:      *s.Config.SSH,
 		Environment: append(s.ShellScript.Environment, s.Config.Environment...),
-		Command:     s.ShellScript.Command,
+		Command:     s.ShellScript.GetFullCommand(),
 		Stdin:       s.ShellScript.Script,
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,

@@ -13,6 +13,18 @@ type SSHExecutor struct {
 	sshCommand ssh.Command
 }
 
+func (s *SSHExecutor) Prepare(config *common.RunnerConfig, build *common.Build) error {
+	err := s.AbstractExecutor.Prepare(config, build)
+	if err != nil {
+		return err
+	}
+
+	if s.ShellScript.PassFile {
+		return errors.New("Parallels doesn't support shells that require script file")
+	}
+	return nil
+}
+
 func (s *SSHExecutor) Start() error {
 	if s.Config.SSH == nil {
 		return errors.New("Missing SSH configuration")
@@ -24,7 +36,7 @@ func (s *SSHExecutor) Start() error {
 	s.sshCommand = ssh.Command{
 		Config:      *s.Config.SSH,
 		Environment: append(s.ShellScript.Environment, s.Config.Environment...),
-		Command:     s.ShellScript.Command,
+		Command:     s.ShellScript.GetFullCommand(),
 		Stdin:       s.ShellScript.Script,
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,
