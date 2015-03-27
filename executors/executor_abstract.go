@@ -125,8 +125,8 @@ func (e *AbstractExecutor) Prepare(config *common.RunnerConfig, build *common.Bu
 	build.BuildsDir = e.BuildsDir
 
 	shell := e.DefaultShell
-	if e.Config.Shell != nil {
-		shell = *e.Config.Shell
+	if e.Config.Shell != "" {
+		shell = e.Config.Shell
 	}
 
 	shellScript, err := common.GenerateShellScript(shell, build)

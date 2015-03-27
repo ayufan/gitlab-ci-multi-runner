@@ -54,6 +54,7 @@ func runSingle(c *cli.Context) {
 		Token:     c.String("token"),
 		Executor:  c.String("executor"),
 		BuildsDir: c.String("builds-dir"),
+		Shell:     c.String("shell"),
 	}
 
 	if len(runner.URL) == 0 {
@@ -115,6 +116,12 @@ var (
 				Value:  "shell",
 				Usage:  "Executor",
 				EnvVar: "RUNNER_EXECUTOR",
+			},
+			cli.StringFlag{
+				Name:   "shell",
+				Value:  common.GetDefaultShell(),
+				Usage:  "Shell to use for run the script",
+				EnvVar: "RUNNER_SHELL",
 			},
 			cli.StringFlag{
 				Name:   "addr",

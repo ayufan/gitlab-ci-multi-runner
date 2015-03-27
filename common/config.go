@@ -46,8 +46,8 @@ type RunnerConfig struct {
 	CleanEnvironment bool     `toml:"clean_environment" json:"clean_environment"`
 	Environment      []string `toml:"environment" json:"environment"`
 
-	Shell          *string `toml:"shell" json:"shell"`
-	DisableVerbose bool    `toml:"disable_verbose" json:"disable_verbose"`
+	Shell          string `toml:"shell" json:"shell"`
+	DisableVerbose bool   `toml:"disable_verbose" json:"disable_verbose"`
 
 	SSH       *ssh.Config      `toml:"ssh" json:"ssh"`
 	Docker    *DockerConfig    `toml:"docker" json:"docker"`

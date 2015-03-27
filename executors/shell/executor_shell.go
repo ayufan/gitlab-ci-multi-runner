@@ -9,7 +9,6 @@ import (
 	"github.com/ayufan/gitlab-ci-multi-runner/common"
 	"github.com/ayufan/gitlab-ci-multi-runner/executors"
 	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
-	"runtime"
 )
 
 type ShellExecutor struct {
@@ -64,15 +63,10 @@ func (s *ShellExecutor) Cleanup() {
 
 func init() {
 	common.RegisterExecutor("shell", func() common.Executor {
-		shell := "bash"
-		if runtime.GOOS == "windows" {
-			shell = "cmd"
-		}
-
 		return &ShellExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
 				DefaultBuildsDir: "tmp/builds",
-				DefaultShell:     shell,
+				DefaultShell:     common.GetDefaultShell(),
 				ShowHostname:     false,
 			},
 		}

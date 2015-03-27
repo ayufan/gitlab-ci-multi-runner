@@ -7,6 +7,7 @@ import (
 	"github.com/ayufan/gitlab-ci-multi-runner/common"
 	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
 	"io"
+	"runtime"
 	"strings"
 )
 
@@ -102,6 +103,10 @@ func (b *BashShell) GenerateScript(build *common.Build) (*common.ShellScript, er
 		Command:     "bash",
 	}
 	return &script, nil
+}
+
+func (b *BashShell) IsDefault() bool {
+	return runtime.GOOS != "windows"
 }
 
 func init() {

@@ -16,6 +16,10 @@ func (c *CmdShell) GenerateScript(build *common.Build) (*common.ShellScript, err
 	return nil, errors.New("not yet supported")
 }
 
+func (b *CmdShell) IsDefault() bool {
+	return runtime.GOOS == "windows"
+}
+
 func init() {
 	common.RegisterShell(&CmdShell{})
 }

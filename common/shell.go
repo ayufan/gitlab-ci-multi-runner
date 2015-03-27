@@ -14,6 +14,7 @@ type ShellScript struct {
 type Shell interface {
 	GetName() string
 	GenerateScript(build *Build) (*ShellScript, error)
+	IsDefault() bool
 }
 
 var shells map[string]Shell
@@ -55,4 +56,17 @@ func GenerateShellScript(name string, build *Build) (*ShellScript, error) {
 	}
 
 	return shell.GenerateScript(build)
+}
+
+func GetDefaultShell() string {
+	if shells == nil {
+		panic("no shells defined")
+	}
+
+	for _, shell := range shells {
+		if shell.IsDefault() {
+			return shell.GetName()
+		}
+	}
+	panic("no default shell defined")
 }
