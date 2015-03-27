@@ -7,7 +7,7 @@ env:
 install:
 - go get github.com/tools/godep
 - go get -u github.com/golang/lint/golint
-- go get code.google.com/p/winsvc/eventlog
+- 'go get code.google.com/p/winsvc/eventlog || true'
 - godep restore
 before_script:
 - make version
