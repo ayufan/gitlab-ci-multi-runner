@@ -1,3 +1,7 @@
+v 0.1.13
+- Added abstraction over shells
+- Moved all bash specific stuff to shells/bash.go
+
 v 0.1.12
 - Abort all jobs if interrupt or SIGTERM is received
 - Runner now handles HUP and reloads config on-demand
