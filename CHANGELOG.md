@@ -1,6 +1,9 @@
 v 0.1.13
 - Added abstraction over shells
 - Moved all bash specific stuff to shells/bash.go
+- Select default shell for OS (bash for Unix, batch for Windows)
+- Added Windows Cmd support
+- Added Windows PowerShell support
 
 v 0.1.12
 - Abort all jobs if interrupt or SIGTERM is received
