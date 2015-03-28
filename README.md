@@ -174,7 +174,7 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
       limit = 0
       executor = "docker"
       builds_dir = ""
-      shell_script = ""
+      shell = ""
       clean_environment = false
       environment = ["ENV=value", "LC_ALL=en_US.UTF-8"]
       disable_verbose = false
@@ -189,6 +189,7 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
     * `builds_dir` - directory where builds will be stored in context of selected executor (Locally, Docker, SSH)
     * `clean_environment` - do not inherit any environment variables from the multi-runner process
     * `environment` - append or overwrite environment variables
+    * `shell` - the name of shell to generate the script (default value is platform dependent)
 
 1. The EXECUTORS:
 
@@ -198,6 +199,13 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
     * **docker-ssh** - run build using Docker container, but connect to it with SSH - this requires the presence of *[runners.docker]* and *[runners.ssh]*
     * **ssh** - run build remotely with SSH - this requires the presence of *[runners.ssh]*
     * **parallels** - run build using Parallels VM, but connect to it with SSH - this requires the presence of *[runners.parallels]* and *[runners.ssh]*
+
+1. The SHELLS (in v0.1.13):
+
+    There are a couple of available shells that can be run on different platforms:
+    * **bash** - generate Bash (Bourne-shell) script. All commands executed in Bash context (default for all Unix systems)
+    * **cmd** - generate Windows Batch script. All commands are executed in Batch context (default for Windows)
+    * **powershell** - generate Windows PowerShell script. All commands are executed in PowerShell context
 
 1. The [runners.docker] section:
     ```
