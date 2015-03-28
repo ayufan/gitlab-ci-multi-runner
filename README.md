@@ -5,8 +5,6 @@ This is GitLab CI Multi-purpose Runner repository an **unofficial GitLab CI runn
 
 This project was made as Go learning opportunity. The initial release was created within two days.
 
-**This is ALPHA. It should work, but also may not.**
-
 [![Build Status](https://travis-ci.org/ayufan/gitlab-ci-multi-runner.svg?branch=master)](https://travis-ci.org/ayufan/gitlab-ci-multi-runner)
 
 ### Requirements
@@ -25,11 +23,13 @@ This project was made as Go learning opportunity. The initial release was create
  - using Docker container and executing job over SSH
  - connecting to remote SSH server
 * Is written in Go and distributed as single binary without any other requirements
-* Works on Ubuntu, Debian and OS X (should also work on other Linux distributions)
+* Supports Bash, Windows Batch and Windows PowerShell
+* Works on Ubuntu, Debian, OS X and Windows (should also work on other Linux distributions)
 * Allows to customize job running environment
 * Automatic configuration reload without restart
 * Easy to use setup with support for docker, docker-ssh, parallels or ssh running environments
 * Enables caching of Docker containers
+* Easy installation as service for Linux, OSX and Windows
 
 ### Install and initial configuration (For Debian, Ubuntu and CentOS)
 
