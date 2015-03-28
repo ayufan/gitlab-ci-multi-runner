@@ -9,6 +9,8 @@ import (
 
 	"github.com/ayufan/gitlab-ci-multi-runner/common"
 	"net/http"
+	"os/signal"
+	"syscall"
 )
 
 func serverHelloWorld(w http.ResponseWriter, req *http.Request) {
@@ -70,16 +72,51 @@ func runSingle(c *cli.Context) {
 	go runServer(c.String("addr"))
 	go runHerokuURL(c.String("heroku-url"))
 
+	signals := make(chan os.Signal)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+
 	log.Println("Starting runner for", runner.URL, "with token", runner.ShortDescription(), "...")
 
-	for {
+	finished := false
+	abortSignal := make(chan os.Signal)
+	doneSignal := make(chan int, 1)
+
+	go func() {
+		interrupt := <-signals
+		log.Warningln("Requested exit:", interrupt)
+		finished = true
+
+		go func() {
+			for {
+				abortSignal <- interrupt
+			}
+		}()
+
+		select {
+		case newSignal := <-signals:
+			log.Fatalln("forced exit:", newSignal)
+		case <-time.After(common.ShutdownTimeout * time.Second):
+			log.Fatalln("shutdown timedout")
+		case <-doneSignal:
+		}
+	}()
+
+	for !finished {
 		buildData, healthy := common.GetBuild(runner)
 		if !healthy {
-			log.Println("Runner died, beacuse it's not healthy!")
-			os.Exit(1)
+			log.Println("Runner is not healthy!")
+			select {
+			case <-time.After(common.NotHealthyCheckInterval * time.Second):
+			case <-abortSignal:
+			}
+			continue
 		}
+
 		if buildData == nil {
-			time.Sleep(common.CheckInterval * time.Second)
+			select {
+			case <-time.After(common.CheckInterval * time.Second):
+			case <-abortSignal:
+			}
 			continue
 		}
 
@@ -88,8 +125,11 @@ func runSingle(c *cli.Context) {
 			Runner:           &runner,
 		}
 		newBuild.Prepare([]*common.Build{})
+		newBuild.BuildAbort = abortSignal
 		newBuild.Run()
 	}
+
+	doneSignal <- 0
 }
 
 func init() {

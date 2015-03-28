@@ -2,6 +2,7 @@ package common
 
 const DefaultTimeout = 7200
 const CheckInterval = 3
+const NotHealthyCheckInterval = 300
 const UpdateInterval = 3
 const UpdateRetryInterval = 3
 const ReloadConfigInterval = 3
