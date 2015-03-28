@@ -14,7 +14,7 @@ import (
 type PowerShell struct {
 }
 
-func (c *PowerShell) GetName() string {
+func (b *PowerShell) GetName() string {
 	return "powershell"
 }
 

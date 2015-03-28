@@ -15,7 +15,7 @@ import (
 type CmdShell struct {
 }
 
-func (c *CmdShell) GetName() string {
+func (b *CmdShell) GetName() string {
 	return "cmd"
 }
 
