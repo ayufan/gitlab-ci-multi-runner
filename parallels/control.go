@@ -17,6 +17,17 @@ import (
 	"time"
 )
 
+type StatusType string
+
+const (
+	NotFound  StatusType = "notfound"
+	Invalid              = "invalid"
+	Stopped              = "stopped"
+	Suspended            = "suspended"
+	Running              = "running"
+	// TODO: more statuses
+)
+
 const (
 	prlctlPath = "prlctl"
 	dhcpLeases = "/Library/Preferences/Parallels/parallels_dhcp_leases"
@@ -122,16 +133,16 @@ func Start(vmName string) error {
 	return Prlctl("start", vmName)
 }
 
-func Status(vmName string) (string, error) {
+func Status(vmName string) (StatusType, error) {
 	output, err := PrlctlOutput("list", vmName, "--no-header", "--output", "status")
 	if err != nil {
-		return "", err
+		return NotFound, err
 	}
-	return strings.TrimSpace(output), nil
+	return StatusType(strings.TrimSpace(output)), nil
 }
 
-func WaitForStatus(vmName, vmStatus string, seconds int) error {
-	var status string
+func WaitForStatus(vmName string, vmStatus StatusType, seconds int) error {
+	var status StatusType
 	var err error
 	for i := 0; i < seconds; i++ {
 		status, err = Status(vmName)
@@ -143,7 +154,7 @@ func WaitForStatus(vmName, vmStatus string, seconds int) error {
 		}
 		time.Sleep(time.Second)
 	}
-	return errors.New("VM " + vmName + " is in " + status + " where it should be in " + vmStatus)
+	return errors.New("VM " + vmName + " is in " + string(status) + " where it should be in " + string(vmStatus))
 }
 
 func TryExec(vmName string, seconds int, cmd ...string) error {
@@ -168,6 +179,10 @@ func Stop(vmName string) error {
 
 func Delete(vmName string) error {
 	return Prlctl("delete", vmName)
+}
+
+func Unregister(vmName string) error {
+	return Prlctl("unregister", vmName)
 }
 
 func Mac(vmName string) (string, error) {

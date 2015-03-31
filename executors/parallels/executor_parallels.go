@@ -111,6 +111,12 @@ func (s *ParallelsExecutor) createVM() error {
 		templateName = baseImage + "-template"
 	}
 
+	// remove invalid template (removed?)
+	templateStatus, _ := prl.Status(templateName)
+	if templateStatus == prl.Invalid {
+		prl.Unregister(templateName)
+	}
+
 	if !prl.Exist(templateName) {
 		s.Debugln("Creating template from VM", baseImage, "...")
 		err := prl.CreateTemplate(baseImage, templateName)
@@ -172,7 +178,13 @@ func (s *ParallelsExecutor) Prepare(config *common.RunnerConfig, build *common.B
 		return err
 	}
 
-	s.Debugln("Using Parallels", version, "executor...")
+	s.Println("Using Parallels", version, "executor...")
+
+	// remove invalid VM (removed?)
+	vmStatus, _ := prl.Status(s.vmName)
+	if vmStatus == prl.Invalid {
+		prl.Unregister(s.vmName)
+	}
 
 	if s.Config.Parallels.DisableSnapshots {
 		s.vmName = s.Config.Parallels.BaseName + "-" + s.Build.ProjectRunnerName
@@ -180,26 +192,32 @@ func (s *ParallelsExecutor) Prepare(config *common.RunnerConfig, build *common.B
 			s.Debugln("Deleting old VM...")
 			prl.Stop(s.vmName)
 			prl.Delete(s.vmName)
+			prl.Unregister(s.vmName)
 		}
 	} else {
 		s.vmName = s.Build.RunnerName
 	}
 
 	if prl.Exist(s.vmName) {
-		s.Debugln("Restoring VM from snapshot...")
+		s.Println("Restoring VM from snapshot...")
 		err := s.restoreFromSnapshot()
 		if err != nil {
-			return err
+			s.Println("Previous VM failed. Deleting, because", err)
+			prl.Stop(s.vmName)
+			prl.Delete(s.vmName)
+			prl.Unregister(s.vmName)
 		}
-	} else {
-		s.Debugln("Creating new VM...")
+	}
+
+	if !prl.Exist(s.vmName) {
+		s.Println("Creating new VM...")
 		err := s.createVM()
 		if err != nil {
 			return err
 		}
 
 		if !s.Config.Parallels.DisableSnapshots {
-			s.Debugln("Creating default snapshot...")
+			s.Println("Creating default snapshot...")
 			err = prl.CreateSnapshot(s.vmName, "Started")
 			if err != nil {
 				return err
@@ -214,23 +232,23 @@ func (s *ParallelsExecutor) Prepare(config *common.RunnerConfig, build *common.B
 	}
 
 	// Start VM if stopped
-	if status == "stopped" || status == "suspended" {
-		s.Debugln("Starting VM...")
+	if status == prl.Stopped || status == prl.Suspended {
+		s.Println("Starting VM...")
 		err := prl.Start(s.vmName)
 		if err != nil {
 			return err
 		}
 	}
 
-	if status != "running" {
+	if status != prl.Running {
 		s.Debugln("Waiting for VM to run...")
-		err = prl.WaitForStatus(s.vmName, "running", 60)
+		err = prl.WaitForStatus(s.vmName, prl.Running, 60)
 		if err != nil {
 			return err
 		}
 	}
 
-	s.Debugln("Waiting VM to become responsive...")
+	s.Println("Waiting VM to become responsive...")
 	err = s.verifyMachine(s.vmName)
 	if err != nil {
 		return err
