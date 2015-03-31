@@ -24,11 +24,6 @@ type DockerExecutor struct {
 	services  []*docker.Container
 }
 
-func (s *DockerExecutor) volumeDir(cacheDir string, projectName string, volume string) string {
-	hash := md5.Sum([]byte(volume))
-	return fmt.Sprintf("%s/%s/%x", cacheDir, projectName, hash)
-}
-
 func (s *DockerExecutor) getImage(imageName string, pullImage bool) (*docker.Image, error) {
 	s.Debugln("Looking for image", imageName, "...")
 	image, err := s.client.InspectImage(imageName)
@@ -54,43 +49,126 @@ func (s *DockerExecutor) getImage(imageName string, pullImage bool) (*docker.Ima
 	return s.client.InspectImage(imageName)
 }
 
-func (s *DockerExecutor) addVolume(binds *[]string, cacheDir string, volume string) {
-	volumeDir := s.volumeDir(cacheDir, s.Build.ProjectUniqueName(), volume)
-	*binds = append(*binds, fmt.Sprintf("%s:%s:rw", volumeDir, volume))
-	s.Debugln("Using", volumeDir, "for", volume, "...")
-
-	// TODO: this is potentially insecure
-	os.MkdirAll(volumeDir, 0777)
+func (s *DockerExecutor) getAbsoluteContainerPath(path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	} else {
+		return filepath.Join(s.Build.FullProjectDir(), path)
+	}
 }
 
-func (s *DockerExecutor) createVolumes(image *docker.Image, buildsDir string) ([]string, error) {
-	cacheDir := "tmp/docker-cache"
-	if len(s.Config.Docker.CacheDir) != 0 {
-		cacheDir = s.Config.Docker.CacheDir
+func (s *DockerExecutor) addHostVolume(binds *[]string, hostPath, containerPath string) error {
+	containerPath = s.getAbsoluteContainerPath(containerPath)
+	s.Debugln("Using host-based", hostPath, "for", containerPath, "...")
+	*binds = append(*binds, fmt.Sprintf("%v:%v", hostPath, containerPath))
+	return nil
+}
+
+func (s *DockerExecutor) addCacheVolume(binds, volumesFrom *[]string, containerPath string) error {
+	containerPath = s.getAbsoluteContainerPath(containerPath)
+
+	// disable cache for automatic container cache, but leave it for host volumes (they are shared on purpose)
+	if s.Config.Docker.DisableCache {
+		s.Debugln("Container cache for", containerPath, " is disabled.")
+		return nil
 	}
 
-	cacheDir, err := filepath.Abs(cacheDir)
+	hash := md5.Sum([]byte(containerPath))
+
+	// use host-based cache
+	if s.Config.Docker.CacheDir != "" {
+		hostPath := fmt.Sprintf("%s/%s/%x", s.Config.Docker.CacheDir, s.Build.ProjectUniqueName(), hash)
+		hostPath, err := filepath.Abs(hostPath)
+		if err != nil {
+			return err
+		}
+		s.Debugln("Using path", hostPath, "as cache for", containerPath, "...")
+		*binds = append(*binds, fmt.Sprintf("%v:%v", hostPath, containerPath))
+		return nil
+	}
+
+	// get existing cache container
+	containerName := fmt.Sprintf("%s-cache-%x", s.Build.ProjectUniqueName(), hash)
+	container, _ := s.client.InspectContainer(containerName)
+
+	// check if we have valid cache, if not remove the broken container
+	if container != nil && container.Volumes[containerPath] == "" {
+		s.removeContainer(container.ID)
+		container = nil
+	}
+
+	// create new cache container for that project
+	if container == nil {
+		// get busybox image
+		cacheImage, err := s.getImage("busybox:latest", true)
+		if err != nil {
+			return err
+		}
+
+		createContainerOptions := docker.CreateContainerOptions{
+			Name: containerName,
+			Config: &docker.Config{
+				Image: cacheImage.ID,
+				Cmd: []string{
+					"/bin/true",
+				},
+				Volumes: map[string]struct{}{
+					containerPath: {},
+				},
+			},
+			HostConfig: &docker.HostConfig{},
+		}
+
+		container, err = s.client.CreateContainer(createContainerOptions)
+		if err != nil {
+			if container != nil {
+				go s.removeContainer(container.ID)
+			}
+			return err
+		}
+	}
+
+	s.Debugln("Using container", container.ID, "as cache", containerPath, "...")
+	*volumesFrom = append(*volumesFrom, container.ID)
+	return nil
+}
+
+func (s *DockerExecutor) addVolume(binds, volumesFrom *[]string, volume string) error {
+	var err error
+	hostVolume := strings.SplitN(volume, ":", 2)
+	switch len(hostVolume) {
+	case 2:
+		err = s.addHostVolume(binds, hostVolume[0], hostVolume[1])
+
+	case 1:
+		// disable cache disables
+		err = s.addCacheVolume(binds, volumesFrom, hostVolume[0])
+	}
+
 	if err != nil {
-		return nil, err
+		s.Errorln("Failed to create container volume for", volume, err)
 	}
+	return err
+}
 
-	var binds []string
+func (s *DockerExecutor) createVolumes(image *docker.Image, buildsDir string) ([]string, []string, error) {
+	var binds, volumesFrom []string
 
 	for _, volume := range s.Config.Docker.Volumes {
-		s.addVolume(&binds, cacheDir, volume)
+		s.addVolume(&binds, &volumesFrom, volume)
 	}
 
 	if image != nil {
 		for volume := range image.Config.Volumes {
-			s.addVolume(&binds, cacheDir, volume)
+			s.addVolume(&binds, &volumesFrom, volume)
 		}
 	}
 
 	if s.Build.AllowGitFetch {
-		s.addVolume(&binds, cacheDir, buildsDir)
+		s.addVolume(&binds, &volumesFrom, buildsDir)
 	}
 
-	return binds, nil
+	return binds, volumesFrom, nil
 }
 
 func (s *DockerExecutor) splitServiceAndVersion(service string) (string, string) {
@@ -243,14 +321,13 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 	}
 	createContainerOptions.HostConfig.Links = append(createContainerOptions.HostConfig.Links, links...)
 
-	if !s.Config.Docker.DisableCache {
-		s.Debugln("Creating cache directories...")
-		binds, err := s.createVolumes(image, s.Build.BuildsDir)
-		if err != nil {
-			return nil, err
-		}
-		createContainerOptions.HostConfig.Binds = binds
+	s.Debugln("Creating cache directories...")
+	binds, volumesFrom, err := s.createVolumes(image, s.Build.BuildsDir)
+	if err != nil {
+		return nil, err
 	}
+	createContainerOptions.HostConfig.Binds = binds
+	createContainerOptions.HostConfig.VolumesFrom = volumesFrom
 
 	s.Debugln("Creating container", createContainerOptions.Name, "...")
 	container, err := s.client.CreateContainer(createContainerOptions)
