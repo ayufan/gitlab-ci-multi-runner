@@ -89,7 +89,7 @@ func (b *BashShell) GenerateScript(build *common.Build) (*common.ShellScript, er
 		fmt.Sprintf("CI_BUILD_REPO=%s", build.RepoURL),
 
 		fmt.Sprintf("CI_PROJECT_ID=%d", build.ProjectID),
-		fmt.Sprintf("CI_PROJECT_DIR=%s", build.BuildsDir, build.ProjectDir()),
+		fmt.Sprintf("CI_PROJECT_DIR=%s", build.FullProjectDir()),
 
 		"CI_SERVER=yes",
 		"CI_SERVER_NAME=GitLab CI",
