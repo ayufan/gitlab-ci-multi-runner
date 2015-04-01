@@ -13,7 +13,6 @@ After=syslog.target network.target
 Type=simple
 User=gitlab_ci_multi_runner
 Group=gitlab_ci_multi_runner
-WorkingDirectory=/home/gitlab_ci_multi_runner
 ExecStart=/usr/bin/gitlab-ci-multi-runner run
 
 # if we crash, restart
