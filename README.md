@@ -92,10 +92,10 @@ This project was made as Go learning opportunity. The initial release was create
 
 1. Simply download one of this binaries for your system:
 	```bash
-	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.12/gitlab-ci-multi-runner-linux-386
-	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.12/gitlab-ci-multi-runner-linux-amd64
-	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.12/gitlab-ci-multi-runner-darwin-386
-	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.12/gitlab-ci-multi-runner-darwin-amd64
+	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.13/gitlab-ci-multi-runner-linux-386
+	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.13/gitlab-ci-multi-runner-linux-amd64
+	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.13/gitlab-ci-multi-runner-darwin-386
+	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.13/gitlab-ci-multi-runner-darwin-amd64
 	```
 
 1. Give it permissions to execute:
@@ -200,7 +200,7 @@ Configuration uses TOML format described here: https://github.com/toml-lang/toml
     * **ssh** - run build remotely with SSH - this requires the presence of *[runners.ssh]*
     * **parallels** - run build using Parallels VM, but connect to it with SSH - this requires the presence of *[runners.parallels]* and *[runners.ssh]*
 
-1. The SHELLS (in v0.1.13):
+1. The SHELLS:
 
     There are a couple of available shells that can be run on different platforms:
     * **bash** - generate Bash (Bourne-shell) script. All commands executed in Bash context (default for all Unix systems)
