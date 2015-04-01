@@ -89,7 +89,7 @@ packagecloud-yank:
 ifneq ($(YANK),)
 	-for DIST in debian/wheezy debian/jessie ubuntu/precise ubuntu/trusty ubuntu/utopic; do \
 		package_cloud yank $(PACKAGE_CLOUD)/$$DIST $(NAME)_$(YANK)_amd64.deb; \
-		package_cloud yank $(PACKAGE_CLOUD)/$$DIST $(NAME)_$(YANK)_i386.deb; \
+		package_cloud yank $(PACKAGE_CLOUD)/$$DIST $(NAME)_$(YANK)_386.deb; \
 	done
 	-package_cloud yank $(PACKAGE_CLOUD)/el/7 $(NAME)-$(YANK)-1.x86_64.rpm
 	-package_cloud yank $(PACKAGE_CLOUD)/el/7 $(NAME)-$(YANK)-1.386.rpm
