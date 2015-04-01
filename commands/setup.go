@@ -99,7 +99,7 @@ func (s *SetupContext) askDocker(runnerConfig *common.RunnerConfig) {
 
 	s.askForDockerService("postgres", dockerConfig)
 	s.askForDockerService("redis", dockerConfig)
-	s.askForDockerService("mongodb", dockerConfig)
+	s.askForDockerService("mongo", dockerConfig)
 
 	dockerConfig.Volumes = append(dockerConfig.Volumes, "/cache")
 
@@ -316,9 +316,9 @@ func init() {
 				EnvVar: "DOCKER_POSTGRES",
 			},
 			cli.StringFlag{
-				Name:   "docker-mongodb",
+				Name:   "docker-mongo",
 				Usage:  "MongoDB version (or specify latest) to link as service Docker service",
-				EnvVar: "DOCKER_MONGODB",
+				EnvVar: "DOCKER_MONGO",
 			},
 			cli.StringFlag{
 				Name:   "docker-redis",
