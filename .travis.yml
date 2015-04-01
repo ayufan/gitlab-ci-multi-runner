@@ -1,4 +1,9 @@
 language: go
+sudo: false
+addons:
+  apt:
+    packages:
+    - rpm
 go:
 - '1.4'
 env:
@@ -19,7 +24,6 @@ before_deploy:
 - gox -build-toolchain -os="linux" -os="darwin" -os="windows"
 - gem install package_cloud
 - gem install fpm
-- sudo apt-get install -y rpm
 - make build
 - make deb
 - make rpm
