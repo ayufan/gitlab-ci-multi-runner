@@ -111,6 +111,7 @@ func (mr *MultiRunner) addBuild(newBuild *common.Build) {
 	mr.buildsLock.Lock()
 	defer mr.buildsLock.Unlock()
 
+	newBuild.AssignID(mr.builds...)
 	mr.builds = append(mr.builds, newBuild)
 	mr.allBuilds = append(mr.allBuilds, newBuild)
 	mr.debugln("Added a new build", newBuild)
@@ -169,10 +170,8 @@ func (mr *MultiRunner) requestBuild(runner *common.RunnerConfig) *common.Build {
 	newBuild := &common.Build{
 		GetBuildResponse: *buildData,
 		Runner:           runner,
+		BuildAbort:       mr.abortBuilds,
 	}
-
-	newBuild.Prepare(mr.builds)
-	newBuild.BuildAbort = mr.abortBuilds
 	return newBuild
 }
 

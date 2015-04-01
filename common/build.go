@@ -39,7 +39,7 @@ type Build struct {
 	ProjectRunnerName string `json:"name"`
 }
 
-func (b *Build) Prepare(otherBuilds []*Build) {
+func (b *Build) AssignID(otherBuilds ...*Build) {
 	globals := make(map[int]bool)
 	runners := make(map[int]bool)
 	projectRunners := make(map[int]bool)
@@ -83,8 +83,6 @@ func (b *Build) Prepare(otherBuilds []*Build) {
 			break
 		}
 	}
-
-	b.BuildAbort = make(chan os.Signal, 1)
 }
 
 func (b *Build) ProjectUniqueName() string {

@@ -123,9 +123,9 @@ func runSingle(c *cli.Context) {
 		newBuild := common.Build{
 			GetBuildResponse: *buildData,
 			Runner:           &runner,
+			BuildAbort:       abortSignal,
 		}
-		newBuild.Prepare([]*common.Build{})
-		newBuild.BuildAbort = abortSignal
+		newBuild.AssignID()
 		newBuild.Run()
 	}
 
