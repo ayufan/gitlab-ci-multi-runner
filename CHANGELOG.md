@@ -7,6 +7,7 @@ v 0.1.13
 - Added the kardianos/service which allows to easily run gitlab-ci-multi-runner as service on different platforms
 - Unregister Parallels VMs which are invalid
 - Delete Parallels VM if it doesn't contain snapshots
+- Fixed concurrency issue when assigning unique names
 
 v 0.1.12
 - Abort all jobs if interrupt or SIGTERM is received
