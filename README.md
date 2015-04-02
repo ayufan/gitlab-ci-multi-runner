@@ -221,6 +221,15 @@ This project was made as Go learning opportunity. The initial release was create
   ```
   **note**: you need to use the same method for mounting you data volume as you did originally (`-v /PATH/TO/DATA/FOLDER:/data` or `--volumes-from multi-runner-data`)
 
+#### Installing Trusted SSL Server Certificates
+
+If your GitLab CI server is using self-signed SSL certificates then you should make sure the GitLab CI server certificate is trusted by the gitlab-ci-multi-runner container for them to be able to talk to each other.
+
+The gitlab-ci-multi-runner image is configured to look for the trusted SSL certificates at `/data/certs/ca.crt`, this can however be changed using the `-e "CA_CERTIFICATES_PATH=/DIR/CERT"` configuration option.
+
+Copy the `ca.crt` file into the `certs` directory on the data volume (or container). The `ca.crt` file should contain the root certificates of all the servers you want gitlab-ci-multi-runner to trust.
+The gitlab-ci-multi-runner container will import the `ca.crt` file on startup so if your container is already running you may need to restart it for the changes to take place.
+
 ### Extra projects?
 
 If you want to add another project, token or image simply re-run setup. *You don't have to re-run the runner. He will automatically reload configuration once it changes.*
