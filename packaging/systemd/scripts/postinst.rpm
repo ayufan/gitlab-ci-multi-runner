@@ -2,7 +2,7 @@
 set -e
 
 if ! id -u gitlab_ci_multi_runner >/dev/null 2>/dev/null; then
-  useradd --comment 'GitLab CI Multi Runner' --create-home gitlab_ci_multi_runner
+  useradd --comment 'GitLab CI Multi Runner' --create-home gitlab_ci_multi_runner --shell /bin/bash
 fi
 usermod -aG docker gitlab_ci_multi_runner || true
 touch ~gitlab_ci_multi_runner/config.toml
