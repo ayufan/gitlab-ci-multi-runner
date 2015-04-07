@@ -404,18 +404,19 @@ func CreateService(c *cli.Context) service.Service {
 
 func RunService(c *cli.Context) {
 	s := CreateService(c)
-	logger, err := s.Logger(nil)
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	if !service.Interactive() {
+	if c.Bool("syslog") {
+		logger, err := s.Logger(nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		log.AddHook(&ServiceLogHook{logger})
 	}
 
-	err = s.Run()
+	err := s.Run()
 	if err != nil {
-		logger.Error(err)
+		log.Errorln(err)
 	}
 }
 
@@ -452,6 +453,10 @@ func init() {
 				Name:  "service-name, n",
 				Value: "",
 				Usage: "Use different names for different services",
+			},
+			cli.BoolFlag{
+				Name:  "syslog",
+				Usage: "Log to syslog",
 			},
 		},
 	})
