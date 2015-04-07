@@ -2,9 +2,9 @@
 
 (In the future there will be brew package)
 
-1. Download binary for your system (modify v0.1.13 with latest release number):
+1. Download binary for your system (modify v0.1.14 with latest release number):
 	```bash
-	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.13/gitlab-ci-multi-runner-darwin-amd64
+	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.14/gitlab-ci-multi-runner-darwin-amd64
 	```
 
 1. Give it permissions to execute:
@@ -48,7 +48,7 @@
 
 1. Download binary for your system from https://github.com/ayufan/gitlab-ci-multi-runner/releases and replace runner's executable:
 	```bash
-	wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.13/gitlab-ci-multi-runner-darwin-amd64
+	wget -O /usr/local/bin/gitlab-ci-multi-runner https://github.com/ayufan/gitlab-ci-multi-runner/releases/download/v0.1.14/gitlab-ci-multi-runner-darwin-amd64
 	```
 
 1. Give it permissions to execute:
