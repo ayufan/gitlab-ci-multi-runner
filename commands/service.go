@@ -3,11 +3,17 @@ package commands
 import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/ayufan/gitlab-ci-multi-runner/common"
+	service "github.com/ayufan/golang-kardianos-service"
 	"github.com/codegangsta/cli"
-	"github.com/kardianos/service"
 	"os"
 	"os/user"
 	"runtime"
+)
+
+const (
+	defaultServiceName = "gitlab-ci-multi-runner"
+	defaultDisplayName = "GitLab-CI Multi-purpose Runner"
+	defaultDescription = "Unofficial GitLab CI runner written in Go"
 )
 
 type ServiceLogHook struct {
@@ -51,14 +57,14 @@ func RunServiceControl(c *cli.Context) {
 	serviceName := c.String("service-name")
 	displayName := c.String("service-name")
 	if serviceName == "" {
-		serviceName = "gitlab-ci-multi-runner"
-		displayName = "GitLab-CI Multi-purpose Runner"
+		serviceName = defaultServiceName
+		displayName = defaultDisplayName
 	}
 
 	svcConfig := &service.Config{
 		Name:        serviceName,
 		DisplayName: displayName,
-		Description: "Unofficial GitLab CI runner written in Go",
+		Description: defaultDescription,
 		Arguments:   []string{"run"},
 		UserName:    c.String("user"),
 	}
@@ -78,6 +84,10 @@ func RunServiceControl(c *cli.Context) {
 
 	if config := c.String("config"); config != "" {
 		svcConfig.Arguments = append(svcConfig.Arguments, "--config", config)
+	}
+
+	if sn := c.String("service-name"); sn != "" {
+		svcConfig.Arguments = append(svcConfig.Arguments, "--service-name", sn)
 	}
 
 	s, err := service.New(&NullService{}, svcConfig)

@@ -7,8 +7,8 @@ import (
 	"syscall"
 	"time"
 
+	service "github.com/ayufan/golang-kardianos-service"
 	"github.com/codegangsta/cli"
-	"github.com/kardianos/service"
 
 	log "github.com/Sirupsen/logrus"
 
@@ -375,10 +375,17 @@ func (mr *MultiRunner) Stop(s service.Service) error {
 }
 
 func CreateService(c *cli.Context) service.Service {
+	serviceName := c.String("service-name")
+	displayName := c.String("service-name")
+	if serviceName == "" {
+		serviceName = defaultServiceName
+		displayName = defaultDisplayName
+	}
+
 	svcConfig := &service.Config{
-		Name:        "gitlab-ci-multi-runner",
-		DisplayName: "GitLab-CI Multi-purpose Runner",
-		Description: "Unofficial GitLab CI runner written in Go",
+		Name:        serviceName,
+		DisplayName: displayName,
+		Description: defaultDescription,
 		Arguments:   []string{"run"},
 	}
 
@@ -440,6 +447,11 @@ func init() {
 				Value:  "",
 				Usage:  "API listen address, eg. :8080",
 				EnvVar: "API_LISTEN",
+			},
+			cli.StringFlag{
+				Name:  "service-name, n",
+				Value: "",
+				Usage: "Use different names for different services",
 			},
 		},
 	})
