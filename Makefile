@@ -89,8 +89,7 @@ package-deb-fpm:
 		--license "MIT" \
 		--vendor "ayufan.eu" \
 		-a $(ARCH) \
-		out/gitlab-ci-multi-runner-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner \
-		packaging/root/=/
+		out/gitlab-ci-multi-runner-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
 
 package-rpm-fpm:
 	@mkdir -p out/rpm/
@@ -106,8 +105,7 @@ package-rpm-fpm:
 		--license "MIT" \
 		--vendor "ayufan.eu" \
 		-a $(ARCH) \
-		out/gitlab-ci-multi-runner-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner \
-		packaging/root/=/
+		out/gitlab-ci-multi-runner-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
 
 packagecloud: packagecloud-deps packagecloud-deb packagecloud-rpm
 
