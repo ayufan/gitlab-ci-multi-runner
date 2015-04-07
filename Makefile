@@ -43,6 +43,18 @@ test:
 	# Running tests...
 	go test
 
+test-docker:
+	make test-docker-image IMAGE=centos:6 CMD="yum install -y tar &&"
+	#make test-docker-image IMAGE=centos:7 CMD="yum install -y tar &&"
+	make test-docker-image IMAGE=debian:wheezy
+	make test-docker-image IMAGE=debian:jessie
+	make test-docker-image IMAGE=ubuntu-upstart:precise
+	make test-docker-image IMAGE=ubuntu-upstart:trusty
+	make test-docker-image IMAGE=ubuntu-upstart:utopic
+
+test-docker-image:
+	-tar c tests/* out/*/* | docker run -P --rm -i $(IMAGE) bash -c "$(CMD) tar x && exec tests/install_runner.sh"
+
 version: FORCE
 	# Generating VERSION...
 	echo "package commands\n\nconst VERSION = \"$(VERSION) ($(REVISION))\"\nconst REVISION = \"$(REVISION)\"" > commands/version.go
