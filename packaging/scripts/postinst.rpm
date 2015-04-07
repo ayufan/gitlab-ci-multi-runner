@@ -7,9 +7,11 @@ if ! id -u "$USER" >/dev/null 2>/dev/null; then
   useradd --comment 'GitLab CI Multi Runner' --create-home $USER
 fi
 usermod -aG docker $USER || true
-touch ~$USER/config.toml
-chown $USER:$USER ~$USER/config.toml
-chmod 0600 ~$USER/config.toml
+eval HOMEDIR=~$USER
+cd $HOMEDIR
+touch config.toml
+chown $USER:$USER config.toml
+chmod 0600 config.toml
 gitlab-ci-multi-runner install --user=$USER
 service gitlab-ci-multi-runner start || :
 exit 0

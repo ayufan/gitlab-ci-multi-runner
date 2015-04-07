@@ -1,3 +1,7 @@
+v 0.1.14
+- Use custom kardianos/service with enhanced service scripts
+- Remove all system specific packages and use universal for package manager
+
 v 0.1.13
 - Added abstraction over shells
 - Moved all bash specific stuff to shells/bash.go
