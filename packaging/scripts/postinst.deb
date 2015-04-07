@@ -1,0 +1,30 @@
+#!/bin/sh
+set -e
+
+USER=gitlab_ci_multi_runner
+
+case "$1" in
+  abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+  configure)
+    if ! id -u "$USER" >/dev/null 2>/dev/null; then
+      useradd --comment 'GitLab CI Multi Runner' --create-home $USER
+    fi
+    usermod -aG docker $USER || true
+    eval HOMEDIR=~$USER
+    cd $HOMEDIR
+    touch config.toml
+    chown $USER:$USER config.toml
+    chmod 0600 config.toml
+    gitlab-ci-multi-runner install --user=$USER
+    service gitlab-ci-multi-runner start || :
+    ;;
+
+  *)
+    echo "postinst called with unknown argument \`$1'" >&2
+    exit 1
+    ;;
+esac
+
+exit 0

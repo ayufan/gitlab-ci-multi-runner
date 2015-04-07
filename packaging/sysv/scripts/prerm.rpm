@@ -1,4 +1,0 @@
-#!/bin/sh
-set -e
-
-service gitlab-ci-multi-runner stop || :

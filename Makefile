@@ -51,49 +51,43 @@ package: package-deps package-deb package-rpm
 
 package-deb:
 	# Building Debian compatible packages...
-	make package-deb-fpm ARCH=amd64 TYPE=sysv
-	make package-deb-fpm ARCH=386 TYPE=sysv
-	make package-deb-fpm ARCH=amd64 TYPE=upstart
-	make package-deb-fpm ARCH=386 TYPE=upstart
-	make package-deb-fpm ARCH=amd64 TYPE=systemd
-	make package-deb ARCH=386 TYPE=systemd
+	make package-deb-fpm ARCH=amd64
+	make package-deb-fpm ARCH=386
 
 package-rpm:
 	# Building RedHat compatible packages...
-	make package-rpm-fpm ARCH=amd64 TYPE=systemd
-	make package-rpm-fpm ARCH=386 TYPE=systemd
+	make package-rpm-fpm ARCH=amd64
 
 package-deps:
 	# Installing packaging dependencies...
 	gem install fpm
 
 package-deb-fpm:
-	mkdir -p out/deb/$(TYPE)/$(ARCH)/
+	@mkdir -p out/deb/
 	fpm -s dir -t deb -n $(NAME) -v $(VERSION) \
-		-p out/deb/$(TYPE)/$(ARCH)/$(NAME).deb \
+		-p out/deb/$(NAME)_$(ARCH).deb \
 		--deb-priority optional --category admin \
 		--force \
 		--deb-compression bzip2 \
-		--after-install packaging/$(TYPE)/scripts/postinst.deb \
-		--before-remove packaging/$(TYPE)/scripts/prerm.deb \
+		--after-install packaging/scripts/postinst.deb \
+		--before-remove packaging/scripts/prerm.deb \
 		--url https://github.com/ayufan/gitlab-ci-multi-runner \
 		--description "GitLab CI Multi-purpose Runner" \
 		-m "Kamil Trzciński <ayufan@ayufan.eu>" \
 		--license "MIT" \
 		--vendor "ayufan.eu" \
 		-a $(ARCH) \
-		--config-files /etc/default/gitlab-ci-multi-runner \
 		out/gitlab-ci-multi-runner-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner \
-		packaging/$(TYPE)/root/=/
+		packaging/root/=/
 
 package-rpm-fpm:
-	mkdir -p out/rpm/$(TYPE)/$(ARCH)/
+	@mkdir -p out/rpm/
 	fpm -s dir -t rpm -n $(NAME) -v $(VERSION) \
-		-p out/rpm/$(TYPE)/$(ARCH)/$(NAME).rpm \
+		-p out/rpm/$(NAME)_$(ARCH).rpm \
 		--rpm-compression bzip2 --rpm-os linux \
 		--force \
-		--after-install packaging/$(TYPE)/scripts/postinst.rpm \
-		--before-remove packaging/$(TYPE)/scripts/prerm.rpm \
+		--after-install packaging/scripts/postinst.rpm \
+		--before-remove packaging/scripts/prerm.rpm \
 		--url https://github.com/ayufan/gitlab-ci-multi-runner \
 		--description "GitLab CI Multi-purpose Runner" \
 		-m "Kamil Trzciński <ayufan@ayufan.eu>" \
@@ -101,7 +95,7 @@ package-rpm-fpm:
 		--vendor "ayufan.eu" \
 		-a $(ARCH) \
 		out/gitlab-ci-multi-runner-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner \
-		packaging/$(TYPE)/root/=/
+		packaging/root/=/
 
 packagecloud: packagecloud-deps packagecloud-deb packagecloud-rpm
 
@@ -111,16 +105,16 @@ packagecloud-deps:
 
 packagecloud-deb:
 	# Sending Debian compatible packages...
-	package_cloud push $(PACKAGE_CLOUD)/debian/wheezy out/deb/sysv/*/*.deb
-	package_cloud push $(PACKAGE_CLOUD)/debian/jessie out/deb/systemd/*/*.deb
+	package_cloud push $(PACKAGE_CLOUD)/debian/wheezy out/deb/*.deb
+	package_cloud push $(PACKAGE_CLOUD)/debian/jessie out/deb/*.deb
 
-	package_cloud push $(PACKAGE_CLOUD)/ubuntu/precise out/deb/upstart/*/*.deb
-	package_cloud push $(PACKAGE_CLOUD)/ubuntu/trusty out/deb/upstart/*/*.deb
-	package_cloud push $(PACKAGE_CLOUD)/ubuntu/utopic out/deb/sysv/*/*.deb
+	package_cloud push $(PACKAGE_CLOUD)/ubuntu/precise out/deb/*.deb
+	package_cloud push $(PACKAGE_CLOUD)/ubuntu/trusty out/deb/*.deb
+	package_cloud push $(PACKAGE_CLOUD)/ubuntu/utopic out/deb/*.deb
 
 packagecloud-rpm:
 	# Sending RedHat compatible packages...
-	package_cloud push $(PACKAGE_CLOUD)/el/7 out/rpm/systemd/*/*.rpm
+	package_cloud push $(PACKAGE_CLOUD)/el/7 out/rpm/*.rpm
 
 packagecloud-yank:
 ifneq ($(YANK),)
