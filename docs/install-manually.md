@@ -35,15 +35,15 @@
 
 1. Install and run as service
 	```bash
-	sudo gitlab-ci-multi-runner-linux install --user=gitlab_ci_multi_runner
-	sudo gitlab-ci-multi-runner-linux start
+	sudo gitlab-ci-multi-runner install --user=gitlab_ci_multi_runner
+	sudo gitlab-ci-multi-runner start
 	```
 
 #### Update
 
 1. Stop service (you need elevated command prompt as before):
 	```bash
-	sudo gitlab-ci-multi-runner-linux stop
+	sudo gitlab-ci-multi-runner stop
 	```
 
 1. Download binary for your system from https://github.com/ayufan/gitlab-ci-multi-runner/releases and replace runner's executable:

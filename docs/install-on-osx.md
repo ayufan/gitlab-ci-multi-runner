@@ -43,7 +43,7 @@
 
 1. Stop service (you need elevated command prompt as before):
 	```bash
-	gitlab-ci-multi-runner-linux stop
+	gitlab-ci-multi-runner stop
 	```
 
 1. Download binary for your system from https://github.com/ayufan/gitlab-ci-multi-runner/releases and replace runner's executable:
