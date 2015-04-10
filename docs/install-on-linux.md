@@ -26,7 +26,7 @@
 1. Setup the runner
   ```bash
   $ cd ~gitlab_ci_multi_runner
-  $ gitlab-ci-multi-runner-linux setup
+  $ gitlab-ci-multi-runner setup
   Please enter the gitlab-ci coordinator URL (e.g. http://gitlab-ci.org:3000/ )
   https://ci.gitlab.org/
   Please enter the gitlab-ci token for this runner
