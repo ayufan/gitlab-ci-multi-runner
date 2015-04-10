@@ -98,14 +98,13 @@ func (b *Build) FullProjectDir() string {
 }
 
 func (b *Build) Run() error {
-	var err error
 	executor := GetExecutor(b.Runner.Executor)
 	if executor == nil {
-		err = errors.New("executor not found")
+		// TODO: if executor is not found we will not notify the coordinator that job has failed
+		return errors.New("executor not found")
 	}
-	if err == nil {
-		err = executor.Prepare(b.Runner, b)
-	}
+
+	err := executor.Prepare(b.Runner, b)
 	if err == nil {
 		err = executor.Start()
 	}
