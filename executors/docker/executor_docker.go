@@ -245,7 +245,7 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 
 	if !s.Config.Docker.DisableCache {
 		s.Debugln("Creating cache directories...")
-		binds, err := s.createVolumes(image, s.BuildsDir)
+		binds, err := s.createVolumes(image, s.Build.BuildsDir)
 		if err != nil {
 			return nil, err
 		}

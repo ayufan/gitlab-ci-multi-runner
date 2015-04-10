@@ -1,8 +1,11 @@
 package common
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"time"
 )
@@ -97,10 +100,41 @@ func (b *Build) FullProjectDir() string {
 	return fmt.Sprintf("%s/%s", b.BuildsDir, b.ProjectDir())
 }
 
+func (b *Build) StartBuild(buildsDir string, buildLog string) {
+	b.BuildStarted = time.Now()
+	b.BuildState = Pending
+	b.BuildLog = buildLog
+	b.BuildsDir = buildsDir
+}
+
+func (b *Build) FinishBuild(buildState BuildState, buildMessage string, args ...interface{}) {
+	b.BuildState = buildState
+	b.BuildMessage = "\n" + fmt.Sprintf(buildMessage, args...)
+	b.BuildFinished = time.Now()
+	b.BuildDuration = b.BuildFinished.Sub(b.BuildStarted)
+}
+
+func (b *Build) SendBuildLog() {
+	var buildLog []byte
+	if b.BuildLog != "" {
+		buildLog, _ = ioutil.ReadFile(b.BuildLog)
+	}
+
+	for {
+		buffer := io.MultiReader(bytes.NewReader(buildLog), bytes.NewBufferString(b.BuildMessage))
+		if UpdateBuild(*b.Runner, b.ID, b.BuildState, buffer) != UpdateFailed {
+			break
+		} else {
+			time.Sleep(UpdateRetryInterval * time.Second)
+		}
+	}
+}
+
 func (b *Build) Run() error {
 	executor := GetExecutor(b.Runner.Executor)
 	if executor == nil {
-		// TODO: if executor is not found we will not notify the coordinator that job has failed
+		b.FinishBuild(Failed, "Executor not found: %v", b.Runner.Executor)
+		b.SendBuildLog()
 		return errors.New("executor not found")
 	}
 
