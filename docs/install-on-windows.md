@@ -4,7 +4,7 @@
 
 1. Download binary for your system from https://github.com/ayufan/gitlab-ci-multi-runner/releases and put it into previously saved folder.
 
-1. Run `Administrator` command prompt. How to do that is described here: http://pcsupport.about.com/od/windows-8/a/elevated-command-prompt-windows-8.htm. The simplest is to write `Command Prompt` in Windows search field and press `Windows+K`. You will be asked to confirm that you want to execute elevated command prompt.
+1. Run `Administrator` command prompt. How to do that is described here: http://pcsupport.about.com/od/windows-8/a/elevated-command-prompt-windows-8.htm. The simplest is to write `Command Prompt` in Windows search field and right click and select `Run as administrator`. You will be asked to confirm that you want to execute elevated command prompt.
 
 1. Go to created folder: `cd C:\Multi-Runner`.
 
