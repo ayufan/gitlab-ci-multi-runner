@@ -69,12 +69,18 @@ func RunServiceControl(c *cli.Context) {
 		UserName:    c.String("user"),
 	}
 
-	if runtime.GOOS == "darwin" {
+	switch runtime.GOOS {
+	case "darwin":
 		svcConfig.UserService = true
 		svcConfig.Option = service.KeyValue{
-			"KeepAlive": true,
-			"RunAtLoad": true,
-			"Password":  c.String("password"),
+			"KeepAlive":     true,
+			"RunAtLoad":     true,
+			"SessionCreate": true,
+		}
+
+	case "windows":
+		svcConfig.Option = service.KeyValue{
+			"Password": c.String("password"),
 		}
 	}
 
