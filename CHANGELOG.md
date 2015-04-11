@@ -1,6 +1,7 @@
 v 0.1.15
 - Fix order of executor commands
 - Fixed service creation options
+- Fixed service installation on OSX
 
 v 0.1.14
 - Use custom kardianos/service with enhanced service scripts
