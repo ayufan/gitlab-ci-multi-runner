@@ -19,7 +19,7 @@
 		},
 		{
 			"ImportPath": "github.com/ayufan/golang-kardianos-service",
-			"Rev": "f39f41fe4cb06557db9193ddc85cf1101ac64f2a"
+			"Rev": "bf16ce54e800ea354959b4653b2a6997b6508991"
 		},
 		{
 			"ImportPath": "github.com/codegangsta/cli",

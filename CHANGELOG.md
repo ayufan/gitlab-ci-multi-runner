@@ -1,3 +1,6 @@
+v 0.1.16
+- Fixed systemd service script
+
 v 0.1.15
 - Fix order of executor commands
 - Fixed service creation options
