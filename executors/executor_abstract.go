@@ -45,6 +45,20 @@ func (e *AbstractExecutor) FinishBuild(config common.RunnerConfig, buildState co
 }
 
 func (e *AbstractExecutor) WatchTrace(config common.RunnerConfig, abort chan bool, finished chan bool) {
+	buildLog := e.BuildLog
+	if buildLog == nil {
+		<-finished
+		return
+	}
+
+	file, err := os.Open(buildLog.Name())
+	if err != nil {
+		e.Errorln("Failed to read", buildLog.Name(), err)
+		<-finished
+		return
+	}
+	defer file.Close()
+
 	for {
 		select {
 		case <-time.After(common.UpdateInterval * time.Second):
@@ -53,11 +67,11 @@ func (e *AbstractExecutor) WatchTrace(config common.RunnerConfig, abort chan boo
 				return
 			}
 
-			file, err := os.Open(e.BuildLog.Name())
-			if err != nil {
+			offset, err := file.Seek(0, 0)
+			if err != nil || offset != 0 {
+				e.Debugln("updateBuildLog", "Failed to seek build log to the beggining...", offset, err)
 				continue
 			}
-			defer file.Close()
 
 			switch common.UpdateBuild(config, e.Build.ID, common.Running, file) {
 			case common.UpdateSucceeded:
