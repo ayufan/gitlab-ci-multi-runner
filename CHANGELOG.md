@@ -1,3 +1,6 @@
+v 0.1.17
+- Fixed high file descriptor usage that could lead to error: too many open files
+
 v 0.1.16
 - Fixed systemd service script
 
