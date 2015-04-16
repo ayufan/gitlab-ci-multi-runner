@@ -183,7 +183,7 @@ func DeleteRunner(url, token string) bool {
 	shortToken := helpers.ShortenToken(token)
 
 	switch result {
-	case 201:
+	case 200:
 		log.Println(shortToken, "Deleting runner...", "succeeded")
 		return true
 	case 403:
@@ -192,6 +192,24 @@ func DeleteRunner(url, token string) bool {
 	default:
 		log.Errorln(shortToken, "Deleting runner...", "failed", result)
 		return false
+	}
+}
+
+func VerifyRunner(url, token string) bool {
+	result := putJSON(getURL(url, "builds/%v?token=%v", -1, token), 200, nil, nil)
+	shortToken := helpers.ShortenToken(token)
+
+	switch result {
+	case 404:
+		// this is expected due to fact that we ask for non-existing job
+		log.Println(shortToken, "Veryfing runner...", "is alive")
+		return true
+	case 403:
+		log.Errorln(shortToken, "Veryfing runner...", "is removed")
+		return false
+	default:
+		log.Errorln(shortToken, "Veryfing runner...", "failed", result)
+		return true
 	}
 }
 
