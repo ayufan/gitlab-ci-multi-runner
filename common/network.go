@@ -213,16 +213,11 @@ func VerifyRunner(url, token string) bool {
 	}
 }
 
-func UpdateBuild(config RunnerConfig, id int, state BuildState, trace io.Reader) UpdateState {
-	data, err := readPayload(trace)
-	if err != nil {
-		return UpdateFailed
-	}
-
+func UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) UpdateState {
 	request := UpdateBuildRequest{
 		Token: config.Token,
 		State: state,
-		Trace: string(data),
+		Trace: trace,
 	}
 
 	result := putJSON(getURL(config.URL, "builds/%d.json", id), 200, &request, nil)

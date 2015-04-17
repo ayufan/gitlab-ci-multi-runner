@@ -1,7 +1,6 @@
 package common
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -114,15 +113,46 @@ func (b *Build) FinishBuild(buildState BuildState, buildMessage string, args ...
 	b.BuildDuration = b.BuildFinished.Sub(b.BuildStarted)
 }
 
+func (b *Build) ReadBuildLog() (string, error) {
+	maxTraceSize := MaxTraceOutputSize
+
+	if b.BuildLog == "" {
+		return "", errors.New("no build log")
+	}
+
+	file, err := os.Open(b.BuildLog)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	limitReader := io.LimitReader(file, maxTraceSize)
+	data, err := ioutil.ReadAll(limitReader)
+	if err != nil {
+		return "", err
+	}
+
+	buildTrace := string(data)
+	if fi, err := file.Stat(); err == nil && fi.Size() > maxTraceSize {
+		buildLogExceeded := fmt.Sprintf("\nBuild log exceed limit of %v bytes.", maxTraceSize)
+		buildTrace = buildTrace + buildLogExceeded
+	}
+	return buildTrace, nil
+}
+
 func (b *Build) SendBuildLog() {
-	var buildLog []byte
-	if b.BuildLog != "" {
-		buildLog, _ = ioutil.ReadFile(b.BuildLog)
+	var buildTrace string
+
+	buildTrace, err := b.ReadBuildLog()
+	if err != nil {
+		buildTrace = "Failed to read build trace: " + err.Error()
+	}
+	if b.BuildMessage != "" {
+		buildTrace = buildTrace + b.BuildMessage
 	}
 
 	for {
-		buffer := io.MultiReader(bytes.NewReader(buildLog), bytes.NewBufferString(b.BuildMessage))
-		if UpdateBuild(*b.Runner, b.ID, b.BuildState, buffer) != UpdateFailed {
+		if UpdateBuild(*b.Runner, b.ID, b.BuildState, buildTrace) != UpdateFailed {
 			break
 		} else {
 			time.Sleep(UpdateRetryInterval * time.Second)
