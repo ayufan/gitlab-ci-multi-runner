@@ -2,4 +2,3 @@
 config.toml
 .project
 out
-Godeps/_workspace

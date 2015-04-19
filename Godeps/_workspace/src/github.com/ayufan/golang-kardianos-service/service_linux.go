@@ -1,0 +1,87 @@
+// Copyright 2015 Daniel Theophanes.
+// Use of this source code is governed by a zlib-style
+// license that can be found in the LICENSE file.package service
+
+package service
+
+import (
+	"fmt"
+	"os"
+	"strings"
+)
+
+type linuxSystem struct {
+	interactive  bool
+	selectedName string
+	selectedNew  func(i Interface, c *Config) (Service, error)
+}
+
+func (ls linuxSystem) String() string {
+	return fmt.Sprintf("Linux %s", ls.selectedName)
+}
+
+func (ls linuxSystem) Interactive() bool {
+	return ls.interactive
+}
+
+type linuxSystemService struct {
+	name        string
+	detect      func() bool
+	interactive func() bool
+	new         func(i Interface, c *Config) (Service, error)
+}
+
+func (sc linuxSystemService) String() string {
+	return sc.name
+}
+func (sc linuxSystemService) Detect() bool {
+	return sc.detect()
+}
+func (sc linuxSystemService) Interactive() bool {
+	return sc.interactive()
+}
+func (sc linuxSystemService) New(i Interface, c *Config) (Service, error) {
+	return sc.new(i, c)
+}
+
+func init() {
+	ChooseSystem(linuxSystemService{
+		name:   "systemd",
+		detect: isSystemd,
+		interactive: func() bool {
+			is, _ := isInteractive()
+			return is
+		},
+		new: newSystemdService,
+	},
+		linuxSystemService{
+			name:   "Upstart",
+			detect: isUpstart,
+			interactive: func() bool {
+				is, _ := isInteractive()
+				return is
+			},
+			new: newUpstartService,
+		},
+		linuxSystemService{
+			name:   "System-V",
+			detect: func() bool { return true },
+			interactive: func() bool {
+				is, _ := isInteractive()
+				return is
+			},
+			new: newSystemVService,
+		},
+	)
+}
+
+func isInteractive() (bool, error) {
+	// TODO: This is not true for user services.
+	return os.Getppid() != 1, nil
+}
+
+var tf = map[string]interface{}{
+	"cmd": func(s string) string {
+		return `"` + strings.Replace(s, `"`, `\"`, -1) + `"`
+	},
+}
