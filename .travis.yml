@@ -18,19 +18,55 @@ before_deploy:
 - make toolchain
 - make build
 - make package
-- make packagecloud
+- '[[ -z "$TRAVIS_TAG" ]] || make packagecloud'
 deploy:
-  provider: releases
+- provider: releases
   api_key:
     secure: WBb1z0GV1uD8pB/UMDVqiqIFHcgxl2fngF9Qg8Obe0IJIuBN8ak4H1ulYKYcRgguJjefMG/OnPT2xHCsSme+OanxBcGDiYijG1vVmBqnMV8wTK5ulqkgSz7QVH4oCmdqd8WnHKqqqXmLUARRAUkvKFDCf2mq6qyAy+wKw7jPluI=
   file:
-    - out/gitlab-ci-multi-runner-linux-arm
-    - out/gitlab-ci-multi-runner-linux-386
-    - out/gitlab-ci-multi-runner-linux-amd64
-    - out/gitlab-ci-multi-runner-darwin-386
-    - out/gitlab-ci-multi-runner-darwin-amd64
-    - out/gitlab-ci-multi-runner-windows-386.exe
-    - out/gitlab-ci-multi-runner-windows-amd64.exe
+    - out/binaries/gitlab-ci-multi-runner-linux-arm
+    - out/binaries/gitlab-ci-multi-runner-linux-386
+    - out/binaries/gitlab-ci-multi-runner-linux-amd64
+    - out/binaries/gitlab-ci-multi-runner-darwin-386
+    - out/binaries/gitlab-ci-multi-runner-darwin-amd64
+    - out/binaries/gitlab-ci-multi-runner-windows-386.exe
+    - out/binaries/gitlab-ci-multi-runner-windows-amd64.exe
+  on:
+    repo: ayufan/gitlab-ci-multi-runner
+    tags: true
+- provider: s3
+  access_key_id: $S3_ACCESS_KEY
+  secret_access_key: $S3_SECRET_ACCESS_KEY
+  bucket: repo.ayufan.eu
+  region: eu-west-1
+  skip_cleanup: true
+  acl: public_read
+  local_dir: out/
+  upload_dir: gitlab-ci-multi-runner/master
+  on:
+    repo: ayufan/gitlab-ci-multi-runner
+    branch: master
+- provider: s3
+  access_key_id: $S3_ACCESS_KEY
+  secret_access_key: $S3_SECRET_ACCESS_KEY
+  bucket: repo.ayufan.eu
+  region: eu-west-1
+  skip_cleanup: true
+  acl: public_read
+  local_dir: out/
+  upload_dir: gitlab-ci-multi-runner/$TRAVIS_TAG
+  on:
+    repo: ayufan/gitlab-ci-multi-runner
+    tags: true
+- provider: s3
+  access_key_id: $S3_ACCESS_KEY
+  secret_access_key: $S3_SECRET_ACCESS_KEY
+  bucket: repo.ayufan.eu
+  region: eu-west-1
+  skip_cleanup: true
+  acl: public_read
+  local_dir: out/
+  upload_dir: gitlab-ci-multi-runner/latest
   on:
     repo: ayufan/gitlab-ci-multi-runner
     tags: true

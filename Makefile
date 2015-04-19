@@ -33,7 +33,7 @@ toolchain:
 
 build: version
 	# Building gitlab-ci-multi-runner for $(BUILD_PLATFORMS)
-	gox $(BUILD_PLATFORMS) -output="out/{{.Dir}}-{{.OS}}-{{.Arch}}"
+	gox $(BUILD_PLATFORMS) -output="out/binaries/{{.Dir}}-{{.OS}}-{{.Arch}}"
 
 lint:
 	# Checking project code style...
@@ -59,7 +59,11 @@ version: FORCE
 	# Generating VERSION...
 	echo "package commands\n\nconst VERSION = \"$(VERSION) ($(REVISION))\"\nconst REVISION = \"$(REVISION)\"" > commands/version.go
 
-package: package-deps package-deb package-rpm
+package: package-deps package-deb package-rpm package-script
+
+package-script:
+	cp install.sh out/
+	[[ -n "$TRAVIS_TAG" ]] || sed "s|/latest/|/master/|g" install.sh > out/install.sh
 
 package-deb:
 	# Building Debian compatible packages...
@@ -89,7 +93,7 @@ package-deb-fpm:
 		--license "MIT" \
 		--vendor "ayufan.eu" \
 		-a $(ARCH) \
-		out/gitlab-ci-multi-runner-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
+		out/binaries/gitlab-ci-multi-runner-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
 
 package-rpm-fpm:
 	@mkdir -p out/rpm/
@@ -105,7 +109,7 @@ package-rpm-fpm:
 		--license "MIT" \
 		--vendor "ayufan.eu" \
 		-a $(ARCH) \
-		out/gitlab-ci-multi-runner-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
+		out/binaries/gitlab-ci-multi-runner-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
 
 packagecloud: packagecloud-deps packagecloud-deb packagecloud-rpm
 
