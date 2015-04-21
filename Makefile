@@ -142,14 +142,15 @@ packagecloud-yank:
 ifneq ($(YANK),)
 	# Removing $(YANK) from packagecloud...
 	-for DIST in debian/wheezy debian/jessie ubuntu/precise ubuntu/trusty ubuntu/utopic; do \
-		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(NAME)_$(YANK)_amd64.deb; \
-		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(NAME)_$(YANK)_386.deb; \
-		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(NAME)_$(YANK)_arm.deb; \
-	done
-	-package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/6 $(NAME)-$(YANK)-1.x86_64.rpm
-	-package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/6 $(NAME)-$(YANK)-1.386.rpm
-	-package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/7 $(NAME)-$(YANK)-1.x86_64.rpm
-	-package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/7 $(NAME)-$(YANK)-1.386.rpm
+		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(NAME)_$(YANK)_amd64.deb & \
+		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(NAME)_$(YANK)_386.deb & \
+		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(NAME)_$(YANK)_arm.deb & \
+	done; \
+	package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/6 $(NAME)-$(YANK)-1.x86_64.rpm & \
+	package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/6 $(NAME)-$(YANK)-1.386.rpm & \
+	package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/7 $(NAME)-$(YANK)-1.x86_64.rpm & \
+	package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/7 $(NAME)-$(YANK)-1.386.rpm & \
+	wait
 else
 	# No version specified in YANK
 	@exit 1
