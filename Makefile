@@ -60,11 +60,7 @@ version: FORCE
 	# Generating VERSION...
 	echo "package commands\n\nconst VERSION = \"$(VERSION) ($(REVISION))\"\nconst REVISION = \"$(REVISION)\"" > commands/version.go
 
-package: package-deps package-deb package-rpm package-script
-
-package-script:
-	cp install.sh out/
-	[[ -n "$TRAVIS_TAG" ]] || sed "s|/latest/|/master/|g" install.sh > out/install.sh
+package: package-deps package-deb package-rpm
 
 package-deb:
 	# Building Debian compatible packages...
