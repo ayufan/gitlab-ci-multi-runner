@@ -1,9 +1,10 @@
+NAME ?= gitlab-ci-multi-runner
 ifeq ($(RELEASE),true)
-	NAME ?= gitlab-ci-multi-runner
-	CONFLICTS ?= gitlab-ci-multi-runner-beta
+	PACKAGE_NAME ?= $(NAME)
+	PACKAGE_CONFLICT ?= $(NAME)-beta
 else
-	NAME ?= gitlab-ci-multi-runner-beta
-	CONFLICTS ?= gitlab-ci-multi-runner
+	PACKAGE_NAME ?= $(NAME)-beta
+	PACKAGE_CONFLICT ?= $(NAME)
 endif
 REVISION := $(shell git rev-parse --short HEAD || echo unknown)
 VERSION := $(shell git describe --tags || cat VERSION || echo dev)
@@ -12,6 +13,7 @@ ITTERATION := $(shell date +%s)
 PACKAGE_CLOUD ?= ayufan/gitlab-ci-multi-runner
 PACKAGE_CLOUD_URL ?= https://packagecloud.io/
 BUILD_PLATFORMS ?= -os="linux" -os="darwin" -os="windows"
+S3_UPLOAD_PATH ?= master
 
 all: deps test lint toolchain build
 
@@ -85,8 +87,8 @@ package-deps:
 
 package-deb-fpm:
 	@mkdir -p out/deb/
-	fpm -s dir -t deb -n $(NAME) -v $(VERSION) \
-		-p out/deb/$(NAME)_$(ARCH).deb \
+	fpm -s dir -t deb -n $(PACKAGE_NAME) -v $(VERSION) \
+		-p out/deb/$(PACKAGE_NAME)_$(ARCH).deb \
 		--deb-priority optional --category admin \
 		--force \
 		--deb-compression bzip2 \
@@ -97,14 +99,14 @@ package-deb-fpm:
 		-m "Kamil Trzciński <ayufan@ayufan.eu>" \
 		--license "MIT" \
 		--vendor "ayufan.eu" \
-		--conflicts $(CONFLICTS) \
+		--conflicts $(PACKAGE_CONFLICT) \
 		-a $(ARCH) \
 		out/binaries/$(NAME)-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
 
 package-rpm-fpm:
 	@mkdir -p out/rpm/
-	fpm -s dir -t rpm -n $(NAME) -v $(VERSION) \
-		-p out/rpm/$(NAME)_$(ARCH).rpm \
+	fpm -s dir -t rpm -n $(PACKAGE_NAME) -v $(VERSION) \
+		-p out/rpm/$(PACKAGE_NAME)_$(ARCH).rpm \
 		--rpm-compression bzip2 --rpm-os linux \
 		--force \
 		--after-install packaging/scripts/postinst.rpm \
@@ -114,7 +116,7 @@ package-rpm-fpm:
 		-m "Kamil Trzciński <ayufan@ayufan.eu>" \
 		--license "MIT" \
 		--vendor "ayufan.eu" \
-		--conflicts $(CONFLICTS) \
+		--conflicts $(PACKAGE_CONFLICT) \
 		-a $(ARCH) \
 		out/binaries/$(NAME)-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
 
@@ -142,18 +144,26 @@ packagecloud-yank:
 ifneq ($(YANK),)
 	# Removing $(YANK) from packagecloud...
 	-for DIST in debian/wheezy debian/jessie ubuntu/precise ubuntu/trusty ubuntu/utopic; do \
-		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(NAME)_$(YANK)_amd64.deb & \
-		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(NAME)_$(YANK)_386.deb & \
-		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(NAME)_$(YANK)_arm.deb & \
+		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(PACKAGE_NAME)_$(YANK)_amd64.deb & \
+		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(PACKAGE_NAME)_$(YANK)_386.deb & \
+		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(PACKAGE_NAME)_$(YANK)_arm.deb & \
 	done; \
-	package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/6 $(NAME)-$(YANK)-1.x86_64.rpm & \
-	package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/6 $(NAME)-$(YANK)-1.386.rpm & \
-	package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/7 $(NAME)-$(YANK)-1.x86_64.rpm & \
-	package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/7 $(NAME)-$(YANK)-1.386.rpm & \
+	package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/6 $(PACKAGE_NAME)-$(YANK)-1.x86_64.rpm & \
+	package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/6 $(PACKAGE_NAME)-$(YANK)-1.386.rpm & \
+	package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/7 $(PACKAGE_NAME)-$(YANK)-1.x86_64.rpm & \
+	package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/7 $(PACKAGE_NAME)-$(YANK)-1.386.rpm & \
 	wait
 else
 	# No version specified in YANK
 	@exit 1
 endif
+
+s3-upload:
+	export ARTIFACTS_DEST=artifacts; curl -sL https://raw.githubusercontent.com/travis-ci/artifacts/master/install | bash
+	./artifacts upload \
+		--permissions public-read \
+		--working-dir out \
+		--target-paths "gitlab-ci-multi-runner/$(S3_UPLOAD_PATH)/" \
+		$(shell cd out/; find . -type f)
 
 FORCE:
