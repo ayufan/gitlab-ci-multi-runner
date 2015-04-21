@@ -66,10 +66,12 @@ package-deb:
 	# Building Debian compatible packages...
 	make package-deb-fpm ARCH=amd64
 	make package-deb-fpm ARCH=386
+	make package-deb-fpm ARCH=arm
 
 package-rpm:
 	# Building RedHat compatible packages...
 	make package-rpm-fpm ARCH=amd64
+	make package-rpm-fpm ARCH=386
 
 package-deps:
 	# Installing packaging dependencies...
@@ -125,7 +127,7 @@ packagecloud-deb:
 
 packagecloud-rpm:
 	# Sending RedHat compatible packages...
-	package_cloud push --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/76out/rpm/*.rpm
+	package_cloud push --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/6 out/rpm/*.rpm
 	package_cloud push --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/7 out/rpm/*.rpm
 
 packagecloud-yank:
@@ -134,6 +136,7 @@ ifneq ($(YANK),)
 	-for DIST in debian/wheezy debian/jessie ubuntu/precise ubuntu/trusty ubuntu/utopic; do \
 		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(NAME)_$(YANK)_amd64.deb; \
 		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(NAME)_$(YANK)_386.deb; \
+		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(NAME)_$(YANK)_arm.deb; \
 	done
 	-package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/6 $(NAME)-$(YANK)-1.x86_64.rpm
 	-package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/6 $(NAME)-$(YANK)-1.386.rpm
