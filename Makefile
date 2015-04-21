@@ -1,4 +1,10 @@
-NAME ?= gitlab-ci-multi-runner
+ifeq ($(RELEASE),true)
+	NAME ?= gitlab-ci-multi-runner
+	CONFLICTS ?= gitlab-ci-multi-runner-beta
+else
+	NAME ?= gitlab-ci-multi-runner-beta
+	CONFLICTS ?= gitlab-ci-multi-runner
+endif
 REVISION := $(shell git rev-parse --short HEAD || echo unknown)
 VERSION := $(shell git describe --tags || cat VERSION || echo dev)
 VERSION := $(shell echo $(VERSION) | sed -e 's/^v//g')
@@ -91,6 +97,7 @@ package-deb-fpm:
 		-m "Kamil Trzciński <ayufan@ayufan.eu>" \
 		--license "MIT" \
 		--vendor "ayufan.eu" \
+		--conflicts $(CONFLICTS) \
 		-a $(ARCH) \
 		out/binaries/$(NAME)-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
 
@@ -107,6 +114,7 @@ package-rpm-fpm:
 		-m "Kamil Trzciński <ayufan@ayufan.eu>" \
 		--license "MIT" \
 		--vendor "ayufan.eu" \
+		--conflicts $(CONFLICTS) \
 		-a $(ARCH) \
 		out/binaries/$(NAME)-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
 
