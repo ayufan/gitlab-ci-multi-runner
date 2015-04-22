@@ -2,12 +2,13 @@ package executors
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
+	"bufio"
 	log "github.com/Sirupsen/logrus"
 	"github.com/ayufan/gitlab-ci-multi-runner/common"
+	"io"
 )
 
 type AbstractExecutor struct {
@@ -19,11 +20,38 @@ type AbstractExecutor struct {
 	BuildCanceled    chan bool
 	FinishLogWatcher chan bool
 	BuildFinish      chan error
-	BuildLog         *os.File
+	BuildLog         *io.PipeWriter
 	ShellScript      *common.ShellScript
 }
 
-func (e *AbstractExecutor) WatchTrace(config common.RunnerConfig, canceled chan bool, finished chan bool) {
+func (e *AbstractExecutor) ReadTrace(pipe *io.PipeReader) {
+	defer e.Debugln("ReadTrace finished")
+
+	reader := bufio.NewReader(pipe)
+	for {
+		r, s, err := reader.ReadRune()
+		if s <= 0 {
+			break
+		} else if err == nil {
+			e.Build.WriteRune(r)
+		} else {
+			// ignore invalid characters
+			continue
+		}
+
+		if e.Build.BuildLogLen() > common.MaxTraceOutputSize {
+			output := fmt.Sprintf("\nBuild log exceed limit of %v bytes.", common.MaxTraceOutputSize)
+			e.Build.WriteString(output)
+			break
+		}
+	}
+
+	pipe.Close()
+}
+
+func (e *AbstractExecutor) PushTrace(config common.RunnerConfig, canceled chan bool, finished chan bool) {
+	defer e.Debugln("PushTrace finished")
+
 	buildLog := e.BuildLog
 	if buildLog == nil {
 		<-finished
@@ -33,12 +61,7 @@ func (e *AbstractExecutor) WatchTrace(config common.RunnerConfig, canceled chan 
 	for {
 		select {
 		case <-time.After(common.UpdateInterval * time.Second):
-			buildTrace, err := e.Build.ReadBuildLog()
-			if err != nil {
-				e.Debugln("updateBuildLog", "Failed to read build log...", err)
-				continue
-			}
-
+			buildTrace := e.Build.BuildLog()
 			switch common.UpdateBuild(config, e.Build.ID, common.Running, buildTrace) {
 			case common.UpdateSucceeded:
 			case common.UpdateAbort:
@@ -64,8 +87,8 @@ func (e *AbstractExecutor) Debugln(args ...interface{}) {
 }
 
 func (e *AbstractExecutor) Println(args ...interface{}) {
-	if e.BuildLog != nil {
-		e.BuildLog.WriteString(fmt.Sprintln(args...))
+	if e.Build != nil {
+		e.Build.WriteString(fmt.Sprintln(args...))
 	}
 
 	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
@@ -74,8 +97,8 @@ func (e *AbstractExecutor) Println(args ...interface{}) {
 
 func (e *AbstractExecutor) Errorln(args ...interface{}) {
 	// write to log file
-	if e.BuildLog != nil {
-		e.BuildLog.WriteString(fmt.Sprintln(args...))
+	if e.Build != nil {
+		e.Build.WriteString(fmt.Sprintln(args...))
 	}
 
 	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
@@ -103,12 +126,10 @@ func (e *AbstractExecutor) startBuild() error {
 		buildsDir = e.Config.BuildsDir
 	}
 
-	buildLog, err := ioutil.TempFile("", "build_log")
-	if err != nil {
-		return err
-	}
-	e.BuildLog = buildLog
-	e.Debugln("Created build log:", buildLog.Name())
+	// Craete pipe where data are read
+	reader, writer := io.Pipe()
+	go e.ReadTrace(reader)
+	e.BuildLog = writer
 
 	// Save hostname
 	if e.ShowHostname {
@@ -116,7 +137,7 @@ func (e *AbstractExecutor) startBuild() error {
 	}
 
 	// Start actual build
-	e.Build.StartBuild(buildsDir, buildLog.Name())
+	e.Build.StartBuild(buildsDir)
 	return nil
 }
 
@@ -138,7 +159,7 @@ func (e *AbstractExecutor) Prepare(config *common.RunnerConfig, build *common.Bu
 		return err
 	}
 
-	go e.WatchTrace(*e.Config, e.BuildCanceled, e.FinishLogWatcher)
+	go e.PushTrace(*e.Config, e.BuildCanceled, e.FinishLogWatcher)
 	return nil
 }
 
@@ -197,7 +218,6 @@ func (e *AbstractExecutor) Finish(err error) {
 
 func (e *AbstractExecutor) Cleanup() {
 	if e.BuildLog != nil {
-		os.Remove(e.BuildLog.Name())
 		e.BuildLog.Close()
 	}
 }

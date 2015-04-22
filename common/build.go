@@ -1,11 +1,11 @@
 package common
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -20,7 +20,6 @@ const (
 
 type Build struct {
 	GetBuildResponse
-	BuildLog      string         `json:"-"`
 	BuildState    BuildState     `json:"build_state"`
 	BuildStarted  time.Time      `json:"build_started"`
 	BuildFinished time.Time      `json:"build_finished"`
@@ -39,6 +38,9 @@ type Build struct {
 
 	ProjectRunnerID   int    `json:"project_runner_id"`
 	ProjectRunnerName string `json:"name"`
+
+	buildLog     bytes.Buffer `json:"-"`
+	buildLogLock sync.RWMutex
 }
 
 func (b *Build) AssignID(otherBuilds ...*Build) {
@@ -99,10 +101,9 @@ func (b *Build) FullProjectDir() string {
 	return fmt.Sprintf("%s/%s", b.BuildsDir, b.ProjectDir())
 }
 
-func (b *Build) StartBuild(buildsDir string, buildLog string) {
+func (b *Build) StartBuild(buildsDir string) {
 	b.BuildStarted = time.Now()
 	b.BuildState = Pending
-	b.BuildLog = buildLog
 	b.BuildsDir = buildsDir
 }
 
@@ -113,40 +114,34 @@ func (b *Build) FinishBuild(buildState BuildState, buildMessage string, args ...
 	b.BuildDuration = b.BuildFinished.Sub(b.BuildStarted)
 }
 
-func (b *Build) ReadBuildLog() (string, error) {
-	maxTraceSize := MaxTraceOutputSize
+func (b *Build) BuildLog() string {
+	b.buildLogLock.RLock()
+	defer b.buildLogLock.RUnlock()
+	return b.buildLog.String()
+}
 
-	if b.BuildLog == "" {
-		return "", errors.New("no build log")
-	}
+func (b *Build) BuildLogLen() int {
+	b.buildLogLock.RLock()
+	defer b.buildLogLock.RUnlock()
+	return b.buildLog.Len()
+}
 
-	file, err := os.Open(b.BuildLog)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
+func (b *Build) WriteString(data string) (int, error) {
+	b.buildLogLock.Lock()
+	defer b.buildLogLock.Unlock()
+	return b.buildLog.WriteString(data)
+}
 
-	limitReader := io.LimitReader(file, maxTraceSize)
-	data, err := ioutil.ReadAll(limitReader)
-	if err != nil {
-		return "", err
-	}
-
-	buildTrace := string(data)
-	if fi, err := file.Stat(); err == nil && fi.Size() > maxTraceSize {
-		buildLogExceeded := fmt.Sprintf("\nBuild log exceed limit of %v bytes.", maxTraceSize)
-		buildTrace = buildTrace + buildLogExceeded
-	}
-	return buildTrace, nil
+func (b *Build) WriteRune(r rune) (int, error) {
+	b.buildLogLock.Lock()
+	defer b.buildLogLock.Unlock()
+	return b.buildLog.WriteRune(r)
 }
 
 func (b *Build) SendBuildLog() {
 	var buildTrace string
 
-	buildTrace, err := b.ReadBuildLog()
-	if err != nil {
-		buildTrace = "Failed to read build trace: " + err.Error()
-	}
+	buildTrace = b.BuildLog()
 	if b.BuildMessage != "" {
 		buildTrace = buildTrace + b.BuildMessage
 	}

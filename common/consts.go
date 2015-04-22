@@ -10,4 +10,4 @@ const HealthyChecks = 3
 const HealthCheckInterval = 3600
 const DefaultWaitForServicesTimeout = 30
 const ShutdownTimeout = 30
-const MaxTraceOutputSize int64 = 1024 * 1024 // 1MB
+const MaxTraceOutputSize = 1024 * 1024 // 1MB
