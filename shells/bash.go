@@ -58,7 +58,6 @@ func (b *BashShell) GenerateScript(build *common.Build) (*common.ShellScript, er
 		io.WriteString(w, "echo Running on $(hostname)...\n")
 	}
 	io.WriteString(w, "\n")
-	io.WriteString(w, "trap 'kill -s INT 0' EXIT\n")
 	io.WriteString(w, "set -eo pipefail\n")
 
 	io.WriteString(w, "\n")
