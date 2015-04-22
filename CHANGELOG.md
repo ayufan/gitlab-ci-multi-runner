@@ -1,3 +1,15 @@
+v 0.2.0
+- Added delete and verify commands
+- Limit build trace size (1MB currently)
+- Validate build log to contain only valid UTF-8 sequences
+- Store build log in memory
+- Integrate with ci.gitlab.com
+- Make packages for ARM and CentOS 6 and provide beta version
+- Store Docker cache in separate containers
+- Support host-based volumes for Docker executor
+- Don't send build trace if nothing changed
+- Refactor build class
+
 v 0.1.17
 - Fixed high file descriptor usage that could lead to error: too many open files
 
