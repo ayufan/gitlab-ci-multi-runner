@@ -169,7 +169,7 @@ func (e *AbstractExecutor) Prepare(config *common.RunnerConfig, build *common.Bu
 	e.BuildCanceled = make(chan bool, 1)
 	e.BuildFinish = make(chan error, 1)
 	e.FinishLogWatcher = make(chan bool)
-	e.Println("Starting build...")
+	e.Debugln("Starting build...")
 
 	err := e.startBuild()
 	if err != nil {
