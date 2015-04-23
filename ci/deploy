@@ -1,0 +1,10 @@
+if [[ -n "$ARTIFACTS_S3_BUCKET" ]]; then
+    make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"
+fi
+
+if [[ "$RELEASE" == "true" ]]; then
+    if [[ -n "$ARTIFACTS_S3_BUCKET" ]]; then
+	    make s3-upload "S3_UPLOAD_PATH=latest"
+	fi
+	make packagecloud
+fi

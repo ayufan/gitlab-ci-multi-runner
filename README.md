@@ -5,7 +5,6 @@ This is GitLab CI Multi-purpose Runner repository an **unofficial GitLab CI runn
 
 This project was made as Go learning opportunity. The initial release was created within two days.
 
-[![Build Status](https://travis-ci.org/ayufan/gitlab-ci-multi-runner.svg?branch=master)](https://travis-ci.org/ayufan/gitlab-ci-multi-runner)
 [![Build Status](https://ci.gitlab.com/projects/1885/status.png?ref=master)](https://ci.gitlab.com/projects/1885?ref=master)
 
 ### Requirements
