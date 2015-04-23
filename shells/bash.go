@@ -20,17 +20,16 @@ func (b *BashShell) GetName() string {
 
 func (b *BashShell) writeCloneCmd(w io.Writer, build *common.Build) {
 	io.WriteString(w, "echo Clonning repository...\n")
-	io.WriteString(w, fmt.Sprintf("mkdir -p %s\n", build.BuildsDir))
-	io.WriteString(w, fmt.Sprintf("cd %s\n", build.BuildsDir))
-	io.WriteString(w, fmt.Sprintf("rm -rf %s\n", build.ProjectDir()))
-	io.WriteString(w, fmt.Sprintf("git clone %s %s\n", build.RepoURL, build.ProjectDir()))
-	io.WriteString(w, fmt.Sprintf("cd %s\n", build.ProjectDir()))
+	io.WriteString(w, fmt.Sprintf("rm -rf %s\n", build.FullProjectDir()))
+	io.WriteString(w, fmt.Sprintf("mkdir -p %s\n", build.FullProjectDir()))
+	io.WriteString(w, fmt.Sprintf("git clone %s %s\n", build.RepoURL, build.FullProjectDir()))
+	io.WriteString(w, fmt.Sprintf("cd %s\n", build.FullProjectDir()))
 }
 
 func (b *BashShell) writeFetchCmd(w io.Writer, build *common.Build) {
-	io.WriteString(w, fmt.Sprintf("if [[ -d %s/%s/.git ]]; then\n", build.BuildsDir, build.ProjectDir()))
+	io.WriteString(w, fmt.Sprintf("if [[ -d %s/.git ]]; then\n", build.FullProjectDir()))
 	io.WriteString(w, "echo Fetching changes...\n")
-	io.WriteString(w, fmt.Sprintf("cd %s/%s\n", build.BuildsDir, build.ProjectDir()))
+	io.WriteString(w, fmt.Sprintf("cd %s\n", build.FullProjectDir()))
 	io.WriteString(w, fmt.Sprintf("git clean -fdx\n"))
 	io.WriteString(w, fmt.Sprintf("git reset --hard > /dev/null\n"))
 	io.WriteString(w, fmt.Sprintf("git remote set-url origin %s\n", build.RepoURL))

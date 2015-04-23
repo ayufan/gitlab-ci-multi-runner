@@ -151,7 +151,7 @@ func (s *DockerExecutor) addVolume(binds, volumesFrom *[]string, volume string) 
 	return err
 }
 
-func (s *DockerExecutor) createVolumes(image *docker.Image, buildsDir string) ([]string, []string, error) {
+func (s *DockerExecutor) createVolumes(image *docker.Image, projectPath string) ([]string, []string, error) {
 	var binds, volumesFrom []string
 
 	for _, volume := range s.Config.Docker.Volumes {
@@ -165,7 +165,9 @@ func (s *DockerExecutor) createVolumes(image *docker.Image, buildsDir string) ([
 	}
 
 	if s.Build.AllowGitFetch {
-		s.addVolume(&binds, &volumesFrom, buildsDir)
+		// take path of the projects directory,
+		// because we use `rm -rf` which could remove the mounted volume
+		s.addVolume(&binds, &volumesFrom, filepath.Dir(projectPath))
 	}
 
 	return binds, volumesFrom, nil
@@ -322,7 +324,7 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 	createContainerOptions.HostConfig.Links = append(createContainerOptions.HostConfig.Links, links...)
 
 	s.Debugln("Creating cache directories...")
-	binds, volumesFrom, err := s.createVolumes(image, s.Build.BuildsDir)
+	binds, volumesFrom, err := s.createVolumes(image, s.Build.FullProjectDir())
 	if err != nil {
 		return nil, err
 	}

@@ -97,6 +97,7 @@ func init() {
 		return &ShellExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
 				DefaultBuildsDir: "tmp/builds",
+				SharedBuildsDir:  true,
 				DefaultShell:     common.GetDefaultShell(),
 				ShowHostname:     false,
 			},

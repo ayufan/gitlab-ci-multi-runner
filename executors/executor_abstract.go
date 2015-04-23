@@ -9,10 +9,12 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/ayufan/gitlab-ci-multi-runner/common"
 	"io"
+	"path/filepath"
 )
 
 type AbstractExecutor struct {
 	DefaultBuildsDir string
+	SharedBuildsDir  bool
 	DefaultShell     string
 	ShowHostname     bool
 	Config           *common.RunnerConfig
@@ -134,11 +136,6 @@ func (e *AbstractExecutor) generateShellScript() error {
 }
 
 func (e *AbstractExecutor) startBuild() error {
-	buildsDir := e.DefaultBuildsDir
-	if e.Config.BuildsDir != "" {
-		buildsDir = e.Config.BuildsDir
-	}
-
 	// Craete pipe where data are read
 	reader, writer := io.Pipe()
 	go e.ReadTrace(reader)
@@ -147,6 +144,18 @@ func (e *AbstractExecutor) startBuild() error {
 	// Save hostname
 	if e.ShowHostname {
 		e.Build.Hostname, _ = os.Hostname()
+	}
+
+	// Deduce build directory
+	buildsDir := e.DefaultBuildsDir
+	if e.Config.BuildsDir != "" {
+		buildsDir = e.Config.BuildsDir
+	}
+	if e.SharedBuildsDir {
+		buildsDir = filepath.Join(buildsDir, e.Build.ProjectUniqueName())
+	}
+	if slug, err := e.Build.ProjectSlug(); err == nil {
+		buildsDir = filepath.Join(buildsDir, slug)
 	}
 
 	// Start actual build

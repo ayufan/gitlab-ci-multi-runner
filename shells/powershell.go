@@ -27,18 +27,20 @@ func (b *PowerShell) writeCommandChecked(w io.Writer, format string, args ...int
 }
 
 func (b *PowerShell) writeCloneCmd(w io.Writer, build *common.Build) {
+	dir := filepath.FromSlash(build.FullProjectDir())
 	b.writeCommand(w, "echo \"Clonning repository...\"")
-	b.writeCommandChecked(w, "(Test-Path \"%s\") -or (New-Item \"%s\")", filepath.FromSlash(build.BuildsDir), filepath.FromSlash(build.BuildsDir))
-	b.writeCommandChecked(w, "cd %s", filepath.FromSlash(build.BuildsDir))
-	b.writeCommandChecked(w, "if(Test-Path \"%s\") { Remove-Item -Recurse %s }", filepath.FromSlash(build.ProjectDir()))
-	b.writeCommandChecked(w, "git clone %s %s", build.RepoURL, filepath.FromSlash(build.ProjectDir()))
-	b.writeCommandChecked(w, "cd %s", filepath.FromSlash(build.ProjectDir()))
+	b.writeCommandChecked(w, "(Test-Path \"%s\") -or (New-Item \"%s\")", dir, dir)
+	b.writeCommandChecked(w, "cd %s", dir)
+	b.writeCommandChecked(w, "if(Test-Path \"%s\") { Remove-Item -Recurse %s }", dir, dir)
+	b.writeCommandChecked(w, "git clone %s %s", build.RepoURL, dir)
+	b.writeCommandChecked(w, "cd %s", dir)
 }
 
 func (b *PowerShell) writeFetchCmd(w io.Writer, build *common.Build) {
-	b.writeCommand(w, "if(Test-Path \"%s\\%s\\.git\") {", filepath.FromSlash(build.BuildsDir), filepath.FromSlash(build.ProjectDir()))
+	dir := filepath.FromSlash(build.FullProjectDir())
+	b.writeCommand(w, "if(Test-Path \"%s\\.git\") {", dir)
 	b.writeCommand(w, "echo \"Fetching changes...\"")
-	b.writeCommandChecked(w, "cd %s\\%s", filepath.FromSlash(build.BuildsDir), filepath.FromSlash(build.ProjectDir()))
+	b.writeCommandChecked(w, "cd %s", dir)
 	b.writeCommandChecked(w, "git clean -fdx")
 	b.writeCommandChecked(w, "git reset --hard > $null")
 	b.writeCommandChecked(w, "git remote set-url origin %s", build.RepoURL)

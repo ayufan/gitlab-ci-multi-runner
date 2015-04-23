@@ -70,6 +70,7 @@ func init() {
 			DockerExecutor: DockerExecutor{
 				AbstractExecutor: executors.AbstractExecutor{
 					DefaultBuildsDir: "builds",
+					SharedBuildsDir:  false,
 					DefaultShell:     "bash",
 					ShowHostname:     true,
 				},

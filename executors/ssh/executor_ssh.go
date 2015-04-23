@@ -68,6 +68,7 @@ func init() {
 		return &SSHExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
 				DefaultBuildsDir: "builds",
+				SharedBuildsDir:  true,
 				DefaultShell:     "bash",
 				ShowHostname:     true,
 			},

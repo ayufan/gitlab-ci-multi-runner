@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -26,7 +27,7 @@ type Build struct {
 	BuildDuration time.Duration  `json:"build_duration"`
 	BuildMessage  string         `json:"build_message"`
 	BuildAbort    chan os.Signal `json:"-"`
-	BuildsDir     string
+	BuildDir      string
 	Hostname      string
 	Runner        *RunnerConfig `json:"runner"`
 
@@ -93,18 +94,25 @@ func (b *Build) ProjectUniqueName() string {
 	return b.ProjectRunnerName
 }
 
-func (b *Build) ProjectDir() string {
-	return b.ProjectUniqueName()
+func (b *Build) ProjectSlug() (string, error) {
+	splits := strings.Split(b.RepoURL, "/")
+	if len(splits) <= 2 {
+		return "", errors.New("invalid URL")
+	}
+
+	slug := strings.Join(splits[len(splits)-2:], "/")
+	slug = strings.TrimSuffix(slug, ".git")
+	return slug, nil
 }
 
 func (b *Build) FullProjectDir() string {
-	return fmt.Sprintf("%s/%s", b.BuildsDir, b.ProjectDir())
+	return b.BuildDir
 }
 
-func (b *Build) StartBuild(buildsDir string) {
+func (b *Build) StartBuild(buildDir string) {
 	b.BuildStarted = time.Now()
 	b.BuildState = Pending
-	b.BuildsDir = buildsDir
+	b.BuildDir = buildDir
 }
 
 func (b *Build) FinishBuild(buildState BuildState, buildMessage string, args ...interface{}) {

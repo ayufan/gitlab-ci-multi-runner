@@ -316,6 +316,7 @@ func init() {
 		return &ParallelsExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
 				DefaultBuildsDir: "tmp/builds",
+				SharedBuildsDir:  false,
 				DefaultShell:     "bash",
 				ShowHostname:     true,
 			},

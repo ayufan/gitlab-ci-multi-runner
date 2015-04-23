@@ -29,18 +29,20 @@ func (b *CmdShell) writeCommandChecked(w io.Writer, format string, args ...inter
 }
 
 func (b *CmdShell) writeCloneCmd(w io.Writer, build *common.Build) {
+	dir := filepath.FromSlash(build.FullProjectDir())
 	b.writeCommand(w, "echo Clonning repository...")
-	b.writeCommandChecked(w, "md %s", filepath.FromSlash(build.BuildsDir))
-	b.writeCommandChecked(w, "cd %s", filepath.FromSlash(build.BuildsDir))
-	b.writeCommandChecked(w, "rd /s /q %s", filepath.FromSlash(build.ProjectDir()))
-	b.writeCommandChecked(w, "git clone %s %s", build.RepoURL, filepath.FromSlash(build.ProjectDir()))
-	b.writeCommandChecked(w, "cd %s", filepath.FromSlash(build.ProjectDir()))
+	b.writeCommandChecked(w, "md %s", dir)
+	b.writeCommandChecked(w, "cd %s", dir)
+	b.writeCommandChecked(w, "rd /s /q %s", dir)
+	b.writeCommandChecked(w, "git clone %s %s", build.RepoURL, dir)
+	b.writeCommandChecked(w, "cd %s", dir)
 }
 
 func (b *CmdShell) writeFetchCmd(w io.Writer, build *common.Build) {
-	b.writeCommand(w, "IF EXIST \"%s\\%s\\.git\" (", filepath.FromSlash(build.BuildsDir), filepath.FromSlash(build.ProjectDir()))
+	dir := filepath.FromSlash(build.FullProjectDir())
+	b.writeCommand(w, "IF EXIST \"%s\\.git\" (", dir)
 	b.writeCommand(w, "echo Fetching changes...")
-	b.writeCommandChecked(w, "cd %s\\%s", filepath.FromSlash(build.BuildsDir), filepath.FromSlash(build.ProjectDir()))
+	b.writeCommandChecked(w, "cd %s", dir)
 	b.writeCommandChecked(w, "git clean -fdx")
 	b.writeCommandChecked(w, "git reset --hard > NUL")
 	b.writeCommandChecked(w, "git remote set-url origin %s", build.RepoURL)
