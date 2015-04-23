@@ -2,7 +2,7 @@
 
 1. Create some folder somewhere in your system, ex.: `C:\Multi-Runner`.
 
-1. Download binary for your system from https://github.com/ayufan/gitlab-ci-multi-runner/releases and put it into previously saved folder.
+1. Download binary for [x86](https://repo.ayufan.eu/gitlab-ci-multi-runner/latest/binaries/gitlab-ci-multi-runner-windows-386.exe) or [amd64](https://repo.ayufan.eu/gitlab-ci-multi-runner/latest/binaries/gitlab-ci-multi-runner-windows-amd64.exe) and put it into previously saved folder.
 
 1. Run `Administrator` command prompt. How to do that is described here: http://pcsupport.about.com/od/windows-8/a/elevated-command-prompt-windows-8.htm. The simplest is to write `Command Prompt` in Windows search field and right click and select `Run as administrator`. You will be asked to confirm that you want to execute elevated command prompt.
 
@@ -46,7 +46,7 @@
 	$ gitlab-ci-multi-runner stop
 	```
 
-1. Download binary for your system from https://github.com/ayufan/gitlab-ci-multi-runner/releases and replace runner's executable.
+1. Download binary for [x86](https://repo.ayufan.eu/gitlab-ci-multi-runner/latest/binaries/gitlab-ci-multi-runner-windows-386.exe) or [amd64](https://repo.ayufan.eu/gitlab-ci-multi-runner/latest/binaries/gitlab-ci-multi-runner-windows-amd64.exe) and replace runner's executable.
 
 1. Start service:
 	```batch

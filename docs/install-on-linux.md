@@ -5,13 +5,13 @@
   curl -sSL https://get.docker.com/ | sh
   ```
 
-1. Add package to apt-get or yum (**THESE REPOSITORIES ARE TEMPORARY AND ARE SUBJECT TO CHANGE**)
+1. Add package to apt-get or yum
   ```bash
   # For Debian/Ubuntu
-  curl https://packagecloud.io/install/repositories/ayufan/gitlab-ci-multi-runner/script.deb | sudo bash
+  curl https://packages.gitlab.com/install/repositories/runner/gitlab-ci-multi-runner/script.deb | sudo bash
 
   # For CentOS
-  curl https://packagecloud.io/install/repositories/ayufan/gitlab-ci-multi-runner/script.rpm | sudo bash
+  curl https://packages.gitlab.com/install/repositories/runner/gitlab-ci-multi-runner/script.rpm | sudo bash
   ```
 
 1. Install `gitlab-ci-multi-runner`

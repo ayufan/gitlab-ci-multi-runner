@@ -37,7 +37,8 @@ This project was made as Go learning opportunity. The initial release was create
 * [Install on OSX (preffered)](docs/install-on-osx.md)
 * [Install on Windows (preffered)](docs/install-on-windows.md)
 * [Install as Docker Service](docs/install-on-docker.md)
-* [Manuall installation (advanced)](docs/install-manually.md)
+* [Manual installation (advanced)](docs/install-manually.md)
+* [Bleeding edge (development)](docs/install-bleeding-edge.md)
 
 ### Advanced Configuration
 
@@ -55,7 +56,7 @@ If you want to add another project, token or image simply RE-RUN SETUP. *You don
 
 ### FAQ
 
-Have any problems. Please [Go To Issues](https://github.com/ayufan/gitlab-ci-multi-runner/issues).
+Have any problems. Please [Go To Issues](https://gitlab.com/ayufan/gitlab-ci-multi-runner/issues).
 
 ### Changelog
 
@@ -78,21 +79,23 @@ AUTHOR:
   Kamil Trzciński - <ayufan@ayufan.eu>
 
 COMMANDS:
-   run, r run multi runner service
-   install  install service
-   uninstall  uninstall service
-   start  start service
-   stop   stop service
-   restart  restart service
-   setup, s setup a new runner
-   run-single start single runner
-   help, h  Shows a list of commands or help for one command
-   
+   delete	delete specific runner
+   run, r	run multi runner service
+   install	install service
+   uninstall	uninstall service
+   start	start service
+   stop		stop service
+   restart	restart service
+   setup, s	setup a new runner
+   run-single	start single runner
+   verify	verify all registered runners
+   help, h	Shows a list of commands or help for one command
+
 GLOBAL OPTIONS:
-   --debug      debug mode [$DEBUG]
-   --log-level, -l 'info' Log level (options: debug, info, warn, error, fatal, panic)
-   --help, -h     show help
-   --version, -v    print the version
+   --debug			debug mode [$DEBUG]
+   --log-level, -l 'info'	Log level (options: debug, info, warn, error, fatal, panic)
+   --help, -h			show help
+   --version, -v		print the version
 ```
 
 ### Future
