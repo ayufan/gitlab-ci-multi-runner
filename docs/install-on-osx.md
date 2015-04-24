@@ -4,7 +4,7 @@
 
 1. Download binary for your system:
 	```bash
-	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://repo.ayufan.eu/gitlab-ci-multi-runner/latest/binaries/gitlab-ci-multi-runner-darwin-amd64
+	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://multi-runner.s3.amazonaws.com/latest/binaries/gitlab-ci-multi-runner-darwin-amd64
 	```
 
 1. Give it permissions to execute:
@@ -48,7 +48,7 @@
 
 1. Download binary to replace runner's executable:
 	```bash
-	wget -O /usr/local/bin/gitlab-ci-multi-runner https://repo.ayufan.eu/gitlab-ci-multi-runner/latest/binaries/gitlab-ci-multi-runner-darwin-amd64
+	wget -O /usr/local/bin/gitlab-ci-multi-runner https://multi-runner.s3.amazonaws.com/latest/binaries/gitlab-ci-multi-runner-darwin-amd64
 	```
 
 1. Give it permissions to execute:

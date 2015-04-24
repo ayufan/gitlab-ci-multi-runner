@@ -163,7 +163,7 @@ s3-upload:
 	./artifacts upload \
 		--permissions public-read \
 		--working-dir out \
-		--target-paths "gitlab-ci-multi-runner/$(S3_UPLOAD_PATH)/" \
+		--target-paths "$(S3_UPLOAD_PATH)/" \
 		$(shell cd out/; find . -type f)
 
 FORCE:
