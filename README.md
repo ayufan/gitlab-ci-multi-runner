@@ -3,9 +3,14 @@
 This is GitLab CI Multi-purpose Runner repository an **unofficial GitLab CI runner written in Go**, this application run tests and sends the results to GitLab CI.
 [GitLab CI](https://about.gitlab.com/gitlab-ci) is the open-source continuous integration server that coordinates the testing.
 
-This project was made as Go learning opportunity. The initial release was created within two days.
-
 [![Build Status](https://ci.gitlab.com/projects/1885/status.png?ref=master)](https://ci.gitlab.com/projects/1885?ref=master)
+
+### Contributing
+
+The official repository for this project is on [GitLab.com](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner).
+
+* [Issues](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues)
+* [Merge Requests](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/merge_requests)
 
 ### Requirements
 
@@ -53,10 +58,6 @@ This project was made as Go learning opportunity. The initial release was create
 ### Extra projects?
 
 If you want to add another project, token or image simply RE-RUN SETUP. *You don't have to re-run the runner. He will automatically reload configuration once it changes.*
-
-### FAQ
-
-Have any problems. Please [Go To Issues](https://gitlab.com/ayufan/gitlab-ci-multi-runner/issues).
 
 ### Changelog
 
