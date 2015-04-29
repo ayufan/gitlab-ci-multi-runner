@@ -68,7 +68,7 @@ func (b *BashShell) GenerateScript(build *common.Build) (*common.ShellScript, er
 
 	b.writeCheckoutCmd(w, build)
 	io.WriteString(w, "\n")
-	if !build.Runner.DisableVerbose {
+	if !helpers.BoolOrDefault(build.Runner.DisableVerbose, false) {
 		io.WriteString(w, "set -v\n")
 		io.WriteString(w, "\n")
 	}

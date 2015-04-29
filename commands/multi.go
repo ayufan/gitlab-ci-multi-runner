@@ -15,6 +15,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ayufan/gitlab-ci-multi-runner/common"
+	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
+	"math"
 )
 
 type RunnerHealth struct {
@@ -151,7 +153,8 @@ func (mr *MultiRunner) requestBuild(runner *common.RunnerConfig) *common.Build {
 	}
 
 	count := mr.buildsForRunner(runner)
-	if runner.Limit > 0 && count >= runner.Limit {
+	limit := helpers.NonZeroOrDefault(runner.Limit, math.MaxInt32)
+	if count >= limit {
 		return nil
 	}
 

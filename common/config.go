@@ -15,16 +15,15 @@ import (
 )
 
 type DockerConfig struct {
-	Host                   string   `toml:"host" json:"host"`
+	Host                   *string  `toml:"host" json:"host"`
 	CertPath               *string  `toml:"tls_cert_path" json:"tls_cert_path"`
-	Hostname               string   `toml:"hostname" json:"hostname"`
+	Hostname               *string  `toml:"hostname" json:"hostname"`
 	Image                  string   `toml:"image" json:"image"`
 	Privileged             bool     `toml:"privileged" json:"privileged"`
-	DisableCache           bool     `toml:"disable_cache" json:"disable_cache"`
-	DisablePull            bool     `toml:"disable_pull" json:"disable_pull"`
+	DisableCache           *bool    `toml:"disable_cache" json:"disable_cache"`
 	Volumes                []string `toml:"volumes" json:"volumes"`
-	CacheDir               string   `toml:"cache_dir" json:"cache_dir"`
-	Registry               string   `toml:"registry" json:"registry"`
+	CacheDir               *string  `toml:"cache_dir" json:"cache_dir"`
+	Registry               *string  `toml:"registry" json:"registry"`
 	ExtraHosts             []string `toml:"extra_hosts" json:"extra_hosts"`
 	Links                  []string `toml:"links" json:"links"`
 	Services               []string `toml:"services" json:"services"`
@@ -32,24 +31,24 @@ type DockerConfig struct {
 }
 
 type ParallelsConfig struct {
-	BaseName         string `toml:"base_name" json:"base_name"`
-	TemplateName     string `toml:"template_name" json:"template_name"`
-	DisableSnapshots bool   `toml:"disable_snapshots" json:"disable_snapshots"`
+	BaseName         string  `toml:"base_name" json:"base_name"`
+	TemplateName     *string `toml:"template_name" json:"template_name"`
+	DisableSnapshots *bool   `toml:"disable_snapshots" json:"disable_snapshots"`
 }
 
 type RunnerConfig struct {
-	Name      string `toml:"name" json:"name"`
-	URL       string `toml:"url" json:"url"`
-	Token     string `toml:"token" json:"token"`
-	Limit     int    `toml:"limit" json:"limit"`
-	Executor  string `toml:"executor" json:"executor"`
-	BuildsDir string `toml:"builds_dir" json:"builds_dir"`
+	Name      string  `toml:"name" json:"name"`
+	URL       string  `toml:"url" json:"url"`
+	Token     string  `toml:"token" json:"token"`
+	Limit     *int    `toml:"limit" json:"limit"`
+	Executor  string  `toml:"executor" json:"executor"`
+	BuildsDir *string `toml:"builds_dir" json:"builds_dir"`
 
-	CleanEnvironment bool     `toml:"clean_environment" json:"clean_environment"`
+	CleanEnvironment *bool    `toml:"clean_environment" json:"clean_environment"`
 	Environment      []string `toml:"environment" json:"environment"`
 
-	Shell          string `toml:"shell" json:"shell"`
-	DisableVerbose bool   `toml:"disable_verbose" json:"disable_verbose"`
+	Shell          *string `toml:"shell" json:"shell"`
+	DisableVerbose *bool   `toml:"disable_verbose" json:"disable_verbose"`
 
 	SSH       *ssh.Config      `toml:"ssh" json:"ssh"`
 	Docker    *DockerConfig    `toml:"docker" json:"docker"`

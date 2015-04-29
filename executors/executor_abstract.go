@@ -8,6 +8,7 @@ import (
 	"bufio"
 	log "github.com/Sirupsen/logrus"
 	"github.com/ayufan/gitlab-ci-multi-runner/common"
+	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
 	"io"
 	"path/filepath"
 )
@@ -121,11 +122,7 @@ func (e *AbstractExecutor) Errorln(args ...interface{}) {
 }
 
 func (e *AbstractExecutor) generateShellScript() error {
-	shell := e.DefaultShell
-	if e.Config.Shell != "" {
-		shell = e.Config.Shell
-	}
-
+	shell := helpers.StringOrDefault(e.Config.Shell, e.DefaultShell)
 	shellScript, err := common.GenerateShellScript(shell, e.Build)
 	if err != nil {
 		return err
@@ -147,10 +144,8 @@ func (e *AbstractExecutor) startBuild() error {
 	}
 
 	// Deduce build directory
-	buildsDir := e.DefaultBuildsDir
-	if e.Config.BuildsDir != "" {
-		buildsDir = e.Config.BuildsDir
-	}
+	buildsDir := helpers.StringOrDefault(e.Config.BuildsDir, e.DefaultBuildsDir)
+
 	if e.SharedBuildsDir {
 		buildsDir = filepath.Join(buildsDir, e.Build.ProjectUniqueName())
 	}

@@ -85,7 +85,7 @@ func (b *CmdShell) GenerateScript(build *common.Build) (*common.ShellScript, err
 			continue
 		}
 
-		if !build.Runner.DisableVerbose {
+		if !helpers.BoolOrDefault(build.Runner.DisableVerbose, false) {
 			b.writeCommand(w, "echo %s", command)
 		}
 		b.writeCommandChecked(w, "%s", command)

@@ -51,12 +51,14 @@ func runHerokuURL(addr string) error {
 }
 
 func runSingle(c *cli.Context) {
+	buildsDir := c.String("builds-dir")
+	shell := c.String("shell")
 	runner := common.RunnerConfig{
 		URL:       c.String("url"),
 		Token:     c.String("token"),
 		Executor:  c.String("executor"),
-		BuildsDir: c.String("builds-dir"),
-		Shell:     c.String("shell"),
+		BuildsDir: &buildsDir,
+		Shell:     &shell,
 	}
 
 	if len(runner.URL) == 0 {

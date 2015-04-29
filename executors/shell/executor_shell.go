@@ -41,7 +41,7 @@ func (s *ShellExecutor) Start() error {
 	helpers.SetProcessGroup(s.cmd)
 
 	// Inherit environment from current process
-	if !s.Config.CleanEnvironment {
+	if !helpers.BoolOrDefault(s.Config.CleanEnvironment, false) {
 		s.cmd.Env = os.Environ()
 	}
 

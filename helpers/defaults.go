@@ -19,3 +19,11 @@ func NonZeroOrDefault(data *int, def int) int {
 		return *data
 	}
 }
+
+func BoolOrDefault(data *bool, def bool) bool {
+	if data == nil {
+		return def
+	} else {
+		return *data
+	}
+}

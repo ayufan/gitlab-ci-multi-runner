@@ -115,11 +115,19 @@ func (s *SetupContext) askParallels(runnerConfig *common.RunnerConfig) {
 func (s *SetupContext) askSSH(runnerConfig *common.RunnerConfig, serverless bool) {
 	runnerConfig.SSH = &ssh.Config{}
 	if !serverless {
-		runnerConfig.SSH.Host = s.ask("ssh-host", "Please enter the SSH server address (eg. my.server.com):")
-		runnerConfig.SSH.Port = s.ask("ssh-port", "Please enter the SSH server port (eg. 22):", true)
+		if host := s.ask("ssh-host", "Please enter the SSH server address (eg. my.server.com):"); host != "" {
+			runnerConfig.SSH.Host = &host
+		}
+		if port := s.ask("ssh-port", "Please enter the SSH server port (eg. 22):", true); port != "" {
+			runnerConfig.SSH.Port = &port
+		}
 	}
-	runnerConfig.SSH.User = s.ask("ssh-user", "Please enter the SSH user (eg. root):")
-	runnerConfig.SSH.Password = s.ask("ssh-password", "Please enter the SSH password (eg. docker.io):")
+	if user := s.ask("ssh-user", "Please enter the SSH user (eg. root):"); user != "" {
+		runnerConfig.SSH.User = &user
+	}
+	if password := s.ask("ssh-password", "Please enter the SSH password (eg. docker.io):"); password != "" {
+		runnerConfig.SSH.Password = &password
+	}
 }
 
 func (s *SetupContext) touchConfig() {
@@ -204,7 +212,6 @@ func runSetup(c *cli.Context) {
 	}
 
 	runnerConfig.Executor = s.askExecutor()
-	runnerConfig.DisableVerbose = s.Bool("disable-verbose-output")
 
 	switch runnerConfig.Executor {
 	case "docker", "docker-ssh":
@@ -287,11 +294,6 @@ func init() {
 				Value:  "shell",
 				Usage:  "Select executor, eg. shell, docker, etc.",
 				EnvVar: "RUNNER_EXECUTOR",
-			},
-			cli.BoolFlag{
-				Name:   "disable-verbose-output",
-				Usage:  "Disables printing of shell commands to build log",
-				EnvVar: "RUNNER_DISABLE_VERBOSE_OUTPUT",
 			},
 
 			// Docker specific configuration

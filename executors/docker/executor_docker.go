@@ -15,6 +15,7 @@ import (
 
 	"github.com/ayufan/gitlab-ci-multi-runner/common"
 	"github.com/ayufan/gitlab-ci-multi-runner/executors"
+	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
 )
 
 type DockerExecutor struct {
@@ -25,21 +26,17 @@ type DockerExecutor struct {
 	services  []*docker.Container
 }
 
-func (s *DockerExecutor) getImage(imageName string, pullImage bool) (*docker.Image, error) {
+func (s *DockerExecutor) getImage(imageName string) (*docker.Image, error) {
 	s.Debugln("Looking for image", imageName, "...")
 	image, err := s.client.InspectImage(imageName)
 	if err == nil {
 		return image, nil
 	}
 
-	if !pullImage {
-		return nil, err
-	}
-
 	s.Println("Pulling docker image", imageName, "...")
 	pullImageOptions := docker.PullImageOptions{
 		Repository: imageName,
-		Registry:   s.Config.Docker.Registry,
+		Registry:   helpers.StringOrDefault(s.Config.Docker.Registry, ""),
 	}
 
 	err = s.client.PullImage(pullImageOptions, docker.AuthConfiguration{})
@@ -69,7 +66,7 @@ func (s *DockerExecutor) addCacheVolume(binds, volumesFrom *[]string, containerP
 	containerPath = s.getAbsoluteContainerPath(containerPath)
 
 	// disable cache for automatic container cache, but leave it for host volumes (they are shared on purpose)
-	if s.Config.Docker.DisableCache {
+	if helpers.BoolOrDefault(s.Config.Docker.DisableCache, false) {
 		s.Debugln("Container cache for", containerPath, " is disabled.")
 		return nil
 	}
@@ -77,7 +74,7 @@ func (s *DockerExecutor) addCacheVolume(binds, volumesFrom *[]string, containerP
 	hash := md5.Sum([]byte(containerPath))
 
 	// use host-based cache
-	if s.Config.Docker.CacheDir != "" {
+	if cacheDir := helpers.StringOrDefault(s.Config.Docker.CacheDir, ""); cacheDir != "" {
 		hostPath := fmt.Sprintf("%s/%s/%x", s.Config.Docker.CacheDir, s.Build.ProjectUniqueName(), hash)
 		hostPath, err := filepath.Abs(hostPath)
 		if err != nil {
@@ -101,7 +98,7 @@ func (s *DockerExecutor) addCacheVolume(binds, volumesFrom *[]string, containerP
 	// create new cache container for that project
 	if container == nil {
 		// get busybox image
-		cacheImage, err := s.getImage("busybox:latest", true)
+		cacheImage, err := s.getImage("busybox:latest")
 		if err != nil {
 			return err
 		}
@@ -193,7 +190,7 @@ func (s *DockerExecutor) createService(service, version string) (*docker.Contain
 		return nil, errors.New("Invalid service name")
 	}
 
-	serviceImage, err := s.getImage(service+":"+version, !s.Config.Docker.DisablePull)
+	serviceImage, err := s.getImage(service + ":" + version)
 	if err != nil {
 		return nil, err
 	}
@@ -273,9 +270,9 @@ func (s *DockerExecutor) connect() (*docker.Client, error) {
 	tlsVerify := false
 	tlsCertPath := ""
 
-	if s.Config.Docker.Host != "" {
+	if host := helpers.StringOrDefault(s.Config.Docker.Host, ""); host != "" {
 		// read docker config from config
-		endpoint = s.Config.Docker.Host
+		endpoint = host
 		if s.Config.Docker.CertPath != nil {
 			tlsVerify = true
 			tlsCertPath = *s.Config.Docker.CertPath
@@ -310,11 +307,7 @@ func (s *DockerExecutor) connect() (*docker.Client, error) {
 }
 
 func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*docker.Container, error) {
-	hostname := s.Config.Docker.Hostname
-	if hostname == "" {
-		hostname = s.Build.ProjectUniqueName()
-	}
-
+	hostname := helpers.StringOrDefault(s.Config.Docker.Hostname, s.Build.ProjectUniqueName())
 	containerName := s.Build.ProjectUniqueName()
 
 	// this will fail potentially some builds if there's name collision
@@ -410,7 +403,7 @@ func (s *DockerExecutor) Prepare(config *common.RunnerConfig, build *common.Buil
 	s.client = client
 
 	// Get image
-	image, err := s.getImage(s.Config.Docker.Image, !s.Config.Docker.DisablePull)
+	image, err := s.getImage(s.Config.Docker.Image)
 	if err != nil {
 		return err
 	}
@@ -432,7 +425,7 @@ func (s *DockerExecutor) Cleanup() {
 }
 
 func (s *DockerExecutor) waitForServiceContainer(container *docker.Container, timeout time.Duration) error {
-	waitImage, err := s.getImage("aanand/wait", !s.Config.Docker.DisablePull)
+	waitImage, err := s.getImage("aanand/wait")
 	if err != nil {
 		return err
 	}

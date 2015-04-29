@@ -28,23 +28,20 @@ type Command struct {
 func (s *Command) getSSHAuthMethods() []ssh.AuthMethod {
 	var methods []ssh.AuthMethod
 
-	if len(s.Password) != 0 {
-		methods = append(methods, ssh.Password(s.Password))
+	if s.Password != nil {
+		methods = append(methods, ssh.Password(*s.Password))
 	}
 
 	return methods
 }
 
 func (s *Command) Connect() error {
-	if len(s.User) == 0 {
-		s.User = "root"
-	}
-	if len(s.Port) == 0 {
-		s.Port = "22"
-	}
+	host := helpers.StringOrDefault(s.Host, "localhost")
+	user := helpers.StringOrDefault(s.User, "root")
+	port := helpers.StringOrDefault(s.Port, "22")
 
 	config := &ssh.ClientConfig{
-		User: s.User,
+		User: user,
 		Auth: s.getSSHAuthMethods(),
 	}
 
@@ -56,7 +53,7 @@ func (s *Command) Connect() error {
 	var finalError error
 
 	for i := 0; i < connectRetries; i++ {
-		client, err := ssh.Dial("tcp", s.Host+":"+s.Port, config)
+		client, err := ssh.Dial("tcp", host+":"+port, config)
 		if err == nil {
 			s.client = client
 			return nil

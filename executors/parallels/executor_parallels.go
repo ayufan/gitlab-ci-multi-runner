@@ -10,6 +10,7 @@ import (
 
 	prl "github.com/ayufan/gitlab-ci-multi-runner/parallels"
 
+	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
 	"time"
 )
 
@@ -68,7 +69,7 @@ func (s *ParallelsExecutor) verifyMachine(vmName string) error {
 		Stderr:         s.BuildLog,
 		ConnectRetries: 30,
 	}
-	sshCommand.Host = ipAddr
+	sshCommand.Host = &ipAddr
 
 	s.Debugln("Connecting to SSH...")
 	err = sshCommand.Connect()
@@ -106,10 +107,7 @@ func (s *ParallelsExecutor) createVM() error {
 		return errors.New("Missing Image setting from Parallels config")
 	}
 
-	templateName := s.Config.Parallels.TemplateName
-	if templateName == "" {
-		templateName = baseImage + "-template"
-	}
+	templateName := helpers.StringOrDefault(s.Config.Parallels.TemplateName, baseImage+"-template")
 
 	// remove invalid template (removed?)
 	templateStatus, _ := prl.Status(templateName)
@@ -186,7 +184,7 @@ func (s *ParallelsExecutor) Prepare(config *common.RunnerConfig, build *common.B
 		prl.Unregister(s.vmName)
 	}
 
-	if s.Config.Parallels.DisableSnapshots {
+	if helpers.BoolOrDefault(s.Config.Parallels.DisableSnapshots, false) {
 		s.vmName = s.Config.Parallels.BaseName + "-" + s.Build.ProjectRunnerName
 		if prl.Exist(s.vmName) {
 			s.Debugln("Deleting old VM...")
@@ -216,7 +214,7 @@ func (s *ParallelsExecutor) Prepare(config *common.RunnerConfig, build *common.B
 			return err
 		}
 
-		if !s.Config.Parallels.DisableSnapshots {
+		if !helpers.BoolOrDefault(s.Config.Parallels.DisableSnapshots, false) {
 			s.Println("Creating default snapshot...")
 			err = prl.CreateSnapshot(s.vmName, "Started")
 			if err != nil {
@@ -279,7 +277,7 @@ func (s *ParallelsExecutor) Start() error {
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,
 	}
-	s.sshCommand.Host = ipAddr
+	s.sshCommand.Host = &ipAddr
 
 	s.Debugln("Connecting to SSH server...")
 	err = s.sshCommand.Connect()
@@ -303,7 +301,7 @@ func (s *ParallelsExecutor) Cleanup() {
 	if s.vmName != "" {
 		prl.Kill(s.vmName)
 
-		if s.Config.Parallels.DisableSnapshots || !s.provisioned {
+		if helpers.BoolOrDefault(s.Config.Parallels.DisableSnapshots, false) || !s.provisioned {
 			prl.Delete(s.vmName)
 		}
 	}
