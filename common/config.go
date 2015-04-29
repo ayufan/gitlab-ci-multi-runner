@@ -11,6 +11,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
 	"github.com/ayufan/gitlab-ci-multi-runner/ssh"
+	"runtime"
 )
 
 type DockerConfig struct {
@@ -73,6 +74,14 @@ func (c *RunnerConfig) UniqueID() string {
 	return c.URL + c.Token
 }
 
+func NewConfig() *Config {
+	return &Config{
+		BaseConfig: BaseConfig{
+			Concurrent: runtime.NumCPU(),
+		},
+	}
+}
+
 func (c *Config) LoadConfig(configFile string) error {
 	info, err := os.Stat(configFile)
 	if err != nil {
@@ -81,10 +90,6 @@ func (c *Config) LoadConfig(configFile string) error {
 
 	if _, err = toml.DecodeFile(configFile, &c.BaseConfig); err != nil {
 		return err
-	}
-
-	if c.Concurrent == 0 {
-		c.Concurrent = 1
 	}
 
 	c.ModTime = info.ModTime()

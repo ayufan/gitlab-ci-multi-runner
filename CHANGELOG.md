@@ -1,7 +1,8 @@
-v 0.2.1
+v 0.3.0
 - Added repo slug to build path
 - Build path includes repository hostname
 - Support TLS connection with Docker
+- Default concurrent limit is set to number of CPUs
 
 v 0.2.0
 - Added delete and verify commands

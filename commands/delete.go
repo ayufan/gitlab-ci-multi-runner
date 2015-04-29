@@ -17,7 +17,7 @@ func runDelete(c *cli.Context) {
 		log.Fatalln("Failed to delete runner")
 	}
 
-	config := &common.Config{}
+	config := common.NewConfig()
 	err := config.LoadConfig(c.String("config"))
 	if err != nil {
 		return

@@ -8,7 +8,7 @@ import (
 )
 
 func runVerify(c *cli.Context) {
-	config := &common.Config{}
+	config := common.NewConfig()
 	err := config.LoadConfig(c.String("config"))
 	if err != nil {
 		log.Fatalln(err)

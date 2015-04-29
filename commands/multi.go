@@ -217,14 +217,14 @@ func (mr *MultiRunner) startWorkers(startWorker chan int, stopWorker chan bool, 
 }
 
 func (mr *MultiRunner) loadConfig() error {
-	newConfig := common.Config{}
+	newConfig := common.NewConfig()
 	err := newConfig.LoadConfig(mr.configFile)
 	if err != nil {
 		return err
 	}
 
 	mr.healthy = nil
-	mr.config = &newConfig
+	mr.config = newConfig
 	return nil
 }
 

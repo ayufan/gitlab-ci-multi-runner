@@ -18,7 +18,7 @@ import (
 type SetupContext struct {
 	*cli.Context
 	configFile string
-	config     common.Config
+	config     *common.Config
 	reader     *bufio.Reader
 }
 
@@ -168,6 +168,7 @@ func (s *SetupContext) askRunner() common.RunnerConfig {
 func runSetup(c *cli.Context) {
 	s := SetupContext{
 		Context:    c,
+		config:     common.NewConfig(),
 		configFile: c.String("config"),
 		reader:     bufio.NewReader(os.Stdin),
 	}
