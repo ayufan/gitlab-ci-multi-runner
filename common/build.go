@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -95,13 +97,24 @@ func (b *Build) ProjectUniqueName() string {
 }
 
 func (b *Build) ProjectSlug() (string, error) {
-	splits := strings.Split(b.RepoURL, "/")
-	if len(splits) <= 2 {
-		return "", errors.New("invalid URL")
+	url, err := url.Parse(b.RepoURL)
+	if err != nil {
+		return "", err
+	}
+	if url.Host == "" {
+		return "", errors.New("only URI reference supported")
 	}
 
-	slug := strings.Join(splits[len(splits)-2:], "/")
+	host := strings.Split(url.Host, ":")
+	slug := filepath.Join(host[0], url.Path)
 	slug = strings.TrimSuffix(slug, ".git")
+	slug = filepath.Clean(slug)
+	if slug == "." {
+		return "", errors.New("invalid path")
+	}
+	if strings.Contains(slug, "..") {
+		return "", errors.New("it doesn't look like a valid path")
+	}
 	return slug, nil
 }
 

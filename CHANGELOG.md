@@ -1,5 +1,6 @@
 v 0.2.1
 - Added repo slug to build path
+- Build path includes repository hostname
 - Support TLS connection with Docker
 
 v 0.2.0
