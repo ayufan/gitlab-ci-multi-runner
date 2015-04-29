@@ -31,21 +31,19 @@ func (b *CmdShell) writeCommandChecked(w io.Writer, format string, args ...inter
 func (b *CmdShell) writeCloneCmd(w io.Writer, build *common.Build) {
 	dir := filepath.FromSlash(build.FullProjectDir())
 	b.writeCommand(w, "echo Clonning repository...")
-	b.writeCommandChecked(w, "md %s", dir)
-	b.writeCommandChecked(w, "cd %s", dir)
-	b.writeCommandChecked(w, "rd /s /q %s", dir)
-	b.writeCommandChecked(w, "git clone %s %s", build.RepoURL, dir)
-	b.writeCommandChecked(w, "cd %s", dir)
+	b.writeCommandChecked(w, "rd /s /q \"%s\" 2> NUL 1>NUL", dir)
+	b.writeCommandChecked(w, "git clone \"%s\" \"%s\"", build.RepoURL, dir)
+	b.writeCommandChecked(w, "cd \"%s\"", dir)
 }
 
 func (b *CmdShell) writeFetchCmd(w io.Writer, build *common.Build) {
 	dir := filepath.FromSlash(build.FullProjectDir())
 	b.writeCommand(w, "IF EXIST \"%s\\.git\" (", dir)
 	b.writeCommand(w, "echo Fetching changes...")
-	b.writeCommandChecked(w, "cd %s", dir)
+	b.writeCommandChecked(w, "cd \"%s\"", dir)
 	b.writeCommandChecked(w, "git clean -fdx")
 	b.writeCommandChecked(w, "git reset --hard > NUL")
-	b.writeCommandChecked(w, "git remote set-url origin %s", build.RepoURL)
+	b.writeCommandChecked(w, "git remote set-url origin \"%s\"", build.RepoURL)
 	b.writeCommandChecked(w, "git fetch origin")
 	b.writeCommand(w, ") ELSE (")
 	b.writeCloneCmd(w, build)
@@ -54,8 +52,8 @@ func (b *CmdShell) writeFetchCmd(w io.Writer, build *common.Build) {
 
 func (b *CmdShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
 	b.writeCommand(w, "echo Checkouting %s as %s...", build.Sha[0:8], build.RefName)
-	b.writeCommandChecked(w, "git checkout -B %s %s > NUL", build.RefName, build.Sha)
-	b.writeCommandChecked(w, "git reset --hard %s > NUL", build.Sha)
+	b.writeCommandChecked(w, "git checkout -B \"%s\" \"%s\" > NUL", build.RefName, build.Sha)
+	b.writeCommandChecked(w, "git reset --hard \"%s\" > NUL", build.Sha)
 }
 
 func (b *CmdShell) GenerateScript(build *common.Build) (*common.ShellScript, error) {
