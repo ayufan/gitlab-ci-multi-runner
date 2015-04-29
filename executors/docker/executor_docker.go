@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -268,19 +269,44 @@ func (s *DockerExecutor) createServices() ([]string, error) {
 }
 
 func (s *DockerExecutor) connect() (*docker.Client, error) {
-	endpoint := s.Config.Docker.Host
-	if len(endpoint) == 0 {
-		endpoint = os.Getenv("DOCKER_HOST")
-	}
-	if len(endpoint) == 0 {
-		endpoint = "unix:///var/run/docker.sock"
-	}
-	client, err := docker.NewClient(endpoint)
-	if err != nil {
-		return nil, err
+	endpoint := "unix:///var/run/docker.sock"
+	tlsVerify := false
+	tlsCertPath := ""
+
+	if s.Config.Docker.Host != "" {
+		// read docker config from config
+		endpoint = s.Config.Docker.Host
+		if s.Config.Docker.CertPath != nil {
+			tlsVerify = true
+			tlsCertPath = *s.Config.Docker.CertPath
+		}
+	} else if host := os.Getenv("DOCKER_HOST"); host != "" {
+		// read docker config from environment
+		endpoint = host
+		tlsVerify, _ = strconv.ParseBool(os.Getenv("DOCKER_TLS_VERIFY"))
+		tlsCertPath = os.Getenv("DOCKER_CERT_PATH")
 	}
 
-	return client, nil
+	if tlsVerify {
+		client, err := docker.NewTLSClient(
+			endpoint,
+			filepath.Join(tlsCertPath, "cert.pem"),
+			filepath.Join(tlsCertPath, "key.pem"),
+			filepath.Join(tlsCertPath, "ca.pem"),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return client, nil
+	} else {
+		client, err := docker.NewClient(endpoint)
+		if err != nil {
+			return nil, err
+		}
+
+		return client, nil
+	}
 }
 
 func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*docker.Container, error) {

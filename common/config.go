@@ -15,6 +15,7 @@ import (
 
 type DockerConfig struct {
 	Host                   string   `toml:"host" json:"host"`
+	CertPath               *string  `toml:"tls_cert_path" json:"tls_cert_path"`
 	Hostname               string   `toml:"hostname" json:"hostname"`
 	Image                  string   `toml:"image" json:"image"`
 	Privileged             bool     `toml:"privileged" json:"privileged"`

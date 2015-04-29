@@ -1,3 +1,6 @@
+v 0.2.1
+- Added repo slug to build path
+- 
 v 0.2.0
 - Added delete and verify commands
 - Limit build trace size (1MB currently)
