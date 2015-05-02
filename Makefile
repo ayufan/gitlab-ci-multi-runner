@@ -72,14 +72,17 @@ package: package-deps package-deb package-rpm
 
 package-deb:
 	# Building Debian compatible packages...
-	make package-deb-fpm ARCH=amd64
-	make package-deb-fpm ARCH=386
-	make package-deb-fpm ARCH=arm
+	make package-deb-fpm ARCH=amd64 PACKAGE_ARCH=amd64
+	make package-deb-fpm ARCH=386 PACKAGE_ARCH=386
+	make package-deb-fpm ARCH=arm PACKAGE_ARCH=arm
+	make package-deb-fpm ARCH=arm PACKAGE_ARCH=armhf
 
 package-rpm:
 	# Building RedHat compatible packages...
-	make package-rpm-fpm ARCH=amd64
-	make package-rpm-fpm ARCH=386
+	make package-rpm-fpm ARCH=amd64 PACKAGE_ARCH=amd64
+	make package-rpm-fpm ARCH=386 PACKAGE_ARCH=386
+	make package-rpm-fpm ARCH=arm PACKAGE_ARCH=arm
+	make package-rpm-fpm ARCH=arm PACKAGE_ARCH=armhf
 
 package-deps:
 	# Installing packaging dependencies...
@@ -88,7 +91,7 @@ package-deps:
 package-deb-fpm:
 	@mkdir -p out/deb/
 	fpm -s dir -t deb -n $(PACKAGE_NAME) -v $(VERSION) \
-		-p out/deb/$(PACKAGE_NAME)_$(ARCH).deb \
+		-p out/deb/$(PACKAGE_NAME)_$(PACKAGE_ARCH).deb \
 		--deb-priority optional --category admin \
 		--force \
 		--deb-compression bzip2 \
@@ -100,13 +103,13 @@ package-deb-fpm:
 		--license "MIT" \
 		--vendor "ayufan.eu" \
 		--conflicts $(PACKAGE_CONFLICT) \
-		-a $(ARCH) \
+		-a $(PACKAGE_ARCH) \
 		out/binaries/$(NAME)-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
 
 package-rpm-fpm:
 	@mkdir -p out/rpm/
 	fpm -s dir -t rpm -n $(PACKAGE_NAME) -v $(VERSION) \
-		-p out/rpm/$(PACKAGE_NAME)_$(ARCH).rpm \
+		-p out/rpm/$(PACKAGE_NAME)_$(PACKAGE_ARCH).rpm \
 		--rpm-compression bzip2 --rpm-os linux \
 		--force \
 		--after-install packaging/scripts/postinst.rpm \
@@ -117,7 +120,7 @@ package-rpm-fpm:
 		--license "MIT" \
 		--vendor "ayufan.eu" \
 		--conflicts $(PACKAGE_CONFLICT) \
-		-a $(ARCH) \
+		-a $(PACKAGE_ARCH) \
 		out/binaries/$(NAME)-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
 
 packagecloud: packagecloud-deps packagecloud-deb packagecloud-rpm
