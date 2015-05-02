@@ -50,8 +50,7 @@ func (b *PowerShell) writeFetchCmd(w io.Writer, build *common.Build) {
 
 func (b *PowerShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
 	b.writeCommand(w, "echo \"Checkouting %s as %s...\"", build.Sha[0:8], build.RefName)
-	b.writeCommandChecked(w, "git checkout -B \"%s\" \"%s\" > $null", build.RefName, build.Sha)
-	b.writeCommandChecked(w, "git reset --hard \"%s\" > $null", build.Sha)
+	b.writeCommandChecked(w, "git checkout -qf \"%s\"", build.Sha)
 }
 
 func (b *PowerShell) GenerateScript(build *common.Build) (*common.ShellScript, error) {

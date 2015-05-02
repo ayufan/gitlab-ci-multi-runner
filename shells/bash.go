@@ -41,8 +41,7 @@ func (b *BashShell) writeFetchCmd(w io.Writer, build *common.Build) {
 
 func (b *BashShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
 	io.WriteString(w, fmt.Sprintf("echo Checkouting %s as %s...\n", build.Sha[0:8], build.RefName))
-	io.WriteString(w, fmt.Sprintf("git checkout -B %s %s > /dev/null\n", build.RefName, build.Sha))
-	io.WriteString(w, fmt.Sprintf("git reset --hard %s > /dev/null\n", build.Sha))
+	io.WriteString(w, fmt.Sprintf("git checkout -qf %s\n", build.Sha))
 }
 
 func (b *BashShell) GenerateScript(build *common.Build) (*common.ShellScript, error) {
