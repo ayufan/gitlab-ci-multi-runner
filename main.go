@@ -7,7 +7,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 
-	"github.com/ayufan/gitlab-ci-multi-runner/commands"
+	"fmt"
+	_ "github.com/ayufan/gitlab-ci-multi-runner/commands"
 	"github.com/ayufan/gitlab-ci-multi-runner/common"
 	_ "github.com/ayufan/gitlab-ci-multi-runner/executors/docker"
 	_ "github.com/ayufan/gitlab-ci-multi-runner/executors/parallels"
@@ -20,7 +21,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = path.Base(os.Args[0])
 	app.Usage = "a GitLab-CI Multi Runner"
-	app.Version = commands.VERSION
+	app.Version = fmt.Sprintf("%s (%s)", common.VERSION, common.REVISION)
 	app.Author = "Kamil Trzciński"
 	app.Email = "ayufan@ayufan.eu"
 
