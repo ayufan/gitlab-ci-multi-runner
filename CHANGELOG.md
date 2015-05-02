@@ -5,6 +5,8 @@ v 0.3.0
 - Default concurrent limit is set to number of CPUs
 - Make most of the config options optional
 - Rename setup/delete to register/unregister
+- Checkout as detached HEAD (fixes compatibility with older git versions)
+- Update documentation
 
 v 0.2.0
 - Added delete and verify commands
