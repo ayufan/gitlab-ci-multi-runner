@@ -66,7 +66,7 @@ test-docker-image:
 
 version: FORCE
 	# Generating VERSION...
-	echo "package commands\n\nconst NAME = \"$(PACKAGE_NAME)\"\nconst VERSION = \"$(VERSION)\"\nconst REVISION = \"$(REVISION)\"" > common/version.go
+	echo "package common\n\nconst NAME = \"$(PACKAGE_NAME)\"\nconst VERSION = \"$(VERSION)\"\nconst REVISION = \"$(REVISION)\"" > common/version.go
 
 package: package-deps package-deb package-rpm
 
