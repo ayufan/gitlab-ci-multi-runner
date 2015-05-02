@@ -39,12 +39,16 @@ rpm -i gitlab-ci-multi-runner_386.rpm
 
 1. Download any other tagged release:
 
-Simple replace the `master` with either `tag` (v0.2.0) or `latest` (the latest stable).
+Simply replace `master` with either `tag` (v0.2.0) or `latest` (the latest
+stable). For a list of tags see <https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/tags>.
+For example:
 
+* https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/binaries/gitlab-ci-multi-runner-linux-386
 * https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-ci-multi-runner-linux-386
 * https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/v0.2.0/binaries/gitlab-ci-multi-runner-linux-386
 
-If you have problem downloading fallback to http://:
+If you have problem downloading through `https`, fallback to plain `http`:
 
+* http://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/binaries/gitlab-ci-multi-runner-linux-386
 * http://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-ci-multi-runner-linux-386
 * http://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/v0.2.0/binaries/gitlab-ci-multi-runner-linux-386

@@ -1,11 +1,11 @@
 ### Install and initial configuration (For Debian, Ubuntu and CentOS)
 
-1. If you want to use Docker runnner install it before:
+1. If you want to use Docker runnner, install it before using the multi runner:
   ```bash
   curl -sSL https://get.docker.com/ | sh
   ```
 
-1. Add package to apt-get or yum
+1. Add GitLab's official repository via apt-get or yum
   ```bash
   # For Debian/Ubuntu
   curl https://packages.gitlab.com/install/repositories/runner/gitlab-ci-multi-runner/script.deb | sudo bash
@@ -47,10 +47,11 @@
 
 1. Simply execute to install latest version
   ```bash
-  # For Debian/Ubuntu  
+  # For Debian/Ubuntu
   apt-get update
   apt-get install gitlab-ci-multi-runner
 
   # For CentOS
+  yum update
   yum install gitlab-ci-multi-runner
   ```

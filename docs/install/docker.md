@@ -1,5 +1,6 @@
+## Run gitlab-ci-multi-runner in a container
 
-### Docker image installation and configuration (run gitlab-ci-multi-runner in a container)
+### Docker image installation and configuration
 
 1. Install Docker first:
   ```bash
@@ -8,7 +9,8 @@
 
 1. Start the container:
 
-  We need to mount a data volume into our gitlab-ci-multi-runner container to be used for configs and other resources:
+  We need to mount a data volume into our gitlab-ci-multi-runner container to
+  be used for configs and other resources:
   ```bash
   $ docker run -d --name multi-runner --restart always \
       -v /PATH/TO/DATA/FOLDER:/data \
@@ -25,7 +27,8 @@
       ayufan/gitlab-ci-multi-runner:latest
   ```
 
-  If you are planning on using Docker as the method of spawing runners you'll need to mount your docker socket like so:
+  If you are planning on using Docker as the method of spawing runners,
+  you will need to mount your docker socket like so:
   ```bash
   $ docker run -d --name multi-runner --restart always \
       -v /var/run/docker.sock:/var/run/docker.sock \
@@ -71,13 +74,21 @@
       -v /var/run/docker.sock:/var/run/docker.sock \
       ayufan/gitlab-ci-multi-runner:latest
   ```
-  **note**: you need to use the same method for mounting you data volume as you did originally (`-v /PATH/TO/DATA/FOLDER:/data` or `--volumes-from multi-runner-data`)
+  **Note**: you need to use the same method for mounting you data volume as you
+      did originally (`-v /PATH/TO/DATA/FOLDER:/data` or `--volumes-from multi-runner-data`)
 
 #### Installing Trusted SSL Server Certificates
 
-If your GitLab CI server is using self-signed SSL certificates then you should make sure the GitLab CI server certificate is trusted by the gitlab-ci-multi-runner container for them to be able to talk to each other.
+If your GitLab CI server is using self-signed SSL certificates then you should
+make sure the GitLab CI server certificate is trusted by the gitlab-ci-multi-runner
+container for them to be able to talk to each other.
 
-The gitlab-ci-multi-runner image is configured to look for the trusted SSL certificates at `/data/certs/ca.crt`, this can however be changed using the `-e "CA_CERTIFICATES_PATH=/DIR/CERT"` configuration option.
+The gitlab-ci-multi-runner image is configured to look for the trusted SSL
+certificates at `/data/certs/ca.crt`, this can however be changed using the
+`-e "CA_CERTIFICATES_PATH=/DIR/CERT"` configuration option.
 
-Copy the `ca.crt` file into the `certs` directory on the data volume (or container). The `ca.crt` file should contain the root certificates of all the servers you want gitlab-ci-multi-runner to trust.
-The gitlab-ci-multi-runner container will import the `ca.crt` file on startup so if your container is already running you may need to restart it for the changes to take place.
+Copy the `ca.crt` file into the `certs` directory on the data volume (or container).
+The `ca.crt` file should contain the root certificates of all the servers you
+want gitlab-ci-multi-runner to trust. The gitlab-ci-multi-runner container will
+import the `ca.crt` file on startup so if your container is already running you
+may need to restart it for the changes to take effect.

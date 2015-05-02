@@ -1,8 +1,8 @@
 ### Install on OSX
 
-(In the future there will be brew package)
+(In the future there will be a brew package)
 
-1. Download binary for your system:
+1. Download the binary for your system:
 	```bash
 	sudo wget -O /usr/local/bin/gitlab-ci-multi-runner https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-ci-multi-runner-darwin-amd64
 	```
@@ -12,7 +12,7 @@
 	sudo chmod +x /usr/local/bin/gitlab-ci-multi-runner
 	```
 
-1. The rest of commands execute as user who will run the runner
+1. The rest of commands execute as the user who will run the runner.
 
 1. Setup the runner
 	```bash

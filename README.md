@@ -1,7 +1,9 @@
 ## GitLab CI Multi-purpose Runner
 
-This is GitLab CI Multi-purpose Runner repository an **unofficial GitLab CI runner written in Go**, this application run tests and sends the results to GitLab CI.
-[GitLab CI](https://about.gitlab.com/gitlab-ci) is the open-source continuous integration server that coordinates the testing.
+This is the GitLab CI Multi-purpose Runner repository, the official GitLab CI
+runner written in Go. It runs tests and sends the results to GitLab CI.
+[GitLab CI](https://about.gitlab.com/gitlab-ci) is the open-source
+continuous integration server that coordinates the testing.
 
 [![Build Status](https://ci.gitlab.com/projects/1885/status.png?ref=master)](https://ci.gitlab.com/projects/1885?ref=master)
 
@@ -14,7 +16,9 @@ The official repository for this project is on [GitLab.com](https://gitlab.com/g
 
 ### Requirements
 
-**None. This project is designed for the Linux, OS X and Windows operating systems.**
+**None:** gitlab-ci-multi-runner is run as a single binary.
+
+This project is designed for the Linux, OS X and Windows operating systems.
 
 ### Features
 
@@ -38,26 +42,27 @@ The official repository for this project is on [GitLab.com](https://gitlab.com/g
 
 ### Installation
 
-* [Install using Debian/Ubuntu/CentOS/RedHat package (preferred)](docs/install-on-linux.md)
-* [Install on OSX (preffered)](docs/install-on-osx.md)
-* [Install on Windows (preffered)](docs/install-on-windows.md)
-* [Install as Docker Service](docs/install-on-docker.md)
-* [Manual installation (advanced)](docs/install-manually.md)
-* [Bleeding edge (development)](docs/install-bleeding-edge.md)
+* [Install using GitLab's repository for Debian/Ubuntu/CentOS/RedHat  (preferred)](docs/install/linux-repository.md)
+* [Install on OSX (preffered)](docs/install/osx.md)
+* [Install on Windows (preffered)](docs/install/windows.md)
+* [Install as Docker Service](docs/install/docker.md)
+* [Manual installation (advanced)](docs/install/linux-manually.md)
+* [Bleeding edge (development)](docs/install/bleeding-edge.md)
 
 ### Advanced Configuration
 
-* [See advanced configuration options](docs/advanced-configuration.md)
+* [See advanced configuration options](docs/configuration/advanced-configuration.md)
 * [See example configuration file](config.toml.example)
 
 ### Example integrations
 
-* [Integrate GitLab CE](docs/example-integration-gitlab.md)
-* [Integrate GitLab CI](docs/example-integration-gitlab-ci.md)
+* [Integrate GitLab CE](docs/examples/gitlab.md)
+* [Integrate GitLab CI](docs/examples/gitlab-ci.md)
 
 ### Extra projects?
 
-If you want to add another project, token or image simply RE-RUN SETUP. *You don't have to re-run the runner. He will automatically reload configuration once it changes.*
+If you want to add another project, token or image simply RE-RUN SETUP.
+*You don't have to re-run the runner. It will automatically reload configuration once it changes.*
 
 ### Changelog
 

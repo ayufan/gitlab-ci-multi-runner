@@ -26,7 +26,7 @@
 1. Setup the runner
 	```bash
 	cd ~gitlab_ci_multi_runner
-	sudo -u gitlab_ci_multi_runner -H gitlab-ci-multi-runner-linux setup
+	sudo -u gitlab_ci_multi_runner -H gitlab-ci-multi-runner setup
 	```
 
 1. Secure config.toml
