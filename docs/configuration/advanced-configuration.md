@@ -8,13 +8,11 @@ This defines global settings of multi-runner.
 | Setting | Explanation |
 | ------- | ----------- |
 | `concurrent` | limits how many jobs globally can be run concurrently. The most upper limit of jobs using all defined runners |
-| `root_dir` | allows to change relative dir where all builds, caches, etc. are stored. By default is current working directory |
 
 Example:
 
 ```bash
 concurrent = 4
-root_dir = ""
 ```
 
 ### The [[runners]] section
@@ -28,10 +26,11 @@ This defines one runner entry.
 | `token`             | runner token |
 | `limit`             | limit how many jobs can be handled concurrently by this token. 0 simply means don't limit |
 | `executor`          | select how a project should be built, see next section |
+| `shell`             | the name of shell to generate the script (default value is platform dependent) |
 | `builds_dir`        | directory where builds will be stored in context of selected executor (Locally, Docker, SSH) |
 | `clean_environment` | do not inherit any environment variables from the multi-runner process |
 | `environment`       | append or overwrite environment variables |
-| `shell`             | the name of shell to generate the script (default value is platform dependent) |
+| `disable_verbose`   | don't print run commands |
 
 Example:
 
@@ -83,7 +82,6 @@ This defines the Docker Container parameters.
 | `image`                     | use this image to run builds |
 | `privileged`                | make container run in Privileged mode (insecure) |
 | `disable_cache`             | disable automatic |
-| `disable_pull`              | disable automatic image pulling if not found |
 | `wait_for_services_timeout` | specify how long to wait for docker services, set to 0 to disable, default: 30 |
 | `cache_dir`                 | specify where Docker caches should be stored (this can be absolute or relative to current working directory) |
 | `registry`                  | specify custom Docker registry to be used |
@@ -102,7 +100,6 @@ Example:
   image = "ruby:2.1"
   privileged = false
   disable_cache = false
-  disable_pull = false
   wait_for_services_timeout = 30
   cache_dir = ""
   registry = ""

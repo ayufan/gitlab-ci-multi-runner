@@ -1,5 +1,4 @@
 concurrent = 4
-root_dir = ""
 
 [[runners]]
   name = "ruby-2.1"
@@ -9,6 +8,7 @@ root_dir = ""
   executor = "shell"
   builds_dir = ""
   clean_environment = false
+  shell = "bash"
 
 [[runners]]
   name = "ruby-2.1-docker"
@@ -22,7 +22,6 @@ root_dir = ""
     image = "ruby:2.1"
     privileged = false
     disable_cache = false
-    disable_pull = false
     cache_dir = ""
     registry = ""
 
@@ -38,7 +37,6 @@ root_dir = ""
     image = "ubuntu-upstart:14.04"
     privileged = false
     disable_cache = false
-    disable_pull = false
     cache_dir = ""
     registry = ""
   [runners.ssh]
