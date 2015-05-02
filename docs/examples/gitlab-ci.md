@@ -1,12 +1,12 @@
 ## How to configure runner for GitLab CI integration tests (uses confined Docker executor)
 
-### 1. Run the setup
+### 1. Register the runner
 
 The registration token can be found at `https://ci.gitlab.com/projects/:id/runners`.
 You can export it as a variable and run the command below as is:
 
 ```bash
-gitlab-ci-multi-runner setup \
+gitlab-ci-multi-runner register \
 --non-interactive \
 --url "https://ci.gitlab.com/" \
 --registration-token "REGISTRATION_TOKEN" \

@@ -7,7 +7,7 @@ import (
 	"github.com/ayufan/gitlab-ci-multi-runner/common"
 )
 
-func runDelete(c *cli.Context) {
+func runUnregister(c *cli.Context) {
 	runner := common.RunnerConfig{
 		URL:   c.String("url"),
 		Token: c.String("token"),
@@ -48,9 +48,9 @@ func runDelete(c *cli.Context) {
 
 func init() {
 	common.RegisterCommand(cli.Command{
-		Name:   "delete",
-		Usage:  "delete specific runner",
-		Action: runDelete,
+		Name:   "unregister",
+		Usage:  "unregister specific runner",
+		Action: runUnregister,
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:   "token",

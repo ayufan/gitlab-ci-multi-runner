@@ -37,10 +37,10 @@ docker run -d --name multi-runner --restart always \
   ayufan/gitlab-ci-multi-runner:latest
 ```
 
-Setup the runner:
+Register the runner:
 
 ```bash
-docker exec -it multi-runner gitlab-ci-multi-runner setup
+docker exec -it multi-runner gitlab-ci-multi-runner register
 
 Please enter the gitlab-ci coordinator URL (e.g. http://gitlab-ci.org:3000/ )
 https://ci.gitlab.org/

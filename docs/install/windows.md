@@ -10,11 +10,11 @@ write `Command Prompt` in Windows search field, right click and select
 `Run as administrator`. You will be asked to confirm that you want to execute
 the elevated command prompt.
 
-Setup the runner:
+Register the runner:
 
 ```bash
 cd C:\Multi-Runner
-gitlab-ci-multi-runner-linux setup
+gitlab-ci-multi-runner-linux register
 
 Please enter the gitlab-ci coordinator URL (e.g. http://gitlab-ci.org:3000/ )
 https://ci.gitlab.com

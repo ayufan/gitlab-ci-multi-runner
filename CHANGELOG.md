@@ -4,6 +4,7 @@ v 0.3.0
 - Support TLS connection with Docker
 - Default concurrent limit is set to number of CPUs
 - Make most of the config options optional
+- Rename setup/delete to register/unregister
 
 v 0.2.0
 - Added delete and verify commands

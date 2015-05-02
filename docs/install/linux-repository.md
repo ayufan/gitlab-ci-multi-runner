@@ -28,11 +28,11 @@ apt-get install gitlab-ci-multi-runner
 yum install gitlab-ci-multi-runner
 ```
 
-Setup the runner:
+Register the runner:
 
 ```bash
 cd ~gitlab_ci_multi_runner
-gitlab-ci-multi-runner setup
+gitlab-ci-multi-runner register
 
 Please enter the gitlab-ci coordinator URL (e.g. http://gitlab-ci.org:3000/ )
 https://ci.gitlab.org/

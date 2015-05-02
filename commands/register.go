@@ -15,14 +15,14 @@ import (
 	"github.com/ayufan/gitlab-ci-multi-runner/ssh"
 )
 
-type SetupContext struct {
+type RegistrationContext struct {
 	*cli.Context
 	configFile string
 	config     *common.Config
 	reader     *bufio.Reader
 }
 
-func (s *SetupContext) ask(key, prompt string, allowEmptyOptional ...bool) string {
+func (s *RegistrationContext) ask(key, prompt string, allowEmptyOptional ...bool) string {
 	allowEmpty := len(allowEmptyOptional) > 0 && allowEmptyOptional[0]
 
 	result := s.String(key)
@@ -59,7 +59,7 @@ func (s *SetupContext) ask(key, prompt string, allowEmptyOptional ...bool) strin
 	}
 }
 
-func (s *SetupContext) askExecutor() string {
+func (s *RegistrationContext) askExecutor() string {
 	for {
 		names := common.GetExecutors()
 		executors := strings.Join(names, ", ")
@@ -70,7 +70,7 @@ func (s *SetupContext) askExecutor() string {
 	}
 }
 
-func (s *SetupContext) askForDockerService(service string, dockerConfig *common.DockerConfig) bool {
+func (s *RegistrationContext) askForDockerService(service string, dockerConfig *common.DockerConfig) bool {
 	for {
 		result := s.ask("docker-"+service, "If you want to enable "+service+" please enter version (X.Y) or enter latest?", true)
 		if len(result) == 0 {
@@ -88,7 +88,7 @@ func (s *SetupContext) askForDockerService(service string, dockerConfig *common.
 	}
 }
 
-func (s *SetupContext) askDocker(runnerConfig *common.RunnerConfig) {
+func (s *RegistrationContext) askDocker(runnerConfig *common.RunnerConfig) {
 	dockerConfig := &common.DockerConfig{}
 	dockerConfig.Image = s.ask("docker-image", "Please enter the Docker image (eg. ruby:2.1):")
 	dockerConfig.Privileged = s.Bool("docker-privileged")
@@ -106,13 +106,13 @@ func (s *SetupContext) askDocker(runnerConfig *common.RunnerConfig) {
 	runnerConfig.Docker = dockerConfig
 }
 
-func (s *SetupContext) askParallels(runnerConfig *common.RunnerConfig) {
+func (s *RegistrationContext) askParallels(runnerConfig *common.RunnerConfig) {
 	parallelsConfig := &common.ParallelsConfig{}
 	parallelsConfig.BaseName = s.ask("parallels-vm", "Please enter the Parallels VM (eg. my-vm):")
 	runnerConfig.Parallels = parallelsConfig
 }
 
-func (s *SetupContext) askSSH(runnerConfig *common.RunnerConfig, serverless bool) {
+func (s *RegistrationContext) askSSH(runnerConfig *common.RunnerConfig, serverless bool) {
 	runnerConfig.SSH = &ssh.Config{}
 	if !serverless {
 		if host := s.ask("ssh-host", "Please enter the SSH server address (eg. my.server.com):"); host != "" {
@@ -130,32 +130,32 @@ func (s *SetupContext) askSSH(runnerConfig *common.RunnerConfig, serverless bool
 	}
 }
 
-func (s *SetupContext) touchConfig() {
+func (s *RegistrationContext) touchConfig() {
 	file, _ := os.OpenFile(s.configFile, os.O_APPEND|os.O_CREATE, 0600)
 	if file != nil {
 		file.Close()
 	}
 }
 
-func (s *SetupContext) loadConfig() {
+func (s *RegistrationContext) loadConfig() {
 	err := s.config.LoadConfig(s.configFile)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (s *SetupContext) addRunner(runner *common.RunnerConfig) {
+func (s *RegistrationContext) addRunner(runner *common.RunnerConfig) {
 	s.config.Runners = append(s.config.Runners, runner)
 }
 
-func (s *SetupContext) saveConfig() {
+func (s *RegistrationContext) saveConfig() {
 	err := s.config.SaveConfig(s.configFile)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (s *SetupContext) askRunner() common.RunnerConfig {
+func (s *RegistrationContext) askRunner() common.RunnerConfig {
 	url := s.ask("url", "Please enter the gitlab-ci coordinator URL (e.g. http://gitlab-ci.org:3000/):")
 	registrationToken := s.ask("registration-token", "Please enter the gitlab-ci token for this runner:")
 	description := s.ask("description", "Please enter the gitlab-ci description for this runner:")
@@ -173,8 +173,8 @@ func (s *SetupContext) askRunner() common.RunnerConfig {
 	}
 }
 
-func runSetup(c *cli.Context) {
-	s := SetupContext{
+func runRegister(c *cli.Context) {
+	s := RegistrationContext{
 		Context:    c,
 		config:     common.NewConfig(),
 		configFile: c.String("config"),
@@ -242,10 +242,9 @@ func getHostname() string {
 
 func init() {
 	common.RegisterCommand(cli.Command{
-		Name:      "setup",
-		ShortName: "s",
-		Usage:     "setup a new runner",
-		Action:    runSetup,
+		Name:   "register",
+		Usage:  "register a new runner",
+		Action: runRegister,
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:   "c, config",
@@ -255,13 +254,13 @@ func init() {
 			},
 			cli.BoolFlag{
 				Name:   "n, non-interactive",
-				Usage:  "Run setup unattended",
-				EnvVar: "SETUP_NON_INTERACTIVE",
+				Usage:  "Run registration unattended",
+				EnvVar: "REGISTER_NON_INTERACTIVE",
 			},
 			cli.BoolFlag{
 				Name:   "leave-runner",
-				Usage:  "Don't remove runner if setup fails",
-				EnvVar: "SETUP_LEAVE_RUNNER",
+				Usage:  "Don't remove runner if registration fails",
+				EnvVar: "REGISTER_LEAVE_RUNNER",
 			},
 
 			cli.StringFlag{

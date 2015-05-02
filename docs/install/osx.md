@@ -16,9 +16,9 @@ sudo chmod +x /usr/local/bin/gitlab-ci-multi-runner
 
 **The rest of commands execute as the user who will run the runner.**
 
-Setup the runner:
+Register the runner:
 ```bash
-gitlab-ci-multi-runner-linux setup
+gitlab-ci-multi-runner-linux register
 
 Please enter the gitlab-ci coordinator URL (e.g. http://gitlab-ci.org:3000/ )
 https://ci.gitlab.org/
@@ -46,7 +46,7 @@ Voila! Runner is installed and will be run after system reboot.
 
 ### Update
 
-Stop the service (you need elevated command prompt as before):
+Stop the service:
 
 ```bash
 gitlab-ci-multi-runner stop

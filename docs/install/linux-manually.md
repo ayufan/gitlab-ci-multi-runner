@@ -29,11 +29,11 @@ sudo useradd --comment 'GitLab Runner' --create-home gitlab_ci_multi_runner --sh
 sudo usermod -aG docker gitlab_ci_multi_runner
 ```
 
-Setup the runner:
+Register the runner:
 
 ```bash
 cd ~gitlab_ci_multi_runner
-sudo -u gitlab_ci_multi_runner -H gitlab-ci-multi-runner setup
+sudo -u gitlab_ci_multi_runner -H gitlab-ci-multi-runner register
 ```
 
 Secure `config.toml`:
