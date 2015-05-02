@@ -11,6 +11,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
+	"runtime"
 )
 
 type UpdateState int
@@ -21,8 +22,17 @@ const (
 	UpdateFailed
 )
 
+type VersionInfo struct {
+	Name         string `json:"name,omitempty"`
+	Version      string `json:"version,omitempty"`
+	Revision     string `json:"revision,omitempty"`
+	Platform     string `json:"platform,omitempty"`
+	Architecture string `json:"architecture,omitempty"`
+}
+
 type GetBuildRequest struct {
-	Token string `json:"token,omitempty"`
+	Info  VersionInfo `json:"info,omitempty"`
+	Token string      `json:"token,omitempty"`
 }
 
 type GetBuildResponse struct {
@@ -38,9 +48,10 @@ type GetBuildResponse struct {
 }
 
 type RegisterRunnerRequest struct {
-	Token       string `json:"token,omitempty"`
-	Description string `json:"description,omitempty"`
-	Tags        string `json:"tag_list,omitempty"`
+	Info        VersionInfo `json:"info,omitempty"`
+	Token       string      `json:"token,omitempty"`
+	Description string      `json:"description,omitempty"`
+	Tags        string      `json:"tag_list,omitempty"`
 }
 
 type RegisterRunnerResponse struct {
@@ -48,9 +59,10 @@ type RegisterRunnerResponse struct {
 }
 
 type UpdateBuildRequest struct {
-	Token string     `json:"token,omitempty"`
-	State BuildState `json:"state,omitempty"`
-	Trace string     `json:"trace,omitempty"`
+	Info  VersionInfo `json:"info,omitempty"`
+	Token string      `json:"token,omitempty"`
+	State BuildState  `json:"state,omitempty"`
+	Trace string      `json:"trace,omitempty"`
 }
 
 func sendJSONRequest(url string, method string, statusCode int, request interface{}, response interface{}) int {
@@ -130,8 +142,19 @@ func getURL(baseURL string, request string, a ...interface{}) string {
 	return fmt.Sprintf("%s/api/v1/%s", baseURL, fmt.Sprintf(request, a...))
 }
 
+func GetRunnerVersion() VersionInfo {
+	return VersionInfo{
+		Name:         NAME,
+		Version:      VERSION,
+		Revision:     REVISION,
+		Platform:     runtime.GOOS,
+		Architecture: runtime.GOARCH,
+	}
+}
+
 func GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 	request := GetBuildRequest{
+		Info:  GetRunnerVersion(),
 		Token: config.Token,
 	}
 
@@ -156,6 +179,7 @@ func GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 
 func RegisterRunner(url, token, description, tags string) *RegisterRunnerResponse {
 	request := RegisterRunnerRequest{
+		Info:        GetRunnerVersion(),
 		Token:       token,
 		Description: description,
 		Tags:        tags,
@@ -215,6 +239,7 @@ func VerifyRunner(url, token string) bool {
 
 func UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) UpdateState {
 	request := UpdateBuildRequest{
+		Info:  GetRunnerVersion(),
 		Token: config.Token,
 		State: state,
 		Trace: trace,
