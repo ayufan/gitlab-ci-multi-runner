@@ -28,7 +28,6 @@ type MultiRunner struct {
 	config           *common.Config
 	configFile       string
 	workingDirectory string
-	listenAddr       string
 	allBuilds        []*common.Build
 	builds           []*common.Build
 	buildsLock       sync.RWMutex
@@ -253,16 +252,6 @@ func (mr *MultiRunner) Start(s service.Service) error {
 		panic(err)
 	}
 
-	// Start web server
-	if len(mr.listenAddr) > 0 {
-		mrs := MultiRunnerServer{
-			MultiRunner:     mr,
-			listenAddresses: []string{mr.listenAddr},
-		}
-
-		go mrs.Run()
-	}
-
 	// Start should not block. Do the actual work async.
 	go mr.Run()
 
@@ -395,7 +384,6 @@ func CreateService(c *cli.Context) service.Service {
 	mr := &MultiRunner{
 		configFile:       c.String("config"),
 		workingDirectory: c.String("working-directory"),
-		listenAddr:       c.String("listen-addr"),
 	}
 
 	s, err := service.New(mr, svcConfig)
@@ -445,12 +433,6 @@ func init() {
 			cli.StringFlag{
 				Name:  "working-directory, d",
 				Usage: "Specify custom working directory",
-			},
-			cli.StringFlag{
-				Name:   "listen-addr",
-				Value:  "",
-				Usage:  "API listen address, eg. :8080",
-				EnvVar: "API_LISTEN",
 			},
 			cli.StringFlag{
 				Name:  "service-name, n",
