@@ -170,7 +170,7 @@ func (e *AbstractExecutor) Prepare(config *common.RunnerConfig, build *common.Bu
 		return err
 	}
 
-	e.Println(fmt.Sprintf("%s v.%s r.%s", common.NAME, common.VERSION, common.REVISION))
+	e.Println(fmt.Sprintf("%s %s (%s)", common.NAME, common.VERSION, common.REVISION))
 
 	err = e.generateShellScript()
 	if err != nil {
