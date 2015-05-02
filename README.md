@@ -53,6 +53,7 @@ This project is designed for the Linux, OS X and Windows operating systems.
 
 * [See advanced configuration options](docs/configuration/advanced-configuration.md)
 * [See example configuration file](config.toml.example)
+* [See security considerations](docs/security/index.md)
 
 ### Example integrations
 

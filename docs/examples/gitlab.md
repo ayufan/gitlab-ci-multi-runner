@@ -6,8 +6,6 @@ The registration token can be found at `https://ci.gitlab.com/projects/:id/runne
 You can export it as a variable and run the command below as is:
 
 ```bash
-export REGISTRATION_TOKEN=<token>
-
 gitlab-ci-multi-runner setup \
 --non-interactive \
 --url "https://ci.gitlab.com/" \
