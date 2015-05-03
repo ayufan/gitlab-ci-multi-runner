@@ -44,7 +44,7 @@ func (b *BashShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
 	io.WriteString(w, fmt.Sprintf("git checkout -qf %s\n", build.Sha))
 }
 
-func (b *BashShell) GenerateScript(build *common.Build) (*common.ShellScript, error) {
+func (b *BashShell) GenerateScript(build *common.Build, shellType common.ShellType) (*common.ShellScript, error) {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
 
@@ -98,8 +98,12 @@ func (b *BashShell) GenerateScript(build *common.Build) (*common.ShellScript, er
 		Environment: env,
 		Script:      buffer.Bytes(),
 		Command:     "bash",
-		Arguments:   []string{"--login"},
 	}
+
+	if shellType == common.LoginShell {
+		script.Arguments = []string{"--login"}
+	}
+
 	return &script, nil
 }
 

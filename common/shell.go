@@ -15,6 +15,13 @@ type ShellScript struct {
 	Extension   string
 }
 
+type ShellType int
+
+const (
+	NormalShell ShellType = iota
+	LoginShell
+)
+
 func (s *ShellScript) GetCommandWithArguments() []string {
 	parts := []string{s.Command}
 	for _, arg := range s.Arguments {
@@ -33,7 +40,7 @@ func (s *ShellScript) GetFullCommand() string {
 
 type Shell interface {
 	GetName() string
-	GenerateScript(build *Build) (*ShellScript, error)
+	GenerateScript(build *Build, shellType ShellType) (*ShellScript, error)
 	IsDefault() bool
 }
 
@@ -69,13 +76,13 @@ func GetShells() []string {
 	return names
 }
 
-func GenerateShellScript(name string, build *Build) (*ShellScript, error) {
+func GenerateShellScript(name string, build *Build, shellType ShellType) (*ShellScript, error) {
 	shell := GetShell(name)
 	if shell == nil {
 		return nil, fmt.Errorf("shell %s not found", name)
 	}
 
-	return shell.GenerateScript(build)
+	return shell.GenerateScript(build, shellType)
 }
 
 func GetDefaultShell() string {

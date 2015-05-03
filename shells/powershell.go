@@ -53,7 +53,7 @@ func (b *PowerShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
 	b.writeCommandChecked(w, "git checkout -qf \"%s\"", build.Sha)
 }
 
-func (b *PowerShell) GenerateScript(build *common.Build) (*common.ShellScript, error) {
+func (b *PowerShell) GenerateScript(build *common.Build, shellType common.ShellType) (*common.ShellScript, error) {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
 

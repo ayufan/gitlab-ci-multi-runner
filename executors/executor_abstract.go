@@ -17,6 +17,7 @@ type AbstractExecutor struct {
 	DefaultBuildsDir string
 	SharedBuildsDir  bool
 	DefaultShell     string
+	ShellType        common.ShellType
 	ShowHostname     bool
 	Config           *common.RunnerConfig
 	Build            *common.Build
@@ -123,7 +124,7 @@ func (e *AbstractExecutor) Errorln(args ...interface{}) {
 
 func (e *AbstractExecutor) generateShellScript() error {
 	shell := helpers.StringOrDefault(e.Config.Shell, e.DefaultShell)
-	shellScript, err := common.GenerateShellScript(shell, e.Build)
+	shellScript, err := common.GenerateShellScript(shell, e.Build, e.ShellType)
 	if err != nil {
 		return err
 	}

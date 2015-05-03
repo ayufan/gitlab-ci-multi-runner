@@ -70,6 +70,7 @@ func init() {
 					DefaultBuildsDir: "/builds",
 					SharedBuildsDir:  false,
 					DefaultShell:     "bash",
+					ShellType:        common.NormalShell,
 					ShowHostname:     true,
 				},
 			},

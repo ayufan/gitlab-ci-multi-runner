@@ -316,6 +316,7 @@ func init() {
 				DefaultBuildsDir: "tmp/builds",
 				SharedBuildsDir:  false,
 				DefaultShell:     "bash",
+				ShellType:        common.LoginShell,
 				ShowHostname:     true,
 			},
 		}
