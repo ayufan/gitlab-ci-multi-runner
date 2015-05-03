@@ -38,6 +38,13 @@ func isDebianSysv() bool {
 	return true
 }
 
+func isRedhatSysv() bool {
+	if _, err := os.Stat("/etc/rc.d/init.d/functions"); err != nil {
+		return false
+	}
+	return true
+}
+
 func (s *sysv) String() string {
 	if len(s.DisplayName) > 0 {
 		return s.DisplayName
@@ -55,12 +62,17 @@ func (s *sysv) configPath() (cp string, err error) {
 	cp = "/etc/init.d/" + s.Config.Name
 	return
 }
-func (s *sysv) template() *template.Template {
+
+func (s *sysv) template() (*template.Template, error) {
 	script := sysvScript
 	if isDebianSysv() {
 		script = sysvDebianScript
+	} else if isRedhatSysv() {
+		script = sysvRedhatScript
+	} else {
+		return nil, errors.New("Not supported system")
 	}
-	return template.Must(template.New("").Funcs(tf).Parse(script))
+	return template.Must(template.New("").Funcs(tf).Parse(script)), nil
 }
 
 func (s *sysv) Install() error {
@@ -92,7 +104,11 @@ func (s *sysv) Install() error {
 		path,
 	}
 
-	err = s.template().Execute(f, to)
+	template, err := s.template()
+	if err != nil {
+		return err
+	}
+	err = template.Execute(f, to)
 	if err != nil {
 		return err
 	}
@@ -330,10 +346,104 @@ case "$1" in
     status_of_proc -p "$PIDFILE" "$DAEMON" "$DESC"
     ;;
   *)
-    echo "Usage: sudo service gitlab-ci-multi-runner {start|stop|restart|status}" >&2
+    echo "Usage: sudo service $0 {start|stop|restart|status}" >&2
     exit 1
     ;;
 esac
 
 exit 0
 `
+
+const sysvRedhatScript = `#!/bin/sh
+# For RedHat and cousins:
+# chkconfig: - 99 01
+# description: {{.Description}}
+# processname: {{.Path}}
+ 
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+name="{{.Name}}"
+desc="{{.Description}}"
+user="{{.UserName}}"
+cmd={{.Path}}
+args="{{range .Arguments}} {{.|cmd}}{{end}}"
+log_file="/var/log/$name.log"
+lockfile=/var/lock/subsys/$name
+
+# Source networking configuration.
+[ -r /etc/sysconfig/$name ] && . /etc/sysconfig/$name
+ 
+start() {
+    echo -n $"Starting $desc: "
+    daemon --user=$user bash --login -c "'{{if .WorkingDirectory}}cd {{.WorkingDirectory|cmd}};{{end}}exec $cmd $args 1>&3 2>&3 &'" 3>> $log_file
+    retval=$?
+    [ $retval -eq 0 ] && touch $lockfile
+    echo
+    return $retval
+}
+ 
+stop() {
+    echo -n $"Stopping $desc: "
+    killproc $cmd -TERM
+    retval=$?
+    [ $retval -eq 0 ] && rm -f $lockfile
+    echo
+    return $retval
+}
+ 
+restart() {
+    stop
+    start
+}
+ 
+reload() {
+    echo -n $"Reloading $desc: "
+    killproc $cmd -HUP
+    RETVAL=$?
+    echo
+}
+ 
+force_reload() {
+    restart
+}
+ 
+rh_status() {
+    status $cmd
+}
+ 
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+}
+ 
+case "$1" in
+    start)
+        rh_status_q && exit 0
+        $1
+        ;;
+    stop)
+        rh_status_q || exit 0
+        $1
+        ;;
+    restart)
+        $1
+        ;;
+    reload)
+        rh_status_q || exit 7
+        $1
+        ;;
+    force-reload)
+        force_reload
+        ;;
+    status)
+        rh_status
+        ;;
+    condrestart|try-restart)
+        rh_status_q || exit 0
+            ;;
+    *)
+        echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload}"
+        exit 2
+esac
+`
+
