@@ -1,6 +1,6 @@
-## GitLab CI Multi-purpose Runner
+## GitLab Runner
 
-This is the GitLab CI Multi-purpose Runner repository, the official GitLab CI
+This is the GitLab Runner repository, the official GitLab CI
 runner written in Go. It runs tests and sends the results to GitLab CI.
 [GitLab CI](https://about.gitlab.com/gitlab-ci) is the open-source
 continuous integration server that coordinates the testing.
@@ -74,7 +74,7 @@ Visit [Changelog](CHANGELOG.md) to view recent changes.
 ```bash
 $ gitlab-ci-multi-runner --help
 NAME:
-   gitlab-ci-multi-runner - a GitLab-CI Multi Runner
+   gitlab-ci-multi-runner - a GitLab Runner
 
 USAGE:
    gitlab-ci-multi-runner [global options] command [command options] [arguments...]

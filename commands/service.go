@@ -12,8 +12,8 @@ import (
 
 const (
 	defaultServiceName = "gitlab-ci-multi-runner"
-	defaultDisplayName = "GitLab-CI Multi-purpose Runner"
-	defaultDescription = "Unofficial GitLab CI runner written in Go"
+	defaultDisplayName = "GitLab Runner"
+	defaultDescription = "GitLab Runner"
 )
 
 type ServiceLogHook struct {

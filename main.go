@@ -20,7 +20,7 @@ import (
 func main() {
 	app := cli.NewApp()
 	app.Name = path.Base(os.Args[0])
-	app.Usage = "a GitLab-CI Multi Runner"
+	app.Usage = "a GitLab Runner"
 	app.Version = fmt.Sprintf("%s (%s)", common.VERSION, common.REVISION)
 	app.Author = "Kamil Trzciński"
 	app.Email = "ayufan@ayufan.eu"

@@ -98,7 +98,7 @@ package-deb-fpm:
 		--after-install packaging/scripts/postinst.deb \
 		--before-remove packaging/scripts/prerm.deb \
 		--url https://github.com/ayufan/gitlab-ci-multi-runner \
-		--description "GitLab CI Multi-purpose Runner" \
+		--description "GitLab Runner" \
 		-m "Kamil Trzciński <ayufan@ayufan.eu>" \
 		--license "MIT" \
 		--vendor "ayufan.eu" \
@@ -115,7 +115,7 @@ package-rpm-fpm:
 		--after-install packaging/scripts/postinst.rpm \
 		--before-remove packaging/scripts/prerm.rpm \
 		--url https://github.com/ayufan/gitlab-ci-multi-runner \
-		--description "GitLab CI Multi-purpose Runner" \
+		--description "GitLab Runner" \
 		-m "Kamil Trzciński <ayufan@ayufan.eu>" \
 		--license "MIT" \
 		--vendor "ayufan.eu" \
