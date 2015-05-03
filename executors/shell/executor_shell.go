@@ -40,12 +40,8 @@ func (s *ShellExecutor) Start() error {
 
 	helpers.SetProcessGroup(s.cmd)
 
-	// Inherit environment from current process
-	if !helpers.BoolOrDefault(s.Config.CleanEnvironment, false) {
-		s.cmd.Env = os.Environ()
-	}
-
 	// Fill process environment variables
+	s.cmd.Env = os.Environ()
 	s.cmd.Env = append(s.cmd.Env, s.ShellScript.Environment...)
 	s.cmd.Env = append(s.cmd.Env, s.Config.Environment...)
 	s.cmd.Stdout = s.BuildLog
