@@ -147,14 +147,15 @@ packagecloud-yank:
 ifneq ($(YANK),)
 	# Removing $(YANK) from packagecloud...
 	-for DIST in debian/wheezy debian/jessie ubuntu/precise ubuntu/trusty ubuntu/utopic; do \
-		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(PACKAGE_NAME)_$(YANK)_amd64.deb & \
-		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(PACKAGE_NAME)_$(YANK)_386.deb & \
-		package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(PACKAGE_NAME)_$(YANK)_arm.deb & \
+		for ARCH in amd64 386 arm armhf; do \
+			package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(PACKAGE_NAME)_$(YANK)_$$ARCH.deb & \
+		done; \
 	done; \
-	package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/6 $(PACKAGE_NAME)-$(YANK)-1.x86_64.rpm & \
-	package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/6 $(PACKAGE_NAME)-$(YANK)-1.386.rpm & \
-	package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/7 $(PACKAGE_NAME)-$(YANK)-1.x86_64.rpm & \
-	package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/7 $(PACKAGE_NAME)-$(YANK)-1.386.rpm & \
+	for DIST in el/6 el/7; do \
+		for ARCH in x86_64 386 arm armhf; do \
+			package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(PACKAGE_NAME)-$(YANK)-1.$$ARCH.rpm & \
+		done; \
+	done; \
 	wait
 else
 	# No version specified in YANK
