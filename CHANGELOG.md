@@ -1,3 +1,6 @@
+v 0.3.2
+- Fixed Windows batch script generator
+
 v 0.3.1
 - Remove clean_environment (it was working only for shell scripts)
 - Run bash with --login (fixes missing .profile environment)

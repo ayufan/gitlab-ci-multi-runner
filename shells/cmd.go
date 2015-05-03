@@ -52,7 +52,7 @@ func (b *CmdShell) writeFetchCmd(w io.Writer, build *common.Build) {
 
 func (b *CmdShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
 	b.writeCommand(w, "echo Checkouting %s as %s...", build.Sha[0:8], build.RefName)
-	b.writeCommandChecked(w, "git checkout -qf \"%s\"", build.RefName, build.Sha)
+	b.writeCommandChecked(w, "git checkout -qf \"%s\"", build.Sha)
 }
 
 func (b *CmdShell) GenerateScript(build *common.Build, shellType common.ShellType) (*common.ShellScript, error) {
