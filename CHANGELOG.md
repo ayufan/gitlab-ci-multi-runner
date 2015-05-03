@@ -1,3 +1,7 @@
+v 0.3.1
+- Remove clean_environment (it was working only for shell scripts)
+- Run bash with --login (fixes missing .profile environment)
+
 v 0.3.0
 - Added repo slug to build path
 - Build path includes repository hostname
