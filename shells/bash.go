@@ -98,6 +98,7 @@ func (b *BashShell) GenerateScript(build *common.Build) (*common.ShellScript, er
 		Environment: env,
 		Script:      buffer.Bytes(),
 		Command:     "bash",
+		Arguments:   []string{"--login"},
 	}
 	return &script, nil
 }

@@ -3,7 +3,6 @@ package common
 import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
-	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
 	"strings"
 )
 
@@ -19,7 +18,7 @@ type ShellScript struct {
 func (s *ShellScript) GetCommandWithArguments() []string {
 	parts := []string{s.Command}
 	for _, arg := range s.Arguments {
-		parts = append(parts, helpers.ShellEscape(arg))
+		parts = append(parts, arg)
 	}
 	return parts
 }
@@ -27,7 +26,7 @@ func (s *ShellScript) GetCommandWithArguments() []string {
 func (s *ShellScript) GetFullCommand() string {
 	parts := s.GetCommandWithArguments()
 	for idx, part := range parts {
-		parts[idx] = helpers.ShellEscape(part)
+		parts[idx] = part
 	}
 	return strings.Join(parts, " ")
 }
