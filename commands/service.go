@@ -2,7 +2,7 @@ package commands
 
 import (
 	log "github.com/Sirupsen/logrus"
-	"github.com/ayufan/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	service "github.com/ayufan/golang-kardianos-service"
 	"github.com/codegangsta/cli"
 	"os"

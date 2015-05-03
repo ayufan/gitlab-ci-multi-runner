@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/ayufan/gitlab-ci-multi-runner",
+	"ImportPath": "gitlab.com/gitlab-org/gitlab-ci-multi-runner",
 	"GoVersion": "go1.4",
 	"Deps": [
 		{

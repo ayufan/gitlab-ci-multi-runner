@@ -8,7 +8,7 @@ import (
 
 	"code.google.com/p/go.crypto/ssh"
 
-	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 )
 
 type Command struct {

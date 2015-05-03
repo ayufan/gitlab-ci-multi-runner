@@ -11,8 +11,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 
-	"github.com/ayufan/gitlab-ci-multi-runner/common"
-	"github.com/ayufan/gitlab-ci-multi-runner/ssh"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/ssh"
 )
 
 type RegistrationContext struct {

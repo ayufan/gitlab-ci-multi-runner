@@ -9,8 +9,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 	log "github.com/Sirupsen/logrus"
-	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
-	"github.com/ayufan/gitlab-ci-multi-runner/ssh"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/ssh"
 	"runtime"
 )
 

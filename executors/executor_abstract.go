@@ -7,8 +7,8 @@ import (
 
 	"bufio"
 	log "github.com/Sirupsen/logrus"
-	"github.com/ayufan/gitlab-ci-multi-runner/common"
-	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
 	"path/filepath"
 )

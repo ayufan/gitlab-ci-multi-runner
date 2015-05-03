@@ -4,7 +4,7 @@ import (
 	"github.com/codegangsta/cli"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/ayufan/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 )
 
 func runVerify(c *cli.Context) {

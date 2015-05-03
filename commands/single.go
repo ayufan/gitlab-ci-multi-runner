@@ -7,7 +7,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"github.com/ayufan/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"net/http"
 	"os/signal"
 	"syscall"

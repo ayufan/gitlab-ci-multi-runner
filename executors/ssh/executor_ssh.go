@@ -3,9 +3,9 @@ package ssh
 import (
 	"errors"
 
-	"github.com/ayufan/gitlab-ci-multi-runner/common"
-	"github.com/ayufan/gitlab-ci-multi-runner/executors"
-	"github.com/ayufan/gitlab-ci-multi-runner/ssh"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/ssh"
 )
 
 type SSHExecutor struct {

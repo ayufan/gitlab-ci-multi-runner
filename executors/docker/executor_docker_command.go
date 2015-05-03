@@ -6,8 +6,8 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 
-	"github.com/ayufan/gitlab-ci-multi-runner/common"
-	"github.com/ayufan/gitlab-ci-multi-runner/executors"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 )
 
 type DockerCommandExecutor struct {

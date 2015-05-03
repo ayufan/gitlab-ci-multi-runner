@@ -8,9 +8,9 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/ayufan/gitlab-ci-multi-runner/common"
-	"github.com/ayufan/gitlab-ci-multi-runner/executors"
-	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 )
 
 type ShellExecutor struct {

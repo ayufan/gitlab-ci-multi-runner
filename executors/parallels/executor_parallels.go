@@ -4,13 +4,13 @@ import (
 	"errors"
 	"os/exec"
 
-	"github.com/ayufan/gitlab-ci-multi-runner/common"
-	"github.com/ayufan/gitlab-ci-multi-runner/executors"
-	"github.com/ayufan/gitlab-ci-multi-runner/ssh"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/ssh"
 
-	prl "github.com/ayufan/gitlab-ci-multi-runner/parallels"
+	prl "gitlab.com/gitlab-org/gitlab-ci-multi-runner/parallels"
 
-	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"time"
 )
 

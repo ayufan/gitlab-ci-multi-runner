@@ -10,7 +10,7 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/ayufan/gitlab-ci-multi-runner/helpers"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"runtime"
 )
 
