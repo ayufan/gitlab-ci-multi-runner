@@ -2,7 +2,9 @@ package parallels
 
 import (
 	"errors"
+	"fmt"
 	"os/exec"
+	"time"
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
@@ -11,7 +13,6 @@ import (
 	prl "gitlab.com/gitlab-org/gitlab-ci-multi-runner/parallels"
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"time"
 )
 
 type ParallelsExecutor struct {
@@ -185,7 +186,7 @@ func (s *ParallelsExecutor) Prepare(config *common.RunnerConfig, build *common.B
 	}
 
 	if helpers.BoolOrDefault(s.Config.Parallels.DisableSnapshots, false) {
-		s.vmName = s.Config.Parallels.BaseName + "-" + s.Build.ProjectRunnerName
+		s.vmName = s.Config.Parallels.BaseName + "-" + s.Build.ProjectUniqueName()
 		if prl.Exist(s.vmName) {
 			s.Debugln("Deleting old VM...")
 			prl.Stop(s.vmName)
@@ -193,7 +194,10 @@ func (s *ParallelsExecutor) Prepare(config *common.RunnerConfig, build *common.B
 			prl.Unregister(s.vmName)
 		}
 	} else {
-		s.vmName = s.Build.RunnerName
+		s.vmName = fmt.Sprintf("%s-runner-%s-concurrent-%d",
+			s.Config.Parallels.BaseName,
+			s.Build.Runner.ShortDescription(),
+			s.Build.RunnerID)
 	}
 
 	if prl.Exist(s.vmName) {

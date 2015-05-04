@@ -33,14 +33,14 @@ type Build struct {
 	Hostname      string
 	Runner        *RunnerConfig `json:"runner"`
 
-	GlobalID   int    `json:"global_id"`
-	GlobalName string `json:"global_name"`
+	// Unique ID for all running builds (globally)
+	GlobalID int `json:"global_id"`
 
-	RunnerID   int    `json:"runner_id"`
-	RunnerName string `json:"runner_name"`
+	// Unique ID for all running builds on this runner
+	RunnerID int `json:"runner_id"`
 
-	ProjectRunnerID   int    `json:"project_runner_id"`
-	ProjectRunnerName string `json:"name"`
+	// Unique ID for all running builds on this runner and this project
+	ProjectRunnerID int `json:"project_runner_id"`
 
 	buildLog     bytes.Buffer `json:"-"`
 	buildLogLock sync.RWMutex
@@ -68,7 +68,6 @@ func (b *Build) AssignID(otherBuilds ...*Build) {
 	for i := 0; ; i++ {
 		if !globals[i] {
 			b.GlobalID = i
-			b.GlobalName = fmt.Sprintf("concurrent-%d", i)
 			break
 		}
 	}
@@ -76,8 +75,6 @@ func (b *Build) AssignID(otherBuilds ...*Build) {
 	for i := 0; ; i++ {
 		if !runners[i] {
 			b.RunnerID = i
-			b.RunnerName = fmt.Sprintf("runner-%s-concurrent-%d",
-				b.Runner.ShortDescription(), i)
 			break
 		}
 	}
@@ -85,15 +82,19 @@ func (b *Build) AssignID(otherBuilds ...*Build) {
 	for i := 0; ; i++ {
 		if !projectRunners[i] {
 			b.ProjectRunnerID = i
-			b.ProjectRunnerName = fmt.Sprintf("runner-%s-project-%d-concurrent-%d",
-				b.Runner.ShortDescription(), b.ProjectID, i)
 			break
 		}
 	}
 }
 
 func (b *Build) ProjectUniqueName() string {
-	return b.ProjectRunnerName
+	return fmt.Sprintf("runner-%s-project-%d-concurrent-%d",
+		b.Runner.ShortDescription(), b.ProjectID, b.ProjectRunnerID)
+}
+
+func (b *Build) ProjectUniqueDir() string {
+	return fmt.Sprintf("%s-%d-%d",
+		b.Runner.ShortDescription(), b.ProjectID, b.ProjectRunnerID)
 }
 
 func (b *Build) ProjectSlug() (string, error) {

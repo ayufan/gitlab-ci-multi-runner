@@ -148,7 +148,7 @@ func (e *AbstractExecutor) startBuild() error {
 	buildsDir := helpers.StringOrDefault(e.Config.BuildsDir, e.DefaultBuildsDir)
 
 	if e.SharedBuildsDir {
-		buildsDir = filepath.Join(buildsDir, e.Build.ProjectUniqueName())
+		buildsDir = filepath.Join(buildsDir, e.Build.ProjectUniqueDir())
 	}
 	if slug, err := e.Build.ProjectSlug(); err == nil {
 		buildsDir = filepath.Join(buildsDir, slug)
