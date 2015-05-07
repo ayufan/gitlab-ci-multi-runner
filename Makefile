@@ -14,6 +14,10 @@ PACKAGE_CLOUD ?= ayufan/gitlab-ci-multi-runner
 PACKAGE_CLOUD_URL ?= https://packagecloud.io/
 BUILD_PLATFORMS ?= -os="linux" -os="darwin" -os="windows"
 S3_UPLOAD_PATH ?= master
+DEB_PLATFORMS ?= debian/wheezy debian/jessie ubuntu/precise ubuntu/trusty ubuntu/utopic ubuntu/vivid
+DEB_ARCHS ?= amd64 386 arm armhf
+RPM_PLATFORMS ?= el/6 el/7 ol/6 ol/7
+RPM_ARCHS ?= amd64 386 arm armhf
 
 all: deps test lint toolchain build
 
@@ -131,28 +135,26 @@ packagecloud-deps:
 
 packagecloud-deb:
 	# Sending Debian compatible packages...
-	package_cloud push --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/debian/wheezy out/deb/*.deb
-	package_cloud push --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/debian/jessie out/deb/*.deb
-
-	package_cloud push --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/ubuntu/precise out/deb/*.deb
-	package_cloud push --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/ubuntu/trusty out/deb/*.deb
-	package_cloud push --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/ubuntu/utopic out/deb/*.deb
+	-for DIST in $(DEB_PLATFORMS); do \
+		package_cloud push --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST out/deb/*.deb; \
+	done
 
 packagecloud-rpm:
 	# Sending RedHat compatible packages...
-	package_cloud push --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/6 out/rpm/*.rpm
-	package_cloud push --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/el/7 out/rpm/*.rpm
+	-for DIST in $(RPM_PLATFORMS); do \
+		package_cloud push --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST out/rpm/*.rpm; \
+	done
 
 packagecloud-yank:
 ifneq ($(YANK),)
 	# Removing $(YANK) from packagecloud...
-	-for DIST in debian/wheezy debian/jessie ubuntu/precise ubuntu/trusty ubuntu/utopic; do \
-		for ARCH in amd64 386 arm armhf; do \
+	-for DIST in $(DEB_PLATFORMS); do \
+		for ARCH in $(DEB_ARCHS); do \
 			package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(PACKAGE_NAME)_$(YANK)_$$ARCH.deb & \
 		done; \
 	done; \
-	for DIST in el/6 el/7; do \
-		for ARCH in x86_64 386 arm armhf; do \
+	for DIST in $(RPM_PLATFORMS); do \
+		for ARCH in $(RPM_ARCHS); do \
 			package_cloud yank --url $(PACKAGE_CLOUD_URL) $(PACKAGE_CLOUD)/$$DIST $(PACKAGE_NAME)-$(YANK)-1.$$ARCH.rpm & \
 		done; \
 	done; \
