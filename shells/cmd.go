@@ -103,6 +103,7 @@ func (b *CmdShell) GenerateScript(build *common.Build, shellType common.ShellTyp
 		fmt.Sprintf("CI_PROJECT_ID=%d", build.ProjectID),
 		fmt.Sprintf("CI_PROJECT_DIR=%s", filepath.FromSlash(build.FullProjectDir())),
 
+		"CI=true",
 		"CI_SERVER=yes",
 		"CI_SERVER_NAME=GitLab CI",
 		"CI_SERVER_VERSION=",
