@@ -32,6 +32,7 @@ func (b *CmdShell) writeCloneCmd(w io.Writer, build *common.Build) {
 	dir := filepath.FromSlash(build.FullProjectDir())
 	b.writeCommand(w, "echo Clonning repository...")
 	b.writeCommandChecked(w, "rd /s /q \"%s\" 2> NUL 1>NUL", dir)
+	b.writeCommandChecked(w, "md \"%s\"", dir)
 	b.writeCommandChecked(w, "git clone \"%s\" \"%s\"", build.RepoURL, dir)
 	b.writeCommandChecked(w, "cd \"%s\"", dir)
 }
