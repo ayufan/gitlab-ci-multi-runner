@@ -30,6 +30,7 @@ func (b *PowerShell) writeCloneCmd(w io.Writer, build *common.Build) {
 	dir := filepath.FromSlash(build.FullProjectDir())
 	b.writeCommand(w, "echo \"Clonning repository...\"")
 	b.writeCommandChecked(w, "if(Test-Path \"%s\") { Remove-Item -Force -Recurse \"%s\" }", dir, dir)
+	b.writeCommandChecked(w, "(Test-Path \"%s\") -or (New-Item \"%s\")", dir, dir)
 	b.writeCommandChecked(w, "git clone \"%s\" \"%s\"", build.RepoURL, dir)
 	b.writeCommandChecked(w, "cd \"%s\"", dir)
 }
