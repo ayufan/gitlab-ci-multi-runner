@@ -18,7 +18,7 @@ sudo chmod +x /usr/local/bin/gitlab-ci-multi-runner
 
 Register the runner:
 ```bash
-gitlab-ci-multi-runner-linux register
+gitlab-ci-multi-runner register
 
 Please enter the gitlab-ci coordinator URL (e.g. http://gitlab-ci.org:3000/ )
 https://ci.gitlab.org/
