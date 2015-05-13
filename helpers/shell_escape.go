@@ -4,6 +4,7 @@ package helpers
 
 import (
 	"fmt"
+	"strings"
 )
 
 /*
@@ -124,4 +125,12 @@ func ShellEscape(str string) string {
 	}
 
 	return out
+}
+
+func ToBackslash(path string) string {
+	return strings.Replace(path, "/", "\\", -1)
+}
+
+func ToSlash(path string) string {
+	return strings.Replace(path, "\\", "/", -1)
 }

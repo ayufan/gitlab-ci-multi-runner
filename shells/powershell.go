@@ -7,7 +7,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
-	"path/filepath"
 	"strings"
 )
 
@@ -26,8 +25,7 @@ func (b *PowerShell) writeCommandChecked(w io.Writer, format string, args ...int
 	b.writeCommand(w, format, args...)
 }
 
-func (b *PowerShell) writeCloneCmd(w io.Writer, build *common.Build) {
-	dir := filepath.FromSlash(build.FullProjectDir())
+func (b *PowerShell) writeCloneCmd(w io.Writer, build *common.Build, dir string) {
 	b.writeCommand(w, "echo \"Clonning repository...\"")
 	b.writeCommandChecked(w, "if(Test-Path \"%s\") { Remove-Item -Force -Recurse \"%s\" }", dir, dir)
 	b.writeCommandChecked(w, "(Test-Path \"%s\") -or (New-Item \"%s\")", dir, dir)
@@ -35,8 +33,7 @@ func (b *PowerShell) writeCloneCmd(w io.Writer, build *common.Build) {
 	b.writeCommandChecked(w, "cd \"%s\"", dir)
 }
 
-func (b *PowerShell) writeFetchCmd(w io.Writer, build *common.Build) {
-	dir := filepath.FromSlash(build.FullProjectDir())
+func (b *PowerShell) writeFetchCmd(w io.Writer, build *common.Build, dir string) {
 	b.writeCommand(w, "if(Test-Path \"%s\\.git\") {", dir)
 	b.writeCommand(w, "echo \"Fetching changes...\"")
 	b.writeCommandChecked(w, "cd \"%s\"", dir)
@@ -45,7 +42,7 @@ func (b *PowerShell) writeFetchCmd(w io.Writer, build *common.Build) {
 	b.writeCommandChecked(w, "git remote set-url origin \"%s\"", build.RepoURL)
 	b.writeCommandChecked(w, "git fetch origin")
 	b.writeCommand(w, "} else {")
-	b.writeCloneCmd(w, build)
+	b.writeCloneCmd(w, build, dir)
 	b.writeCommand(w, "}")
 }
 
@@ -58,6 +55,9 @@ func (b *PowerShell) GenerateScript(build *common.Build, shellType common.ShellT
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
 
+	projectDir := build.FullProjectDir()
+	projectDir = helpers.ToBackslash(projectDir)
+
 	b.writeCommand(w, "$ErrorActionPreference = \"Stop\"")
 
 	if len(build.Hostname) != 0 {
@@ -68,9 +68,9 @@ func (b *PowerShell) GenerateScript(build *common.Build, shellType common.ShellT
 	b.writeCommand(w, "")
 
 	if build.AllowGitFetch {
-		b.writeFetchCmd(w, build)
+		b.writeFetchCmd(w, build, projectDir)
 	} else {
-		b.writeCloneCmd(w, build)
+		b.writeCloneCmd(w, build, projectDir)
 	}
 
 	b.writeCheckoutCmd(w, build)
@@ -99,7 +99,7 @@ func (b *PowerShell) GenerateScript(build *common.Build, shellType common.ShellT
 		fmt.Sprintf("CI_BUILD_REPO=%s", build.RepoURL),
 
 		fmt.Sprintf("CI_PROJECT_ID=%d", build.ProjectID),
-		fmt.Sprintf("CI_PROJECT_DIR=%s", filepath.FromSlash(build.FullProjectDir())),
+		fmt.Sprintf("CI_PROJECT_DIR=%s", projectDir),
 
 		"CI=true",
 		"CI_SERVER=yes",

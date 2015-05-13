@@ -7,7 +7,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
-	"path/filepath"
 	"runtime"
 	"strings"
 )
@@ -28,8 +27,7 @@ func (b *CmdShell) writeCommandChecked(w io.Writer, format string, args ...inter
 	b.writeCommand(w, "%s", "IF %errorlevel% NEQ 0 exit /b %errorlevel%")
 }
 
-func (b *CmdShell) writeCloneCmd(w io.Writer, build *common.Build) {
-	dir := filepath.FromSlash(build.FullProjectDir())
+func (b *CmdShell) writeCloneCmd(w io.Writer, build *common.Build, dir string) {
 	b.writeCommand(w, "echo Clonning repository...")
 	b.writeCommandChecked(w, "rd /s /q \"%s\" 2> NUL 1>NUL", dir)
 	b.writeCommandChecked(w, "md \"%s\"", dir)
@@ -37,8 +35,7 @@ func (b *CmdShell) writeCloneCmd(w io.Writer, build *common.Build) {
 	b.writeCommandChecked(w, "cd \"%s\"", dir)
 }
 
-func (b *CmdShell) writeFetchCmd(w io.Writer, build *common.Build) {
-	dir := filepath.FromSlash(build.FullProjectDir())
+func (b *CmdShell) writeFetchCmd(w io.Writer, build *common.Build, dir string) {
 	b.writeCommand(w, "IF EXIST \"%s\\.git\" (", dir)
 	b.writeCommand(w, "echo Fetching changes...")
 	b.writeCommandChecked(w, "cd \"%s\"", dir)
@@ -47,7 +44,7 @@ func (b *CmdShell) writeFetchCmd(w io.Writer, build *common.Build) {
 	b.writeCommandChecked(w, "git remote set-url origin \"%s\"", build.RepoURL)
 	b.writeCommandChecked(w, "git fetch origin")
 	b.writeCommand(w, ") ELSE (")
-	b.writeCloneCmd(w, build)
+	b.writeCloneCmd(w, build, dir)
 	b.writeCommand(w, ")")
 }
 
@@ -60,6 +57,9 @@ func (b *CmdShell) GenerateScript(build *common.Build, shellType common.ShellTyp
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
 
+	projectDir := build.FullProjectDir()
+	projectDir = helpers.ToBackslash(projectDir)
+
 	b.writeCommand(w, "@echo off")
 	b.writeCommand(w, "echo.")
 	b.writeCommand(w, "setlocal enableextensions")
@@ -71,9 +71,9 @@ func (b *CmdShell) GenerateScript(build *common.Build, shellType common.ShellTyp
 	}
 
 	if build.AllowGitFetch {
-		b.writeFetchCmd(w, build)
+		b.writeFetchCmd(w, build, projectDir)
 	} else {
-		b.writeCloneCmd(w, build)
+		b.writeCloneCmd(w, build, projectDir)
 	}
 
 	b.writeCheckoutCmd(w, build)
@@ -101,7 +101,7 @@ func (b *CmdShell) GenerateScript(build *common.Build, shellType common.ShellTyp
 		fmt.Sprintf("CI_BUILD_REPO=%s", build.RepoURL),
 
 		fmt.Sprintf("CI_PROJECT_ID=%d", build.ProjectID),
-		fmt.Sprintf("CI_PROJECT_DIR=%s", filepath.FromSlash(build.FullProjectDir())),
+		fmt.Sprintf("CI_PROJECT_DIR=%s", projectDir),
 
 		"CI=true",
 		"CI_SERVER=yes",

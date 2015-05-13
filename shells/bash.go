@@ -18,24 +18,24 @@ func (b *BashShell) GetName() string {
 	return "bash"
 }
 
-func (b *BashShell) writeCloneCmd(w io.Writer, build *common.Build) {
+func (b *BashShell) writeCloneCmd(w io.Writer, build *common.Build, projectDir string) {
 	io.WriteString(w, "echo Clonning repository...\n")
-	io.WriteString(w, fmt.Sprintf("rm -rf %s\n", build.FullProjectDir()))
-	io.WriteString(w, fmt.Sprintf("mkdir -p %s\n", build.FullProjectDir()))
-	io.WriteString(w, fmt.Sprintf("git clone %s %s\n", build.RepoURL, build.FullProjectDir()))
-	io.WriteString(w, fmt.Sprintf("cd %s\n", build.FullProjectDir()))
+	io.WriteString(w, fmt.Sprintf("rm -rf %s\n", projectDir))
+	io.WriteString(w, fmt.Sprintf("mkdir -p %s\n", projectDir))
+	io.WriteString(w, fmt.Sprintf("git clone %s %s\n", build.RepoURL, projectDir))
+	io.WriteString(w, fmt.Sprintf("cd %s\n", projectDir))
 }
 
-func (b *BashShell) writeFetchCmd(w io.Writer, build *common.Build) {
-	io.WriteString(w, fmt.Sprintf("if [[ -d %s/.git ]]; then\n", build.FullProjectDir()))
+func (b *BashShell) writeFetchCmd(w io.Writer, build *common.Build, projectDir string) {
+	io.WriteString(w, fmt.Sprintf("if [[ -d %s/.git ]]; then\n", projectDir))
 	io.WriteString(w, "echo Fetching changes...\n")
-	io.WriteString(w, fmt.Sprintf("cd %s\n", build.FullProjectDir()))
+	io.WriteString(w, fmt.Sprintf("cd %s\n", projectDir))
 	io.WriteString(w, fmt.Sprintf("git clean -fdx\n"))
 	io.WriteString(w, fmt.Sprintf("git reset --hard > /dev/null\n"))
 	io.WriteString(w, fmt.Sprintf("git remote set-url origin %s\n", build.RepoURL))
 	io.WriteString(w, fmt.Sprintf("git fetch origin\n"))
 	io.WriteString(w, fmt.Sprintf("else\n"))
-	b.writeCloneCmd(w, build)
+	b.writeCloneCmd(w, build, projectDir)
 	io.WriteString(w, fmt.Sprintf("fi\n"))
 }
 
@@ -47,6 +47,9 @@ func (b *BashShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
 func (b *BashShell) GenerateScript(build *common.Build, shellType common.ShellType) (*common.ShellScript, error) {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
+
+	projectDir := build.FullProjectDir()
+	projectDir = helpers.ToSlash(projectDir)
 
 	io.WriteString(w, "#!/usr/bin/env bash\n")
 	io.WriteString(w, "\n")
@@ -60,9 +63,9 @@ func (b *BashShell) GenerateScript(build *common.Build, shellType common.ShellTy
 
 	io.WriteString(w, "\n")
 	if build.AllowGitFetch {
-		b.writeFetchCmd(w, build)
+		b.writeFetchCmd(w, build, helpers.ShellEscape(projectDir))
 	} else {
-		b.writeCloneCmd(w, build)
+		b.writeCloneCmd(w, build, helpers.ShellEscape(projectDir))
 	}
 
 	b.writeCheckoutCmd(w, build)
@@ -86,7 +89,7 @@ func (b *BashShell) GenerateScript(build *common.Build, shellType common.ShellTy
 		fmt.Sprintf("CI_BUILD_REPO=%s", build.RepoURL),
 
 		fmt.Sprintf("CI_PROJECT_ID=%d", build.ProjectID),
-		fmt.Sprintf("CI_PROJECT_DIR=%s", build.FullProjectDir()),
+		fmt.Sprintf("CI_PROJECT_DIR=%s", projectDir),
 
 		"CI=true",
 		"CI_SERVER=yes",
