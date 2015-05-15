@@ -106,6 +106,8 @@ func (b *PowerShell) GenerateScript(build *common.Build, shellType common.ShellT
 		"CI_SERVER_NAME=GitLab CI",
 		"CI_SERVER_VERSION=",
 		"CI_SERVER_REVISION=",
+
+		"GITLAB_CI=true",
 	}
 
 	script := common.ShellScript{
