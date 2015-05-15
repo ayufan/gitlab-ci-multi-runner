@@ -108,6 +108,8 @@ func (b *CmdShell) GenerateScript(build *common.Build, shellType common.ShellTyp
 		"CI_SERVER_NAME=GitLab CI",
 		"CI_SERVER_VERSION=",
 		"CI_SERVER_REVISION=",
+
+		"GITLAB_CI=true",
 	}
 
 	script := common.ShellScript{
