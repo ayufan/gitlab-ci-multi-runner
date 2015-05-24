@@ -12,7 +12,7 @@ Add GitLab's official repository via apt-get or yum:
 
 ```bash
 # For Debian/Ubuntu
-curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-ci-multi-runner/script.deb | sudo bash
+curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-ci-multi-runner/script.deb.sh | sudo bash
 
 # For CentOS
 curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-ci-multi-runner/script.rpm | sudo bash
