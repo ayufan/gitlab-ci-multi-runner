@@ -1,6 +1,8 @@
 v 0.4.0
 - Added CI=true and GITLAB_CI=true to environment variables
+- Added output_limit (in kilobytes) to runner config which allows to enlarge default build log size
 - Make the debug log human readable
+- Make default build log limit set to 4096 (4MB)
 - Updated kardianos service to fix OSX service installation
 - Updated logrus to make console output readable on Windows
 - Change default log level to warning

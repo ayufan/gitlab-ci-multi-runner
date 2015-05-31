@@ -12,5 +12,5 @@ const HealthyChecks = 3
 const HealthCheckInterval = 3600
 const DefaultWaitForServicesTimeout = 30
 const ShutdownTimeout = 30
-const MaxTraceOutputSize = 1024 * 1024 // 1MB
+const DefaultOutputLimit = 4096 // 4MB in kilobytes
 const ForceTraceSentInterval time.Duration = 300

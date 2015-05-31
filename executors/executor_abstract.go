@@ -32,6 +32,8 @@ func (e *AbstractExecutor) ReadTrace(pipe *io.PipeReader) {
 	defer e.Debugln("ReadTrace finished")
 
 	traceStopped := false
+	traceOutputLimit := helpers.NonZeroOrDefault(e.Config.OutputLimit, common.DefaultOutputLimit)
+	traceOutputLimit *= 1024
 
 	reader := bufio.NewReader(pipe)
 	for {
@@ -48,8 +50,8 @@ func (e *AbstractExecutor) ReadTrace(pipe *io.PipeReader) {
 			continue
 		}
 
-		if e.Build.BuildLogLen() > common.MaxTraceOutputSize {
-			output := fmt.Sprintf("\nBuild log exceeded limit of %v bytes.", common.MaxTraceOutputSize)
+		if e.Build.BuildLogLen() > traceOutputLimit {
+			output := fmt.Sprintf("\nBuild log exceeded limit of %v bytes.", traceOutputLimit)
 			e.Build.WriteString(output)
 			traceStopped = true
 			break

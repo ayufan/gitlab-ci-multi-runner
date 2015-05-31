@@ -30,6 +30,7 @@ This defines one runner entry.
 | `builds_dir`        | directory where builds will be stored in context of selected executor (Locally, Docker, SSH) |
 | `environment`       | append or overwrite environment variables |
 | `disable_verbose`   | don't print run commands |
+| `output_limit`      | set maximum build log size in kilobytes, by default set to 4096 (4MB) |
 
 Example:
 
