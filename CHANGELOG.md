@@ -1,3 +1,15 @@
+v 0.4.0
+- Added CI=true and GITLAB_CI=true to environment variables
+- Make the debug log human readable
+- Updated kardianos service to fix OSX service installation
+- Updated logrus to make console output readable on Windows
+- Change default log level to warning
+- Make selection of forward or back slashes dependent by shell not by system
+- Prevent runner to be stealth if we reach the MaxTraceOutputSize
+- Fixed Windows runner
+- Fixed installation scripts path
+- Fixed wrong architecture for i386 debian packages
+
 v 0.3.2
 - Fixed Windows batch script generator
 
