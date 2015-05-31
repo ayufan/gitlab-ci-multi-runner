@@ -2,9 +2,9 @@ package commands
 
 import (
 	log "github.com/Sirupsen/logrus"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	service "github.com/ayufan/golang-kardianos-service"
 	"github.com/codegangsta/cli"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"os"
 	"os/user"
 	"runtime"
@@ -71,11 +71,11 @@ func RunServiceControl(c *cli.Context) {
 
 	switch runtime.GOOS {
 	case "darwin":
-		svcConfig.UserService = true
 		svcConfig.Option = service.KeyValue{
 			"KeepAlive":     true,
 			"RunAtLoad":     true,
 			"SessionCreate": true,
+			"UserService":   true,
 		}
 
 	case "windows":
