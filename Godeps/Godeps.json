@@ -14,8 +14,8 @@
 		},
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
-			"Comment": "v0.6.1-12-g0ae5377",
-			"Rev": "0ae53775f7736dbe9bbccbedb3c408f13ce5282e"
+			"Comment": "v0.8.2-2-g6ba91e2",
+			"Rev": "6ba91e24c498b49d0363c723e9e2ab2b5b8fd012"
 		},
 		{
 			"ImportPath": "github.com/ayufan/golang-kardianos-service",
