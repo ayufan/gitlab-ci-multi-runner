@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -22,16 +23,16 @@ const (
 )
 
 type Build struct {
-	GetBuildResponse
-	BuildState    BuildState     `json:"build_state"`
-	BuildStarted  time.Time      `json:"build_started"`
-	BuildFinished time.Time      `json:"build_finished"`
-	BuildDuration time.Duration  `json:"build_duration"`
-	BuildMessage  string         `json:"build_message"`
-	BuildAbort    chan os.Signal `json:"-"`
-	BuildDir      string
-	Hostname      string
-	Runner        *RunnerConfig `json:"runner"`
+	GetBuildResponse `yaml:",inline"`
+	BuildState       BuildState     `json:"build_state"`
+	BuildStarted     time.Time      `json:"build_started"`
+	BuildFinished    time.Time      `json:"build_finished"`
+	BuildDuration    time.Duration  `json:"build_duration"`
+	BuildMessage     string         `json:"build_message"`
+	BuildAbort       chan os.Signal `json:"-" yaml:"-"`
+	BuildDir         string         `json:"-" yaml:"-"`
+	Hostname         string         `json:"-" yaml:"-"`
+	Runner           *RunnerConfig  `json:"runner"`
 
 	// Unique ID for all running builds (globally)
 	GlobalID int `json:"global_id"`
@@ -42,7 +43,7 @@ type Build struct {
 	// Unique ID for all running builds on this runner and this project
 	ProjectRunnerID int `json:"project_runner_id"`
 
-	buildLog     bytes.Buffer `json:"-"`
+	buildLog     bytes.Buffer
 	buildLogLock sync.RWMutex
 }
 
@@ -197,4 +198,8 @@ func (b *Build) Run() error {
 		executor.Cleanup()
 	}
 	return err
+}
+
+func (b *Build) String() string {
+	return helpers.ToYAML(b)
 }

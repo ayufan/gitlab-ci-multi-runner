@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"fmt"
 	"github.com/BurntSushi/toml"
 	log "github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
@@ -70,6 +71,10 @@ func (c *RunnerConfig) ShortDescription() string {
 
 func (c *RunnerConfig) UniqueID() string {
 	return c.URL + c.Token
+}
+
+func (c *RunnerConfig) String() string {
+	return fmt.Sprintf("%v url=%v token=%v executor=%v", c.Name, c.URL, c.Token, c.Executor)
 }
 
 func NewConfig() *Config {

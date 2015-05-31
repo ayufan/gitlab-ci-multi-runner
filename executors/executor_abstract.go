@@ -236,6 +236,8 @@ func (e *AbstractExecutor) Finish(err error) {
 		e.Debugln("Build log updater finished.")
 	}
 
+	e.Debugln("Build log: ", e.Build.BuildLog())
+
 	// Send final build state to server
 	e.Build.SendBuildLog()
 	e.Println("Build finished.")

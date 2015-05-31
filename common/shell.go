@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"strings"
 )
 
@@ -40,6 +41,10 @@ func (s *ShellScript) GetFullCommand() string {
 
 func (s *ShellScript) GetScriptBytes() []byte {
 	return []byte(s.Script)
+}
+
+func (s *ShellScript) String() string {
+	return helpers.ToYAML(s)
 }
 
 type Shell interface {
