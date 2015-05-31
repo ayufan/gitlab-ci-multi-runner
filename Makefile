@@ -37,7 +37,7 @@ deps:
 	go get github.com/tools/godep
 	go get -u github.com/golang/lint/golint
 	go get github.com/mitchellh/gox
-	-go get code.google.com/p/winsvc/eventlog
+	-go get golang.org/x/sys/windows/svc
 	godep restore
 
 toolchain:
