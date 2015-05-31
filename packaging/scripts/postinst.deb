@@ -9,7 +9,7 @@ case "$1" in
 
   configure)
     if ! id -u "$USER" >/dev/null 2>/dev/null; then
-      useradd -r --comment 'GitLab Runner' --create-home $USER
+      useradd --comment 'GitLab Runner' --create-home $USER
     fi
     usermod -aG docker $USER || true
     eval HOMEDIR=~$USER
