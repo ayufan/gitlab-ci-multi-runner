@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"os/user"
+	"path/filepath"
 	"syscall"
 	"text/template"
 	"time"
@@ -17,7 +18,7 @@ import (
 
 const maxPathSize = 32 * 1024
 
-const version = "Darwin Launchd"
+const version = "darwin-launchd"
 
 type darwinSystem struct{}
 
@@ -34,6 +35,8 @@ func (darwinSystem) New(i Interface, c *Config) (Service, error) {
 	s := &darwinLaunchdService{
 		i:      i,
 		Config: c,
+
+		userService: c.Option.bool(optionUserService, optionUserServiceDefault),
 	}
 
 	return s, nil
@@ -61,6 +64,8 @@ func isInteractive() (bool, error) {
 type darwinLaunchdService struct {
 	i Interface
 	*Config
+
+	userService bool
 }
 
 func (s *darwinLaunchdService) String() string {
@@ -78,9 +83,6 @@ func (s *darwinLaunchdService) getHomeDir() (string, error) {
 
 	// alternate methods
 	homeDir := os.Getenv("HOME") // *nix
-	if homeDir == "" {           // Windows
-		homeDir = os.Getenv("USERPROFILE")
-	}
 	if homeDir == "" {
 		return "", errors.New("User home directory not found.")
 	}
@@ -88,7 +90,7 @@ func (s *darwinLaunchdService) getHomeDir() (string, error) {
 }
 
 func (s *darwinLaunchdService) getServiceFilePath() (string, error) {
-	if s.UserService {
+	if s.userService {
 		homeDir, err := s.getHomeDir()
 		if err != nil {
 			return "", err
@@ -108,6 +110,14 @@ func (s *darwinLaunchdService) Install() error {
 		return fmt.Errorf("Init already exists: %s", confPath)
 	}
 
+	if s.userService {
+		// Ensure that ~/Library/LaunchAgents exists.
+		err = os.MkdirAll(filepath.Dir(confPath), 0700)
+		if err != nil {
+			return err
+		}
+	}
+
 	f, err := os.Create(confPath)
 	if err != nil {
 		return err
@@ -125,11 +135,11 @@ func (s *darwinLaunchdService) Install() error {
 
 		KeepAlive, RunAtLoad, SessionCreate bool
 	}{
-		Config:    s.Config,
-		Path:      path,
-		KeepAlive: s.Option.bool("KeepAlive", true),
-		RunAtLoad: s.Option.bool("RunAtLoad", false),
-		SessionCreate: s.Option.bool("SessionCreate", true),
+		Config:        s.Config,
+		Path:          path,
+		KeepAlive:     s.Option.bool(optionKeepAlive, optionKeepAliveDefault),
+		RunAtLoad:     s.Option.bool(optionRunAtLoad, optionRunAtLoadDefault),
+		SessionCreate: s.Option.bool(optionSessionCreate, optionSessionCreateDefault),
 	}
 
 	functions := template.FuncMap{

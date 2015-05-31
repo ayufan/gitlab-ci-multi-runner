@@ -47,7 +47,7 @@ func (s *upstart) String() string {
 var errNoUserServiceUpstart = errors.New("User services are not supported on Upstart.")
 
 func (s *upstart) configPath() (cp string, err error) {
-	if s.Config.UserService {
+	if s.Option.bool(optionUserService, optionUserServiceDefault) {
 		err = errNoUserServiceUpstart
 		return
 	}
@@ -149,6 +149,8 @@ const upstartScript = `# {{.Description}}
 {{if .DisplayName}}description    "{{.DisplayName}}"{{end}}
 
 kill signal INT
+{{if .ChRoot}}chroot {{.ChRoot}}{{end}}
+{{if .WorkingDirectory}}chdir {{.WorkingDirectory}}{{end}}
 start on filesystem or runlevel [2345]
 stop on runlevel [!2345]
 

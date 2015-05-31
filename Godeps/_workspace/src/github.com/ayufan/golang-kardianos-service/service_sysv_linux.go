@@ -55,7 +55,7 @@ func (s *sysv) String() string {
 var errNoUserServiceSystemV = errors.New("User services are not supported on SystemV.")
 
 func (s *sysv) configPath() (cp string, err error) {
-	if s.Config.UserService {
+	if s.Option.bool(optionUserService, optionUserServiceDefault) {
 		err = errNoUserServiceSystemV
 		return
 	}
@@ -219,7 +219,7 @@ case "$1" in
             echo "Already started"
         else
             echo "Starting $name"
-		    {{if .WorkingDirectory}}cd {{.WorkingDirectory|cmd}}{{end}} \
+            {{if .WorkingDirectory}}cd '{{.WorkingDirectory}}'{{end}}
             $cmd &>> $log_file &
             echo $! > "$pid_file"
             if ! is_running; then
