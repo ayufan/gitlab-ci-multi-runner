@@ -37,7 +37,7 @@ func (s *SSHExecutor) Start() error {
 		Config:      *s.Config.SSH,
 		Environment: append(s.ShellScript.Environment, s.Config.Environment...),
 		Command:     s.ShellScript.GetFullCommand(),
-		Stdin:       s.ShellScript.Script,
+		Stdin:       s.ShellScript.GetScriptBytes(),
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,
 	}

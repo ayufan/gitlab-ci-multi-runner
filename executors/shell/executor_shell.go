@@ -55,14 +55,14 @@ func (s *ShellExecutor) Start() error {
 		s.scriptDir = scriptDir
 
 		scriptFile := filepath.Join(scriptDir, "script."+s.ShellScript.Extension)
-		err = ioutil.WriteFile(scriptFile, s.ShellScript.Script, 0700)
+		err = ioutil.WriteFile(scriptFile, s.ShellScript.GetScriptBytes(), 0700)
 		if err != nil {
 			return err
 		}
 
 		s.cmd.Args = append(s.cmd.Args, scriptFile)
 	} else {
-		s.cmd.Stdin = bytes.NewReader(s.ShellScript.Script)
+		s.cmd.Stdin = bytes.NewReader(s.ShellScript.GetScriptBytes())
 	}
 
 	// Start process

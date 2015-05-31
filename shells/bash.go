@@ -102,7 +102,7 @@ func (b *BashShell) GenerateScript(build *common.Build, shellType common.ShellTy
 
 	script := common.ShellScript{
 		Environment: env,
-		Script:      buffer.Bytes(),
+		Script:      buffer.String(),
 		Command:     "bash",
 	}
 

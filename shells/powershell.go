@@ -112,7 +112,7 @@ func (b *PowerShell) GenerateScript(build *common.Build, shellType common.ShellT
 
 	script := common.ShellScript{
 		Environment: env,
-		Script:      buffer.Bytes(),
+		Script:      buffer.String(),
 		Command:     "powershell",
 		Arguments:   []string{"-noprofile", "-noninteractive", "-executionpolicy", "Bypass", "-command"},
 		PassFile:    true,

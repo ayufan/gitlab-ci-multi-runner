@@ -8,7 +8,7 @@ import (
 
 type ShellScript struct {
 	Environment []string
-	Script      []byte
+	Script      string
 	Command     string
 	Arguments   []string
 	PassFile    bool
@@ -36,6 +36,10 @@ func (s *ShellScript) GetFullCommand() string {
 		parts[idx] = part
 	}
 	return strings.Join(parts, " ")
+}
+
+func (s *ShellScript) GetScriptBytes() []byte {
+	return []byte(s.Script)
 }
 
 type Shell interface {

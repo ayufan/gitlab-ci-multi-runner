@@ -28,7 +28,7 @@ func (s *DockerCommandExecutor) Start() error {
 	go func() {
 		attachContainerOptions := docker.AttachToContainerOptions{
 			Container:    container.ID,
-			InputStream:  bytes.NewBuffer(s.ShellScript.Script),
+			InputStream:  bytes.NewBufferString(s.ShellScript.Script),
 			OutputStream: s.BuildLog,
 			ErrorStream:  s.BuildLog,
 			Logs:         true,

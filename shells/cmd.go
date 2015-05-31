@@ -114,7 +114,7 @@ func (b *CmdShell) GenerateScript(build *common.Build, shellType common.ShellTyp
 
 	script := common.ShellScript{
 		Environment: env,
-		Script:      buffer.Bytes(),
+		Script:      buffer.String(),
 		Command:     "cmd",
 		Arguments:   []string{"/Q", "/C"},
 		PassFile:    true,
