@@ -77,7 +77,7 @@ package: package-deps package-deb package-rpm
 package-deb:
 	# Building Debian compatible packages...
 	make package-deb-fpm ARCH=amd64 PACKAGE_ARCH=amd64
-	make package-deb-fpm ARCH=i386 PACKAGE_ARCH=i386
+	make package-deb-fpm ARCH=386 PACKAGE_ARCH=i386
 	make package-deb-fpm ARCH=arm PACKAGE_ARCH=arm
 	make package-deb-fpm ARCH=arm PACKAGE_ARCH=armhf
 
