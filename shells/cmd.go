@@ -28,7 +28,7 @@ func (b *CmdShell) writeCommandChecked(w io.Writer, format string, args ...inter
 }
 
 func (b *CmdShell) writeCloneCmd(w io.Writer, build *common.Build, dir string) {
-	b.writeCommand(w, "echo Clonning repository...")
+	b.writeCommand(w, "echo Cloning repository...")
 	b.writeCommandChecked(w, "rd /s /q \"%s\" 2> NUL 1>NUL", dir)
 	b.writeCommandChecked(w, "md \"%s\"", dir)
 	b.writeCommandChecked(w, "git clone \"%s\" \"%s\"", build.RepoURL, dir)
