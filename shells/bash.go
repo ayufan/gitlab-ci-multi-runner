@@ -40,7 +40,7 @@ func (b *BashShell) writeFetchCmd(w io.Writer, build *common.Build, projectDir s
 }
 
 func (b *BashShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
-	io.WriteString(w, fmt.Sprintf("echo Checkouting %s as %s...\n", build.Sha[0:8], build.RefName))
+	io.WriteString(w, fmt.Sprintf("echo Checking out %s as %s...\n", build.Sha[0:8], build.RefName))
 	io.WriteString(w, fmt.Sprintf("git checkout -qf %s\n", build.Sha))
 }
 

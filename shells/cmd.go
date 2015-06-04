@@ -49,7 +49,7 @@ func (b *CmdShell) writeFetchCmd(w io.Writer, build *common.Build, dir string) {
 }
 
 func (b *CmdShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
-	b.writeCommand(w, "echo Checkouting %s as %s...", build.Sha[0:8], build.RefName)
+	b.writeCommand(w, "echo Checking out %s as %s...", build.Sha[0:8], build.RefName)
 	b.writeCommandChecked(w, "git checkout -qf \"%s\"", build.Sha)
 }
 
