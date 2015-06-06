@@ -26,7 +26,7 @@ func (b *PowerShell) writeCommandChecked(w io.Writer, format string, args ...int
 }
 
 func (b *PowerShell) writeCloneCmd(w io.Writer, build *common.Build, dir string) {
-	b.writeCommand(w, "echo \"Clonning repository...\"")
+	b.writeCommand(w, "echo \"Cloning repository...\"")
 	b.writeCommandChecked(w, "if(Test-Path \"%s\") { Remove-Item -Force -Recurse \"%s\" }", dir, dir)
 	b.writeCommandChecked(w, "(Test-Path \"%s\") -or (New-Item \"%s\")", dir, dir)
 	b.writeCommandChecked(w, "git clone \"%s\" \"%s\"", build.RepoURL, dir)
@@ -47,7 +47,7 @@ func (b *PowerShell) writeFetchCmd(w io.Writer, build *common.Build, dir string)
 }
 
 func (b *PowerShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
-	b.writeCommand(w, "echo \"Checkouting %s as %s...\"", build.Sha[0:8], build.RefName)
+	b.writeCommand(w, "echo \"Checking out %s as %s...\"", build.Sha[0:8], build.RefName)
 	b.writeCommandChecked(w, "git checkout -qf \"%s\"", build.Sha)
 }
 

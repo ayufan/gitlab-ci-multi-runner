@@ -19,7 +19,7 @@ func (b *BashShell) GetName() string {
 }
 
 func (b *BashShell) writeCloneCmd(w io.Writer, build *common.Build, projectDir string) {
-	io.WriteString(w, "echo Clonning repository...\n")
+	io.WriteString(w, "echo Cloning repository...\n")
 	io.WriteString(w, fmt.Sprintf("rm -rf %s\n", projectDir))
 	io.WriteString(w, fmt.Sprintf("mkdir -p %s\n", projectDir))
 	io.WriteString(w, fmt.Sprintf("git clone %s %s\n", build.RepoURL, projectDir))
@@ -40,7 +40,7 @@ func (b *BashShell) writeFetchCmd(w io.Writer, build *common.Build, projectDir s
 }
 
 func (b *BashShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
-	io.WriteString(w, fmt.Sprintf("echo Checkouting %s as %s...\n", build.Sha[0:8], build.RefName))
+	io.WriteString(w, fmt.Sprintf("echo Checking out %s as %s...\n", build.Sha[0:8], build.RefName))
 	io.WriteString(w, fmt.Sprintf("git checkout -qf %s\n", build.Sha))
 }
 
