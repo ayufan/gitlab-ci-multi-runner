@@ -35,16 +35,22 @@ type GetBuildRequest struct {
 	Token string      `json:"token,omitempty"`
 }
 
+type BuildVariable struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
 type GetBuildResponse struct {
-	ID            int    `json:"id,omitempty"`
-	ProjectID     int    `json:"project_id,omitempty"`
-	Commands      string `json:"commands,omitempty"`
-	RepoURL       string `json:"repo_url,omitempty"`
-	Sha           string `json:"sha,omitempty"`
-	RefName       string `json:"ref,omitempty"`
-	BeforeSha     string `json:"before_sha,omitempty"`
-	AllowGitFetch bool   `json:"allow_git_fetch,omitempty"`
-	Timeout       int    `json:"timeout,omitempty"`
+	ID            int             `json:"id,omitempty"`
+	ProjectID     int             `json:"project_id,omitempty"`
+	Commands      string          `json:"commands,omitempty"`
+	RepoURL       string          `json:"repo_url,omitempty"`
+	Sha           string          `json:"sha,omitempty"`
+	RefName       string          `json:"ref,omitempty"`
+	BeforeSha     string          `json:"before_sha,omitempty"`
+	AllowGitFetch bool            `json:"allow_git_fetch,omitempty"`
+	Timeout       int             `json:"timeout,omitempty"`
+	Variables     []BuildVariable `json:"variables"`
 }
 
 type RegisterRunnerRequest struct {

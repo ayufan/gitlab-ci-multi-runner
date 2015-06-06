@@ -11,6 +11,7 @@ import (
 )
 
 type PowerShell struct {
+	AbstractShell
 }
 
 func (b *PowerShell) GetName() string {
@@ -91,27 +92,8 @@ func (b *PowerShell) GenerateScript(build *common.Build, shellType common.ShellT
 
 	w.Flush()
 
-	env := []string{
-		fmt.Sprintf("CI_BUILD_REF=%s", build.Sha),
-		fmt.Sprintf("CI_BUILD_BEFORE_SHA=%s", build.BeforeSha),
-		fmt.Sprintf("CI_BUILD_REF_NAME=%s", build.RefName),
-		fmt.Sprintf("CI_BUILD_ID=%d", build.ID),
-		fmt.Sprintf("CI_BUILD_REPO=%s", build.RepoURL),
-
-		fmt.Sprintf("CI_PROJECT_ID=%d", build.ProjectID),
-		fmt.Sprintf("CI_PROJECT_DIR=%s", projectDir),
-
-		"CI=true",
-		"CI_SERVER=yes",
-		"CI_SERVER_NAME=GitLab CI",
-		"CI_SERVER_VERSION=",
-		"CI_SERVER_REVISION=",
-
-		"GITLAB_CI=true",
-	}
-
 	script := common.ShellScript{
-		Environment: env,
+		Environment: b.GetVariables(build, projectDir),
 		Script:      buffer.String(),
 		Command:     "powershell",
 		Arguments:   []string{"-noprofile", "-noninteractive", "-executionpolicy", "Bypass", "-command"},
