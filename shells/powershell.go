@@ -29,7 +29,7 @@ func (b *PowerShell) writeCommandChecked(w io.Writer, format string, args ...int
 func (b *PowerShell) writeCloneCmd(w io.Writer, build *common.Build, dir string) {
 	b.writeCommand(w, "echo \"Cloning repository...\"")
 	b.writeCommandChecked(w, "if(Test-Path \"%s\") { Remove-Item -Force -Recurse \"%s\" }", dir, dir)
-	b.writeCommandChecked(w, "(Test-Path \"%s\") -or (New-Item \"%s\")", dir, dir)
+	b.writeCommandChecked(w, "(Test-Path \"%s\") -or (New-Item \"%s\" -ItemType \"directory\" )", dir, dir)
 	b.writeCommandChecked(w, "git clone \"%s\" \"%s\"", build.RepoURL, dir)
 	b.writeCommandChecked(w, "cd \"%s\"", dir)
 }
