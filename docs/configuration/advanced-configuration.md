@@ -84,7 +84,7 @@ This defines the Docker Container parameters.
 | `wait_for_services_timeout` | specify how long to wait for docker services, set to 0 to disable, default: 30 |
 | `cache_dir`                 | specify where Docker caches should be stored (this can be absolute or relative to current working directory) |
 | `registry`                  | specify custom Docker registry to be used |
-| `volumes`                   | specify additional volumes that should be cached |
+| `volumes`                   | specify additional volumes that should be cached (same syntax as Docker -v option) |
 | `extra_hosts`               | specify hosts that should be defined in container environment |
 | `links`                     | specify containers which should be linked with building container |
 | `services`                  | specify additional services that should be run with build. Please visit [Docker Registry](https://registry.hub.docker.com/) for list of available applications. Each service will be run in separate container and linked to the build. |
@@ -106,6 +106,28 @@ Example:
   extra_hosts = ["other-host:127.0.0.1"]
   links = ["mysql_container:mysql"]
   services = ["mysql", "redis:2.8", "postgres:9"]
+```
+
+Another example:
+
+```bash
+[[runners]]
+  name = "ruby-2.1-docker"
+  url = "https://CI/"
+  token = "TOKEN"
+  limit = 0
+  executor = "docker"
+  builds_dir = "/srv/builds"
+
+[runners.docker]
+  host = ""
+  hostname = ""
+  tls_cert_path = "/Users/ayufan/.boot2docker/certs"
+  image = "ruby:2.1"
+  privileged = false
+  disable_cache = true
+  wait_for_services_timeout = 30
+  volumes = ["/srv/builds:/srv/builds:rw"]
 ```
 
 ### The [runners.parallels] section
