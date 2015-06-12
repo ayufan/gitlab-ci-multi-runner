@@ -84,7 +84,7 @@ This defines the Docker Container parameters.
 | `wait_for_services_timeout` | specify how long to wait for docker services, set to 0 to disable, default: 30 |
 | `cache_dir`                 | specify where Docker caches should be stored (this can be absolute or relative to current working directory) |
 | `registry`                  | specify custom Docker registry to be used |
-| `volumes`                   | specify additional volumes that should be cached (same syntax as Docker -v option) |
+| `volumes`                   | specify additional volumes that should be mounted (same syntax as Docker -v option) |
 | `extra_hosts`               | specify hosts that should be defined in container environment |
 | `links`                     | specify containers which should be linked with building container |
 | `services`                  | specify additional services that should be run with build. Please visit [Docker Registry](https://registry.hub.docker.com/) for list of available applications. Each service will be run in separate container and linked to the build. |
