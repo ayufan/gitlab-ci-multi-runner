@@ -33,13 +33,13 @@ func (b *CmdShell) writeCloneCmd(w io.Writer, build *common.Build, dir string) {
 	b.writeCommandChecked(w, "rd /s /q \"%s\" 2> NUL 1>NUL", dir)
 	b.writeCommandChecked(w, "md \"%s\"", dir)
 	b.writeCommandChecked(w, "git clone \"%s\" \"%s\"", build.RepoURL, dir)
-	b.writeCommandChecked(w, "cd \"%s\"", dir)
+	b.writeCommandChecked(w, "cd /D \"%s\"", dir)
 }
 
 func (b *CmdShell) writeFetchCmd(w io.Writer, build *common.Build, dir string) {
 	b.writeCommand(w, "IF EXIST \"%s\\.git\" (", dir)
 	b.writeCommand(w, "echo Fetching changes...")
-	b.writeCommandChecked(w, "cd \"%s\"", dir)
+	b.writeCommandChecked(w, "cd /D \"%s\"", dir)
 	b.writeCommandChecked(w, "git clean -fdx")
 	b.writeCommandChecked(w, "git reset --hard > NUL")
 	b.writeCommandChecked(w, "git remote set-url origin \"%s\"", build.RepoURL)

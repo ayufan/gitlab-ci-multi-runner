@@ -9,6 +9,7 @@ v 0.4.0
 - Change default log level to warning
 - Make selection of forward or back slashes dependent by shell not by system
 - Prevent runner to be stealth if we reach the MaxTraceOutputSize
+- Fixed Windows Batch script when builds are located on different drive
 - Fixed Windows runner
 - Fixed installation scripts path
 - Fixed wrong architecture for i386 debian packages
