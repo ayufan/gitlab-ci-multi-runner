@@ -20,6 +20,8 @@ The official repository for this project is on [GitLab.com](https://gitlab.com/g
 
 This project is designed for the Linux, OS X and Windows operating systems.
 
+If you want to use **Docker** make sure that you have **1.5.0** at least installed.
+
 ### Features
 
 * Allows to run:
