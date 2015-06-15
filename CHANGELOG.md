@@ -14,6 +14,14 @@ v 0.4.0
 - Fixed installation scripts path
 - Fixed wrong architecture for i386 debian packages
 
+v 0.3.4
+- Create path before clone to fix Windows issue
+- Added CI=true and GITLAB_CI=true
+- Fixed wrong architecture for i386 debian packages
+
+v 0.3.3
+- Push package to ubuntu/vivid and ol/6 and ol/7
+
 v 0.3.2
 - Fixed Windows batch script generator
 
