@@ -212,6 +212,12 @@ func runRegister(c *cli.Context) {
 	}
 
 	runnerConfig.Executor = s.askExecutor()
+	limit := c.Int("limit")
+	runnerConfig.Limit = &limit
+
+	if s.config.Concurrent < limit {
+		log.Warningf("Specified limit (%d) larger then current concurrent limit (%d). Concurrent limit will not be enlarged.", limit, s.config.Concurrent)
+	}
 
 	switch runnerConfig.Executor {
 	case "docker", "docker-ssh":
@@ -293,6 +299,14 @@ func init() {
 				Value:  "shell",
 				Usage:  "Select executor, eg. shell, docker, etc.",
 				EnvVar: "RUNNER_EXECUTOR",
+			},
+
+			// Runner specific configuration
+			cli.IntFlag{
+				Name:   "limit",
+				Value:  1,
+				Usage:  "Specify number of concurrent jobs for this runner",
+				EnvVar: "RUNNER_LIMIT",
 			},
 
 			// Docker specific configuration

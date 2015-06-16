@@ -5,6 +5,7 @@ v 0.4.0
 - Make the debug log human readable
 - Make default build log limit set to 4096 (4MB)
 - Make default concurrent set to 1
+- Make default limit for runner set to 1 during registration
 - Updated kardianos service to fix OSX service installation
 - Updated logrus to make console output readable on Windows
 - Change default log level to warning
