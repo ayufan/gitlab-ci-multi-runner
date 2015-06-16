@@ -15,6 +15,7 @@ v 0.4.0
 - Fixed Windows runner
 - Fixed installation scripts path
 - Fixed wrong architecture for i386 debian packages
+- Fixed problem allowing commands to consume build script making the build to succeed even if not all commands were executed
 
 v 0.3.4
 - Create path before clone to fix Windows issue
