@@ -12,7 +12,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/ssh"
-	"runtime"
 )
 
 type DockerConfig struct {
@@ -81,7 +80,7 @@ func (c *RunnerConfig) String() string {
 func NewConfig() *Config {
 	return &Config{
 		BaseConfig: BaseConfig{
-			Concurrent: runtime.NumCPU(),
+			Concurrent: 1,
 		},
 	}
 }

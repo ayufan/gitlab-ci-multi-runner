@@ -4,6 +4,7 @@ v 0.4.0
 - Added support for custom variables received from CI
 - Make the debug log human readable
 - Make default build log limit set to 4096 (4MB)
+- Make default concurrent set to 1
 - Updated kardianos service to fix OSX service installation
 - Updated logrus to make console output readable on Windows
 - Change default log level to warning
