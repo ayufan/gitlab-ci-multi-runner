@@ -54,6 +54,8 @@ func (b *BashShell) GenerateScript(build *common.Build, shellType common.ShellTy
 
 	io.WriteString(w, "#!/usr/bin/env bash\n")
 	io.WriteString(w, "\n")
+	io.WriteString(w, ": | (") // close stdin
+	io.WriteString(w, "\n")
 	if len(build.Hostname) != 0 {
 		io.WriteString(w, fmt.Sprintf("echo Running on $(hostname) via %s...\n", helpers.ShellEscape(build.Hostname)))
 	} else {
@@ -79,6 +81,8 @@ func (b *BashShell) GenerateScript(build *common.Build, shellType common.ShellTy
 	commands := build.Commands
 	commands = strings.Replace(commands, "\r\n", "\n", -1)
 	io.WriteString(w, commands)
+	io.WriteString(w, "")
+	io.WriteString(w, ")")
 
 	w.Flush()
 
