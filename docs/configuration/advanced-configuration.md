@@ -108,17 +108,17 @@ Example:
   services = ["mysql", "redis:2.8", "postgres:9"]
 ```
 
-Another example:
+#### Volumes in the [runners.docker] section
+
+You can find the complete guide of Docker volume usage [here](https://docs.docker.com/userguide/dockervolumes/).
+
+Let's use some examples to explain how it work (we assume we have a working runners).
+
+Example 1 : adding a data volume
+
+A data volume is a specially-designated directory within one or more containers that bypasses the Union File System. Data volumes are designed to persist data, independent of the container's life cycle.
 
 ```bash
-[[runners]]
-  name = "ruby-2.1-docker"
-  url = "https://CI/"
-  token = "TOKEN"
-  limit = 0
-  executor = "docker"
-  builds_dir = "/srv/builds"
-
 [runners.docker]
   host = ""
   hostname = ""
@@ -126,9 +126,27 @@ Another example:
   image = "ruby:2.1"
   privileged = false
   disable_cache = true
-  wait_for_services_timeout = 30
-  volumes = ["/srv/builds:/srv/builds:rw"]
+  volumes = ["/path/to/volume/in/container"]
 ```
+
+This will create a new volume inside the container at /path/to/volume/in/container.
+
+Example 2 : mount a host directory as a data volume
+
+In addition to creating a volume using you can also mount a directory from your Docker daemon's host into a container. It's usefull when you want to store builds outside the container.
+
+```bash
+[runners.docker]
+  host = ""
+  hostname = ""
+  tls_cert_path = "/Users/ayufan/.boot2docker/certs"
+  image = "ruby:2.1"
+  privileged = false
+  disable_cache = true
+  volumes = ["/path/to/bind/from/host:/path/to/bind/in/container:rw"]
+```
+
+This will use /path/to/bind/from/host of the CI host inside the container at /path/to/bind/in/container.
 
 ### The [runners.parallels] section
 
