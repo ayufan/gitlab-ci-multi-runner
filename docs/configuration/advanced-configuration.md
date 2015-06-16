@@ -114,7 +114,7 @@ You can find the complete guide of Docker volume usage [here](https://docs.docke
 
 Let's use some examples to explain how it work (we assume we have a working runners).
 
-#### Example 1 : adding a data volume
+##### Example 1: adding a data volume
 
 A data volume is a specially-designated directory within one or more containers that bypasses the Union File System. Data volumes are designed to persist data, independent of the container's life cycle.
 
@@ -131,7 +131,7 @@ A data volume is a specially-designated directory within one or more containers 
 
 This will create a new volume inside the container at /path/to/volume/in/container.
 
-#### Example 2 : mount a host directory as a data volume
+##### Example 2: mount a host directory as a data volume
 
 In addition to creating a volume using you can also mount a directory from your Docker daemon's host into a container. It's usefull when you want to store builds outside the container.
 
