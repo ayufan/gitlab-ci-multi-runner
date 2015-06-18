@@ -9,6 +9,7 @@ import (
 	"code.google.com/p/go.crypto/ssh"
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"io/ioutil"
 )
 
 type Command struct {
@@ -25,14 +26,31 @@ type Command struct {
 	client *ssh.Client
 }
 
-func (s *Command) getSSHAuthMethods() []ssh.AuthMethod {
+func (s *Command) getSSHKey(identityFile string) (key ssh.Signer, err error) {
+	buf, err := ioutil.ReadFile(identityFile)
+	if err != nil {
+		return nil, err
+	}
+	key, err = ssh.ParsePrivateKey(buf)
+	return key, err
+}
+
+func (s *Command) getSSHAuthMethods() ([]ssh.AuthMethod, error) {
 	var methods []ssh.AuthMethod
 
 	if s.Password != nil {
 		methods = append(methods, ssh.Password(*s.Password))
 	}
 
-	return methods
+	if s.IdentityFile != nil {
+		key, err := s.getSSHKey(*s.IdentityFile)
+		if err != nil {
+			return nil, err
+		}
+		methods = append(methods, ssh.PublicKeys(key))
+	}
+
+	return methods, nil
 }
 
 func (s *Command) Connect() error {
@@ -40,9 +58,14 @@ func (s *Command) Connect() error {
 	user := helpers.StringOrDefault(s.User, "root")
 	port := helpers.StringOrDefault(s.Port, "22")
 
+	methods, err := s.getSSHAuthMethods()
+	if err != nil {
+		return err
+	}
+
 	config := &ssh.ClientConfig{
 		User: user,
-		Auth: s.getSSHAuthMethods(),
+		Auth: methods,
 	}
 
 	connectRetries := s.ConnectRetries

@@ -173,10 +173,11 @@ This defines the SSH connection parameters.
 
 | Parameter  | Explanation |
 | ---------- | ----------- |
-| `host`     | where to connect (overriden when using `docker-ssh`) |
+| `host`     | where to connect (overridden when using `docker-ssh`) |
 | `port`     | specify port, default: 22 |
 | `user`     | specify user |
 | `password` | specify password |
+| `identity_file` | specify file path to SSH private key (id_rsa, id_dsa or id_edcsa). The file needs to be stored unencrypted |
 
 Example:
 
@@ -186,6 +187,7 @@ Example:
   port = "22"
   user = "root"
   password = "production-server-password"
+  identity_file = "
 ```
 
 ### Note
