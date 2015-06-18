@@ -147,3 +147,7 @@ Example:
   user = "root"
   password = "production-server-password"
 ```
+
+### Note
+
+If you'd like to deploy to multiple servers using GitLab CI, you can create a single script that deploys to multiple servers or you can create many scripts. It depends on what you'd like to do.
