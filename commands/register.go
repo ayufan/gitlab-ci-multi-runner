@@ -125,8 +125,11 @@ func (s *RegistrationContext) askSSH(runnerConfig *common.RunnerConfig, serverle
 	if user := s.ask("ssh-user", "Please enter the SSH user (eg. root):"); user != "" {
 		runnerConfig.SSH.User = &user
 	}
-	if password := s.ask("ssh-password", "Please enter the SSH password (eg. docker.io):"); password != "" {
+	if password := s.ask("ssh-password", "Please enter the SSH password (eg. docker.io):", true); password != "" {
 		runnerConfig.SSH.Password = &password
+	}
+	if identityFile := s.ask("ssh-identity-file", "Please enter path to SSH identity file (eg. /home/user/.ssh/id_rsa):", true); identityFile != "" {
+		runnerConfig.SSH.IdentityFile = &identityFile
 	}
 }
 
@@ -370,7 +373,12 @@ func init() {
 			cli.StringFlag{
 				Name:   "ssh-password",
 				Usage:  "SSH client password",
-				EnvVar: "SSH_USER",
+				EnvVar: "SSH_PASSWORD",
+			},
+			cli.StringFlag{
+				Name:   "ssh-identity-file",
+				Usage:  "SSH identity file",
+				EnvVar: "SSH_IDENTITY_FILE",
 			},
 		},
 	})
