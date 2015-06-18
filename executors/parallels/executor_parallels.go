@@ -317,7 +317,7 @@ func init() {
 	common.RegisterExecutor("parallels", func() common.Executor {
 		return &ParallelsExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
-				DefaultBuildsDir: "tmp/builds",
+				DefaultBuildsDir: "builds",
 				SharedBuildsDir:  false,
 				DefaultShell:     "bash",
 				ShellType:        common.LoginShell,

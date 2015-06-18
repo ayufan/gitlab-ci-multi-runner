@@ -92,7 +92,7 @@ func init() {
 	common.RegisterExecutor("shell", func() common.Executor {
 		return &ShellExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
-				DefaultBuildsDir: "tmp/builds",
+				DefaultBuildsDir: "builds",
 				SharedBuildsDir:  true,
 				DefaultShell:     common.GetDefaultShell(),
 				ShellType:        common.LoginShell,
