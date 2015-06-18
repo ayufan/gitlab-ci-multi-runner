@@ -93,11 +93,6 @@ func (b *Build) ProjectUniqueName() string {
 		b.Runner.ShortDescription(), b.ProjectID, b.ProjectRunnerID)
 }
 
-func (b *Build) ProjectUniqueDir() string {
-	return fmt.Sprintf("%s-%d-%d",
-		b.Runner.ShortDescription(), b.ProjectID, b.ProjectRunnerID)
-}
-
 func (b *Build) ProjectSlug() (string, error) {
 	url, err := url.Parse(b.RepoURL)
 	if err != nil {
@@ -107,8 +102,7 @@ func (b *Build) ProjectSlug() (string, error) {
 		return "", errors.New("only URI reference supported")
 	}
 
-	host := strings.Split(url.Host, ":")
-	slug := filepath.Join(host[0], url.Path)
+	slug := url.Path
 	slug = strings.TrimSuffix(slug, ".git")
 	slug = filepath.Clean(slug)
 	if slug == "." {
@@ -118,6 +112,25 @@ func (b *Build) ProjectSlug() (string, error) {
 		return "", errors.New("it doesn't look like a valid path")
 	}
 	return slug, nil
+}
+
+func (b *Build) ProjectUniqueDir(sharedDir bool) string {
+	dir, err := b.ProjectSlug()
+	if err != nil {
+		dir = fmt.Sprintf("project-%d", b.ProjectID)
+	}
+
+	// for shared dirs path is constructed like this:
+	// <some-path>/runner-short-id/concurrent-id/group-name/project-name/
+	// ex.<some-path>/r01234567/0/group/repo/
+	if sharedDir {
+		dir = filepath.Join(
+			fmt.Sprintf("runner-%s", b.Runner.ShortDescription()),
+			fmt.Sprintf("%d", b.ProjectRunnerID),
+			dir,
+		)
+	}
+	return dir
 }
 
 func (b *Build) FullProjectDir() string {
