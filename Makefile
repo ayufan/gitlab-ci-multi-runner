@@ -1,14 +1,12 @@
 NAME ?= gitlab-ci-multi-runner
-ifeq ($(RELEASE),true)
-	PACKAGE_NAME ?= $(NAME)
-	PACKAGE_CONFLICT ?= $(NAME)-beta
-else
-	PACKAGE_NAME ?= $(NAME)-beta
-	PACKAGE_CONFLICT ?= $(NAME)
-endif
+PACKAGE_NAME ?= $(NAME)
+PACKAGE_CONFLICT ?= $(NAME)-beta
 REVISION := $(shell git rev-parse --short HEAD || echo unknown)
 VERSION := $(shell git describe --tags || cat VERSION || echo dev)
 VERSION := $(shell echo $(VERSION) | sed -e 's/^v//g')
+ifneq ($(RELEASE),true)
+    VERSION := $(shell echo $(VERSION)-beta)
+endif
 ITTERATION := $(shell date +%s)
 PACKAGE_CLOUD ?= ayufan/gitlab-ci-multi-runner
 PACKAGE_CLOUD_URL ?= https://packagecloud.io/
