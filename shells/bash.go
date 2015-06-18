@@ -7,6 +7,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
+	"path/filepath"
 	"runtime"
 	"strings"
 )
@@ -23,17 +24,17 @@ func (b *BashShell) writeCloneCmd(w io.Writer, build *common.Build, projectDir s
 	io.WriteString(w, "echo Cloning repository...\n")
 	io.WriteString(w, fmt.Sprintf("rm -rf %s\n", projectDir))
 	io.WriteString(w, fmt.Sprintf("mkdir -p %s\n", projectDir))
-	io.WriteString(w, fmt.Sprintf("git clone %s %s\n", build.RepoURL, projectDir))
+	io.WriteString(w, fmt.Sprintf("git clone %s %s\n", helpers.ShellEscape(build.RepoURL), projectDir))
 	io.WriteString(w, fmt.Sprintf("cd %s\n", projectDir))
 }
 
-func (b *BashShell) writeFetchCmd(w io.Writer, build *common.Build, projectDir string) {
-	io.WriteString(w, fmt.Sprintf("if [[ -d %s/.git ]]; then\n", projectDir))
+func (b *BashShell) writeFetchCmd(w io.Writer, build *common.Build, projectDir string, gitDir string) {
+	io.WriteString(w, fmt.Sprintf("if [[ -d %s ]]; then\n", gitDir))
 	io.WriteString(w, "echo Fetching changes...\n")
 	io.WriteString(w, fmt.Sprintf("cd %s\n", projectDir))
 	io.WriteString(w, fmt.Sprintf("git clean -fdx\n"))
 	io.WriteString(w, fmt.Sprintf("git reset --hard > /dev/null\n"))
-	io.WriteString(w, fmt.Sprintf("git remote set-url origin %s\n", build.RepoURL))
+	io.WriteString(w, fmt.Sprintf("git remote set-url origin %s\n", helpers.ShellEscape(build.RepoURL)))
 	io.WriteString(w, fmt.Sprintf("git fetch origin\n"))
 	io.WriteString(w, fmt.Sprintf("else\n"))
 	b.writeCloneCmd(w, build, projectDir)
@@ -51,6 +52,7 @@ func (b *BashShell) GenerateScript(build *common.Build, shellType common.ShellTy
 
 	projectDir := build.FullProjectDir()
 	projectDir = helpers.ToSlash(projectDir)
+	gitDir := filepath.Join(projectDir, ".git")
 
 	projectScript := helpers.ShellEscape(build.FullProjectDir() + ".sh")
 
@@ -70,7 +72,7 @@ func (b *BashShell) GenerateScript(build *common.Build, shellType common.ShellTy
 
 	io.WriteString(w, "\n")
 	if build.AllowGitFetch {
-		b.writeFetchCmd(w, build, helpers.ShellEscape(projectDir))
+		b.writeFetchCmd(w, build, helpers.ShellEscape(projectDir), helpers.ShellEscape(gitDir))
 	} else {
 		b.writeCloneCmd(w, build, helpers.ShellEscape(projectDir))
 	}
