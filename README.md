@@ -44,7 +44,7 @@ If you want to use **Docker** make sure that you have **1.5.0** at least install
 
 ### Installation
 
-* [Install using GitLab's repository for Debian/Ubuntu/CentOS/RedHat  (preferred)](docs/install/linux-repository.md)
+* [Install using GitLab's repository for Debian/Ubuntu/CentOS/RedHat (preferred)](docs/install/linux-repository.md)
 * [Install on OSX (preffered)](docs/install/osx.md)
 * [Install on Windows (preffered)](docs/install/windows.md)
 * [Install as Docker Service](docs/install/docker.md)
