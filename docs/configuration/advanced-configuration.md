@@ -84,7 +84,7 @@ This defines the Docker Container parameters.
 | `wait_for_services_timeout` | specify how long to wait for docker services, set to 0 to disable, default: 30 |
 | `cache_dir`                 | specify where Docker caches should be stored (this can be absolute or relative to current working directory) |
 | `registry`                  | specify custom Docker registry to be used |
-| `volumes`                   | specify additional volumes that should be cached |
+| `volumes`                   | specify additional volumes that should be mounted (same syntax as Docker -v option) |
 | `extra_hosts`               | specify hosts that should be defined in container environment |
 | `links`                     | specify containers which should be linked with building container |
 | `services`                  | specify additional services that should be run with build. Please visit [Docker Registry](https://registry.hub.docker.com/) for list of available applications. Each service will be run in separate container and linked to the build. |
@@ -107,6 +107,46 @@ Example:
   links = ["mysql_container:mysql"]
   services = ["mysql", "redis:2.8", "postgres:9"]
 ```
+
+#### Volumes in the [runners.docker] section
+
+You can find the complete guide of Docker volume usage [here](https://docs.docker.com/userguide/dockervolumes/).
+
+Let's use some examples to explain how it work (we assume we have a working runners).
+
+##### Example 1: adding a data volume
+
+A data volume is a specially-designated directory within one or more containers that bypasses the Union File System. Data volumes are designed to persist data, independent of the container's life cycle.
+
+```bash
+[runners.docker]
+  host = ""
+  hostname = ""
+  tls_cert_path = "/Users/ayufan/.boot2docker/certs"
+  image = "ruby:2.1"
+  privileged = false
+  disable_cache = true
+  volumes = ["/path/to/volume/in/container"]
+```
+
+This will create a new volume inside the container at /path/to/volume/in/container.
+
+##### Example 2: mount a host directory as a data volume
+
+In addition to creating a volume using you can also mount a directory from your Docker daemon's host into a container. It's usefull when you want to store builds outside the container.
+
+```bash
+[runners.docker]
+  host = ""
+  hostname = ""
+  tls_cert_path = "/Users/ayufan/.boot2docker/certs"
+  image = "ruby:2.1"
+  privileged = false
+  disable_cache = true
+  volumes = ["/path/to/bind/from/host:/path/to/bind/in/container:rw"]
+```
+
+This will use /path/to/bind/from/host of the CI host inside the container at /path/to/bind/in/container.
 
 ### The [runners.parallels] section
 
