@@ -13,9 +13,9 @@ PACKAGE_CLOUD_URL ?= https://packagecloud.io/
 BUILD_PLATFORMS ?= -os="linux" -os="darwin" -os="windows"
 S3_UPLOAD_PATH ?= master
 DEB_PLATFORMS ?= debian/wheezy debian/jessie ubuntu/precise ubuntu/trusty ubuntu/utopic ubuntu/vivid
-DEB_ARCHS ?= amd64 386 arm armhf
+DEB_ARCHS ?= amd64 i386 arm armhf
 RPM_PLATFORMS ?= el/6 el/7 ol/6 ol/7
-RPM_ARCHS ?= amd64 386 arm armhf
+RPM_ARCHS ?= amd64 i686 arm armhf
 
 all: deps test lint toolchain build
 
@@ -82,7 +82,7 @@ package-deb:
 package-rpm:
 	# Building RedHat compatible packages...
 	make package-rpm-fpm ARCH=amd64 PACKAGE_ARCH=amd64
-	make package-rpm-fpm ARCH=386 PACKAGE_ARCH=386
+	make package-rpm-fpm ARCH=386 PACKAGE_ARCH=i686
 	make package-rpm-fpm ARCH=arm PACKAGE_ARCH=arm
 	make package-rpm-fpm ARCH=arm PACKAGE_ARCH=armhf
 
