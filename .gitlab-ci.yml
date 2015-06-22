@@ -3,10 +3,10 @@ before_script:
 - export PACKAGE_CLOUD=runner/gitlab-ci-multi-runner
 - export ARTIFACTS_S3_BUCKET=gitlab-ci-multi-runner-downloads
 - source ci/prepare
-- source ci/build
 
 Bleeding Edge:
   script:
+  - source ci/build
   - make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"
   tags:
   - cross
@@ -15,6 +15,8 @@ Bleeding Edge:
 
 Stable Release:
   script:
+  - export RELEASE=true
+  - source ci/build
   - make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"
   - make s3-upload "S3_UPLOAD_PATH=latest"
   - make packagecloud

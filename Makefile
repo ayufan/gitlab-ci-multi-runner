@@ -15,7 +15,7 @@ S3_UPLOAD_PATH ?= master
 DEB_PLATFORMS ?= debian/wheezy debian/jessie ubuntu/precise ubuntu/trusty ubuntu/utopic ubuntu/vivid
 DEB_ARCHS ?= amd64 i386 arm armhf
 RPM_PLATFORMS ?= el/6 el/7 ol/6 ol/7
-RPM_ARCHS ?= amd64 i686 arm armhf
+RPM_ARCHS ?= x86_64 i686 arm armhf
 
 all: deps test lint toolchain build
 
