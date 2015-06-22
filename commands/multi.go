@@ -3,6 +3,7 @@ package commands
 import (
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 	"syscall"
 	"time"
@@ -202,6 +203,10 @@ func (mr *MultiRunner) processRunners(id int, stopWorker chan bool, runners chan
 			mr.addBuild(newJob)
 			newJob.Run()
 			mr.removeBuild(newJob)
+			newJob = nil
+
+			// force GC cycle after processing build
+			runtime.GC()
 
 		case <-stopWorker:
 			mr.debugln("Stopping worker", id)
