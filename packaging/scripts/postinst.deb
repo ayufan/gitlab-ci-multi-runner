@@ -17,6 +17,8 @@ case "$1" in
     touch config.toml
     chown $USER:$USER config.toml
     chmod 0600 config.toml
+    gitlab-ci-multi-runner stop || :
+    gitlab-ci-multi-runner uninstall || :
     gitlab-ci-multi-runner install --user=$USER
     service gitlab-ci-multi-runner start || :
     ;;
