@@ -1,3 +1,8 @@
+v 0.4.2
+- Force GC cycle after processing build
+- Use log-level set to info, but also make `Checking for builds: nothing` being print as debug
+- Fix memory leak - don't track references to builds
+
 v 0.4.1
 - Fixed service reregistration for RedHat systems
 
