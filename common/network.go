@@ -175,7 +175,7 @@ func GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 		log.Errorln(config.ShortDescription(), "Checking for builds...", "forbidden")
 		return nil, false
 	case 404:
-		log.Infoln(config.ShortDescription(), "Checking for builds...", "nothing")
+		log.Debugln(config.ShortDescription(), "Checking for builds...", "nothing")
 		return nil, true
 	default:
 		log.Warningln(config.ShortDescription(), "Checking for builds...", "failed")
