@@ -1,3 +1,6 @@
+v 0.4.1
+- Fixed service reregistration for RedHat systems
+
 v 0.4.0
 - Added CI=true and GITLAB_CI=true to environment variables
 - Added output_limit (in kilobytes) to runner config which allows to enlarge default build log size
