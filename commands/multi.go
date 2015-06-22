@@ -29,7 +29,6 @@ type MultiRunner struct {
 	config           *common.Config
 	configFile       string
 	workingDirectory string
-	allBuilds        []*common.Build
 	builds           []*common.Build
 	buildsLock       sync.RWMutex
 	healthy          map[string]*RunnerHealth
@@ -115,7 +114,6 @@ func (mr *MultiRunner) addBuild(newBuild *common.Build) {
 
 	newBuild.AssignID(mr.builds...)
 	mr.builds = append(mr.builds, newBuild)
-	mr.allBuilds = append(mr.allBuilds, newBuild)
 	mr.debugln("Added a new build", newBuild)
 }
 
@@ -236,7 +234,6 @@ func (mr *MultiRunner) loadConfig() error {
 }
 
 func (mr *MultiRunner) Start(s service.Service) error {
-	mr.allBuilds = []*common.Build{}
 	mr.builds = []*common.Build{}
 	mr.abortBuilds = make(chan os.Signal)
 	mr.interruptSignal = make(chan os.Signal)
