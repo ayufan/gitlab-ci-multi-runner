@@ -1,3 +1,6 @@
+v 0.5.0 (unreleased)
+- Allow to override image and services for Docker executor from Coordinator
+
 v 0.4.2
 - Force GC cycle after processing build
 - Use log-level set to info, but also make `Checking for builds: nothing` being print as debug
