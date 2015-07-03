@@ -71,6 +71,7 @@ func init() {
 		DefaultShell:     "bash",
 		ShellType:        common.LoginShell,
 		ShowHostname:     true,
+		SupportedOptions: []string{"image", "services"},
 	}
 
 	common.RegisterExecutor("docker-ssh", func() common.Executor {

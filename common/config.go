@@ -28,6 +28,8 @@ type DockerConfig struct {
 	Links                  []string `toml:"links" json:"links"`
 	Services               []string `toml:"services" json:"services"`
 	WaitForServicesTimeout *int     `toml:"wait_for_services_timeout" json:"wait_for_services_timeout"`
+	AllowedImages          []string `toml:"allowed_images" json:"allowed_images"`
+	AllowedServices        []string `toml:"allowed_services" json:"allowed_services"`
 }
 
 type ParallelsConfig struct {

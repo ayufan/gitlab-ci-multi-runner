@@ -121,6 +121,10 @@ func (e *AbstractExecutor) Println(args ...interface{}) {
 		e.Build.WriteString(fmt.Sprintln(args...))
 	}
 
+	if len(args) == 0 {
+		return
+	}
+
 	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
 	log.Println(args...)
 }
