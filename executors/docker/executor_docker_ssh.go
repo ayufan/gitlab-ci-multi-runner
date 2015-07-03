@@ -65,15 +65,19 @@ func (s *DockerSSHExecutor) Cleanup() {
 }
 
 func init() {
+	options := executors.ExecutorOptions{
+		DefaultBuildsDir: "builds",
+		SharedBuildsDir:  false,
+		DefaultShell:     "bash",
+		ShellType:        common.LoginShell,
+		ShowHostname:     true,
+	}
+
 	common.RegisterExecutor("docker-ssh", func() common.Executor {
 		return &DockerSSHExecutor{
 			DockerExecutor: DockerExecutor{
 				AbstractExecutor: executors.AbstractExecutor{
-					DefaultBuildsDir: "builds",
-					SharedBuildsDir:  false,
-					DefaultShell:     "bash",
-					ShellType:        common.LoginShell,
-					ShowHostname:     true,
+					ExecutorOptions: options,
 				},
 			},
 		}

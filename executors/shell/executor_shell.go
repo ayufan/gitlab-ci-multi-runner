@@ -89,14 +89,18 @@ func (s *ShellExecutor) Cleanup() {
 }
 
 func init() {
+	options := executors.ExecutorOptions{
+		DefaultBuildsDir: "builds",
+		SharedBuildsDir:  true,
+		DefaultShell:     common.GetDefaultShell(),
+		ShellType:        common.LoginShell,
+		ShowHostname:     false,
+	}
+
 	common.RegisterExecutor("shell", func() common.Executor {
 		return &ShellExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
-				DefaultBuildsDir: "builds",
-				SharedBuildsDir:  true,
-				DefaultShell:     common.GetDefaultShell(),
-				ShellType:        common.LoginShell,
-				ShowHostname:     false,
+				ExecutorOptions: options,
 			},
 		}
 	})

@@ -13,12 +13,16 @@ import (
 	"path/filepath"
 )
 
-type AbstractExecutor struct {
+type ExecutorOptions struct {
 	DefaultBuildsDir string
 	SharedBuildsDir  bool
 	DefaultShell     string
 	ShellType        common.ShellType
 	ShowHostname     bool
+}
+
+type AbstractExecutor struct {
+	ExecutorOptions
 	Config           *common.RunnerConfig
 	Build            *common.Build
 	BuildCanceled    chan bool

@@ -63,15 +63,19 @@ func (s *DockerCommandExecutor) Start() error {
 }
 
 func init() {
+	options := executors.ExecutorOptions{
+		DefaultBuildsDir: "/builds",
+		SharedBuildsDir:  false,
+		DefaultShell:     "bash",
+		ShellType:        common.NormalShell,
+		ShowHostname:     true,
+	}
+
 	common.RegisterExecutor("docker", func() common.Executor {
 		return &DockerCommandExecutor{
 			DockerExecutor: DockerExecutor{
 				AbstractExecutor: executors.AbstractExecutor{
-					DefaultBuildsDir: "/builds",
-					SharedBuildsDir:  false,
-					DefaultShell:     "bash",
-					ShellType:        common.NormalShell,
-					ShowHostname:     true,
+					ExecutorOptions: options,
 				},
 			},
 		}

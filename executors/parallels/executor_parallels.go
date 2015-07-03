@@ -314,14 +314,18 @@ func (s *ParallelsExecutor) Cleanup() {
 }
 
 func init() {
+	options := executors.ExecutorOptions{
+		DefaultBuildsDir: "builds",
+		SharedBuildsDir:  false,
+		DefaultShell:     "bash",
+		ShellType:        common.LoginShell,
+		ShowHostname:     true,
+	}
+
 	common.RegisterExecutor("parallels", func() common.Executor {
 		return &ParallelsExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
-				DefaultBuildsDir: "builds",
-				SharedBuildsDir:  false,
-				DefaultShell:     "bash",
-				ShellType:        common.LoginShell,
-				ShowHostname:     true,
+				ExecutorOptions: options,
 			},
 		}
 	})

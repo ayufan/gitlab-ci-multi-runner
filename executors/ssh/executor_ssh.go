@@ -64,14 +64,18 @@ func (s *SSHExecutor) Cleanup() {
 }
 
 func init() {
+	options := executors.ExecutorOptions{
+		DefaultBuildsDir: "builds",
+		SharedBuildsDir:  true,
+		DefaultShell:     "bash",
+		ShellType:        common.LoginShell,
+		ShowHostname:     true,
+	}
+
 	common.RegisterExecutor("ssh", func() common.Executor {
 		return &SSHExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
-				DefaultBuildsDir: "builds",
-				SharedBuildsDir:  true,
-				DefaultShell:     "bash",
-				ShellType:        common.LoginShell,
-				ShowHostname:     true,
+				ExecutorOptions: options,
 			},
 		}
 	})
