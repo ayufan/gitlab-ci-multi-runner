@@ -40,6 +40,8 @@ type BuildVariable struct {
 	Value string `json:"value"`
 }
 
+type BuildOptions map[string]interface{}
+
 type GetBuildResponse struct {
 	ID            int             `json:"id,omitempty"`
 	ProjectID     int             `json:"project_id,omitempty"`
@@ -51,6 +53,7 @@ type GetBuildResponse struct {
 	AllowGitFetch bool            `json:"allow_git_fetch,omitempty"`
 	Timeout       int             `json:"timeout,omitempty"`
 	Variables     []BuildVariable `json:"variables"`
+	Options       BuildOptions    `json:"options"`
 }
 
 type RegisterRunnerRequest struct {

@@ -19,6 +19,7 @@ type ExecutorOptions struct {
 	DefaultShell     string
 	ShellType        common.ShellType
 	ShowHostname     bool
+	SupportedOptions []string
 }
 
 type AbstractExecutor struct {
@@ -124,10 +125,20 @@ func (e *AbstractExecutor) Println(args ...interface{}) {
 	log.Println(args...)
 }
 
+func (e *AbstractExecutor) Warningln(args ...interface{}) {
+	// write to log file
+	if e.Build != nil {
+		e.Build.WriteString("WARNING:" + fmt.Sprintln(args...))
+	}
+
+	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
+	log.Warningln(args...)
+}
+
 func (e *AbstractExecutor) Errorln(args ...interface{}) {
 	// write to log file
 	if e.Build != nil {
-		e.Build.WriteString(fmt.Sprintln(args...))
+		e.Build.WriteString("ERROR: " + fmt.Sprintln(args...))
 	}
 
 	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
@@ -165,6 +176,23 @@ func (e *AbstractExecutor) startBuild() error {
 	return nil
 }
 
+func (e *AbstractExecutor) verifyOptions() error {
+	for key, _ := range e.Build.Options {
+		found := false
+		for _, option := range e.SupportedOptions {
+			if option == key {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			e.Warningln("Defined '%s' is not supported for that executor", key)
+		}
+	}
+	return nil
+}
+
 func (e *AbstractExecutor) Prepare(config *common.RunnerConfig, build *common.Build) error {
 	e.Config = config
 	e.Build = build
@@ -178,6 +206,11 @@ func (e *AbstractExecutor) Prepare(config *common.RunnerConfig, build *common.Bu
 	}
 
 	e.Println(fmt.Sprintf("%s %s (%s)", common.NAME, common.VERSION, common.REVISION))
+
+	err = e.verifyOptions()
+	if err != nil {
+		return err
+	}
 
 	err = e.generateShellScript()
 	if err != nil {
