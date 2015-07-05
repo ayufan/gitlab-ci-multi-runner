@@ -24,6 +24,7 @@ func (b *PowerShell) writeCommand(w io.Writer, format string, args ...interface{
 
 func (b *PowerShell) writeCommandChecked(w io.Writer, format string, args ...interface{}) {
 	b.writeCommand(w, format, args...)
+	b.writeCommand(w, "%s", "if (!$?) { Exit $LASTEXITCODE }")
 }
 
 func (b *PowerShell) writeCloneCmd(w io.Writer, build *common.Build, dir string) {
