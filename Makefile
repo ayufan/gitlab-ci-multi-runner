@@ -1,6 +1,6 @@
 NAME ?= gitlab-ci-multi-runner
 PACKAGE_NAME ?= $(NAME)
-PACKAGE_CONFLICT ?= $(NAME)-beta
+PACKAGE_CONFLICT ?= $(PACKAGE_NAME)-beta
 REVISION := $(shell git rev-parse --short HEAD || echo unknown)
 VERSION := $(shell git describe --tags || cat VERSION || echo dev)
 VERSION := $(shell echo $(VERSION) | sed -e 's/^v//g')
@@ -106,6 +106,7 @@ package-deb-fpm:
 		--vendor "ayufan.eu" \
 		--conflicts $(PACKAGE_CONFLICT) \
 		-a $(PACKAGE_ARCH) \
+		packaging/root=/ \
 		out/binaries/$(NAME)-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
 
 package-rpm-fpm:
@@ -123,6 +124,7 @@ package-rpm-fpm:
 		--vendor "ayufan.eu" \
 		--conflicts $(PACKAGE_CONFLICT) \
 		-a $(PACKAGE_ARCH) \
+		packaging/root=/ \
 		out/binaries/$(NAME)-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
 
 packagecloud: packagecloud-deps packagecloud-deb packagecloud-rpm

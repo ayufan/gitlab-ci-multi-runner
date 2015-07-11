@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	defaultServiceName = "gitlab-ci-multi-runner"
+	defaultServiceName = "gitlab-runner"
 	defaultDisplayName = "GitLab Runner"
 	defaultDescription = "GitLab Runner"
 )

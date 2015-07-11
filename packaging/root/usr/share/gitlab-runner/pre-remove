@@ -1,0 +1,5 @@
+#!/bin/sh
+
+set -e
+gitlab-ci-multi-runner stop || :
+gitlab-ci-multi-runner uninstall || :

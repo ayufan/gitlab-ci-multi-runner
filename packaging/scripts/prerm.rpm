@@ -2,6 +2,5 @@
 
 if [ "x$1" = "x0" ]; then
     set -e
-    gitlab-ci-multi-runner stop || :
-    gitlab-ci-multi-runner uninstall || :
+    /usr/share/gitlab-runner/pre-remove
 fi
