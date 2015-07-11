@@ -73,6 +73,10 @@ func runServiceInstall(s service.Service, c *cli.Context) error {
 }
 
 func RunServiceControl(c *cli.Context) {
+	if os.Getuid() != 0 && runtime.GOOS == "linux" {
+		log.Fatal("Please run the command as root")
+	}
+
 	serviceName := c.String("service-name")
 	displayName := c.String("service-name")
 	if serviceName == "" {
