@@ -60,6 +60,7 @@ type RunnerConfig struct {
 
 type BaseConfig struct {
 	Concurrent int             `toml:"concurrent" json:"concurrent"`
+	User       *string `toml:"user" json:"user"`
 	Runners    []*RunnerConfig `toml:"runners" json:"runners"`
 }
 

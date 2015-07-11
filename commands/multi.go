@@ -29,6 +29,7 @@ type MultiRunner struct {
 	config           *common.Config
 	configFile       string
 	workingDirectory string
+	user             string
 	builds           []*common.Build
 	buildsLock       sync.RWMutex
 	healthy          map[string]*RunnerHealth
@@ -228,6 +229,11 @@ func (mr *MultiRunner) loadConfig() error {
 		return err
 	}
 
+	// pass user to execute scripts as specific user
+	if mr.user != "" {
+		newConfig.User = &mr.user
+	}
+
 	mr.healthy = nil
 	mr.config = newConfig
 	return nil
@@ -379,6 +385,7 @@ func CreateService(c *cli.Context) service.Service {
 	mr := &MultiRunner{
 		configFile:       c.String("config"),
 		workingDirectory: c.String("working-directory"),
+		user:             c.String("user"),
 	}
 
 	s, err := service.New(mr, svcConfig)

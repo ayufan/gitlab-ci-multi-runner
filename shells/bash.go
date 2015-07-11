@@ -95,11 +95,21 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	script := common.ShellScript{
 		Environment: b.GetVariables(build, projectDir),
 		Script:      buffer.String(),
-		Command:     "bash",
 	}
 
-	if info.Type == common.LoginShell {
-		script.Arguments = []string{"--login"}
+	// su
+	if info.User != nil {
+		script.Command = "su"
+		if info.Type == common.LoginShell {
+			script.Arguments = []string{"--shell", "/bin/bash", "--login", *info.User}
+		} else {
+			script.Arguments = []string{"--shell", "/bin/bash", *info.User}
+		}
+	} else {
+		script.Command = "bash"
+		if info.Type == common.LoginShell {
+			script.Arguments = []string{"--login"}
+		}
 	}
 
 	return &script, nil

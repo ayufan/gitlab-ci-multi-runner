@@ -20,6 +20,10 @@ type ShellExecutor struct {
 }
 
 func (s *ShellExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
+	if globalConfig != nil {
+		s.Shell.User = globalConfig.User
+	}
+
 	err := s.AbstractExecutor.Prepare(globalConfig, config, build)
 	if err != nil {
 		return err
