@@ -47,9 +47,15 @@ func (s *ShellScript) String() string {
 	return helpers.ToYAML(s)
 }
 
+type ShellScriptInfo struct {
+	Shell string
+	Build *Build
+	Type  ShellType
+}
+
 type Shell interface {
 	GetName() string
-	GenerateScript(build *Build, shellType ShellType) (*ShellScript, error)
+	GenerateScript(info ShellScriptInfo) (*ShellScript, error)
 	IsDefault() bool
 }
 
@@ -85,13 +91,13 @@ func GetShells() []string {
 	return names
 }
 
-func GenerateShellScript(name string, build *Build, shellType ShellType) (*ShellScript, error) {
-	shell := GetShell(name)
+func GenerateShellScript(info ShellScriptInfo) (*ShellScript, error) {
+	shell := GetShell(info.Shell)
 	if shell == nil {
-		return nil, fmt.Errorf("shell %s not found", name)
+		return nil, fmt.Errorf("shell %s not found", info.Shell)
 	}
 
-	return shell.GenerateScript(build, shellType)
+	return shell.GenerateScript(info)
 }
 
 func GetDefaultShell() string {

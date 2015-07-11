@@ -54,10 +54,11 @@ func (b *CmdShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
 	b.writeCommandChecked(w, "git checkout -qf \"%s\"", build.Sha)
 }
 
-func (b *CmdShell) GenerateScript(build *common.Build, shellType common.ShellType) (*common.ShellScript, error) {
+func (b *CmdShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
 
+	build := info.Build
 	projectDir := build.FullProjectDir()
 	projectDir = helpers.ToBackslash(projectDir)
 

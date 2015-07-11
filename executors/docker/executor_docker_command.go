@@ -66,8 +66,10 @@ func init() {
 	options := executors.ExecutorOptions{
 		DefaultBuildsDir: "/builds",
 		SharedBuildsDir:  false,
-		DefaultShell:     "bash",
-		ShellType:        common.NormalShell,
+		Shell: common.ShellScriptInfo{
+			Shell:       "bash",
+			Type:        common.NormalShell,
+		},
 		ShowHostname:     true,
 		SupportedOptions: []string{"image", "services"},
 	}

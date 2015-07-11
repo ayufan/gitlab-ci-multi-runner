@@ -52,10 +52,11 @@ func (b *PowerShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
 	b.writeCommandChecked(w, "git checkout -qf \"%s\"", build.Sha)
 }
 
-func (b *PowerShell) GenerateScript(build *common.Build, shellType common.ShellType) (*common.ShellScript, error) {
+func (b *PowerShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
 
+	build := info.Build
 	projectDir := build.FullProjectDir()
 	projectDir = helpers.ToBackslash(projectDir)
 

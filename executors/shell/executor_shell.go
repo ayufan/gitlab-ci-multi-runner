@@ -92,8 +92,10 @@ func init() {
 	options := executors.ExecutorOptions{
 		DefaultBuildsDir: "builds",
 		SharedBuildsDir:  true,
-		DefaultShell:     common.GetDefaultShell(),
-		ShellType:        common.LoginShell,
+		Shell: common.ShellScriptInfo{
+			Shell:       common.GetDefaultShell(),
+			Type:        common.LoginShell,
+		},
 		ShowHostname:     false,
 	}
 

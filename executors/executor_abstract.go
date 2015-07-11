@@ -16,8 +16,7 @@ import (
 type ExecutorOptions struct {
 	DefaultBuildsDir string
 	SharedBuildsDir  bool
-	DefaultShell     string
-	ShellType        common.ShellType
+	Shell            common.ShellScriptInfo
 	ShowHostname     bool
 	SupportedOptions []string
 }
@@ -150,8 +149,8 @@ func (e *AbstractExecutor) Errorln(args ...interface{}) {
 }
 
 func (e *AbstractExecutor) generateShellScript() error {
-	shell := helpers.StringOrDefault(e.Config.Shell, e.DefaultShell)
-	shellScript, err := common.GenerateShellScript(shell, e.Build, e.ShellType)
+	e.Shell.Shell = helpers.StringOrDefault(e.Config.Shell, e.Shell.Shell)
+	shellScript, err := common.GenerateShellScript(e.Shell)
 	if err != nil {
 		return err
 	}
