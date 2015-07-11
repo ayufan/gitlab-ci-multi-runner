@@ -22,11 +22,13 @@ if usermod -aG docker $USER; then
 fi
 
 # create empty config and re-register runner
-eval HOMEDIR=~$USER
-cd $HOMEDIR
-touch config.toml
-chown $USER:$USER config.toml
-chmod 0600 config.toml
+mkdir -p /etc/gitlab-runner
+chmod 0700 /etc/gitlab-runner
+if [[ -e ~$USER/config.toml ]]; then
+  echo "GitLab Runner: importing configuration to /etc/gitlab-runner/config.toml"
+  cp ~$USER/config.toml /etc/gitlab-runner/config.toml
+  chmod 0600 /etc/gitlab-runner/config.toml
+fi
 
 # re-register runner
 gitlab-ci-multi-runner stop &>/dev/null || :
