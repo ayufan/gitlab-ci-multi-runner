@@ -61,7 +61,7 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	io.WriteString(w, "\n")
 	io.WriteString(w, "# save script that is read from to file and execute script file on remote server\n")
 	io.WriteString(w, fmt.Sprintf("mkdir -p %s\n", helpers.ShellEscape(projectDir)))
-	io.WriteString(w, fmt.Sprintf("cat > %s && exec $0 %s; exit 1\n", projectScript, projectScript))
+	io.WriteString(w, fmt.Sprintf("cat > %s && exec /usr/bin/env bash %s; exit 1\n", projectScript, projectScript))
 	io.WriteString(w, "\n")
 	if len(build.Hostname) != 0 {
 		io.WriteString(w, fmt.Sprintf("echo Running on $(hostname) via %s...\n", helpers.ShellEscape(build.Hostname)))
