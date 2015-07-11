@@ -149,6 +149,7 @@ func (e *AbstractExecutor) Errorln(args ...interface{}) {
 }
 
 func (e *AbstractExecutor) generateShellScript() error {
+	e.Shell.Build = e.Build
 	e.Shell.Shell = helpers.StringOrDefault(e.Config.Shell, e.Shell.Shell)
 	shellScript, err := common.GenerateShellScript(e.Shell)
 	if err != nil {
