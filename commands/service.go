@@ -7,6 +7,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"runtime"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"os"
 )
 
 const (
@@ -157,19 +158,22 @@ func init() {
 		Usage: "Specify custom config file",
 	})
 
-	if runtime.GOOS != "darwin" {
+	if runtime.GOOS == "windows" {
 		installFlags = append(installFlags, cli.StringFlag{
 			Name:  "user, u",
 			Value: helpers.GetCurrentUserName(),
 			Usage: "Specify user-name to secure the runner",
 		})
-	}
-
-	if runtime.GOOS == "windows" {
 		installFlags = append(installFlags, cli.StringFlag{
 			Name:  "password, p",
 			Value: "",
 			Usage: "Specify user password to install service (required)",
+		})
+	} else if os.Getuid() == 0 {
+		installFlags = append(installFlags, cli.StringFlag{
+			Name:  "user, u",
+			Value: "",
+			Usage: "Specify user-name to secure the runner",
 		})
 	}
 
