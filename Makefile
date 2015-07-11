@@ -106,7 +106,7 @@ package-deb-fpm:
 		--vendor "ayufan.eu" \
 		--conflicts $(PACKAGE_CONFLICT) \
 		-a $(PACKAGE_ARCH) \
-		packaging/root=/ \
+		packaging/root/=/ \
 		out/binaries/$(NAME)-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
 
 package-rpm-fpm:
@@ -124,7 +124,7 @@ package-rpm-fpm:
 		--vendor "ayufan.eu" \
 		--conflicts $(PACKAGE_CONFLICT) \
 		-a $(PACKAGE_ARCH) \
-		packaging/root=/ \
+		packaging/root/=/ \
 		out/binaries/$(NAME)-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
 
 packagecloud: packagecloud-deps packagecloud-deb packagecloud-rpm
