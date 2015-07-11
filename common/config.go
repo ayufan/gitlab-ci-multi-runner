@@ -131,7 +131,7 @@ func (c *Config) SaveConfig(configFile string) error {
 	}
 
 	// create directory to store configuration
-	os.MkdirAll(filepath.Dir(configFile), 0711)
+	os.MkdirAll(filepath.Dir(configFile), 0700)
 
 	// write config file
 	if err := ioutil.WriteFile(configFile, newConfig.Bytes(), 0600); err != nil {
