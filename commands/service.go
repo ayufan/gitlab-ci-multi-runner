@@ -129,6 +129,10 @@ func RunServiceControl(c *cli.Context) {
 		svcConfig.Arguments = append(svcConfig.Arguments, "--service", sn)
 	}
 
+	if user := c.String("user"); !isUserService && user != "" {
+		svcConfig.Arguments = append(svcConfig.Arguments, "--user", user)
+	}
+
 	s, err := service.New(&NullService{}, svcConfig)
 	if err != nil {
 		log.Fatal(err)

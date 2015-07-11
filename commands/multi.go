@@ -428,6 +428,11 @@ func init() {
 				Value: defaultServiceName,
 				Usage: "Use different names for different services",
 			},
+			cli.StringFlag{
+				Name:  "user, u",
+				Value: "",
+				Usage: "Use specific user to execute shell scripts",
+			},
 			cli.BoolFlag{
 				Name:  "syslog",
 				Usage: "Log to syslog",
