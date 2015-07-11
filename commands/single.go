@@ -53,6 +53,7 @@ func runHerokuURL(addr string) error {
 func runSingle(c *cli.Context) {
 	buildsDir := c.String("builds-dir")
 	shell := c.String("shell")
+	config := common.NewConfig()
 	runner := common.RunnerConfig{
 		URL:       c.String("url"),
 		Token:     c.String("token"),
@@ -128,7 +129,7 @@ func runSingle(c *cli.Context) {
 			BuildAbort:       abortSignal,
 		}
 		newBuild.AssignID()
-		newBuild.Run()
+		newBuild.Run(config)
 	}
 
 	doneSignal <- 0

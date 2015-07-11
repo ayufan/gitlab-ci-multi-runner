@@ -459,8 +459,8 @@ func (s *DockerExecutor) getImageName() (string, error) {
 	return s.Config.Docker.Image, nil
 }
 
-func (s *DockerExecutor) Prepare(config *common.RunnerConfig, build *common.Build) error {
-	err := s.AbstractExecutor.Prepare(config, build)
+func (s *DockerExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
+	err := s.AbstractExecutor.Prepare(globalConfig, config, build)
 	if err != nil {
 		return err
 	}

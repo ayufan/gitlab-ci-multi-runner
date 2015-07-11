@@ -19,8 +19,8 @@ type ShellExecutor struct {
 	scriptDir string
 }
 
-func (s *ShellExecutor) Prepare(config *common.RunnerConfig, build *common.Build) error {
-	err := s.AbstractExecutor.Prepare(config, build)
+func (s *ShellExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
+	err := s.AbstractExecutor.Prepare(globalConfig, config, build)
 	if err != nil {
 		return err
 	}

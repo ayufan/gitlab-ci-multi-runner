@@ -191,7 +191,7 @@ func (b *Build) SendBuildLog() {
 	}
 }
 
-func (b *Build) Run() error {
+func (b *Build) Run(globalConfig *Config) error {
 	executor := GetExecutor(b.Runner.Executor)
 	if executor == nil {
 		b.FinishBuild(Failed, "Executor not found: %v", b.Runner.Executor)
@@ -199,7 +199,7 @@ func (b *Build) Run() error {
 		return errors.New("executor not found")
 	}
 
-	err := executor.Prepare(b.Runner, b)
+	err := executor.Prepare(globalConfig, b.Runner, b)
 	if err == nil {
 		err = executor.Start()
 	}

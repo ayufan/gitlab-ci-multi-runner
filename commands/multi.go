@@ -199,7 +199,7 @@ func (mr *MultiRunner) processRunners(id int, stopWorker chan bool, runners chan
 			}
 
 			mr.addBuild(newJob)
-			newJob.Run()
+			newJob.Run(mr.config)
 			mr.removeBuild(newJob)
 			newJob = nil
 

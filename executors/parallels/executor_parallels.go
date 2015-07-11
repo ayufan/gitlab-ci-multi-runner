@@ -150,8 +150,8 @@ func (s *ParallelsExecutor) createVM() error {
 	return nil
 }
 
-func (s *ParallelsExecutor) Prepare(config *common.RunnerConfig, build *common.Build) error {
-	err := s.AbstractExecutor.Prepare(config, build)
+func (s *ParallelsExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
+	err := s.AbstractExecutor.Prepare(globalConfig, config, build)
 	if err != nil {
 		return err
 	}

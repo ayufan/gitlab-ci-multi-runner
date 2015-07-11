@@ -5,7 +5,7 @@ import (
 )
 
 type Executor interface {
-	Prepare(config *RunnerConfig, build *Build) error
+	Prepare(globalConfig *Config, config *RunnerConfig, build *Build) error
 	Start() error
 	Wait() error
 	Finish(err error)

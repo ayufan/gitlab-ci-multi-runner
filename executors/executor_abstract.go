@@ -196,7 +196,7 @@ func (e *AbstractExecutor) verifyOptions() error {
 	return nil
 }
 
-func (e *AbstractExecutor) Prepare(config *common.RunnerConfig, build *common.Build) error {
+func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
 	e.Config = config
 	e.Build = build
 	e.BuildCanceled = make(chan bool, 1)
