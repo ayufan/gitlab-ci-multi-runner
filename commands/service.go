@@ -82,16 +82,9 @@ func RunServiceControl(c *cli.Context) {
 		log.Fatal("Please run the command as root")
 	}
 
-	serviceName := c.String("service-name")
-	displayName := c.String("service-name")
-	if serviceName == "" {
-		serviceName = defaultServiceName
-		displayName = defaultDisplayName
-	}
-
 	svcConfig := &service.Config{
-		Name:        serviceName,
-		DisplayName: displayName,
+		Name:        c.String("service-name"),
+		DisplayName: c.String("service-name"),
 		Description: defaultDescription,
 		Arguments:   []string{"run"},
 		UserName:    c.String("user"),
@@ -145,8 +138,8 @@ func init() {
 	flags := []cli.Flag{
 		cli.StringFlag{
 			Name:  "service-name, n",
-			Value: "",
-			Usage: "Use different names for different services",
+			Value: defaultServiceName,
+			Usage: "Specify service name to use",
 		},
 	}
 
