@@ -78,8 +78,20 @@ func runServiceInstall(s service.Service, c *cli.Context) error {
 }
 
 func RunServiceControl(c *cli.Context) {
-	if os.Getuid() != 0 && runtime.GOOS == "linux" {
-		log.Fatal("Please run the command as root")
+	// detect whether we want to install as user service or system service
+	isUserService := os.Getuid() != 0
+	if runtime.GOOS == "windows" {
+		isUserService = true
+	}
+
+	// when installing service as system wide service don't specify username for service
+	serviceUserName := c.String("user")
+	if !isUserService {
+		serviceUserName = ""
+	}
+
+	if isUserService && runtime.GOOS == "linux" {
+		log.Fatal("Please run the commands as root")
 	}
 
 	svcConfig := &service.Config{
@@ -87,7 +99,7 @@ func RunServiceControl(c *cli.Context) {
 		DisplayName: c.String("service"),
 		Description: defaultDescription,
 		Arguments:   []string{"run"},
-		UserName:    c.String("user"),
+		UserName:    serviceUserName,
 	}
 
 	switch runtime.GOOS {
@@ -96,7 +108,7 @@ func RunServiceControl(c *cli.Context) {
 			"KeepAlive":     true,
 			"RunAtLoad":     true,
 			"SessionCreate": true,
-			"UserService":   true,
+			"UserService":   isUserService,
 		}
 
 	case "windows":
