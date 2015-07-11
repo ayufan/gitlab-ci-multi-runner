@@ -5,9 +5,8 @@ import (
 	service "github.com/ayufan/golang-kardianos-service"
 	"github.com/codegangsta/cli"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"os"
-	"os/user"
 	"runtime"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 )
 
 const (
@@ -107,22 +106,6 @@ func RunServiceControl(c *cli.Context) {
 	}
 }
 
-func getCurrentUserName() string {
-	user, _ := user.Current()
-	if user != nil {
-		return user.Username
-	}
-	return ""
-}
-
-func getCurrentWorkingDirectory() string {
-	dir, err := os.Getwd()
-	if err == nil {
-		return dir
-	}
-	return ""
-}
-
 func init() {
 	flags := []cli.Flag{
 		cli.StringFlag{
@@ -135,7 +118,7 @@ func init() {
 	installFlags := flags
 	installFlags = append(installFlags, cli.StringFlag{
 		Name:  "working-directory, d",
-		Value: getCurrentWorkingDirectory(),
+		Value: helpers.GetCurrentWorkingDirectory(),
 		Usage: "Specify custom root directory where all data are stored",
 	})
 	installFlags = append(installFlags, cli.StringFlag{
@@ -147,7 +130,7 @@ func init() {
 	if runtime.GOOS != "darwin" {
 		installFlags = append(installFlags, cli.StringFlag{
 			Name:  "user, u",
-			Value: getCurrentUserName(),
+			Value: helpers.GetCurrentUserName(),
 			Usage: "Specify user-name to secure the runner",
 		})
 	}
