@@ -133,13 +133,6 @@ func (s *RegistrationContext) askSSH(runnerConfig *common.RunnerConfig, serverle
 	}
 }
 
-func (s *RegistrationContext) touchConfig() {
-	file, _ := os.OpenFile(s.configFile, os.O_APPEND|os.O_CREATE, 0600)
-	if file != nil {
-		file.Close()
-	}
-}
-
 func (s *RegistrationContext) loadConfig() {
 	err := s.config.LoadConfig(s.configFile)
 	if err != nil {
@@ -190,7 +183,6 @@ func runRegister(c *cli.Context) {
 		}
 	}()
 
-	s.touchConfig()
 	s.loadConfig()
 
 	runnerConfig := s.askRunner()

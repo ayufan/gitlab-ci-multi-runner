@@ -12,6 +12,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/ssh"
+	"path/filepath"
 )
 
 type DockerConfig struct {
@@ -65,6 +66,7 @@ type BaseConfig struct {
 type Config struct {
 	BaseConfig
 	ModTime time.Time `json:"-"`
+	Loaded  bool      `json:"-"`
 }
 
 func (c *RunnerConfig) ShortDescription() string {
@@ -87,9 +89,21 @@ func NewConfig() *Config {
 	}
 }
 
+func (c *Config) StatConfig(configFile string) error {
+	_, err := os.Stat(configFile)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *Config) LoadConfig(configFile string) error {
 	info, err := os.Stat(configFile)
-	if err != nil {
+
+	// permission denied is soft error
+	if os.IsNotExist(err) {
+		return nil
+	} else if err != nil {
 		return err
 	}
 
@@ -98,6 +112,7 @@ func (c *Config) LoadConfig(configFile string) error {
 	}
 
 	c.ModTime = info.ModTime()
+	c.Loaded = true
 	return nil
 }
 
@@ -114,9 +129,14 @@ func (c *Config) SaveConfig(configFile string) error {
 		return err
 	}
 
+	// create directory to store configuration
+	os.MkdirAll(filepath.Dir(configFile), 0711)
+
+	// write config file
 	if err := ioutil.WriteFile(configFile, newConfig.Bytes(), 0600); err != nil {
 		return err
 	}
 
+	c.Loaded = true
 	return nil
 }
