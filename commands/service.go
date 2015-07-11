@@ -83,8 +83,8 @@ func RunServiceControl(c *cli.Context) {
 	}
 
 	svcConfig := &service.Config{
-		Name:        c.String("service-name"),
-		DisplayName: c.String("service-name"),
+		Name:        c.String("service"),
+		DisplayName: c.String("service"),
 		Description: defaultDescription,
 		Arguments:   []string{"run"},
 		UserName:    c.String("user"),
@@ -113,8 +113,8 @@ func RunServiceControl(c *cli.Context) {
 		svcConfig.Arguments = append(svcConfig.Arguments, "--config", config)
 	}
 
-	if sn := c.String("service-name"); sn != "" {
-		svcConfig.Arguments = append(svcConfig.Arguments, "--service-name", sn)
+	if sn := c.String("service"); sn != "" {
+		svcConfig.Arguments = append(svcConfig.Arguments, "--service", sn)
 	}
 
 	s, err := service.New(&NullService{}, svcConfig)
@@ -137,7 +137,7 @@ func RunServiceControl(c *cli.Context) {
 func init() {
 	flags := []cli.Flag{
 		cli.StringFlag{
-			Name:  "service-name, n",
+			Name:  "service, n",
 			Value: defaultServiceName,
 			Usage: "Specify service name to use",
 		},

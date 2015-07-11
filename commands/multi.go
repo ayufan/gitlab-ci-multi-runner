@@ -369,16 +369,9 @@ func (mr *MultiRunner) Stop(s service.Service) error {
 }
 
 func CreateService(c *cli.Context) service.Service {
-	serviceName := c.String("service-name")
-	displayName := c.String("service-name")
-	if serviceName == "" {
-		serviceName = defaultServiceName
-		displayName = defaultDisplayName
-	}
-
 	svcConfig := &service.Config{
-		Name:        serviceName,
-		DisplayName: displayName,
+		Name:        c.String("service"),
+		DisplayName: c.String("service"),
 		Description: defaultDescription,
 		Arguments:   []string{"run"},
 	}
@@ -437,8 +430,8 @@ func init() {
 				Usage: "Specify custom working directory",
 			},
 			cli.StringFlag{
-				Name:  "service-name, n",
-				Value: "",
+				Name:  "service, n",
+				Value: defaultServiceName,
 				Usage: "Use different names for different services",
 			},
 			cli.BoolFlag{
