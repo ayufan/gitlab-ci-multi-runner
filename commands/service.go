@@ -52,6 +52,26 @@ func (n *NullService) Stop(s service.Service) error {
 	return nil
 }
 
+func runServiceInstall(s service.Service, c *cli.Context) error {
+	if configFile := c.String("config"); configFile != "" {
+		// try to load existing config
+		config := common.NewConfig()
+		err := config.LoadConfig(configFile)
+		if err != nil {
+			return err
+		}
+
+		// save config for the first time
+		if !config.Loaded {
+			err = config.SaveConfig(configFile)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return service.Control(s, "install")
+}
+
 func RunServiceControl(c *cli.Context) {
 	serviceName := c.String("service-name")
 	displayName := c.String("service-name")
@@ -100,7 +120,13 @@ func RunServiceControl(c *cli.Context) {
 		log.Fatal(err)
 	}
 
-	err = service.Control(s, c.Command.Name)
+	switch c.Command.Name {
+	case "install":
+		err = runServiceInstall(s, c)
+	default:
+		err = service.Control(s, c.Command.Name)
+	}
+
 	if err != nil {
 		log.Fatal(err)
 	}
