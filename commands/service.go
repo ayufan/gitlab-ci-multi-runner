@@ -54,6 +54,10 @@ func (n *NullService) Stop(s service.Service) error {
 }
 
 func runServiceInstall(s service.Service, c *cli.Context) error {
+	if user := c.String("user"); user == "" && os.Getuid() == 0 {
+		log.Fatal("Please specify user that will run gitlab-runner service")
+	}
+
 	if configFile := c.String("config"); configFile != "" {
 		// try to load existing config
 		config := common.NewConfig()
