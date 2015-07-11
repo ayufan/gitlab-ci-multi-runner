@@ -428,7 +428,7 @@ func init() {
 			},
 			cli.StringFlag{
 				Name:   "config",
-				Value:  "config.toml",
+				Value:  getDefaultConfigFile(),
 				Usage:  "Config file",
 				EnvVar: "CONFIG_FILE",
 			},

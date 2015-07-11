@@ -140,7 +140,7 @@ func init() {
 	})
 	installFlags = append(installFlags, cli.StringFlag{
 		Name:  "config, c",
-		Value: "config.toml",
+		Value: getDefaultConfigFile(),
 		Usage: "Specify custom config file",
 	})
 

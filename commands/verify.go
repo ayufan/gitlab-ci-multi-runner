@@ -50,7 +50,7 @@ func init() {
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:   "c, config",
-				Value:  "config.toml",
+				Value:  getDefaultConfigFile(),
 				Usage:  "Config file",
 				EnvVar: "CONFIG_FILE",
 			},
