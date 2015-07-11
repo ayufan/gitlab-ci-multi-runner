@@ -414,12 +414,6 @@ func init() {
 		Action:    RunService,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:   "docker-host",
-				Value:  "",
-				Usage:  "Docker endpoint URL",
-				EnvVar: "DOCKER_HOST",
-			},
-			cli.StringFlag{
 				Name:   "config",
 				Value:  getDefaultConfigFile(),
 				Usage:  "Config file",
