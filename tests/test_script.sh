@@ -40,9 +40,9 @@ sleep 1s
 status
 echo
 
-echo Registering runner...
-gitlab-runner register -n -u https://ci.gitlab.com/ -r 51cc1fe15c0ac7d3d5564e24ada4d1
-echo
+#echo Registering runner...
+#gitlab-runner register -n -u https://ci.gitlab.com/ -r 51cc1fe15c0ac7d3d5564e24ada4d1
+#echo
 
 echo Checking su...
 echo id | su --shell /bin/bash --login "$USER"
