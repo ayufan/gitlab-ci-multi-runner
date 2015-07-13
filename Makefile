@@ -55,16 +55,17 @@ test:
 	go test
 
 test-docker:
-	make test-docker-image IMAGE=centos:6 CMD="yum install -y tar &&"
-	#make test-docker-image IMAGE=centos:7 CMD="yum install -y tar &&"
-	make test-docker-image IMAGE=debian:wheezy
-	make test-docker-image IMAGE=debian:jessie
-	make test-docker-image IMAGE=ubuntu-upstart:precise
-	make test-docker-image IMAGE=ubuntu-upstart:trusty
-	make test-docker-image IMAGE=ubuntu-upstart:utopic
+	make test-docker-image IMAGE=centos:6 TYPE=rpm
+	make test-docker-image IMAGE=centos:7 TYPE=rpm
+	make test-docker-image IMAGE=debian:wheezy TYPE=deb
+	make test-docker-image IMAGE=debian:jessie TYPE=deb
+	make test-docker-image IMAGE=ubuntu-upstart:precise TYPE=deb
+	make test-docker-image IMAGE=ubuntu-upstart:trusty TYPE=deb
+	make test-docker-image IMAGE=ubuntu-upstart:utopic TYPE=deb
 
 test-docker-image:
-	-tar c tests/* out/*/* | docker run -P --rm -i $(IMAGE) bash -c "$(CMD) tar x && exec tests/install_runner.sh"
+	tests/test_installation.sh $(IMAGE) out/$(TYPE)/$(PACKAGE_NAME)_amd64.$(TYPE)
+	tests/test_installation.sh $(IMAGE) out/$(TYPE)/$(PACKAGE_NAME)_amd64.$(TYPE) Y
 
 version: FORCE
 	# Generating VERSION...
