@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -16,6 +17,8 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"github.com/docker/docker/vendor/src/github.com/docker/libcontainer/user"
+	"path"
 )
 
 type DockerExecutor struct {
@@ -42,6 +45,38 @@ func (s *DockerExecutor) getServiceVariables() []string {
 	return variables
 }
 
+func (s *DockerExecutor) getAuthConfig(registry string) (docker.AuthConfiguration, error) {
+	if registry == "" {
+		return docker.AuthConfiguration{}, nil
+	}
+
+	user, err := user.Current()
+	if s.Shell.User != nil {
+		user, err = user.Lookup(*s.Shell.User)
+	}
+	if err != nil {
+		return docker.AuthConfiguration{}, err
+	}
+
+	p := path.Join(user.HomeDir, ".docker", "config.json")
+	r, err := os.Open(p)
+	if err != nil {
+		p := path.Join(user.HomeDir, ".dockercfg")
+		r, err = os.Open(p)
+		if err != nil {
+			return docker.AuthConfiguration{}, err
+		}
+	}
+	defer r.Close()
+
+	authConfigs, err := docker.NewAuthConfigurations(r)
+	if authConfig, ok := authConfigs.Configs[registry]; ok != true {
+		return authConfig, false
+	}
+
+	return docker.AuthConfiguration{}, fmt.Errorf("failed to find credentials for %v in %v", registry, r.Name())
+}
+
 func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error) {
 	s.Debugln("Looking for image", imageName, "...")
 	image, err := s.client.InspectImage(imageName)
@@ -55,7 +90,12 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 		Registry:   helpers.StringOrDefault(s.Config.Docker.Registry, ""),
 	}
 
-	err = s.client.PullImage(pullImageOptions, docker.AuthConfiguration{})
+	authConfig, err := s.getAuthConfig(pullImageOptions.Registry)
+	if err != nil {
+		s.Warningln(err)
+	}
+
+	err = s.client.PullImage(pullImageOptions, authConfig)
 	if err != nil {
 		return nil, err
 	}
