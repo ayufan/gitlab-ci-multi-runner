@@ -105,6 +105,12 @@ package-deb-fpm:
 		--license "MIT" \
 		--vendor "ayufan.eu" \
 		--conflicts $(PACKAGE_CONFLICT) \
+		--provides gitlab-runner \
+		--replaces gitlab-runner \
+		--depends adduser \
+		--depends ca-certificates \
+		--depends git \
+		--deb-suggests docker \
 		-a $(PACKAGE_ARCH) \
 		packaging/root/=/ \
 		out/binaries/$(NAME)-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
@@ -123,6 +129,8 @@ package-rpm-fpm:
 		--license "MIT" \
 		--vendor "ayufan.eu" \
 		--conflicts $(PACKAGE_CONFLICT) \
+		--provides gitlab-runner \
+		--replaces gitlab-runner \
 		-a $(PACKAGE_ARCH) \
 		packaging/root/=/ \
 		out/binaries/$(NAME)-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner
