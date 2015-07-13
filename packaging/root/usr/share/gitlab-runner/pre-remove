@@ -1,5 +1,5 @@
 #!/bin/sh
 
-set -e
-gitlab-ci-multi-runner stop || :
-gitlab-ci-multi-runner uninstall || :
+gitlab-ci-multi-runner stop >/dev/null 2>/dev/null
+gitlab-ci-multi-runner uninstall >/dev/null 2>/dev/null
+exit 0
