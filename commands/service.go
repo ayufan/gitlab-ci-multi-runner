@@ -5,9 +5,9 @@ import (
 	service "github.com/ayufan/golang-kardianos-service"
 	"github.com/codegangsta/cli"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"runtime"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"os"
+	"runtime"
 )
 
 const (

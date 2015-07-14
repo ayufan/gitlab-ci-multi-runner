@@ -3,8 +3,8 @@
 package commands
 
 import (
-	"os"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"os"
 	"path/filepath"
 )
 

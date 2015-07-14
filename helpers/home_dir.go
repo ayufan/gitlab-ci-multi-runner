@@ -1,8 +1,8 @@
 package helpers
 
 import (
-	"os/user"
 	"os"
+	"os/user"
 )
 
 func GetCurrentUserName() string {

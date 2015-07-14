@@ -31,7 +31,6 @@ func RegisterExecutor(executor string, factory ExecutorFactory) {
 	executors[executor] = factory
 }
 
-
 func GetExecutorFeatures(executor string) *FeaturesInfo {
 	if executors == nil {
 		return nil

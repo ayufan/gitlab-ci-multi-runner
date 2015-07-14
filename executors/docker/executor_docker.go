@@ -303,7 +303,7 @@ func (s *DockerExecutor) createServices() ([]string, error) {
 
 	var links []string
 	for linkName, container := range linksMap {
-		links = append(links, container.ID + ":" + linkName)
+		links = append(links, container.ID+":"+linkName)
 	}
 
 	return links, nil
@@ -424,7 +424,7 @@ func (s *DockerExecutor) removeContainer(id string) error {
 	return err
 }
 
-func (s *DockerExecutor) verifyAllowedImage(image, optionName string, allowedImages... string) error {
+func (s *DockerExecutor) verifyAllowedImage(image, optionName string, allowedImages ...string) error {
 	for _, allowedImage := range allowedImages {
 		ok, _ := filepath.Match(allowedImage, image)
 		if ok {
