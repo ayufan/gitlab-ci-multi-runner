@@ -26,7 +26,7 @@ func RegisterExecutor(executor string, closure func() Executor) {
 	executors[executor] = closure
 }
 
-func GetExecutor(executor string) Executor {
+func NewExecutor(executor string) Executor {
 	if executors == nil {
 		return nil
 	}

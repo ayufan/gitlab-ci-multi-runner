@@ -64,7 +64,7 @@ func (s *RegistrationContext) askExecutor() string {
 		names := common.GetExecutors()
 		executors := strings.Join(names, ", ")
 		result := s.ask("executor", "Please enter the executor: "+executors+":", true)
-		if common.GetExecutor(result) != nil {
+		if common.NewExecutor(result) != nil {
 			return result
 		}
 	}
