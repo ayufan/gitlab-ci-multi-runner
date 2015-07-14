@@ -1,10 +1,15 @@
-if [[ -n "$ARTIFACTS_S3_BUCKET" ]]; then
-    make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"
-fi
-
 if [[ "$RELEASE" == "true" ]]; then
+    if ! [[ $CI_BUILD_REF_NAME == v*.* ]] ; then
+        echo "FATALITY: Don't dare me to push tags without v*..."
+        exit 1
+    fi
     if [[ -n "$ARTIFACTS_S3_BUCKET" ]]; then
-	    make s3-upload "S3_UPLOAD_PATH=latest"
-	fi
-	make packagecloud
+        make s3-upload "S3_UPLOAD_PATH=latest"
+        make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"
+    fi
+    make packagecloud
+else
+    if [[ -n "$ARTIFACTS_S3_BUCKET" ]]; then
+        make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"
+    fi
 fi
