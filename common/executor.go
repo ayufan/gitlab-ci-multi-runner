@@ -14,6 +14,7 @@ type Executor interface {
 
 type ExecutorFactory struct {
 	Create   func() Executor
+	Features FeaturesInfo
 }
 
 var executors map[string]ExecutorFactory
@@ -28,6 +29,19 @@ func RegisterExecutor(executor string, factory ExecutorFactory) {
 		panic("Executor already exist: " + executor)
 	}
 	executors[executor] = factory
+}
+
+
+func GetExecutorFeatures(executor string) *FeaturesInfo {
+	if executors == nil {
+		return nil
+	}
+
+	if factory, ok := executors[executor]; ok {
+		return &factory.Features
+	}
+
+	return nil
 }
 
 func NewExecutor(executor string) Executor {

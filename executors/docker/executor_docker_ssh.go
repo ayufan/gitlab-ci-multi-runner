@@ -69,8 +69,8 @@ func init() {
 		DefaultBuildsDir: "builds",
 		SharedBuildsDir:  false,
 		Shell: common.ShellScriptInfo{
-			Shell:       "bash",
-			Type:        common.LoginShell,
+			Shell: "bash",
+			Type:  common.LoginShell,
 		},
 		ShowHostname:     true,
 		SupportedOptions: []string{"image", "services"},
@@ -88,5 +88,10 @@ func init() {
 
 	common.RegisterExecutor("docker-ssh", common.ExecutorFactory{
 		Create: create,
+		Features: common.FeaturesInfo{
+			Variables: true,
+			Image:     true,
+			Services:  true,
+		},
 	})
 }

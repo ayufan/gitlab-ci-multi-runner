@@ -68,10 +68,10 @@ func init() {
 		DefaultBuildsDir: "builds",
 		SharedBuildsDir:  true,
 		Shell: common.ShellScriptInfo{
-			Shell:       "bash",
-			Type:        common.LoginShell,
+			Shell: "bash",
+			Type:  common.LoginShell,
 		},
-		ShowHostname:     true,
+		ShowHostname: true,
 	}
 
 	create := func() common.Executor {
@@ -84,5 +84,8 @@ func init() {
 
 	common.RegisterExecutor("ssh", common.ExecutorFactory{
 		Create: create,
+		Features: common.FeaturesInfo{
+			Variables: true,
+		},
 	})
 }

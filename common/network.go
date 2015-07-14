@@ -22,12 +22,20 @@ const (
 	UpdateFailed
 )
 
+type FeaturesInfo struct {
+	Variables bool `json:"variables"`
+	Image     bool `json:"image"`
+	Services  bool `json:"services"`
+}
+
 type VersionInfo struct {
-	Name         string `json:"name,omitempty"`
-	Version      string `json:"version,omitempty"`
-	Revision     string `json:"revision,omitempty"`
-	Platform     string `json:"platform,omitempty"`
-	Architecture string `json:"architecture,omitempty"`
+	Name         string       `json:"name,omitempty"`
+	Version      string       `json:"version,omitempty"`
+	Revision     string       `json:"revision,omitempty"`
+	Platform     string       `json:"platform,omitempty"`
+	Architecture string       `json:"architecture,omitempty"`
+	Executor     string       `json:"executor,omitempty"`
+	Features     FeaturesInfo `json:"features"`
 }
 
 type GetBuildRequest struct {
@@ -151,19 +159,31 @@ func getURL(baseURL string, request string, a ...interface{}) string {
 	return fmt.Sprintf("%s/api/v1/%s", baseURL, fmt.Sprintf(request, a...))
 }
 
-func GetRunnerVersion() VersionInfo {
-	return VersionInfo{
+func GetRunnerVersion(executor string) VersionInfo {
+	info := VersionInfo{
 		Name:         NAME,
 		Version:      VERSION,
 		Revision:     REVISION,
 		Platform:     runtime.GOOS,
 		Architecture: runtime.GOARCH,
+		Executor:     executor,
+		Features: FeaturesInfo{
+			Variables: true,
+			Image:     true,
+			Services:  true,
+		},
 	}
+
+	if features := GetExecutorFeatures(executor); features != nil {
+		info.Features = *features
+	}
+
+	return info
 }
 
 func GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 	request := GetBuildRequest{
-		Info:  GetRunnerVersion(),
+		Info:  GetRunnerVersion(config.Executor),
 		Token: config.Token,
 	}
 
@@ -187,8 +207,9 @@ func GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 }
 
 func RegisterRunner(url, token, description, tags string) *RegisterRunnerResponse {
+	// TODO: pass executor
 	request := RegisterRunnerRequest{
-		Info:        GetRunnerVersion(),
+		Info:        GetRunnerVersion(""),
 		Token:       token,
 		Description: description,
 		Tags:        tags,
@@ -248,7 +269,7 @@ func VerifyRunner(url, token string) bool {
 
 func UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) UpdateState {
 	request := UpdateBuildRequest{
-		Info:  GetRunnerVersion(),
+		Info:  GetRunnerVersion(config.Executor),
 		Token: config.Token,
 		State: state,
 		Trace: trace,

@@ -318,10 +318,10 @@ func init() {
 		DefaultBuildsDir: "builds",
 		SharedBuildsDir:  false,
 		Shell: common.ShellScriptInfo{
-			Shell:       "bash",
-			Type:        common.LoginShell,
+			Shell: "bash",
+			Type:  common.LoginShell,
 		},
-		ShowHostname:     true,
+		ShowHostname: true,
 	}
 
 	create := func() common.Executor {
@@ -334,5 +334,8 @@ func init() {
 
 	common.RegisterExecutor("parallels", common.ExecutorFactory{
 		Create: create,
+		Features: common.FeaturesInfo{
+			Variables: true,
+		},
 	})
 }

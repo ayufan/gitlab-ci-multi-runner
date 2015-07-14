@@ -97,10 +97,10 @@ func init() {
 		DefaultBuildsDir: "builds",
 		SharedBuildsDir:  true,
 		Shell: common.ShellScriptInfo{
-			Shell:       common.GetDefaultShell(),
-			Type:        common.LoginShell,
+			Shell: common.GetDefaultShell(),
+			Type:  common.LoginShell,
 		},
-		ShowHostname:     false,
+		ShowHostname: false,
 	}
 
 	create := func() common.Executor {
@@ -113,5 +113,8 @@ func init() {
 
 	common.RegisterExecutor("shell", common.ExecutorFactory{
 		Create: create,
+		Features: common.FeaturesInfo{
+			Variables: true,
+		},
 	})
 }

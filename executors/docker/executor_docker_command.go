@@ -67,8 +67,8 @@ func init() {
 		DefaultBuildsDir: "/builds",
 		SharedBuildsDir:  false,
 		Shell: common.ShellScriptInfo{
-			Shell:       "bash",
-			Type:        common.NormalShell,
+			Shell: "bash",
+			Type:  common.NormalShell,
 		},
 		ShowHostname:     true,
 		SupportedOptions: []string{"image", "services"},
@@ -86,5 +86,10 @@ func init() {
 
 	common.RegisterExecutor("docker", common.ExecutorFactory{
 		Create: create,
+		Features: common.FeaturesInfo{
+			Variables: true,
+			Image:     true,
+			Services:  true,
+		},
 	})
 }
