@@ -74,11 +74,15 @@ func init() {
 		ShowHostname:     true,
 	}
 
-	common.RegisterExecutor("ssh", func() common.Executor {
+	create := func() common.Executor {
 		return &SSHExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
 				ExecutorOptions: options,
 			},
 		}
+	}
+
+	common.RegisterExecutor("ssh", common.ExecutorFactory{
+		Create: create,
 	})
 }

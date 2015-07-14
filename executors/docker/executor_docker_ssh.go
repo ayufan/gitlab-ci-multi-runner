@@ -76,7 +76,7 @@ func init() {
 		SupportedOptions: []string{"image", "services"},
 	}
 
-	common.RegisterExecutor("docker-ssh", func() common.Executor {
+	create := func() common.Executor {
 		return &DockerSSHExecutor{
 			DockerExecutor: DockerExecutor{
 				AbstractExecutor: executors.AbstractExecutor{
@@ -84,5 +84,9 @@ func init() {
 				},
 			},
 		}
+	}
+
+	common.RegisterExecutor("docker-ssh", common.ExecutorFactory{
+		Create: create,
 	})
 }

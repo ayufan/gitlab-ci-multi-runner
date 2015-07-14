@@ -324,11 +324,15 @@ func init() {
 		ShowHostname:     true,
 	}
 
-	common.RegisterExecutor("parallels", func() common.Executor {
+	create := func() common.Executor {
 		return &ParallelsExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
 				ExecutorOptions: options,
 			},
 		}
+	}
+
+	common.RegisterExecutor("parallels", common.ExecutorFactory{
+		Create: create,
 	})
 }

@@ -12,18 +12,22 @@ type Executor interface {
 	Cleanup()
 }
 
-var executors map[string]func() Executor
+type ExecutorFactory struct {
+	Create   func() Executor
+}
 
-func RegisterExecutor(executor string, closure func() Executor) {
+var executors map[string]ExecutorFactory
+
+func RegisterExecutor(executor string, factory ExecutorFactory) {
 	log.Debugln("Registering", executor, "executor...")
 
 	if executors == nil {
-		executors = make(map[string]func() Executor)
+		executors = make(map[string]ExecutorFactory)
 	}
-	if executors[executor] != nil {
+	if _, ok := executors[executor]; ok {
 		panic("Executor already exist: " + executor)
 	}
-	executors[executor] = closure
+	executors[executor] = factory
 }
 
 func NewExecutor(executor string) Executor {
@@ -31,12 +35,11 @@ func NewExecutor(executor string) Executor {
 		return nil
 	}
 
-	closure := executors[executor]
-	if closure == nil {
-		return nil
+	if factory, ok := executors[executor]; ok {
+		return factory.Create()
 	}
 
-	return closure()
+	return nil
 }
 
 func GetExecutors() []string {

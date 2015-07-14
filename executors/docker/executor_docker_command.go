@@ -74,7 +74,7 @@ func init() {
 		SupportedOptions: []string{"image", "services"},
 	}
 
-	common.RegisterExecutor("docker", func() common.Executor {
+	create := func() common.Executor {
 		return &DockerCommandExecutor{
 			DockerExecutor: DockerExecutor{
 				AbstractExecutor: executors.AbstractExecutor{
@@ -82,5 +82,9 @@ func init() {
 				},
 			},
 		}
+	}
+
+	common.RegisterExecutor("docker", common.ExecutorFactory{
+		Create: create,
 	})
 }

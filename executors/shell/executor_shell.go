@@ -103,11 +103,15 @@ func init() {
 		ShowHostname:     false,
 	}
 
-	common.RegisterExecutor("shell", func() common.Executor {
+	create := func() common.Executor {
 		return &ShellExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
 				ExecutorOptions: options,
 			},
 		}
+	}
+
+	common.RegisterExecutor("shell", common.ExecutorFactory{
+		Create: create,
 	})
 }
