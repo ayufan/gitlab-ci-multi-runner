@@ -54,7 +54,7 @@ esac
 if [[ -n "$UPGRADE" ]]; then
 	USER="gitlab_ci_multi_runner"
 else
-	USER="gitlab_runner"
+	USER="gitlab-runner"
 fi
 
 cat $(dirname $0)/test_script.sh | docker exec -i $ID bash -s "$USER"
