@@ -18,9 +18,10 @@ chmod +x gitlab-ci-multi-runner-linux-amd64
 
 ### Download one of the packages for Debian or Ubuntu
 
-* https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/deb/gitlab-ci-multi-runner_386.deb
+* https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/deb/gitlab-ci-multi-runner_i386.deb
 * https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/deb/gitlab-ci-multi-runner_amd64.deb
 * https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/deb/gitlab-ci-multi-runner_arm.deb
+* https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/deb/gitlab-ci-multi-runner_armhf.deb
 
 You can then install it with:
 ```bash
@@ -29,8 +30,10 @@ dpkg -i gitlab-ci-multi-runner_386.deb
 
 ### Download one of the packages for RedHat or CentOS
 
-* https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/rpm/gitlab-ci-multi-runner_386.rpm
+* https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/rpm/gitlab-ci-multi-runner_i686.rpm
 * https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/rpm/gitlab-ci-multi-runner_amd64.rpm
+* https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/rpm/gitlab-ci-multi-runner_arm.rpm
+* https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/rpm/gitlab-ci-multi-runner_armhf.rpm
 
 You can then install it with:
 ```bash
@@ -39,7 +42,7 @@ rpm -i gitlab-ci-multi-runner_386.rpm
 
 ### Download any other tagged release
 
-Simply replace `master` with either `tag` (v0.2.0) or `latest` (the latest
+Simply replace `master` with either `tag` (v0.2.0 or 0.4.2) or `latest` (the latest
 stable). For a list of tags see <https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/tags>.
 For example:
 
