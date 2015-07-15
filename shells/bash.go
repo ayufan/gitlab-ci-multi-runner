@@ -80,14 +80,15 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 
 	b.writeCheckoutCmd(w, build)
 	io.WriteString(w, "\n")
-	if !helpers.BoolOrDefault(build.Runner.DisableVerbose, false) {
-		io.WriteString(w, "set -v\n")
-		io.WriteString(w, "\n")
+
+	for _, command := range strings.Split(build.Commands, "\n") {
+		command = strings.TrimSpace(command)
+		if !helpers.BoolOrDefault(build.Runner.DisableVerbose, false) {
+			io.WriteString(w, "echo " + helpers.ShellEscape(command) + "\n")
+		}
+		io.WriteString(w, command + "\n")
 	}
 
-	commands := build.Commands
-	commands = strings.Replace(commands, "\r\n", "\n", -1)
-	io.WriteString(w, commands)
 	io.WriteString(w, "\n")
 
 	w.Flush()
