@@ -252,17 +252,18 @@ func (e *AbstractExecutor) Wait() error {
 
 	// Wait for signals: cancel, timeout, abort or finish
 	log.Debugln(e.Config.ShortDescription(), e.Build.ID, "Waiting for signals...")
+	e.Println()
 	select {
 	case <-e.BuildCanceled:
 		e.Warningln("Build got canceled.")
 		e.Build.FinishBuild(common.Failed)
 
 	case <-time.After(time.Duration(buildTimeout) * time.Second):
-		e.Errorln("CI Timeout. Execution took longer then %d seconds.", buildTimeout)
+		e.Errorln("CI Timeout. Execution took longer then", buildTimeout, "seconds.")
 		e.Build.FinishBuild(common.Failed)
 
 	case signal := <-e.Build.BuildAbort:
-		e.Errorln("Build got aborted: %v.", signal)
+		e.Errorln("Build got aborted:", signal)
 		e.Build.FinishBuild(common.Failed)
 
 	case err := <-e.BuildFinish:
@@ -278,7 +279,7 @@ func (e *AbstractExecutor) Wait() error {
 
 func (e *AbstractExecutor) Finish(err error) {
 	if err != nil {
-		e.Errorln("Build failed with %v.", err)
+		e.Errorln("Build failed with:", err)
 		e.Build.FinishBuild(common.Failed)
 	}
 

@@ -90,7 +90,7 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	}
 
 	io.WriteString(w, "\n")
-	b.echoColored(w, "")
+	io.WriteString(w, "echo\n")
 	if build.AllowGitFetch {
 		b.writeFetchCmd(w, build, helpers.ShellEscape(projectDir), helpers.ShellEscape(gitDir))
 	} else {
@@ -99,6 +99,8 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 
 	b.writeCheckoutCmd(w, build)
 	io.WriteString(w, "\n")
+	io.WriteString(w, "echo\n")
+	io.WriteString(w, "\n")
 
 	for _, command := range strings.Split(build.Commands, "\n") {
 		command = strings.TrimSpace(command)
@@ -106,7 +108,7 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 			if command != "" {
 				b.echoColored(w, "$ " + command)
 			} else {
-				b.echoColored(w, "")
+				io.WriteString(w, "echo\n")
 			}
 		}
 		io.WriteString(w, command+"\n")
