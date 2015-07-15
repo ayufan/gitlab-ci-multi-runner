@@ -19,8 +19,9 @@ func (s *SSHExecutor) Prepare(globalConfig *common.Config, config *common.Runner
 		return err
 	}
 
+	s.Println("Using SSH executor...")
 	if s.ShellScript.PassFile {
-		return errors.New("Parallels doesn't support shells that require script file")
+		return errors.New("SSH doesn't support shells that require script file")
 	}
 	return nil
 }

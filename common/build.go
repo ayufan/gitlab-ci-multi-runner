@@ -28,7 +28,6 @@ type Build struct {
 	BuildStarted     time.Time      `json:"build_started"`
 	BuildFinished    time.Time      `json:"build_finished"`
 	BuildDuration    time.Duration  `json:"build_duration"`
-	BuildMessage     string         `json:"build_message"`
 	BuildAbort       chan os.Signal `json:"-" yaml:"-"`
 	BuildDir         string         `json:"-" yaml:"-"`
 	Hostname         string         `json:"-" yaml:"-"`
@@ -143,9 +142,8 @@ func (b *Build) StartBuild(buildDir string) {
 	b.BuildDir = buildDir
 }
 
-func (b *Build) FinishBuild(buildState BuildState, buildMessage string, args ...interface{}) {
+func (b *Build) FinishBuild(buildState BuildState) {
 	b.BuildState = buildState
-	b.BuildMessage = "\n" + fmt.Sprintf(buildMessage, args...)
 	b.BuildFinished = time.Now()
 	b.BuildDuration = b.BuildFinished.Sub(b.BuildStarted)
 }
@@ -178,10 +176,6 @@ func (b *Build) SendBuildLog() {
 	var buildTrace string
 
 	buildTrace = b.BuildLog()
-	if b.BuildMessage != "" {
-		buildTrace = buildTrace + b.BuildMessage
-	}
-
 	for {
 		if UpdateBuild(*b.Runner, b.ID, b.BuildState, buildTrace) != UpdateFailed {
 			break
@@ -194,7 +188,7 @@ func (b *Build) SendBuildLog() {
 func (b *Build) Run(globalConfig *Config) error {
 	executor := NewExecutor(b.Runner.Executor)
 	if executor == nil {
-		b.FinishBuild(Failed, "Executor not found: %v", b.Runner.Executor)
+		b.WriteString("Executor not found: " + b.Runner.Executor)
 		b.SendBuildLog()
 		return errors.New("executor not found")
 	}

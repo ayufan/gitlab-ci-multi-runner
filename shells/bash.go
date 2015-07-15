@@ -21,7 +21,7 @@ func (b *BashShell) GetName() string {
 }
 
 func (b *BashShell) echoColored(w io.Writer, text string) {
-	coloredText := helpers.ANSI_BOLD_GREEN + text + helpers.ANSI_BOLD_WHITE
+	coloredText := helpers.ANSI_BOLD_GREEN + text + helpers.ANSI_RESET
 	io.WriteString(w, "echo " + helpers.ShellEscape(coloredText) + "\n")
 }
 
@@ -81,6 +81,7 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	}
 
 	io.WriteString(w, "\n")
+	b.echoColored(w, "")
 	if build.AllowGitFetch {
 		b.writeFetchCmd(w, build, helpers.ShellEscape(projectDir), helpers.ShellEscape(gitDir))
 	} else {

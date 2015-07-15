@@ -55,7 +55,11 @@ func (e *AbstractExecutor) ReadTrace(pipe *io.PipeReader) {
 		}
 
 		if e.Build.BuildLogLen() > traceOutputLimit {
-			output := fmt.Sprintf("\nBuild log exceeded limit of %v bytes.", traceOutputLimit)
+			output := fmt.Sprintf("\n%sBuild log exceeded limit of %v bytes.%s\n",
+				helpers.ANSI_BOLD_RED,
+				traceOutputLimit,
+				helpers.ANSI_RESET,
+			)
 			e.Build.WriteString(output)
 			traceStopped = true
 			break
@@ -80,7 +84,7 @@ func (e *AbstractExecutor) PushTrace(config common.RunnerConfig, canceled chan b
 	for {
 		select {
 		case <-time.After(common.UpdateInterval * time.Second):
-			// check if build log changed
+		// check if build log changed
 			buildTraceLen := e.Build.BuildLogLen()
 			if buildTraceLen == lastSentTrace && time.Since(lastSentTime) > common.ForceTraceSentInterval {
 				e.Debugln("updateBuildLog", "Nothing to send.")
@@ -128,10 +132,23 @@ func (e *AbstractExecutor) Println(args ...interface{}) {
 	log.Println(args...)
 }
 
+func (e *AbstractExecutor) Infoln(args ...interface{}) {
+	if e.Build != nil {
+		e.Build.WriteString(helpers.ANSI_BOLD_GREEN + fmt.Sprintln(args...) + helpers.ANSI_RESET)
+	}
+
+	if len(args) == 0 {
+		return
+	}
+
+	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
+	log.Println(args...)
+}
+
 func (e *AbstractExecutor) Warningln(args ...interface{}) {
 	// write to log file
 	if e.Build != nil {
-		e.Build.WriteString("WARNING:" + fmt.Sprintln(args...))
+		e.Build.WriteString(helpers.ANSI_BOLD_YELLOW + "WARNING:" + fmt.Sprintln(args...) + helpers.ANSI_RESET)
 	}
 
 	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
@@ -141,7 +158,7 @@ func (e *AbstractExecutor) Warningln(args ...interface{}) {
 func (e *AbstractExecutor) Errorln(args ...interface{}) {
 	// write to log file
 	if e.Build != nil {
-		e.Build.WriteString("ERROR: " + fmt.Sprintln(args...))
+		e.Build.WriteString(helpers.ANSI_BOLD_RED + "ERROR: " + fmt.Sprintln(args...) + helpers.ANSI_RESET)
 	}
 
 	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
@@ -209,7 +226,7 @@ func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.R
 		return err
 	}
 
-	e.Println(fmt.Sprintf("%s %s (%s)", common.NAME, common.VERSION, common.REVISION))
+	e.Infoln(fmt.Sprintf("%s %s (%s)", common.NAME, common.VERSION, common.REVISION))
 
 	err = e.verifyOptions()
 	if err != nil {
@@ -237,31 +254,32 @@ func (e *AbstractExecutor) Wait() error {
 	log.Debugln(e.Config.ShortDescription(), e.Build.ID, "Waiting for signals...")
 	select {
 	case <-e.BuildCanceled:
-		log.Println(e.Config.ShortDescription(), e.Build.ID, "Build got canceled.")
-		e.Build.FinishBuild(common.Failed, "Build got canceled")
+		e.Warningln("Build got canceled.")
+		e.Build.FinishBuild(common.Failed)
 
 	case <-time.After(time.Duration(buildTimeout) * time.Second):
-		log.Println(e.Config.ShortDescription(), e.Build.ID, "Build timedout.")
-		e.Build.FinishBuild(common.Failed, "CI Timeout. Execution took longer then %d seconds", buildTimeout)
+		e.Errorln("CI Timeout. Execution took longer then %d seconds.", buildTimeout)
+		e.Build.FinishBuild(common.Failed)
 
 	case signal := <-e.Build.BuildAbort:
-		log.Println(e.Config.ShortDescription(), e.Build.ID, "Build got aborted", signal)
-		e.Build.FinishBuild(common.Failed, "Build got aborted: %v", signal)
+		e.Errorln("Build got aborted: %v.", signal)
+		e.Build.FinishBuild(common.Failed)
 
 	case err := <-e.BuildFinish:
 		if err != nil {
 			return err
 		}
 
-		log.Println(e.Config.ShortDescription(), e.Build.ID, "Build succeeded.")
-		e.Build.FinishBuild(common.Success, "Build succeeded.")
+		e.Infoln("Build succeeded.")
+		e.Build.FinishBuild(common.Success)
 	}
 	return nil
 }
 
 func (e *AbstractExecutor) Finish(err error) {
 	if err != nil {
-		e.Build.FinishBuild(common.Failed, "Build failed with %v", err)
+		e.Errorln("Build failed with %v.", err)
+		e.Build.FinishBuild(common.Failed)
 	}
 
 	e.Debugln("Build took", e.Build.BuildDuration)
