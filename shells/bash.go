@@ -20,8 +20,17 @@ func (b *BashShell) GetName() string {
 	return "bash"
 }
 
+func (b *BashShell) echoColored(w io.Writer, text string) {
+	coloredText := helpers.ANSI_BOLD_GREEN + text + helpers.ANSI_BOLD_WHITE
+	io.WriteString(w, "echo " + helpers.ShellEscape(coloredText) + "\n")
+}
+
+func (b *BashShell) echoColoredFormat(w io.Writer, format string, a ...interface{}) {
+	b.echoColored(w, fmt.Sprintf(format, a...))
+}
+
 func (b *BashShell) writeCloneCmd(w io.Writer, build *common.Build, projectDir string) {
-	io.WriteString(w, "echo Cloning repository...\n")
+	b.echoColoredFormat(w, "Cloning repository...")
 	io.WriteString(w, fmt.Sprintf("rm -rf %s\n", projectDir))
 	io.WriteString(w, fmt.Sprintf("mkdir -p %s\n", projectDir))
 	io.WriteString(w, fmt.Sprintf("git clone %s %s\n", helpers.ShellEscape(build.RepoURL), projectDir))
@@ -30,7 +39,7 @@ func (b *BashShell) writeCloneCmd(w io.Writer, build *common.Build, projectDir s
 
 func (b *BashShell) writeFetchCmd(w io.Writer, build *common.Build, projectDir string, gitDir string) {
 	io.WriteString(w, fmt.Sprintf("if [[ -d %s ]]; then\n", gitDir))
-	io.WriteString(w, "echo Fetching changes...\n")
+	b.echoColoredFormat(w, "Fetching changes...")
 	io.WriteString(w, fmt.Sprintf("cd %s\n", projectDir))
 	io.WriteString(w, fmt.Sprintf("git clean -fdx\n"))
 	io.WriteString(w, fmt.Sprintf("git reset --hard > /dev/null\n"))
@@ -42,7 +51,7 @@ func (b *BashShell) writeFetchCmd(w io.Writer, build *common.Build, projectDir s
 }
 
 func (b *BashShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
-	io.WriteString(w, fmt.Sprintf("echo Checking out %s as %s...\n", build.Sha[0:8], build.RefName))
+	b.echoColoredFormat(w, "Checking out %s as %s...", build.Sha[0:8], build.RefName)
 	io.WriteString(w, fmt.Sprintf("git checkout -qf %s\n", build.Sha))
 }
 
@@ -66,7 +75,7 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	io.WriteString(w, fmt.Sprintf("cat > %s; source %s\n", projectScript, projectScript))
 	io.WriteString(w, "\n")
 	if len(build.Hostname) != 0 {
-		io.WriteString(w, fmt.Sprintf("echo Running on $(hostname) via %s...\n", helpers.ShellEscape(build.Hostname)))
+		io.WriteString(w, fmt.Sprintf("echo Running on $(hostname) via %s...", helpers.ShellEscape(build.Hostname)))
 	} else {
 		io.WriteString(w, "echo Running on $(hostname)...\n")
 	}
@@ -84,9 +93,13 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	for _, command := range strings.Split(build.Commands, "\n") {
 		command = strings.TrimSpace(command)
 		if !helpers.BoolOrDefault(build.Runner.DisableVerbose, false) {
-			io.WriteString(w, "echo " + helpers.ShellEscape(command) + "\n")
+			if command != "" {
+				b.echoColored(w, "$ " + command)
+			} else {
+				b.echoColored(w, "")
+			}
 		}
-		io.WriteString(w, command + "\n")
+		io.WriteString(w, command+"\n")
 	}
 
 	io.WriteString(w, "\n")
