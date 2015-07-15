@@ -67,6 +67,12 @@ test-docker-image:
 	tests/test_installation.sh $(IMAGE) out/$(TYPE)/$(PACKAGE_NAME)_amd64.$(TYPE)
 	tests/test_installation.sh $(IMAGE) out/$(TYPE)/$(PACKAGE_NAME)_amd64.$(TYPE) Y
 
+build-and-deploy:
+	make build BUILD_PLATFORMS="-os=linux -arch=amd64"
+	make package-deb-fpm ARCH=amd64 PACKAGE_ARCH=amd64
+	scp out/deb/$(PACKAGE_NAME)_amd64.deb $(SERVER):
+	ssh $(SERVER) dpkg -i $(PACKAGE_NAME)_amd64.deb
+
 version: FORCE
 	# Generating VERSION...
 	echo "package common\n\nconst NAME = \"$(PACKAGE_NAME)\"\nconst VERSION = \"$(VERSION)\"\nconst REVISION = \"$(REVISION)\"" > common/version.go
