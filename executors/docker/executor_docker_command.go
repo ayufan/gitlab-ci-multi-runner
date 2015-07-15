@@ -68,7 +68,7 @@ func init() {
 		SharedBuildsDir:  false,
 		Shell: common.ShellScriptInfo{
 			Shell: "bash",
-			Type:  common.NormalShell,
+			Type:  common.LoginShell,
 		},
 		ShowHostname:     true,
 		SupportedOptions: []string{"image", "services"},
