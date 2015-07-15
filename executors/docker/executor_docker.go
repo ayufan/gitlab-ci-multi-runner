@@ -156,12 +156,6 @@ func (s *DockerExecutor) createVolumes(image *docker.Image, projectPath string) 
 		s.addVolume(&binds, &volumesFrom, volume)
 	}
 
-	if image != nil {
-		for volume := range image.Config.Volumes {
-			s.addVolume(&binds, &volumesFrom, volume)
-		}
-	}
-
 	if s.Build.AllowGitFetch {
 		// take path of the projects directory,
 		// because we use `rm -rf` which could remove the mounted volume
