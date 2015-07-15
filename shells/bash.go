@@ -71,26 +71,29 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	io.WriteString(w, "set -eo pipefail\n")
 	io.WriteString(w, "\n")
 
-	// Set env variables from build script
-	for _, keyValue := range b.GetVariables(build, projectDir) {
-		io.WriteString(w, "export " + helpers.ShellEscape(keyValue) + "\n")
-	}
-	for _, keyValue := range info.Environment {
-		io.WriteString(w, "export " + helpers.ShellEscape(keyValue) + "\n")
-	}
-	io.WriteString(w, "\n")
-	io.WriteString(w, "# save script that is read from to file and execute script file on remote server\n")
-	io.WriteString(w, fmt.Sprintf("mkdir -p %s\n", helpers.ShellEscape(projectDir)))
-	io.WriteString(w, fmt.Sprintf("cat > %s; source %s\n", projectScript, projectScript))
-	io.WriteString(w, "\n")
 	if len(build.Hostname) != 0 {
 		io.WriteString(w, fmt.Sprintf("echo Running on $(hostname) via %s...", helpers.ShellEscape(build.Hostname)))
 	} else {
 		io.WriteString(w, "echo Running on $(hostname)...\n")
 	}
-
 	io.WriteString(w, "\n")
 	io.WriteString(w, "echo\n")
+
+	// Set env variables from build script
+	for _, keyValue := range b.GetDefaultVariables(build, projectDir) {
+		io.WriteString(w, "export " + helpers.ShellEscape(keyValue) + "\n")
+	}
+	for _, keyValue := range info.Environment {
+		command := helpers.ShellEscape(keyValue.Key + "=" + keyValue.Value)
+		io.WriteString(w, "export " + command + "\n")
+	}
+
+	io.WriteString(w, "\n")
+	io.WriteString(w, "# save script that is read from to file and execute script file on remote server\n")
+	io.WriteString(w, fmt.Sprintf("mkdir -p %s\n", helpers.ShellEscape(projectDir)))
+	io.WriteString(w, fmt.Sprintf("cat > %s; source %s\n", projectScript, projectScript))
+	io.WriteString(w, "\n")
+
 	if build.AllowGitFetch {
 		b.writeFetchCmd(w, build, helpers.ShellEscape(projectDir), helpers.ShellEscape(gitDir))
 	} else {
@@ -102,7 +105,9 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	io.WriteString(w, "echo\n")
 	io.WriteString(w, "\n")
 
-	for _, command := range strings.Split(build.Commands, "\n") {
+	commands := build.Commands
+	commands = strings.TrimSpace(commands)
+	for _, command := range strings.Split(commands, "\n") {
 		command = strings.TrimSpace(command)
 		if !helpers.BoolOrDefault(build.Runner.DisableVerbose, false) {
 			if command != "" {

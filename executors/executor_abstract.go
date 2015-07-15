@@ -11,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
 	"path/filepath"
+	"strings"
 )
 
 type ExecutorOptions struct {
@@ -166,9 +167,28 @@ func (e *AbstractExecutor) Errorln(args ...interface{}) {
 }
 
 func (e *AbstractExecutor) generateShellScript() error {
-	e.Shell.Build = e.Build
-	e.Shell.Shell = helpers.StringOrDefault(e.Config.Shell, e.Shell.Shell)
-	shellScript, err := common.GenerateShellScript(e.Shell)
+	script := &e.Shell
+	script.Build = e.Build
+	script.Shell = helpers.StringOrDefault(e.Config.Shell, script.Shell)
+
+	// Add config variables
+	for _, environment := range e.Config.Environment {
+		keyValue := strings.SplitN(environment, "=", 2)
+		if len(keyValue) != 2 {
+			continue
+		}
+		variable := common.BuildVariable{
+			Key: keyValue[0],
+			Value: keyValue[1],
+		}
+		script.Environment = append(script.Environment, variable)
+	}
+
+	// Add secure variables
+	script.Environment = append(script.Environment, e.Build.Variables...)
+
+	// Generate shell script
+	shellScript, err := common.GenerateShellScript(*script)
 	if err != nil {
 		return err
 	}

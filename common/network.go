@@ -44,8 +44,9 @@ type GetBuildRequest struct {
 }
 
 type BuildVariable struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
+	Key    string `json:"key"`
+	Value  string `json:"value"`
+	Public bool   `json:"public"`
 }
 
 type BuildOptions map[string]interface{}

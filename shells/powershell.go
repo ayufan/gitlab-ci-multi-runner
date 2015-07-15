@@ -95,12 +95,16 @@ func (b *PowerShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellS
 	w.Flush()
 
 	script := common.ShellScript{
-		Environment: b.GetVariables(build, projectDir),
+		Environment: b.GetDefaultVariables(build, projectDir),
 		Script:      buffer.String(),
 		Command:     "powershell",
 		Arguments:   []string{"-noprofile", "-noninteractive", "-executionpolicy", "Bypass", "-command"},
 		PassFile:    true,
 		Extension:   "ps1",
+	}
+
+	for _, keyValue := range info.Environment {
+		script.Environment = append(script.Environment, keyValue.Key + "=" + keyValue.Value)
 	}
 	return &script, nil
 }
