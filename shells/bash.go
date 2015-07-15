@@ -70,6 +70,15 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	io.WriteString(w, "\n")
 	io.WriteString(w, "set -eo pipefail\n")
 	io.WriteString(w, "\n")
+
+	// Set env variables from build script
+	for _, keyValue := range b.GetVariables(build, projectDir) {
+		io.WriteString(w, "export " + helpers.ShellEscape(keyValue) + "\n")
+	}
+	for _, keyValue := range info.Environment {
+		io.WriteString(w, "export " + helpers.ShellEscape(keyValue) + "\n")
+	}
+	io.WriteString(w, "\n")
 	io.WriteString(w, "# save script that is read from to file and execute script file on remote server\n")
 	io.WriteString(w, fmt.Sprintf("mkdir -p %s\n", helpers.ShellEscape(projectDir)))
 	io.WriteString(w, fmt.Sprintf("cat > %s; source %s\n", projectScript, projectScript))
@@ -108,7 +117,6 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	w.Flush()
 
 	script := common.ShellScript{
-		Environment: b.GetVariables(build, projectDir),
 		Script:      buffer.String(),
 	}
 

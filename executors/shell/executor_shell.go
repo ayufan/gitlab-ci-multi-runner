@@ -45,9 +45,7 @@ func (s *ShellExecutor) Start() error {
 	helpers.SetProcessGroup(s.cmd)
 
 	// Fill process environment variables
-	s.cmd.Env = os.Environ()
-	s.cmd.Env = append(s.cmd.Env, s.ShellScript.Environment...)
-	s.cmd.Env = append(s.cmd.Env, s.Config.Environment...)
+	s.cmd.Env = append(os.Environ(), s.ShellScript.Environment...)
 	s.cmd.Stdout = s.BuildLog
 	s.cmd.Stderr = s.BuildLog
 
