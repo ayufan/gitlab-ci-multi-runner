@@ -8,5 +8,5 @@ RUN /go/src/app/dockerfiles/packaging/root/usr/share/gitlab-runner/post-install
 VOLUME ["/etc/gitlab-runner", "/home/gitlab-runner"]
 
 # init sets up the environment and launches gitlab-runner
-ENTRYPOINT ["/go/src/app/dockerfiles/ubuntu/entrypoint"]
+ENTRYPOINT ["/go/src/app/ubuntu/entrypoint"]
 CMD ["run", "--user=gitlab-runner", "--working-directory=/home/gitlab-runner"]
