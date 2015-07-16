@@ -114,7 +114,6 @@ package-deb-fpm:
 		--conflicts $(PACKAGE_CONFLICT) \
 		--provides gitlab-runner \
 		--replaces gitlab-runner \
-		--depends adduser \
 		--depends ca-certificates \
 		--depends git \
 		--deb-suggests docker \
