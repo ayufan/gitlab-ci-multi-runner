@@ -1,3 +1,5 @@
+image: golang
+
 before_script:
 - export PACKAGE_CLOUD_URL=https://packages.gitlab.com
 - export PACKAGE_CLOUD=runner/gitlab-ci-multi-runner
