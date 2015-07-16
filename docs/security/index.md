@@ -14,6 +14,8 @@ On the other hand there's privileged mode which enables full access to host syst
 
 ## Systems with Docker installed
 
+**This applies to installations below 0.5.0 or one's that were upgraded to newer version**
+
 When installing package on Linux systems with Docker installed, `gitlab-ci-multi-runner` will create user that will have permisssion to access `Docker` daemon. This makes the jobs run with `shell` executor able to access `docker` with full permissions and potenially allows root access to the server.
 
 ### Usage of SSH executor

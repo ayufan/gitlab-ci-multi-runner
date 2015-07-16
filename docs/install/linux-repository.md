@@ -31,8 +31,7 @@ yum install gitlab-ci-multi-runner
 Register the runner:
 
 ```bash
-cd ~gitlab_ci_multi_runner
-gitlab-ci-multi-runner register
+sudo gitlab-ci-multi-runner register
 
 Please enter the gitlab-ci coordinator URL (e.g. http://gitlab-ci.org:3000/ )
 https://ci.gitlab.org/

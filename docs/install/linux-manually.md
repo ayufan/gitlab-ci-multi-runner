@@ -25,26 +25,18 @@ curl -sSL https://get.docker.com/ | sh
 Create a GitLab CI user (on Linux):
 
 ```
-sudo useradd --comment 'GitLab Runner' --create-home gitlab_ci_multi_runner --shell /bin/bash
-sudo usermod -aG docker gitlab_ci_multi_runner
+sudo useradd --comment 'GitLab Runner' --create-home gitlab-runner --shell /bin/bash
 ```
 
 Register the runner:
 
 ```bash
-cd ~gitlab_ci_multi_runner
-sudo -u gitlab_ci_multi_runner -H gitlab-ci-multi-runner register
+sudo gitlab-ci-multi-runner register
 ```
 
-Secure `config.toml`:
-
+Install and run as service (on Linux):
 ```bash
-sudo chmod 0600 config.toml
-```
-
-Install and run as service:
-```bash
-sudo gitlab-ci-multi-runner install --user=gitlab_ci_multi_runner
+sudo gitlab-ci-multi-runner install --user=gitlab-runner --working-directory=/home/gitlab-runner
 sudo gitlab-ci-multi-runner start
 ```
 

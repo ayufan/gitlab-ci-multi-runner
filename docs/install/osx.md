@@ -38,6 +38,7 @@ running already the config should be automatically reloaded!
 Install runner as service and start it:
 
 ```bash
+cd ~
 gitlab-ci-multi-runner install
 gitlab-ci-multi-runner start
 ```
