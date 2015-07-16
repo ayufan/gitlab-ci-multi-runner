@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # gitlab-ci-multi-runner data directory
-DATA_DIR="/data"
+DATA_DIR="/etc/gitlab-runner"
 CONFIG_FILE=${CONFIG_FILE:-$DATA_DIR/config.toml}
 # custom certificate authority path
 CA_CERTIFICATES_PATH=${CA_CERTIFICATES_PATH:-$DATA_DIR/certs/ca.crt}
 LOCAL_CA_PATH="/usr/local/share/ca-certificates/ca.crt"
 
-update_ca () {
+update_ca() {
   echo "Updating CA certificates..."
   cp "${CA_CERTIFICATES_PATH}" "${LOCAL_CA_PATH}"
   update-ca-certificates --fresh >/dev/null
@@ -15,13 +15,7 @@ update_ca () {
 
 if [ -f "${CA_CERTIFICATES_PATH}" ]; then
   # update the ca if the custom ca is different than the current
-  cmp --silent "${CA_CERTIFICATES_PATH}" "${LOCAL_CA_PATH}" \
-  || update_ca
-fi
-
-if [ ! -f "${CONFIG_FILE}" ]; then
-  # create config file if it does not exist
-  mkdir -p $(dirname "${CONFIG_FILE}") && touch "${CONFIG_FILE}"
+  cmp --silent "${CA_CERTIFICATES_PATH}" "${LOCAL_CA_PATH}" || update_ca
 fi
 
 # launch gitlab-ci-multi-runner passing all arguments

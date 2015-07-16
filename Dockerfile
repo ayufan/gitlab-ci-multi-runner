@@ -1,14 +1,12 @@
-# We use the onbuild version of library/golang,
-# (https://github.com/docker-library/golang/blob/master/1.4/onbuild/Dockerfile)
+# This image is used to create bleeding edge docker image and is not compatible with any other image
 FROM golang:onbuild
 
-# Set working directory to /data
-# 
-# this is where the config.toml will be sourced,
-# you can mount your own custom data directory at /data
-WORKDIR /data
-VOLUME /data
+# Install runner
+RUN /go/src/app/dockerfiles/packaging/root/usr/share/gitlab-runner/post-install
 
-# init sets up the environment and launches gitlab-ci-multi-runner
-ENTRYPOINT ["/go/src/app/packaging/docker/init"]
-CMD ["run"]
+# Preserve runner's data
+VOLUME ["/etc/gitlab-runner", "/home/gitlab-runner"]
+
+# init sets up the environment and launches gitlab-runner
+ENTRYPOINT ["/go/src/app/dockerfiles/ubuntu/entrypoint"]
+CMD ["run", "--user=gitlab-runner", "--working-directory=/home/gitlab-runner"]

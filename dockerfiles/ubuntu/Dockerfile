@@ -9,6 +9,9 @@ RUN echo "deb https://packages.gitlab.com/runner/gitlab-ci-multi-runner/ubuntu/ 
     apt-get update -y && \
     apt-get install -y gitlab-ci-multi-runner
 
+ADD entrypoint /
+RUN chmod +x /entrypoint
+
 VOLUME ["/etc/gitlab-runner", "/home/gitlab-runner"]
-ENTRYPOINT ["gitlab-ci-multi-runner"]
+ENTRYPOINT ["/entrypoint"]
 CMD ["run", "--user=gitlab-runner", "--working-directory=/home/gitlab-runner"]
