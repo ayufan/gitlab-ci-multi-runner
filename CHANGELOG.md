@@ -1,5 +1,25 @@
 v 0.5.0 (unreleased)
 - Allow to override image and services for Docker executor from Coordinator
+- Added support for additional options passed from coordinator
+- Added support for receiving and defining allowed images and services from the Coordinator
+- Rename gitlab_ci_multi_runner to gitlab-runner
+- Don't require config file to exist in order to run runner
+- Change where config file is stored: /etc/gitlab-runner/config.toml (*nix, root), ~/.gitlab-runner/config.toml (*nix, user)
+- Create config on service install
+- Require root to control service on Linux
+- Require to specify user when installing service
+- Run service as root, but impersonate as --user when executing shell scripts
+- Migrate config.toml from user directory to /etc/gitlab-runner/
+- Simplify service installation and upgrade
+- Add --provides and --replaces to package builder
+- Powershell: check exit code in writeCommandChecked
+- Added installation tests
+- Add runner alpine-based image
+- Send executor features with RunnerInfo
+- Verbose mode by using `echo` instead of `set -v`
+- Colorize bash output
+- Set environment variables from bash script: this fixes problem with su
+- Don't cache Dockerfile VOLUMEs
 
 v 0.4.2
 - Force GC cycle after processing build
