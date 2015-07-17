@@ -201,6 +201,7 @@ func (s *DockerExecutor) createVolumes(image *docker.Image) ([]string, []string,
 			container, _ := s.createCacheVolume("", parentDir)
 			if container != nil {
 				s.caches = append(s.caches, container)
+				volumesFrom = append(volumesFrom, container.ID)
 			}
 		}
 	}
