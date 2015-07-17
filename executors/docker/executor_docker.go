@@ -24,6 +24,7 @@ type DockerExecutor struct {
 	image     *docker.Image
 	container *docker.Container
 	services  []*docker.Container
+	caches    []*docker.Container
 }
 
 func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error) {
@@ -62,7 +63,59 @@ func (s *DockerExecutor) addHostVolume(binds *[]string, hostPath, containerPath 
 	return nil
 }
 
+func (s *DockerExecutor) createCacheVolume(containerName, containerPath string) (*docker.Container, error)  {
+	// get busybox image
+	cacheImage, err := s.getDockerImage("gitlab/runner:cache")
+	if err != nil {
+		return nil, err
+	}
+
+	createContainerOptions := docker.CreateContainerOptions{
+		Name: containerName,
+		Config: &docker.Config{
+			Image: cacheImage.ID,
+			Cmd: []string{
+				containerPath,
+			},
+			Volumes: map[string]struct{}{
+				containerPath: {},
+			},
+		},
+		HostConfig: &docker.HostConfig{},
+	}
+
+	container, err := s.client.CreateContainer(createContainerOptions)
+	if err != nil {
+		if container != nil {
+			go s.removeContainer(container.ID)
+		}
+		return nil, err
+	}
+
+	s.Debugln("Starting cache container", container.ID, "...")
+	err = s.client.StartContainer(container.ID, nil)
+	if err != nil {
+		go s.removeContainer(container.ID)
+		return nil, err
+	}
+
+	s.Debugln("Waiting for cache container", container.ID, "...")
+	errorCode, err := s.client.WaitContainer(container.ID)
+	if err != nil {
+		go s.removeContainer(container.ID)
+		return nil, err
+	}
+
+	if errorCode != 0 {
+		go s.removeContainer(container.ID)
+		return nil, fmt.Errorf("cache container for %s returned %d", containerPath, errorCode)
+	}
+
+	return container, nil
+}
+
 func (s *DockerExecutor) addCacheVolume(binds, volumesFrom *[]string, containerPath string) error {
+	var err error
 	containerPath = s.getAbsoluteContainerPath(containerPath)
 
 	// disable cache for automatic container cache, but leave it for host volumes (they are shared on purpose)
@@ -97,31 +150,8 @@ func (s *DockerExecutor) addCacheVolume(binds, volumesFrom *[]string, containerP
 
 	// create new cache container for that project
 	if container == nil {
-		// get busybox image
-		cacheImage, err := s.getDockerImage("busybox:latest")
+		container, err = s.createCacheVolume(containerName, containerPath)
 		if err != nil {
-			return err
-		}
-
-		createContainerOptions := docker.CreateContainerOptions{
-			Name: containerName,
-			Config: &docker.Config{
-				Image: cacheImage.ID,
-				Cmd: []string{
-					"/bin/true",
-				},
-				Volumes: map[string]struct{}{
-					containerPath: {},
-				},
-			},
-			HostConfig: &docker.HostConfig{},
-		}
-
-		container, err = s.client.CreateContainer(createContainerOptions)
-		if err != nil {
-			if container != nil {
-				go s.removeContainer(container.ID)
-			}
 			return err
 		}
 	}
@@ -149,17 +179,30 @@ func (s *DockerExecutor) addVolume(binds, volumesFrom *[]string, volume string) 
 	return err
 }
 
-func (s *DockerExecutor) createVolumes(image *docker.Image, projectPath string) ([]string, []string, error) {
+func (s *DockerExecutor) createVolumes(image *docker.Image) ([]string, []string, error) {
 	var binds, volumesFrom []string
 
 	for _, volume := range s.Config.Docker.Volumes {
 		s.addVolume(&binds, &volumesFrom, volume)
 	}
 
-	if s.Build.AllowGitFetch {
-		// take path of the projects directory,
-		// because we use `rm -rf` which could remove the mounted volume
-		s.addVolume(&binds, &volumesFrom, filepath.Dir(projectPath))
+	// Cache Git sources:
+	// take path of the projects directory,
+	// because we use `rm -rf` which could remove the mounted volume
+	parentDir := filepath.Dir(s.Build.FullProjectDir())
+
+	// Caching is supported only for absolute and non-root paths
+	if filepath.IsAbs(parentDir) && parentDir != "/" {
+		if s.Build.AllowGitFetch && !helpers.BoolOrDefault(s.Config.Docker.DisableCache, false) {
+			// create persistent cache container
+			s.addVolume(&binds, &volumesFrom, parentDir)
+		} else {
+			// create temporary cache container
+			container, _ := s.createCacheVolume("", parentDir)
+			if container != nil {
+				s.caches = append(s.caches, container)
+			}
+		}
 	}
 
 	return binds, volumesFrom, nil
@@ -381,7 +424,7 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 	createContainerOptions.HostConfig.Links = append(createContainerOptions.HostConfig.Links, links...)
 
 	s.Debugln("Creating cache directories...")
-	binds, volumesFrom, err := s.createVolumes(image, s.Build.FullProjectDir())
+	binds, volumesFrom, err := s.createVolumes(image)
 	if err != nil {
 		return nil, err
 	}
@@ -493,6 +536,10 @@ func (s *DockerExecutor) Cleanup() {
 		s.removeContainer(service.ID)
 	}
 
+	for _, cache := range s.caches {
+		s.removeContainer(cache.ID)
+	}
+
 	if s.container != nil {
 		s.removeContainer(s.container.ID)
 		s.container = nil
@@ -502,7 +549,7 @@ func (s *DockerExecutor) Cleanup() {
 }
 
 func (s *DockerExecutor) waitForServiceContainer(container *docker.Container, timeout time.Duration) error {
-	waitImage, err := s.getDockerImage("aanand/wait")
+	waitImage, err := s.getDockerImage("gitlab/runner:service")
 	if err != nil {
 		return err
 	}
