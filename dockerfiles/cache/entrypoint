@@ -1,0 +1,6 @@
+#!/bin/sh
+
+set -x
+for path in $@; do
+	chmod 777 "$path"
+done
