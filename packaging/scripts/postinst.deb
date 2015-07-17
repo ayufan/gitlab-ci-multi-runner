@@ -7,6 +7,7 @@ case "$1" in
 
   configure)
     /usr/share/gitlab-runner/post-install
+    /usr/share/gitlab-runner/clear-docker-cache || :
     ;;
 
   *)

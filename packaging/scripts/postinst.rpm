@@ -1,3 +1,5 @@
 #!/bin/sh
 set -e
 /usr/share/gitlab-runner/post-install
+/usr/share/gitlab-runner/clear-docker-cache || :
+exit 0
