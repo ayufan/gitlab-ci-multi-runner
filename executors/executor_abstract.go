@@ -10,7 +10,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
-	"path/filepath"
 	"strings"
 )
 
@@ -198,7 +197,7 @@ func (e *AbstractExecutor) generateShellScript() error {
 }
 
 func (e *AbstractExecutor) startBuild() error {
-	// Craete pipe where data are read
+	// Create pipe where data are read
 	reader, writer := io.Pipe()
 	go e.ReadTrace(reader)
 	e.BuildLog = writer
@@ -208,12 +207,9 @@ func (e *AbstractExecutor) startBuild() error {
 		e.Build.Hostname, _ = os.Hostname()
 	}
 
-	// Deduce build directory
-	buildsDir := helpers.StringOrDefault(e.Config.BuildsDir, e.DefaultBuildsDir)
-	buildsDir = filepath.Join(buildsDir, e.Build.ProjectUniqueDir(e.SharedBuildsDir))
-
 	// Start actual build
-	e.Build.StartBuild(buildsDir)
+	rootDir := helpers.StringOrDefault(e.Config.BuildsDir, e.DefaultBuildsDir)
+	e.Build.StartBuild(rootDir, e.SharedBuildsDir)
 	return nil
 }
 

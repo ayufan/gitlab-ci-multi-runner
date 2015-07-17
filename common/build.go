@@ -29,6 +29,7 @@ type Build struct {
 	BuildFinished    time.Time      `json:"build_finished"`
 	BuildDuration    time.Duration  `json:"build_duration"`
 	BuildAbort       chan os.Signal `json:"-" yaml:"-"`
+	RootDir          string         `json:"-" yaml:"-"`
 	BuildDir         string         `json:"-" yaml:"-"`
 	Hostname         string         `json:"-" yaml:"-"`
 	Runner           *RunnerConfig  `json:"runner"`
@@ -136,10 +137,11 @@ func (b *Build) FullProjectDir() string {
 	return b.BuildDir
 }
 
-func (b *Build) StartBuild(buildDir string) {
+func (b *Build) StartBuild(rootDir string, sharedDir bool) {
 	b.BuildStarted = time.Now()
 	b.BuildState = Pending
-	b.BuildDir = buildDir
+	b.RootDir = rootDir
+	b.BuildDir = filepath.Join(rootDir, b.ProjectUniqueDir(sharedDir))
 }
 
 func (b *Build) FinishBuild(buildState BuildState) {
