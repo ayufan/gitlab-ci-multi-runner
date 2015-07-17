@@ -1,4 +1,4 @@
-`gitlab/runner:wait` is a really small Docker utility that blocks until another container is accepting TCP connections.
+`gitlab/gitlab-runner:wait` is a really small Docker utility that blocks until another container is accepting TCP connections.
 
 Use it like this:
 

@@ -65,7 +65,7 @@ func (s *DockerExecutor) addHostVolume(binds *[]string, hostPath, containerPath 
 
 func (s *DockerExecutor) createCacheVolume(containerName, containerPath string) (*docker.Container, error)  {
 	// get busybox image
-	cacheImage, err := s.getDockerImage("gitlab/runner:cache")
+	cacheImage, err := s.getDockerImage("gitlab/gitlab-runner:cache")
 	if err != nil {
 		return nil, err
 	}
@@ -549,7 +549,7 @@ func (s *DockerExecutor) Cleanup() {
 }
 
 func (s *DockerExecutor) waitForServiceContainer(container *docker.Container, timeout time.Duration) error {
-	waitImage, err := s.getDockerImage("gitlab/runner:service")
+	waitImage, err := s.getDockerImage("gitlab/gitlab-runner:service")
 	if err != nil {
 		return err
 	}
