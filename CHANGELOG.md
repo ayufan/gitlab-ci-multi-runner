@@ -1,4 +1,4 @@
-v 0.5.0 (unreleased)
+v 0.5.0
 - Allow to override image and services for Docker executor from Coordinator
 - Added support for additional options passed from coordinator
 - Added support for receiving and defining allowed images and services from the Coordinator

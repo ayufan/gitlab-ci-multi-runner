@@ -42,6 +42,18 @@ If you want to use **Docker** make sure that you have **1.5.0** at least install
 * Enables caching of Docker containers
 * Easy installation as service for Linux, OSX and Windows
 
+### Version 0.5.0
+
+Version 0.5.0 introduces many security related changes. 
+One of such changes is the different location of `config.toml`.
+Previously (prior 0.5.0) config was read from current working directory.
+Currently, when `gitlab-runner` is executed by `root` or with `sudo` config is read from `/etc/gitlab-runner/config.toml`.
+If `gitlab-runner` is executed by non-root user, the config is read from `$HOME/.gitlab-runner/config.toml`.
+However, this doesn't apply to Windows where config is still read from current working directory, but this most likely will change in future.
+
+The config file is automatically migrated when GitLab Runner was installed from GitLab's repository.
+**For manual installations the config needs to be moved by hand.**
+
 ### Installation
 
 * [Install using GitLab's repository for Debian/Ubuntu/CentOS/RedHat (preferred)](docs/install/linux-repository.md)
