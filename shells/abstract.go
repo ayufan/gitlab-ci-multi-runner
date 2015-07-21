@@ -25,3 +25,15 @@ func (s *AbstractShell) GetDefaultVariables(build *Build, projectDir string) []s
 		"GITLAB_CI=true",
 	}
 }
+
+func (s *AbstractShell) GetBuildVariables(buildVariables []BuildVariable) []string {
+	var variables []string
+	for _, buildVariable := range buildVariables {
+		variables = append(variables, buildVariable.Key + "=" + buildVariable.Value)
+	}
+	return variables
+}
+
+func (s *AbstractShell) GetVariables(build *Build, projectDir string, buildVariables []BuildVariable) []string {
+	return append(s.GetDefaultVariables(build, projectDir), s.GetBuildVariables(buildVariables)...)
+}

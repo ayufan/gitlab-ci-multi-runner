@@ -96,16 +96,12 @@ func (b *CmdShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScr
 	w.Flush()
 
 	script := common.ShellScript{
-		Environment: b.GetDefaultVariables(build, projectDir),
+		Environment: b.GetVariables(build, projectDir, info.Environment),
 		Script:      buffer.String(),
 		Command:     "cmd",
 		Arguments:   []string{"/Q", "/C"},
 		PassFile:    true,
 		Extension:   "cmd",
-	}
-
-	for _, keyValue := range info.Environment {
-		script.Environment = append(script.Environment, keyValue.Key + "=" + keyValue.Value)
 	}
 	return &script, nil
 }

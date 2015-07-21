@@ -80,12 +80,8 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	io.WriteString(w, "echo\n")
 
 	// Set env variables from build script
-	for _, keyValue := range b.GetDefaultVariables(build, projectDir) {
+	for _, keyValue := range b.GetVariables(build, projectDir, info.Environment) {
 		io.WriteString(w, "export " + helpers.ShellEscape(keyValue) + "\n")
-	}
-	for _, keyValue := range info.Environment {
-		command := helpers.ShellEscape(keyValue.Key + "=" + keyValue.Value)
-		io.WriteString(w, "export " + command + "\n")
 	}
 
 	io.WriteString(w, "\n")
@@ -125,6 +121,7 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 
 	script := common.ShellScript{
 		Script:      buffer.String(),
+		Environment: b.GetVariables(build, projectDir, info.Environment),
 	}
 
 	// su
