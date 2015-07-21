@@ -20,6 +20,7 @@ v 0.5.0 (unreleased)
 - Colorize bash output
 - Set environment variables from bash script: this fixes problem with su
 - Don't cache Dockerfile VOLUMEs
+- Pass (public) environment variables received from Coordinator to service containers
 
 v 0.4.2
 - Force GC cycle after processing build

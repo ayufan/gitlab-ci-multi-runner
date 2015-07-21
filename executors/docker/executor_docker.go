@@ -27,6 +27,21 @@ type DockerExecutor struct {
 	caches    []*docker.Container
 }
 
+func (s *DockerExecutor) getServiceVariables() []string {
+	variables := s.Config.Environment
+
+	for _, buildVariable := range s.Build.Variables {
+		if !buildVariable.Public {
+			continue
+		}
+
+		variable := fmt.Sprintf("%s=%s", buildVariable.Key, buildVariable.Value)
+		variables = append(variables, variable)
+	}
+	
+	return variables
+}
+
 func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error) {
 	s.Debugln("Looking for image", imageName, "...")
 	image, err := s.client.InspectImage(imageName)
@@ -249,7 +264,7 @@ func (s *DockerExecutor) createService(service, version string) (*docker.Contain
 		Name: containerName,
 		Config: &docker.Config{
 			Image: serviceImage.ID,
-			Env:   s.Config.Environment,
+			Env:   s.getServiceVariables(),
 		},
 		HostConfig: &docker.HostConfig{
 			RestartPolicy: docker.NeverRestart(),
