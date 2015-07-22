@@ -1,3 +1,6 @@
+v 0.5.1
+- Update link for Docker configuration
+
 v 0.5.0
 - Allow to override image and services for Docker executor from Coordinator
 - Added support for additional options passed from coordinator
