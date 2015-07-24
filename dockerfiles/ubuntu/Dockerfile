@@ -12,6 +12,6 @@ RUN echo "deb https://packages.gitlab.com/runner/gitlab-ci-multi-runner/ubuntu/ 
 ADD entrypoint /
 RUN chmod +x /entrypoint
 
-VOLUME ["/etc/gitlab-runner", "/home/gitlab-runner"]
+VOLUME ["/etc/gitlab-runner", "/home/gitlab-runner", "/var/run/docker.sock"]
 ENTRYPOINT ["/entrypoint"]
 CMD ["run", "--user=gitlab-runner", "--working-directory=/home/gitlab-runner"]
