@@ -43,7 +43,7 @@ docker run -d --name gitlab-runner --restart always \
 Register the runner:
 
 ```bash
-docker exec -it gitlab-runner register
+docker exec -it gitlab-runner gitlab-runner register
 
 Please enter the gitlab-ci coordinator URL (e.g. http://gitlab-ci.org:3000/ )
 https://ci.gitlab.org/
