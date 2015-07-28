@@ -377,8 +377,8 @@ lockfile=/var/lock/subsys/$name
 start() {
     echo -n $"Starting $desc: "
     daemon \
-        {{if .UserName}}--user=$user{{endif}} \
-        {{if .WorkingDirectory}}--chdir={{.WorkingDirectory|cmd}}{{endif}} \
+        {{if .UserName}}--user=$user{{end}} \
+        {{if .WorkingDirectory}}--chdir={{.WorkingDirectory|cmd}}{{end}} \
         $cmd $args &>> $log_file
     retval=$?
     [ $retval -eq 0 ] && touch $lockfile
