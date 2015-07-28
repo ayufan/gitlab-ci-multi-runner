@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -17,7 +16,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"github.com/docker/docker/vendor/src/github.com/docker/libcontainer/user"
 	"path"
 )
 
@@ -41,8 +39,19 @@ func (s *DockerExecutor) getServiceVariables() []string {
 		variable := fmt.Sprintf("%s=%s", buildVariable.Key, buildVariable.Value)
 		variables = append(variables, variable)
 	}
-	
+
 	return variables
+}
+
+func NewAuthConfigurationsFromConfigJson() (*docker.AuthConfigurations, error) {
+	p := path.Join(os.Getenv("HOME"), ".docker", "config.json")
+	r, err := os.Open(p)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	return docker.NewAuthConfigurations(r)
 }
 
 func (s *DockerExecutor) getAuthConfig(registry string) (docker.AuthConfiguration, error) {
@@ -50,31 +59,19 @@ func (s *DockerExecutor) getAuthConfig(registry string) (docker.AuthConfiguratio
 		return docker.AuthConfiguration{}, nil
 	}
 
-	user, err := user.Current()
-	if s.Shell.User != nil {
-		user, err = user.Lookup(*s.Shell.User)
-	}
+	authConfigs, err := docker.NewAuthConfigurationsFromDockerCfg()
 	if err != nil {
-		return docker.AuthConfiguration{}, err
-	}
-
-	p := path.Join(user.HomeDir, ".docker", "config.json")
-	r, err := os.Open(p)
-	if err != nil {
-		p := path.Join(user.HomeDir, ".dockercfg")
-		r, err = os.Open(p)
+		authConfigs, err = NewAuthConfigurationsFromConfigJson()
 		if err != nil {
 			return docker.AuthConfiguration{}, err
 		}
 	}
-	defer r.Close()
 
-	authConfigs, err := docker.NewAuthConfigurations(r)
-	if authConfig, ok := authConfigs.Configs[registry]; ok != true {
-		return authConfig, false
+	if authConfig, ok := authConfigs.Configs[registry]; ok == true {
+		return authConfig, nil
 	}
 
-	return docker.AuthConfiguration{}, fmt.Errorf("failed to find credentials for %v in %v", registry, r.Name())
+	return docker.AuthConfiguration{}, fmt.Errorf("failed to find credentials for %v in docker config files", registry)
 }
 
 func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error) {
@@ -118,7 +115,7 @@ func (s *DockerExecutor) addHostVolume(binds *[]string, hostPath, containerPath 
 	return nil
 }
 
-func (s *DockerExecutor) createCacheVolume(containerName, containerPath string) (*docker.Container, error)  {
+func (s *DockerExecutor) createCacheVolume(containerName, containerPath string) (*docker.Container, error) {
 	// get busybox image
 	cacheImage, err := s.getDockerImage("gitlab/gitlab-runner:cache")
 	if err != nil {
