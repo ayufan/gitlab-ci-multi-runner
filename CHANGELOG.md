@@ -1,3 +1,8 @@
+v 0.5.2
+- Fixed CentOS6 service script
+- Fixed documentation
+- Added development documentation
+
 v 0.5.1
 - Update link for Docker configuration
 
