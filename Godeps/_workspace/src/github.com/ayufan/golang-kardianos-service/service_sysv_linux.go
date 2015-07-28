@@ -379,7 +379,7 @@ start() {
     daemon \
         {{if .UserName}}--user=$user{{end}} \
         {{if .WorkingDirectory}}--chdir={{.WorkingDirectory|cmd}}{{end}} \
-        $cmd $args &>> $log_file
+        "$cmd $args &" &>> $log_file
     retval=$?
     [ $retval -eq 0 ] && touch $lockfile
     echo
