@@ -146,7 +146,8 @@ func (s *upstart) Restart() error {
 // The upstart script should stop with an INT or the Go runtime will terminate
 // the program before the Stop handler can run.
 const upstartScript = `# {{.Description}}
-{{if .DisplayName}}description    "{{.DisplayName}}"{{end}}
+
+ {{if .DisplayName}}description    "{{.DisplayName}}"{{end}}
 
 kill signal INT
 {{if .ChRoot}}chroot {{.ChRoot}}{{end}}

@@ -323,8 +323,8 @@ do_start() {
 do_stop() {
   start-stop-daemon --stop \
     {{if .UserName}} --chuid {{.UserName|cmd}}{{end}} \
-  	--pidfile "$PIDFILE" \
-  	--quiet
+    --pidfile "$PIDFILE" \
+    --quiet
 }
 
 case "$1" in
@@ -376,7 +376,10 @@ lockfile=/var/lock/subsys/$name
  
 start() {
     echo -n $"Starting $desc: "
-    daemon --user=$user bash --login -c "'{{if .WorkingDirectory}}cd {{.WorkingDirectory|cmd}};{{end}}exec $cmd $args 1>&3 2>&3 &'" 3>> $log_file
+    daemon \
+        {{if .UserName}}--user=$user{{endif}} \
+        {{if .WorkingDirectory}}--chdir={{.WorkingDirectory|cmd}}{{endif}} \
+        $cmd $args &>> $log_file
     retval=$?
     [ $retval -eq 0 ] && touch $lockfile
     echo
@@ -446,4 +449,3 @@ case "$1" in
         exit 2
 esac
 `
-
