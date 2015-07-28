@@ -11,6 +11,7 @@ continuous integration server that coordinates the testing.
 
 The official repository for this project is on [GitLab.com](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner).
 
+* [Development](docs/development/README.md)
 * [Issues](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues)
 * [Merge Requests](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/merge_requests)
 
@@ -62,6 +63,7 @@ The config file is automatically migrated when GitLab Runner was installed from 
 * [Install as Docker Service](docs/install/docker.md)
 * [Manual installation (advanced)](docs/install/linux-manually.md)
 * [Bleeding edge (development)](docs/install/bleeding-edge.md)
+* [Install development environment](docs/development/README.md)
 
 ### Advanced Configuration
 
