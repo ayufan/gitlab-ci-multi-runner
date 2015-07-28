@@ -1,4 +1,4 @@
-// Copyright 2014 go-dockerclient authors. All rights reserved.
+// Copyright 2015 go-dockerclient authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -7,12 +7,14 @@ package docker
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestNewAPIClient(t *testing.T) {
@@ -93,7 +95,7 @@ func TestNewTLSVersionedClient(t *testing.T) {
 	keyPath := "testing/data/key.pem"
 	caPath := "testing/data/ca.pem"
 	endpoint := "https://localhost:4243"
-	client, err := NewVersionnedTLSClient(endpoint, certPath, keyPath, caPath, "1.14")
+	client, err := NewVersionedTLSClient(endpoint, certPath, keyPath, caPath, "1.14")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +115,7 @@ func TestNewTLSVersionedClientInvalidCA(t *testing.T) {
 	keyPath := "testing/data/key.pem"
 	caPath := "testing/data/key.pem"
 	endpoint := "https://localhost:4243"
-	_, err := NewVersionnedTLSClient(endpoint, certPath, keyPath, caPath, "1.14")
+	_, err := NewVersionedTLSClient(endpoint, certPath, keyPath, caPath, "1.14")
 	if err == nil {
 		t.Errorf("Expected invalid ca at %s", caPath)
 	}
@@ -136,14 +138,15 @@ func TestNewClientInvalidEndpoint(t *testing.T) {
 	}
 }
 
-func TestNewTLSClient2376(t *testing.T) {
+func TestNewTLSClient(t *testing.T) {
 	var tests = []struct {
 		endpoint string
 		expected string
 	}{
 		{"tcp://localhost:2376", "https"},
-		{"tcp://localhost:2375", "http"},
-		{"tcp://localhost:4000", "http"},
+		{"tcp://localhost:2375", "https"},
+		{"tcp://localhost:4000", "https"},
+		{"http://localhost:4000", "https"},
 	}
 
 	for _, tt := range tests {
@@ -320,6 +323,56 @@ func TestPingFailingWrongStatus(t *testing.T) {
 	expectedErrMsg := "API error (202): "
 	if err.Error() != expectedErrMsg {
 		t.Fatalf("Expected error to be %q, got: %q", expectedErrMsg, err.Error())
+	}
+}
+
+func TestPingErrorWithUnixSocket(t *testing.T) {
+	go func() {
+		li, err := net.Listen("unix", "/tmp/echo.sock")
+		defer li.Close()
+		if err != nil {
+			t.Fatalf("Expected to get listner, but failed: %#v", err)
+			return
+		}
+
+		fd, err := li.Accept()
+		if err != nil {
+			t.Fatalf("Expected to accept connection, but failed: %#v", err)
+			return
+		}
+
+		buf := make([]byte, 512)
+		nr, err := fd.Read(buf)
+
+		// Create invalid response message to occur error
+		data := buf[0:nr]
+		for i := 0; i < 10; i++ {
+			data[i] = 63
+		}
+
+		_, err = fd.Write(data)
+		if err != nil {
+			t.Fatalf("Expected to write to socket, but failed: %#v", err)
+		}
+
+		return
+	}()
+
+	// Wait for unix socket to listen
+	time.Sleep(10 * time.Millisecond)
+
+	endpoint := "unix:///tmp/echo.sock"
+	u, _ := parseEndpoint(endpoint, false)
+	client := Client{
+		HTTPClient:             http.DefaultClient,
+		endpoint:               endpoint,
+		endpointURL:            u,
+		SkipServerVersionCheck: true,
+	}
+
+	err := client.Ping()
+	if err == nil {
+		t.Fatal("Expected non nil error, got nil")
 	}
 }
 

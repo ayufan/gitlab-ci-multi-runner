@@ -63,7 +63,7 @@
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",
-			"Rev": "5da2a37ecfb5bcb921a36dbc18e912c3235f139a"
+			"Rev": "6802df6d72617aa9dcaf134e35cd9f98f15edfbe"
 		},
 		{
 			"ImportPath": "github.com/kardianos/osext",
