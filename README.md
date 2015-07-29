@@ -65,6 +65,10 @@ The config file is automatically migrated when GitLab Runner was installed from 
 * [Bleeding edge (development)](docs/install/bleeding-edge.md)
 * [Install development environment](docs/development/README.md)
 
+### Troubleshoting
+
+* [FAQ](docs/faq/README.md)
+
 ### Advanced Configuration
 
 * [See advanced configuration options](docs/configuration/advanced-configuration.md)
