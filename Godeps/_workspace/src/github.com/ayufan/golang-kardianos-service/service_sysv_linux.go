@@ -368,6 +368,7 @@ user="{{.UserName}}"
 cmd={{.Path}}
 args="{{range .Arguments}} {{.|cmd}}{{end}}"
 lockfile=/var/lock/subsys/$name
+pidfile=/var/run/$name.pid
 
 # Source networking configuration.
 [ -r /etc/sysconfig/$name ] && . /etc/sysconfig/$name
@@ -377,7 +378,7 @@ start() {
     daemon \
         {{if .UserName}}--user=$user{{end}} \
         {{if .WorkingDirectory}}--chdir={{.WorkingDirectory|cmd}}{{end}} \
-        $cmd $args \&
+        "$cmd $args </dev/null >/dev/null 2>/dev/null & echo \$! > $pidfile"
     retval=$?
     [ $retval -eq 0 ] && touch $lockfile
     echo
@@ -386,9 +387,10 @@ start() {
  
 stop() {
     echo -n $"Stopping $desc: "
-    killproc $cmd -TERM
+    killproc -p $pidfile $cmd -TERM
     retval=$?
     [ $retval -eq 0 ] && rm -f $lockfile
+    rm -f $pidfile
     echo
     return $retval
 }
@@ -400,7 +402,7 @@ restart() {
  
 reload() {
     echo -n $"Reloading $desc: "
-    killproc $cmd -HUP
+    killproc -p $pidfile $cmd -HUP
     RETVAL=$?
     echo
 }
@@ -410,7 +412,7 @@ force_reload() {
 }
  
 rh_status() {
-    status $cmd
+    status -p $pidfile $cmd
 }
  
 rh_status_q() {
@@ -441,7 +443,7 @@ case "$1" in
         ;;
     condrestart|try-restart)
         rh_status_q || exit 0
-            ;;
+        ;;
     *)
         echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload}"
         exit 2
