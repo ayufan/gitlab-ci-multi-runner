@@ -400,11 +400,11 @@ func RunService(c *cli.Context) {
 
 	if c.Bool("syslog") {
 		logger, err := s.SystemLogger(nil)
-		if err != nil {
+		if err == nil {
+			log.AddHook(&ServiceLogHook{logger})
+		} else {
 			log.Errorln(err)
 		}
-
-		log.AddHook(&ServiceLogHook{logger})
 	}
 
 	err := s.Run()
