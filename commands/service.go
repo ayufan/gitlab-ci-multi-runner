@@ -133,6 +133,8 @@ func RunServiceControl(c *cli.Context) {
 		svcConfig.Arguments = append(svcConfig.Arguments, "--user", user)
 	}
 
+	svcConfig.Arguments = append(svcConfig.Arguments, "--syslog")
+
 	s, err := service.New(&NullService{}, svcConfig)
 	if err != nil {
 		log.Fatal(err)

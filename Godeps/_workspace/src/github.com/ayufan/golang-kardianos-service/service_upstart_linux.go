@@ -161,7 +161,7 @@ respawn
 respawn limit 10 5
 umask 022
 
-console log
+console none
 
 pre-start script
     test -x {{.Path}} || { stop; exit 0; }

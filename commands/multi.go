@@ -399,9 +399,9 @@ func RunService(c *cli.Context) {
 	s := CreateService(c)
 
 	if c.Bool("syslog") {
-		logger, err := s.Logger(nil)
+		logger, err := s.SystemLogger(nil)
 		if err != nil {
-			log.Fatal(err)
+			log.Errorln(err)
 		}
 
 		log.AddHook(&ServiceLogHook{logger})

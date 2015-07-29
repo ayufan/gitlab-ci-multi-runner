@@ -170,11 +170,6 @@ ExecStart={{.Path}}{{range .Arguments}} {{.|cmd}}{{end}}
 Restart=always
 RestartSec=120
 
-# use syslog for logging
-StandardOutput=syslog
-StandardError=syslog
-SyslogIdentifier={{.Name}}
-
 [Install]
 WantedBy=multi-user.target
 `

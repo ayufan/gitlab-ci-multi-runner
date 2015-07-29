@@ -203,7 +203,8 @@ cmd="{{.Path}}{{range .Arguments}} {{.|cmd}}{{end}}"
 
 name="{{.Name}}"
 pid_file="/var/run/$name.pid"
-log_file="/var/log/$name.log"
+stdout_log="/var/log/$name.log"
+stderr_log="/var/log/$name.err"
 
 get_pid() {
     cat "$pid_file"
@@ -220,7 +221,7 @@ case "$1" in
         else
             echo "Starting $name"
             {{if .WorkingDirectory}}cd '{{.WorkingDirectory}}'{{end}}
-            $cmd &>> $log_file &
+            $cmd >> "$stdout_log" 2>> "$stderr_log" &
             echo $! > "$pid_file"
             if ! is_running; then
                 echo "Unable to start, see $stdout_log and $stderr_log"
@@ -294,7 +295,6 @@ DESC="{{.Description}}"
 USER="{{.UserName}}"
 NAME="{{.Name}}"
 PIDFILE="/var/run/$NAME.pid"
-LOGFILE="/var/log/$NAME.log"
 
 # Read configuration variable file if it is present
 [ -r /etc/default/$NAME ] && . /etc/default/$NAME
@@ -314,10 +314,9 @@ do_start() {
     {{if .WorkingDirectory}}--chdir {{.WorkingDirectory|cmd}}{{end}} \
     {{if .UserName}} --chuid {{.UserName|cmd}}{{end}} \
     --pidfile "$PIDFILE" \
-    --no-close \
     --background \
     --make-pidfile \
-    --exec {{.Path}} -- {{range .Arguments}} {{.|cmd}}{{end}} &>> $LOGFILE
+    --exec {{.Path}} -- {{range .Arguments}} {{.|cmd}}{{end}}
 }
 
 do_stop() {
@@ -368,7 +367,6 @@ desc="{{.Description}}"
 user="{{.UserName}}"
 cmd={{.Path}}
 args="{{range .Arguments}} {{.|cmd}}{{end}}"
-log_file="/var/log/$name.log"
 lockfile=/var/lock/subsys/$name
 
 # Source networking configuration.
@@ -379,7 +377,7 @@ start() {
     daemon \
         {{if .UserName}}--user=$user{{end}} \
         {{if .WorkingDirectory}}--chdir={{.WorkingDirectory|cmd}}{{end}} \
-        "$cmd $args &" &>> $log_file
+        $cmd $args \&
     retval=$?
     [ $retval -eq 0 ] && touch $lockfile
     echo
