@@ -22,7 +22,6 @@ concurrent = 4
     privileged = false
     disable_cache = false
     cache_dir = ""
-    registry = ""
 
 [[runners]]
   name = "ruby-2.1-docker-ssh"
@@ -37,7 +36,6 @@ concurrent = 4
     privileged = false
     disable_cache = false
     cache_dir = ""
-    registry = ""
   [runners.ssh]
     port = "22"
     user = "root"

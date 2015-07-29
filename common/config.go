@@ -24,7 +24,6 @@ type DockerConfig struct {
 	DisableCache           *bool    `toml:"disable_cache" json:"disable_cache"`
 	Volumes                []string `toml:"volumes" json:"volumes"`
 	CacheDir               *string  `toml:"cache_dir" json:"cache_dir"`
-	Registry               *string  `toml:"registry" json:"registry"`
 	ExtraHosts             []string `toml:"extra_hosts" json:"extra_hosts"`
 	Links                  []string `toml:"links" json:"links"`
 	Services               []string `toml:"services" json:"services"`

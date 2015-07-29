@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	u "os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -43,8 +44,16 @@ func (s *DockerExecutor) getServiceVariables() []string {
 	return variables
 }
 
-func NewAuthConfigurationsFromConfigJson() (*docker.AuthConfigurations, error) {
-	p := path.Join(os.Getenv("HOME"), ".docker", "config.json")
+func (s *DockerExecutor) newAuthConfigurationsFromConfigJson() (*docker.AuthConfigurations, error) {
+	user, err := u.Current()
+	if s.Shell.User != nil {
+		user, err = u.Lookup(*s.Shell.User)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	p := path.Join(user.HomeDir, ".docker", "config.json")
 	r, err := os.Open(p)
 	if err != nil {
 		return nil, err
@@ -54,24 +63,24 @@ func NewAuthConfigurationsFromConfigJson() (*docker.AuthConfigurations, error) {
 	return docker.NewAuthConfigurations(r)
 }
 
-func (s *DockerExecutor) getAuthConfig(registry string) (docker.AuthConfiguration, error) {
-	if registry == "" {
-		return docker.AuthConfiguration{}, nil
-	}
-
+func (s *DockerExecutor) getAuthConfig(registry *string) (docker.AuthConfiguration, error) {
 	authConfigs, err := docker.NewAuthConfigurationsFromDockerCfg()
 	if err != nil {
-		authConfigs, err = NewAuthConfigurationsFromConfigJson()
+		authConfigs, err = s.newAuthConfigurationsFromConfigJson()
 		if err != nil {
 			return docker.AuthConfiguration{}, err
 		}
 	}
 
-	if authConfig, ok := authConfigs.Configs[registry]; ok == true {
-		return authConfig, nil
+	authRegistry := helpers.StringOrDefault(registry, "docker.io")
+	for authKey, authConfig := range authConfigs.Configs {
+		if strings.Contains(authKey, authRegistry) {
+			return authConfig, nil
+		}
 	}
 
-	return docker.AuthConfiguration{}, fmt.Errorf("failed to find credentials for %v in docker config files", registry)
+	s.Warningln("No credentials found for", authRegistry, "in the docker config files")
+	return docker.AuthConfiguration{}, nil
 }
 
 func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error) {
@@ -84,10 +93,9 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 	s.Println("Pulling docker image", imageName, "...")
 	pullImageOptions := docker.PullImageOptions{
 		Repository: imageName,
-		Registry:   helpers.StringOrDefault(s.Config.Docker.Registry, ""),
 	}
 
-	authConfig, err := s.getAuthConfig(pullImageOptions.Registry)
+	authConfig, err := s.getAuthConfig(helpers.ExtractRegistry(imageName))
 	if err != nil {
 		s.Warningln(err)
 	}
