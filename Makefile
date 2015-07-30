@@ -52,7 +52,7 @@ lint:
 
 test:
 	# Running tests...
-	go test
+	go test ./...
 
 test-docker:
 	make test-docker-image IMAGE=centos:6 TYPE=rpm
