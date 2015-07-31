@@ -1,3 +1,6 @@
+v 0.6.0 (unreleased)
+- Fetch docker auth from ~/.docker/config.json or ~/.dockercfg
+
 v 0.5.2
 - Fixed CentOS6 service script
 - Fixed documentation

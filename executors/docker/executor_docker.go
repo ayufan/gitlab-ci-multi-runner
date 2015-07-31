@@ -17,7 +17,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"path"
 )
 
 type DockerExecutor struct {
@@ -44,43 +43,33 @@ func (s *DockerExecutor) getServiceVariables() []string {
 	return variables
 }
 
-func (s *DockerExecutor) newAuthConfigurationsFromConfigJson() (*docker.AuthConfigurations, error) {
+func (s *DockerExecutor) getAuthConfig(imageName string) (docker.AuthConfiguration, error) {
 	user, err := u.Current()
 	if s.Shell.User != nil {
 		user, err = u.Lookup(*s.Shell.User)
 	}
 	if err != nil {
-		return nil, err
+		return docker.AuthConfiguration{}, err
 	}
 
-	p := path.Join(user.HomeDir, ".docker", "config.json")
-	r, err := os.Open(p)
+	indexName, _ := helpers.SplitDockerImageName(imageName)
+
+	authConfigs, err := helpers.ReadDockerAuthConfigs(user.HomeDir)
 	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
-	return docker.NewAuthConfigurations(r)
-}
-
-func (s *DockerExecutor) getAuthConfig(registry *string) (docker.AuthConfiguration, error) {
-	authConfigs, err := docker.NewAuthConfigurationsFromDockerCfg()
-	if err != nil {
-		authConfigs, err = s.newAuthConfigurationsFromConfigJson()
-		if err != nil {
-			return docker.AuthConfiguration{}, err
+		// ignore doesn't exist errors
+		if os.IsNotExist(err) {
+			err = nil
 		}
+		return docker.AuthConfiguration{}, err
 	}
 
-	authRegistry := helpers.StringOrDefault(registry, "docker.io")
-	for authKey, authConfig := range authConfigs.Configs {
-		if strings.Contains(authKey, authRegistry) {
-			return authConfig, nil
-		}
+	authConfig := helpers.ResolveDockerAuthConfig(indexName, authConfigs)
+	if authConfig != nil {
+		s.Debugln("Using", authConfig.Username, "to connect to", authConfig.ServerAddress, "in order to resolve", imageName, "...")
+		return *authConfig, nil
 	}
 
-	s.Warningln("No credentials found for", authRegistry, "in the docker config files")
-	return docker.AuthConfiguration{}, nil
+	return docker.AuthConfiguration{}, fmt.Errorf("No credentials found for %v", indexName)
 }
 
 func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error) {
@@ -95,9 +84,9 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 		Repository: imageName,
 	}
 
-	authConfig, err := s.getAuthConfig(helpers.ExtractRegistry(imageName))
+	authConfig, err := s.getAuthConfig(imageName)
 	if err != nil {
-		s.Warningln(err)
+		s.Debugln(err)
 	}
 
 	err = s.client.PullImage(pullImageOptions, authConfig)
