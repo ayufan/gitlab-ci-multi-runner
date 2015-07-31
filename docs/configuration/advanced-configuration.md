@@ -83,7 +83,6 @@ This defines the Docker Container parameters.
 | `disable_cache`             | disable automatic |
 | `wait_for_services_timeout` | specify how long to wait for docker services, set to 0 to disable, default: 30 |
 | `cache_dir`                 | specify where Docker caches should be stored (this can be absolute or relative to current working directory) |
-| `registry`                  | specify custom Docker registry to be used |
 | `volumes`                   | specify additional volumes that should be mounted (same syntax as Docker -v option) |
 | `extra_hosts`               | specify hosts that should be defined in container environment |
 | `links`                     | specify containers which should be linked with building container |
@@ -103,7 +102,6 @@ Example:
   disable_cache = false
   wait_for_services_timeout = 30
   cache_dir = ""
-  registry = ""
   volumes = ["/data", "/home/project/cache"]
   extra_hosts = ["other-host:127.0.0.1"]
   links = ["mysql_container:mysql"]

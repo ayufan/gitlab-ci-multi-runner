@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	u "os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"path"
 )
 
 type DockerExecutor struct {
@@ -38,8 +40,47 @@ func (s *DockerExecutor) getServiceVariables() []string {
 		variable := fmt.Sprintf("%s=%s", buildVariable.Key, buildVariable.Value)
 		variables = append(variables, variable)
 	}
-	
+
 	return variables
+}
+
+func (s *DockerExecutor) newAuthConfigurationsFromConfigJson() (*docker.AuthConfigurations, error) {
+	user, err := u.Current()
+	if s.Shell.User != nil {
+		user, err = u.Lookup(*s.Shell.User)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	p := path.Join(user.HomeDir, ".docker", "config.json")
+	r, err := os.Open(p)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	return docker.NewAuthConfigurations(r)
+}
+
+func (s *DockerExecutor) getAuthConfig(registry *string) (docker.AuthConfiguration, error) {
+	authConfigs, err := docker.NewAuthConfigurationsFromDockerCfg()
+	if err != nil {
+		authConfigs, err = s.newAuthConfigurationsFromConfigJson()
+		if err != nil {
+			return docker.AuthConfiguration{}, err
+		}
+	}
+
+	authRegistry := helpers.StringOrDefault(registry, "docker.io")
+	for authKey, authConfig := range authConfigs.Configs {
+		if strings.Contains(authKey, authRegistry) {
+			return authConfig, nil
+		}
+	}
+
+	s.Warningln("No credentials found for", authRegistry, "in the docker config files")
+	return docker.AuthConfiguration{}, nil
 }
 
 func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error) {
@@ -52,10 +93,14 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 	s.Println("Pulling docker image", imageName, "...")
 	pullImageOptions := docker.PullImageOptions{
 		Repository: imageName,
-		Registry:   helpers.StringOrDefault(s.Config.Docker.Registry, ""),
 	}
 
-	err = s.client.PullImage(pullImageOptions, docker.AuthConfiguration{})
+	authConfig, err := s.getAuthConfig(helpers.ExtractRegistry(imageName))
+	if err != nil {
+		s.Warningln(err)
+	}
+
+	err = s.client.PullImage(pullImageOptions, authConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +123,7 @@ func (s *DockerExecutor) addHostVolume(binds *[]string, hostPath, containerPath 
 	return nil
 }
 
-func (s *DockerExecutor) createCacheVolume(containerName, containerPath string) (*docker.Container, error)  {
+func (s *DockerExecutor) createCacheVolume(containerName, containerPath string) (*docker.Container, error) {
 	// get busybox image
 	cacheImage, err := s.getDockerImage("gitlab/gitlab-runner:cache")
 	if err != nil {
