@@ -8,7 +8,8 @@ RUN wget -O /tmp/glibc.apk "https://circle-artifacts.com/gh/andyshinn/alpine-pkg
  	rm /tmp/glibc.apk
 
 RUN wget -O /usr/bin/gitlab-ci-multi-runner https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-ci-multi-runner-linux-amd64 && \
-	chmod +x /usr/bin/gitlab-ci-multi-runner
+	chmod +x /usr/bin/gitlab-ci-multi-runner && \
+	ln -s /usr/bin/gitlab-ci-multi-runner /usr/bin/gitlab-runner
 
 VOLUME ["/etc/gitlab-runner", "/var/run/docker.sock"]
 ENTRYPOINT ["gitlab-ci-multi-runner"]
