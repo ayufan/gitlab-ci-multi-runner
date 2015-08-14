@@ -62,7 +62,6 @@ func (e *AbstractExecutor) ReadTrace(pipe *io.PipeReader) {
 			)
 			e.Build.WriteString(output)
 			traceStopped = true
-			break
 		}
 	}
 
