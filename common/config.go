@@ -16,45 +16,46 @@ import (
 )
 
 type DockerConfig struct {
-	Host                   *string  `toml:"host" json:"host"`
-	CertPath               *string  `toml:"tls_cert_path" json:"tls_cert_path"`
-	Hostname               *string  `toml:"hostname" json:"hostname"`
-	Image                  string   `toml:"image" json:"image"`
-	Privileged             bool     `toml:"privileged" json:"privileged"`
-	DisableCache           *bool    `toml:"disable_cache" json:"disable_cache"`
-	Volumes                []string `toml:"volumes" json:"volumes"`
-	CacheDir               *string  `toml:"cache_dir" json:"cache_dir"`
-	ExtraHosts             []string `toml:"extra_hosts" json:"extra_hosts"`
-	Links                  []string `toml:"links" json:"links"`
-	Services               []string `toml:"services" json:"services"`
-	WaitForServicesTimeout *int     `toml:"wait_for_services_timeout" json:"wait_for_services_timeout"`
-	AllowedImages          []string `toml:"allowed_images" json:"allowed_images"`
-	AllowedServices        []string `toml:"allowed_services" json:"allowed_services"`
+	Host                   *string  `toml:"host" json:"host" long:"host" env:"DOCKER_HOST" description:"Docker daemon address"`
+	CertPath               *string  `toml:"tls_cert_path" json:"tls_cert_path" long:"cert-path" env:"DOCKER_CERT_PATH" description:"Certificate path"`
+	TLSVerify              *bool    `toml:"tls_verify" json:"tls_verify" long:"tlsverify" env:"DOCKER_TLS_VERIFY" description:"Use TLS and verify the remote"`
+	Hostname               *string  `toml:"hostname" json:"hostname" long:"hostname" env:"DOCKER_HOSTNAME" description:"Custom container hostname"`
+	Image                  string   `toml:"image" json:"image" long:"image" env:"DOCKER_IMAGE" description:"Docker image to be used"`
+	Privileged             bool     `toml:"privileged" json:"privileged" long:"privileged" env:"DOCKER_PRIVILEGED" description:"Give extended privileges to container"`
+	DisableCache           *bool    `toml:"disable_cache" json:"disable_cache" long:"disable-cache" env:"DOCKER_DISABLE_CACHE" description:"Disable all container caching"`
+	Volumes                []string `toml:"volumes" json:"volumes" long:"volumes" env:"DOCKER_VOLUMES" description:"Bind mount a volumes"`
+	CacheDir               *string  `toml:"cache_dir" json:"cache_dir" long:"cache-dir" env:"DOCKER_CACHE_DIR" description:"Directory where to store caches"`
+	ExtraHosts             []string `toml:"extra_hosts" json:"extra_hosts" long:"extra-hosts" env:"DOCKER_EXTRA_HOSTS" description:"Add a custom host-to-IP mapping"`
+	Links                  []string `toml:"links" json:"links" long:"links" env:"DOCKER_LINKS" description:"Add link to another container"`
+	Services               []string `toml:"services" json:"services" long:"services" env:"DOCKER_SERVICES" description:"Add service that is started with container"`
+	WaitForServicesTimeout *int     `toml:"wait_for_services_timeout" json:"wait_for_services_timeout" long:"wait_for_services_timeout" env:"DOCKER_WAIT_FOR_SERVICES_TIMEOUT" description:"How long to wait for service startup"`
+	AllowedImages          []string `toml:"allowed_images" json:"allowed_images" long:"allowed-images" env:"DOCKER_ALLOWED_IMAGES" description:"Whitelist allowed images"`
+	AllowedServices        []string `toml:"allowed_services" json:"allowed_services" long:"allowed-services" env:"DOCKER_ALLOWED_SERVICES" description:"Whitelist allowed services"`
 }
 
 type ParallelsConfig struct {
-	BaseName         string  `toml:"base_name" json:"base_name"`
-	TemplateName     *string `toml:"template_name" json:"template_name"`
-	DisableSnapshots *bool   `toml:"disable_snapshots" json:"disable_snapshots"`
+	BaseName         string  `toml:"base_name" json:"base_name" long:"base-name" env:"PARALLELS_BASE_NAME" description:"VM name to be used"`
+	TemplateName     *string `toml:"template_name" json:"template_name" long:"template-name" env:"PARALLELS_TEMPLATE_NAME" description:"VM template to be created"`
+	DisableSnapshots *bool   `toml:"disable_snapshots" json:"disable_snapshots" long:"disable-snapshots" env:"PARALLELS_DISABLE_SNAPSHOTS" description:"Disable snapshoting to speedup VM creation"`
 }
 
 type RunnerConfig struct {
-	Name      string  `toml:"name" json:"name"`
-	URL       string  `toml:"url" json:"url"`
-	Token     string  `toml:"token" json:"token"`
-	Limit     *int    `toml:"limit" json:"limit"`
-	Executor  string  `toml:"executor" json:"executor"`
-	BuildsDir *string `toml:"builds_dir" json:"builds_dir"`
+	Name           string  `toml:"name" json:"name" long:"name" env:"RUNNER_NAME" description:"Runner name"`
+	URL            string  `toml:"url" json:"url" short:"u" long:"url" env:"CI_SERVER_URL" required:"true" description:"Runner URL"`
+	Token          string  `toml:"token" json:"token" short:"t" long:"token" env:"CI_SERVER_TOKEN" required:"true" description:"Runner token"`
+	Limit          *int    `toml:"limit" json:"limit" long:"limit" env:"RUNNER_LIMIT" description:"Maximum number of builds processed by this runner"`
+	Executor       string  `toml:"executor" json:"executor" long:"executor" env:"RUNNER_EXECUTOR" required:"true" description:"Select executor, eg. shell, docker, etc."`
+	BuildsDir      *string `toml:"builds_dir" json:"builds_dir" long:"builds-dir" env:"RUNNER_BUILDS_DIR" description:"Directory where builds are stored"`
 
-	Environment []string `toml:"environment" json:"environment"`
+	Environment    []string `toml:"environment" json:"environment" long:"env" env:"RUNNER_ENV" description:"Custom environment variables injected to build environment"`
 
-	Shell          *string `toml:"shell" json:"shell"`
+	Shell          *string `toml:"shell" json:"shell" long:"shell" env:"RUNNER_SHELL" description:"Select bash, cmd or powershell"`
 	DisableVerbose *bool   `toml:"disable_verbose" json:"disable_verbose"`
-	OutputLimit    *int    `toml:"output_limit"`
+	OutputLimit    *int    `toml:"output_limit" long:"ouput-limit" env:"RUNNER_OUTPUT_LIMIT" description:"Maximum build trace size"`
 
-	SSH       *ssh.Config      `toml:"ssh" json:"ssh"`
-	Docker    *DockerConfig    `toml:"docker" json:"docker"`
-	Parallels *ParallelsConfig `toml:"parallels" json:"parallels"`
+	SSH            *ssh.Config      `toml:"ssh" json:"ssh" group:"ssh executor" namespace:"ssh"`
+	Docker         *DockerConfig    `toml:"docker" json:"docker" group:"docker executor" namespace:"docker"`
+	Parallels      *ParallelsConfig `toml:"parallels" json:"parallels" group:"parallels executor" namespace:"parallels"`
 }
 
 type BaseConfig struct {
