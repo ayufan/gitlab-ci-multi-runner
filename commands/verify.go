@@ -7,9 +7,14 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 )
 
-func runVerify(c *cli.Context) {
-	config := common.NewConfig()
-	err := config.LoadConfig(c.String("config"))
+type VerifyCommand struct {
+	configOptions
+
+	DeleteNonExisting bool `long:"delete" description:"Delete no longer existing runners?"`
+}
+
+func (c *VerifyCommand) Execute(context *cli.Context) {
+	err := c.loadConfig()
 	if err != nil {
 		log.Fatalln(err)
 		return
@@ -17,47 +22,31 @@ func runVerify(c *cli.Context) {
 
 	// verify if runner exist
 	runners := []*common.RunnerConfig{}
-	for _, runner := range config.Runners {
+	for _, runner := range c.config.Runners {
 		if common.VerifyRunner(runner.URL, runner.Token) {
 			runners = append(runners, runner)
 		}
 	}
 
-	if !c.Bool("delete") {
+	if !c.DeleteNonExisting {
 		return
 	}
 
 	// check if anything changed
-	if len(config.Runners) == len(runners) {
+	if len(c.config.Runners) == len(runners) {
 		return
 	}
 
-	config.Runners = runners
+	c.config.Runners = runners
 
 	// save config file
-	err = config.SaveConfig(c.String("config"))
+	err = c.saveConfig()
 	if err != nil {
-		log.Fatalln("Failed to update", c.String("config"), err)
+		log.Fatalln("Failed to update", c.ConfigFile, err)
 	}
-	log.Println("Updated", c.String("config"))
+	log.Println("Updated", c.ConfigFile)
 }
 
 func init() {
-	common.RegisterCommand(cli.Command{
-		Name:   "verify",
-		Usage:  "verify all registered runners",
-		Action: runVerify,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:   "c, config",
-				Value:  getDefaultConfigFile(),
-				Usage:  "Config file",
-				EnvVar: "CONFIG_FILE",
-			},
-			cli.BoolFlag{
-				Name:  "delete",
-				Usage: "Delete no longer existing runners?",
-			},
-		},
-	})
+	common.RegisterCommand2("verify",  "verify all registered runners", &VerifyCommand{})
 }

@@ -25,43 +25,46 @@ type RunnerHealth struct {
 	lastCheck time.Time
 }
 
-type MultiRunner struct {
-	config           *common.Config
-	configFile       string
-	workingDirectory string
-	user             string
-	builds           []*common.Build
-	buildsLock       sync.RWMutex
-	healthy          map[string]*RunnerHealth
-	healthyLock      sync.Mutex
-	finished         bool
-	abortBuilds      chan os.Signal
-	interruptSignal  chan os.Signal
-	reloadSignal     chan os.Signal
-	doneSignal       chan int
+type RunCommand struct {
+	configOptions
+
+	ServiceName      string `short:"n" long:"service" description:"Use different names for different services"`
+	WorkingDirectory string `short:"d" long:"working-directory" description:"Specify custom working directory"`
+	User             string `short:"u" long:"user" description:"Use specific user to execute shell scripts"`
+	Syslog           bool   `long:"syslog" description:"Log to syslog"`
+
+	builds          []*common.Build
+	buildsLock      sync.RWMutex
+	healthy         map[string]*RunnerHealth
+	healthyLock     sync.Mutex
+	finished        bool
+	abortBuilds     chan os.Signal
+	interruptSignal chan os.Signal
+	reloadSignal    chan os.Signal
+	doneSignal      chan int
 }
 
-func (mr *MultiRunner) errorln(args ...interface{}) {
+func (mr *RunCommand) errorln(args ...interface{}) {
 	args = append([]interface{}{len(mr.builds)}, args...)
 	log.Errorln(args...)
 }
 
-func (mr *MultiRunner) warningln(args ...interface{}) {
+func (mr *RunCommand) warningln(args ...interface{}) {
 	args = append([]interface{}{len(mr.builds)}, args...)
 	log.Warningln(args...)
 }
 
-func (mr *MultiRunner) debugln(args ...interface{}) {
+func (mr *RunCommand) debugln(args ...interface{}) {
 	args = append([]interface{}{len(mr.builds)}, args...)
 	log.Debugln(args...)
 }
 
-func (mr *MultiRunner) println(args ...interface{}) {
+func (mr *RunCommand) println(args ...interface{}) {
 	args = append([]interface{}{len(mr.builds)}, args...)
 	log.Println(args...)
 }
 
-func (mr *MultiRunner) getHealth(runner *common.RunnerConfig) *RunnerHealth {
+func (mr *RunCommand) getHealth(runner *common.RunnerConfig) *RunnerHealth {
 	mr.healthyLock.Lock()
 	defer mr.healthyLock.Unlock()
 
@@ -78,7 +81,7 @@ func (mr *MultiRunner) getHealth(runner *common.RunnerConfig) *RunnerHealth {
 	return health
 }
 
-func (mr *MultiRunner) isHealthy(runner *common.RunnerConfig) bool {
+func (mr *RunCommand) isHealthy(runner *common.RunnerConfig) bool {
 	health := mr.getHealth(runner)
 	if health.failures < common.HealthyChecks {
 		return true
@@ -94,13 +97,13 @@ func (mr *MultiRunner) isHealthy(runner *common.RunnerConfig) bool {
 	return false
 }
 
-func (mr *MultiRunner) makeHealthy(runner *common.RunnerConfig) {
+func (mr *RunCommand) makeHealthy(runner *common.RunnerConfig) {
 	health := mr.getHealth(runner)
 	health.failures = 0
 	health.lastCheck = time.Now()
 }
 
-func (mr *MultiRunner) makeUnhealthy(runner *common.RunnerConfig) {
+func (mr *RunCommand) makeUnhealthy(runner *common.RunnerConfig) {
 	health := mr.getHealth(runner)
 	health.failures++
 
@@ -109,7 +112,7 @@ func (mr *MultiRunner) makeUnhealthy(runner *common.RunnerConfig) {
 	}
 }
 
-func (mr *MultiRunner) addBuild(newBuild *common.Build) {
+func (mr *RunCommand) addBuild(newBuild *common.Build) {
 	mr.buildsLock.Lock()
 	defer mr.buildsLock.Unlock()
 
@@ -118,7 +121,7 @@ func (mr *MultiRunner) addBuild(newBuild *common.Build) {
 	mr.debugln("Added a new build", newBuild)
 }
 
-func (mr *MultiRunner) removeBuild(deleteBuild *common.Build) bool {
+func (mr *RunCommand) removeBuild(deleteBuild *common.Build) bool {
 	mr.buildsLock.Lock()
 	defer mr.buildsLock.Unlock()
 
@@ -132,7 +135,7 @@ func (mr *MultiRunner) removeBuild(deleteBuild *common.Build) bool {
 	return false
 }
 
-func (mr *MultiRunner) buildsForRunner(runner *common.RunnerConfig) int {
+func (mr *RunCommand) buildsForRunner(runner *common.RunnerConfig) int {
 	count := 0
 	for _, build := range mr.builds {
 		if build.Runner == runner {
@@ -142,7 +145,7 @@ func (mr *MultiRunner) buildsForRunner(runner *common.RunnerConfig) int {
 	return count
 }
 
-func (mr *MultiRunner) requestBuild(runner *common.RunnerConfig) *common.Build {
+func (mr *RunCommand) requestBuild(runner *common.RunnerConfig) *common.Build {
 	if runner == nil {
 		return nil
 	}
@@ -177,7 +180,7 @@ func (mr *MultiRunner) requestBuild(runner *common.RunnerConfig) *common.Build {
 	return newBuild
 }
 
-func (mr *MultiRunner) feedRunners(runners chan *common.RunnerConfig) {
+func (mr *RunCommand) feedRunners(runners chan *common.RunnerConfig) {
 	for !mr.finished {
 		mr.debugln("Feeding runners to channel")
 		config := mr.config
@@ -188,7 +191,7 @@ func (mr *MultiRunner) feedRunners(runners chan *common.RunnerConfig) {
 	}
 }
 
-func (mr *MultiRunner) processRunners(id int, stopWorker chan bool, runners chan *common.RunnerConfig) {
+func (mr *RunCommand) processRunners(id int, stopWorker chan bool, runners chan *common.RunnerConfig) {
 	mr.debugln("Starting worker", id)
 	for !mr.finished {
 		select {
@@ -215,41 +218,39 @@ func (mr *MultiRunner) processRunners(id int, stopWorker chan bool, runners chan
 	<-stopWorker
 }
 
-func (mr *MultiRunner) startWorkers(startWorker chan int, stopWorker chan bool, runners chan *common.RunnerConfig) {
+func (mr *RunCommand) startWorkers(startWorker chan int, stopWorker chan bool, runners chan *common.RunnerConfig) {
 	for !mr.finished {
 		id := <-startWorker
 		go mr.processRunners(id, stopWorker, runners)
 	}
 }
 
-func (mr *MultiRunner) loadConfig() error {
-	newConfig := common.NewConfig()
-	err := newConfig.LoadConfig(mr.configFile)
+func (mr *RunCommand) loadConfig() error {
+	err := mr.configOptions.loadConfig()
 	if err != nil {
 		return err
 	}
 
 	// pass user to execute scripts as specific user
-	if mr.user != "" {
-		newConfig.User = &mr.user
+	if mr.User != "" {
+		mr.config.User = &mr.User
 	}
 
 	mr.healthy = nil
-	mr.config = newConfig
 	return nil
 }
 
-func (mr *MultiRunner) Start(s service.Service) error {
+func (mr *RunCommand) Start(s service.Service) error {
 	mr.builds = []*common.Build{}
 	mr.abortBuilds = make(chan os.Signal)
 	mr.interruptSignal = make(chan os.Signal)
 	mr.reloadSignal = make(chan os.Signal, 1)
 	mr.doneSignal = make(chan int)
 
-	mr.println("Starting multi-runner from", mr.configFile, "...")
+	mr.println("Starting multi-runner from", mr.ConfigFile, "...")
 
-	if len(mr.workingDirectory) > 0 {
-		err := os.Chdir(mr.workingDirectory)
+	if len(mr.WorkingDirectory) > 0 {
+		err := os.Chdir(mr.WorkingDirectory)
 		if err != nil {
 			return err
 		}
@@ -266,7 +267,7 @@ func (mr *MultiRunner) Start(s service.Service) error {
 	return nil
 }
 
-func (mr *MultiRunner) Run() {
+func (mr *RunCommand) Run() {
 	runners := make(chan *common.RunnerConfig)
 	go mr.feedRunners(runners)
 
@@ -306,7 +307,7 @@ finish_worker:
 
 		select {
 		case <-time.After(common.ReloadConfigInterval * time.Second):
-			info, err := os.Stat(mr.configFile)
+			info, err := os.Stat(mr.ConfigFile)
 			if err != nil {
 				mr.errorln("Failed to stat config", err)
 				break
@@ -357,7 +358,7 @@ finish_worker:
 	mr.doneSignal <- 0
 }
 
-func (mr *MultiRunner) Stop(s service.Service) error {
+func (mr *RunCommand) Stop(s service.Service) error {
 	mr.warningln("Requested service stop")
 	mr.interruptSignal <- os.Interrupt
 
@@ -374,32 +375,21 @@ func (mr *MultiRunner) Stop(s service.Service) error {
 	}
 }
 
-func CreateService(c *cli.Context) service.Service {
+func (c *RunCommand) Execute(context *cli.Context) {
 	svcConfig := &service.Config{
-		Name:        c.String("service"),
-		DisplayName: c.String("service"),
+		Name:        c.ServiceName,
+		DisplayName: c.ServiceName,
 		Description: defaultDescription,
 		Arguments:   []string{"run"},
 	}
 
-	mr := &MultiRunner{
-		configFile:       c.String("config"),
-		workingDirectory: c.String("working-directory"),
-		user:             c.String("user"),
-	}
-
-	s, err := service.New(mr, svcConfig)
+	service, err := service.New(c, svcConfig)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
-	return s
-}
 
-func RunService(c *cli.Context) {
-	s := CreateService(c)
-
-	if c.Bool("syslog") {
-		logger, err := s.SystemLogger(nil)
+	if c.Syslog {
+		logger, err := service.SystemLogger(nil)
 		if err == nil {
 			log.AddHook(&ServiceLogHook{logger})
 		} else {
@@ -407,43 +397,12 @@ func RunService(c *cli.Context) {
 		}
 	}
 
-	err := s.Run()
+	err = service.Run()
 	if err != nil {
-		log.Errorln(err)
+		log.Fatalln(err)
 	}
 }
 
 func init() {
-	common.RegisterCommand(cli.Command{
-		Name:      "run",
-		ShortName: "r",
-		Usage:     "run multi runner service",
-		Action:    RunService,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:   "config",
-				Value:  getDefaultConfigFile(),
-				Usage:  "Config file",
-				EnvVar: "CONFIG_FILE",
-			},
-			cli.StringFlag{
-				Name:  "working-directory, d",
-				Usage: "Specify custom working directory",
-			},
-			cli.StringFlag{
-				Name:  "service, n",
-				Value: defaultServiceName,
-				Usage: "Use different names for different services",
-			},
-			cli.StringFlag{
-				Name:  "user, u",
-				Value: "",
-				Usage: "Use specific user to execute shell scripts",
-			},
-			cli.BoolFlag{
-				Name:  "syslog",
-				Usage: "Log to syslog",
-			},
-		},
-	})
+	common.RegisterCommand2("run", "run multi runner service", &RunCommand{})
 }

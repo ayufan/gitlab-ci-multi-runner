@@ -28,7 +28,7 @@ type DockerConfig struct {
 	ExtraHosts             []string `toml:"extra_hosts" json:"extra_hosts" long:"extra-hosts" env:"DOCKER_EXTRA_HOSTS" description:"Add a custom host-to-IP mapping"`
 	Links                  []string `toml:"links" json:"links" long:"links" env:"DOCKER_LINKS" description:"Add link to another container"`
 	Services               []string `toml:"services" json:"services" long:"services" env:"DOCKER_SERVICES" description:"Add service that is started with container"`
-	WaitForServicesTimeout *int     `toml:"wait_for_services_timeout" json:"wait_for_services_timeout" long:"wait_for_services_timeout" env:"DOCKER_WAIT_FOR_SERVICES_TIMEOUT" description:"How long to wait for service startup"`
+	WaitForServicesTimeout *int     `toml:"wait_for_services_timeout" json:"wait_for_services_timeout" long:"wait-for-services-timeout" env:"DOCKER_WAIT_FOR_SERVICES_TIMEOUT" description:"How long to wait for service startup"`
 	AllowedImages          []string `toml:"allowed_images" json:"allowed_images" long:"allowed-images" env:"DOCKER_ALLOWED_IMAGES" description:"Whitelist allowed images"`
 	AllowedServices        []string `toml:"allowed_services" json:"allowed_services" long:"allowed-services" env:"DOCKER_ALLOWED_SERVICES" description:"Whitelist allowed services"`
 }
@@ -39,10 +39,14 @@ type ParallelsConfig struct {
 	DisableSnapshots *bool   `toml:"disable_snapshots" json:"disable_snapshots" long:"disable-snapshots" env:"PARALLELS_DISABLE_SNAPSHOTS" description:"Disable snapshoting to speedup VM creation"`
 }
 
-type RunnerConfig struct {
-	Name           string  `toml:"name" json:"name" long:"name" env:"RUNNER_NAME" description:"Runner name"`
+type RunnerCredentials struct {
 	URL            string  `toml:"url" json:"url" short:"u" long:"url" env:"CI_SERVER_URL" required:"true" description:"Runner URL"`
 	Token          string  `toml:"token" json:"token" short:"t" long:"token" env:"CI_SERVER_TOKEN" required:"true" description:"Runner token"`
+}
+
+type RunnerConfig struct {
+	RunnerCredentials
+	Name           string  `toml:"name" json:"name" long:"name" env:"RUNNER_NAME" description:"Runner name"`
 	Limit          *int    `toml:"limit" json:"limit" long:"limit" env:"RUNNER_LIMIT" description:"Maximum number of builds processed by this runner"`
 	Executor       string  `toml:"executor" json:"executor" long:"executor" env:"RUNNER_EXECUTOR" required:"true" description:"Select executor, eg. shell, docker, etc."`
 	BuildsDir      *string `toml:"builds_dir" json:"builds_dir" long:"builds-dir" env:"RUNNER_BUILDS_DIR" description:"Directory where builds are stored"`

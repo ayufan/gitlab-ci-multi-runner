@@ -7,69 +7,45 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 )
 
-func runUnregister(c *cli.Context) {
-	runner := common.RunnerConfig{
-		URL:   c.String("url"),
-		Token: c.String("token"),
-	}
+type UnregisterCommand struct {
+	configOptions
+	common.RunnerCredentials
+}
 
-	if !common.DeleteRunner(runner.URL, runner.Token) {
+func (c *UnregisterCommand) Execute(context *cli.Context) {
+	if !common.DeleteRunner(c.URL, c.Token) {
 		log.Fatalln("Failed to delete runner")
 	}
 
-	config := common.NewConfig()
-	err := config.LoadConfig(c.String("config"))
+	err := c.loadConfig()
 	if err != nil {
+		log.Warningln(err)
 		return
 	}
 
 	runners := []*common.RunnerConfig{}
-	for _, otherRunner := range config.Runners {
-		if otherRunner.Token == runner.Token && otherRunner.URL == runner.URL {
+	for _, otherRunner := range c.config.Runners {
+		if otherRunner.RunnerCredentials == c.RunnerCredentials {
 			continue
 		}
 		runners = append(runners, otherRunner)
 	}
 
 	// check if anything changed
-	if len(config.Runners) == len(runners) {
+	if len(c.config.Runners) == len(runners) {
 		return
 	}
 
-	config.Runners = runners
+	c.config.Runners = runners
 
 	// save config file
-	err = config.SaveConfig(c.String("config"))
+	err = c.saveConfig()
 	if err != nil {
-		log.Fatalln("Failed to update", c.String("config"), err)
+		log.Fatalln("Failed to update", c.ConfigFile, err)
 	}
-	log.Println("Updated", c.String("config"))
+	log.Println("Updated", c.ConfigFile)
 }
 
 func init() {
-	common.RegisterCommand(cli.Command{
-		Name:   "unregister",
-		Usage:  "unregister specific runner",
-		Action: runUnregister,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:   "token",
-				Value:  "",
-				Usage:  "Runner token",
-				EnvVar: "RUNNER_TOKEN",
-			},
-			cli.StringFlag{
-				Name:   "url",
-				Value:  "",
-				Usage:  "Runner URL",
-				EnvVar: "CI_SERVER_URL",
-			},
-			cli.StringFlag{
-				Name:   "c, config",
-				Value:  getDefaultConfigFile(),
-				Usage:  "Config file",
-				EnvVar: "CONFIG_FILE",
-			},
-		},
-	})
+	common.RegisterCommand2("unregister", "unregister specific runner", &UnregisterCommand{})
 }
