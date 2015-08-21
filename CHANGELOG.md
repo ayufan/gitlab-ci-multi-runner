@@ -3,6 +3,7 @@ v 0.6.0 (unreleased)
 - Added support for NTFSSecurity PowerShell module to address problems with long paths on Windows
 - Make the service startup more readable in case of failure: print a nice warning message
 - Command line interface for register and run-single accepts all possible config parameters now
+- Ask about tags and fix prompt to point to ci.gitlab.com
 
 v 0.5.2
 - Fixed CentOS6 service script

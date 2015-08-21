@@ -158,7 +158,7 @@ func (s *RegisterCommand) addRunner(runner *common.RunnerConfig) {
 }
 
 func (s *RegisterCommand) askRunner() {
-	s.URL = s.ask("url", "Please enter the gitlab-ci coordinator URL (e.g. http://gitlab-ci.org:3000/):")
+	s.URL = s.ask("url", "Please enter the gitlab-ci coordinator URL (e.g. https://ci.gitlab.com/):")
 
 	if s.Token != "" {
 		if !common.VerifyRunner(s.URL, s.Token) {
@@ -167,6 +167,7 @@ func (s *RegisterCommand) askRunner() {
 	} else {
 		s.RegistrationToken = s.ask("registration-token", "Please enter the gitlab-ci token for this runner:")
 		s.Name = s.ask("name", "Please enter the gitlab-ci description for this runner:")
+		s.TagList = s.ask("tag-list", "Please enter the gitlab-ci tags for this runner (comma separated):")
 
 		result := common.RegisterRunner(s.URL, s.RegistrationToken, s.Name, s.TagList)
 		if result == nil {
