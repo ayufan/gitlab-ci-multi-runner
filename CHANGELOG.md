@@ -1,3 +1,7 @@
+v 0.5.3
+- Pin to specific Docker API version
+- Fix docker volume removal issue
+
 v 0.5.2
 - Fixed CentOS6 service script
 - Fixed documentation
