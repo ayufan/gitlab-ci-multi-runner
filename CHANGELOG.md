@@ -6,6 +6,7 @@ v 0.6.0 (unreleased)
 - Ask about tags and fix prompt to point to ci.gitlab.com
 - Pin to specific Docker API version
 - Fix docker volume removal issue
+- Add :latest to imageName if missing
 
 v 0.5.3
 - Pin to specific Docker API version

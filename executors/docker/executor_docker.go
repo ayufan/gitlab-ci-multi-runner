@@ -74,6 +74,10 @@ func (s *DockerExecutor) getAuthConfig(imageName string) (docker.AuthConfigurati
 }
 
 func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error) {
+	if !strings.Contains(imageName, ":") {
+		imageName = imageName + ":latest"
+	}
+
 	s.Debugln("Looking for image", imageName, "...")
 	image, err := s.client.InspectImage(imageName)
 	if err == nil && !shouldDownloadImage(imageName) {
