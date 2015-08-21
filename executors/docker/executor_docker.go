@@ -278,7 +278,7 @@ func (s *DockerExecutor) createService(service, version string) (*docker.Contain
 	}
 
 	s.Debugln("Starting service container", container.ID, "...")
-	err = s.client.StartContainer(container.ID, createContainerOpts.HostConfig)
+	err = s.client.StartContainer(container.ID, nil)
 	if err != nil {
 		go s.removeContainer(container.ID)
 		return nil, err
@@ -458,7 +458,7 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 	}
 
 	s.Debugln("Starting container", container.ID, "...")
-	err = s.client.StartContainer(container.ID, createContainerOptions.HostConfig)
+	err = s.client.StartContainer(container.ID, nil)
 	if err != nil {
 		go s.removeContainer(container.ID)
 		return nil, err
@@ -586,7 +586,7 @@ func (s *DockerExecutor) waitForServiceContainer(container *docker.Container, ti
 		return err
 	}
 	defer s.removeContainer(waitContainer.ID)
-	err = s.client.StartContainer(waitContainer.ID, waitContainerOpts.HostConfig)
+	err = s.client.StartContainer(waitContainer.ID, nil)
 	if err != nil {
 		return err
 	}
