@@ -76,7 +76,7 @@ func (s *DockerExecutor) getAuthConfig(imageName string) (docker.AuthConfigurati
 func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error) {
 	s.Debugln("Looking for image", imageName, "...")
 	image, err := s.client.InspectImage(imageName)
-	if err == nil {
+	if err == nil && !shouldDownloadImage(imageName) {
 		return image, nil
 	}
 
@@ -92,9 +92,15 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 
 	err = s.client.PullImage(pullImageOptions, authConfig)
 	if err != nil {
-		return nil, err
+		if image != nil {
+			s.Warningln("Cannot pull the latest version of image", imageName, ":", err)
+			return image, nil
+		} else {
+			return nil, err
+		}
 	}
 
+	markAsDownloaded(imageName)
 	return s.client.InspectImage(imageName)
 }
 
