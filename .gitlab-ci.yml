@@ -1,4 +1,4 @@
-image: golang
+image: golang:1.4
 
 before_script:
 - export PACKAGE_CLOUD_URL=https://packages.gitlab.com
