@@ -1,6 +1,7 @@
 v 0.6.0 (unreleased)
 - Fetch docker auth from ~/.docker/config.json or ~/.dockercfg
 - Added support for NTFSSecurity PowerShell module to address problems with long paths on Windows
+- Make the service startup more readable in case of failure: print a nice warning message
 
 v 0.5.2
 - Fixed CentOS6 service script

@@ -17,6 +17,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"bytes"
 )
 
 type DockerExecutor struct {
@@ -390,7 +391,13 @@ func (s *DockerExecutor) createServices() ([]string, error) {
 
 	var links []string
 	for linkName, container := range linksMap {
-		links = append(links, container.ID+":"+linkName)
+		newContainer, err := s.client.InspectContainer(container.ID)
+		if err != nil {
+			continue
+		}
+		if newContainer.State.Running {
+			links = append(links, container.ID+":"+linkName)
+		}
 	}
 
 	return links, nil
@@ -598,13 +605,14 @@ func (s *DockerExecutor) Cleanup() {
 	s.AbstractExecutor.Cleanup()
 }
 
-func (s *DockerExecutor) waitForServiceContainer(container *docker.Container, timeout time.Duration) error {
+func (s *DockerExecutor) runServiceHealthCheckContainer(container *docker.Container, timeout time.Duration) error {
 	waitImage, err := s.getDockerImage("gitlab/gitlab-runner:service")
 	if err != nil {
 		return err
 	}
 
 	waitContainerOpts := docker.CreateContainerOptions{
+		Name: container.Name + "-wait-for-service",
 		Config: &docker.Config{
 			Image: waitImage.ID,
 		},
@@ -636,11 +644,48 @@ func (s *DockerExecutor) waitForServiceContainer(container *docker.Container, ti
 	// these are warnings and they don't make the build fail
 	select {
 	case err := <-waitResult:
-		if err != nil {
-			s.Println("Service", container.Name, "probably didn't start properly", err)
-		}
+		return err
 	case <-time.After(timeout):
-		s.Println("Service", container.Name, "didn't respond in timely maner:", timeout, "Consider modifying wait_for_services_timeout.")
+		return fmt.Errorf("didn't respond in timely maner: %v (consider modifying wait_for_services_timeout).", container.Name, timeout)
 	}
 	return nil
+}
+
+func (s *DockerExecutor) waitForServiceContainer(container *docker.Container, timeout time.Duration) error {
+	err := s.runServiceHealthCheckContainer(container, timeout)
+	if err == nil {
+		return nil
+	}
+
+	var buffer bytes.Buffer
+	buffer.WriteString("\n")
+	buffer.WriteString(helpers.ANSI_BOLD_YELLOW + "*** WARNING:" + helpers.ANSI_RESET + " Service " + container.Name + " probably didn't start properly.\n")
+	buffer.WriteString("\n")
+	buffer.WriteString(strings.TrimSpace(err.Error()) + "\n")
+
+	var containerBuffer bytes.Buffer
+
+	err = s.client.Logs(docker.LogsOptions{
+		Container: container.ID,
+		OutputStream: &containerBuffer,
+		ErrorStream: &containerBuffer,
+		Stdout: true,
+		Stderr: true,
+		Timestamps: true,
+	})
+	if err == nil {
+		if containerLog := containerBuffer.String(); containerLog != "" {
+			buffer.WriteString("\n")
+			buffer.WriteString(strings.TrimSpace(containerLog))
+			buffer.WriteString("\n")
+		}
+	} else {
+		buffer.WriteString(strings.TrimSpace(err.Error()) + "\n")
+	}
+
+	buffer.WriteString("\n")
+	buffer.WriteString(helpers.ANSI_BOLD_YELLOW + "*********" + helpers.ANSI_RESET + "\n")
+	buffer.WriteString("\n")
+	s.Build.WriteString(buffer.String())
+	return err
 }
