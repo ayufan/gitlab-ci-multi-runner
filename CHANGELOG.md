@@ -5,6 +5,7 @@ v 0.6.0 (unreleased)
 - Command line interface for register and run-single accepts all possible config parameters now
 - Ask about tags and fix prompt to point to ci.gitlab.com
 - Pin to specific Docker API version
+- Fix docker volume removal issue
 
 v 0.5.2
 - Fixed CentOS6 service script
