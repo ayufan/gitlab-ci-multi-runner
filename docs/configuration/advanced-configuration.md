@@ -1,5 +1,9 @@
 Configuration uses the TOML format as described here: <https://github.com/toml-lang/toml>.
-The file to be edited can be found in `/home/gitlab_ci_multi_runner/config.toml`.
+The file to be edited can be found in:
+1. `/etc/gitlab-runner/config.toml` on *nix systems when gitlab-runner is executed as root.
+**This is also path for service configuration**, 
+1. `~/.gitlab-runner/config.toml` on *nix systems when gitlab-runner is executed as non-root,
+1. `./config.toml` on other systems.
 
 ### The global section
 
