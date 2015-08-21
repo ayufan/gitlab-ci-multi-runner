@@ -173,7 +173,8 @@ func (s *RegisterCommand) askRunner() {
 		if result == nil {
 			log.Fatalln("Failed to register this runner. Perhaps you are having network problems")
 		}
-
+		
+		s.Token = result.Token
 		s.registered = true
 	}
 }
@@ -218,6 +219,7 @@ func (c *RegisterCommand) Execute(context *cli.Context) {
 	case "docker":
 		c.askDocker()
 		c.SSH = nil
+		c.Parallels = nil
 	case "docker-ssh":
 		c.askDocker()
 		c.askSSHLogin()
