@@ -423,7 +423,7 @@ func (s *DockerExecutor) connect() (*docker.Client, error) {
 	}
 
 	if tlsVerify {
-		client, err := docker.NewVersionedTLSClient(
+		client, err := docker.NewVersionnedTLSClient(
 			endpoint,
 			filepath.Join(tlsCertPath, "cert.pem"),
 			filepath.Join(tlsCertPath, "key.pem"),
