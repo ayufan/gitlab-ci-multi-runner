@@ -545,7 +545,8 @@ func (s *DockerExecutor) verifyAllowedImage(image, optionName string, allowedIma
 		}
 		s.Println()
 	} else {
-		s.Errorln("No", optionName, "are allowed")
+		// by default allow to override the image name
+		return nil
 	}
 
 	s.Println("Please check runner's configuration: http://doc.gitlab.com/ci/docker/using_docker_images.html#overwrite-image-and-services")
