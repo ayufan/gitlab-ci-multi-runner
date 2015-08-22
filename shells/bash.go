@@ -64,13 +64,6 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	projectDir = helpers.ToSlash(projectDir)
 	gitDir := filepath.Join(projectDir, ".git")
 
-	projectScript := helpers.ShellEscape(build.FullProjectDir() + ".sh")
-
-	io.WriteString(w, "#!/usr/bin/env bash\n")
-	io.WriteString(w, "\n")
-	io.WriteString(w, "set -eo pipefail\n")
-	io.WriteString(w, "\n")
-
 	if len(build.Hostname) != 0 {
 		io.WriteString(w, fmt.Sprintf("echo Running on $(hostname) via %s...", helpers.ShellEscape(build.Hostname)))
 	} else {
@@ -78,16 +71,16 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	}
 	io.WriteString(w, "\n")
 	io.WriteString(w, "echo\n")
+	io.WriteString(w, "\n")
 
 	// Set env variables from build script
 	for _, keyValue := range b.GetVariables(build, projectDir, info.Environment) {
 		io.WriteString(w, "export " + helpers.ShellEscape(keyValue) + "\n")
 	}
-
 	io.WriteString(w, "\n")
-	io.WriteString(w, "# save script that is read from to file and execute script file on remote server\n")
-	io.WriteString(w, fmt.Sprintf("mkdir -p %s\n", helpers.ShellEscape(projectDir)))
-	io.WriteString(w, fmt.Sprintf("cat > %s; source %s\n", projectScript, projectScript))
+	b.installGit(w)
+	io.WriteString(w, "\n")
+	io.WriteString(w, "set -eo pipefail\n")
 	io.WriteString(w, "\n")
 
 	if build.AllowGitFetch {
@@ -119,8 +112,11 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 
 	w.Flush()
 
+	// evaluate script in subcontext, this is required to close stdin
+	scriptCommand := "#!/usr/bin/env bash\n: | eval " + helpers.ShellEscape(buffer.String())
+
 	script := common.ShellScript{
-		Script:      buffer.String(),
+		Script:      scriptCommand,
 		Environment: b.GetVariables(build, projectDir, info.Environment),
 	}
 
