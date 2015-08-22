@@ -18,16 +18,15 @@ func (s *DockerCommandExecutor) Start() error {
 	s.Debugln("Starting Docker command...")
 
 	// Create container
-	container, err := s.createContainer(s.image, s.ShellScript.GetCommandWithArguments())
+	err := s.createBuildContainer(s.ShellScript.GetCommandWithArguments())
 	if err != nil {
 		return err
 	}
-	s.container = container
 
 	// Wait for process to exit
 	go func() {
 		attachContainerOptions := docker.AttachToContainerOptions{
-			Container:    container.ID,
+			Container:    s.buildContainer.ID,
 			InputStream:  bytes.NewBufferString(s.ShellScript.Script),
 			OutputStream: s.BuildLog,
 			ErrorStream:  s.BuildLog,
@@ -47,7 +46,7 @@ func (s *DockerCommandExecutor) Start() error {
 		}
 
 		s.Debugln("Waiting for container...")
-		exitCode, err := s.client.WaitContainer(container.ID)
+		exitCode, err := s.client.WaitContainer(s.buildContainer.ID)
 		if err != nil {
 			s.BuildFinish <- err
 			return

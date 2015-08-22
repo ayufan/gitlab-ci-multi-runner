@@ -21,13 +21,12 @@ func (s *DockerSSHExecutor) Start() error {
 	s.Debugln("Starting SSH command...")
 
 	// Create container
-	container, err := s.createContainer(s.image, []string{})
+	err := s.createBuildContainer([]string{})
 	if err != nil {
 		return err
 	}
-	s.container = container
 
-	containerData, err := s.client.InspectContainer(container.ID)
+	containerData, err := s.client.InspectContainer(s.buildContainer.ID)
 	if err != nil {
 		return err
 	}

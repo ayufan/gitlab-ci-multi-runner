@@ -22,11 +22,10 @@ import (
 
 type DockerExecutor struct {
 	executors.AbstractExecutor
-	client    *docker.Client
-	image     *docker.Image
-	container *docker.Container
-	services  []*docker.Container
-	caches    []*docker.Container
+	client              *docker.Client
+	buildContainer      *docker.Container
+	services            []*docker.Container
+	caches              []*docker.Container
 }
 
 func (s *DockerExecutor) getServiceVariables() []string {
@@ -123,6 +122,26 @@ func (s *DockerExecutor) addHostVolume(binds *[]string, hostPath, containerPath 
 	return nil
 }
 
+func (s *DockerExecutor) getLabels(containerType string, otherLabels ...string) map[string]string {
+	labels := make(map[string]string)
+	labels[dockerLabelPrefix+".build.id"] = strconv.Itoa(s.Build.ID)
+	labels[dockerLabelPrefix+".build.sha"] = s.Build.Sha
+	labels[dockerLabelPrefix+".build.before_sha"] = s.Build.BeforeSha
+	labels[dockerLabelPrefix+".build.ref_name"] = s.Build.RefName
+	labels[dockerLabelPrefix+".project.id"] = strconv.Itoa(s.Build.ProjectID)
+	labels[dockerLabelPrefix+".runner.id"] = s.Build.Runner.ShortDescription()
+	labels[dockerLabelPrefix+".runner.global_id"] = strconv.Itoa(s.Build.GlobalID)
+	labels[dockerLabelPrefix+".runner.local_id"] = strconv.Itoa(s.Build.RunnerID)
+	labels[dockerLabelPrefix+".type"] = containerType
+	for _, label := range otherLabels {
+		keyValue := strings.SplitN(label, "=", 2)
+		if len(keyValue) == 2 {
+			labels[dockerLabelPrefix+"."+keyValue[0]] = keyValue[1]
+		}
+	}
+	return labels
+}
+
 func (s *DockerExecutor) createCacheVolume(containerName, containerPath string) (*docker.Container, error) {
 	// get busybox image
 	cacheImage, err := s.getDockerImage("gitlab/gitlab-runner:cache")
@@ -140,6 +159,7 @@ func (s *DockerExecutor) createCacheVolume(containerName, containerPath string) 
 			Volumes: map[string]struct{}{
 				containerPath: {},
 			},
+			Labels: s.getLabels("cache", "cache.dir="+containerPath),
 		},
 		HostConfig: &docker.HostConfig{},
 	}
@@ -308,8 +328,8 @@ func (s *DockerExecutor) createService(service, version string) (*docker.Contain
 	createContainerOpts := docker.CreateContainerOptions{
 		Name: containerName,
 		Config: &docker.Config{
-			Image: serviceImage.ID,
-			Env:   s.getServiceVariables(),
+			Image:  serviceImage.ID,
+			Labels: s.getLabels("service", "service="+service, "service.version="+version),
 		},
 		HostConfig: &docker.HostConfig{
 			RestartPolicy: docker.NeverRestart(),
@@ -455,12 +475,22 @@ func (s *DockerExecutor) connect() (*docker.Client, error) {
 	}
 }
 
-func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*docker.Container, error) {
+func (s *DockerExecutor) createBuildContainer(cmd []string) error {
 	hostname := helpers.StringOrDefault(s.Config.Docker.Hostname, s.Build.ProjectUniqueName())
 	containerName := s.Build.ProjectUniqueName()
 
 	// this will fail potentially some builds if there's name collision
 	s.removeContainer(containerName)
+
+	imageName, err := s.getImageName()
+	if err != nil {
+		return err
+	}
+
+	image, err := s.getDockerImage(imageName)
+	if err != nil {
+		return err
+	}
 
 	createContainerOptions := docker.CreateContainerOptions{
 		Name: containerName,
@@ -475,6 +505,7 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 			StdinOnce:    true,
 			Env:          s.ShellScript.Environment,
 			Cmd:          cmd,
+			Labels:       s.getLabels("build"),
 		},
 		HostConfig: &docker.HostConfig{
 			Privileged:    s.Config.Docker.Privileged,
@@ -487,14 +518,14 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 	s.Debugln("Creating services...")
 	links, err := s.createServices()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	createContainerOptions.HostConfig.Links = append(createContainerOptions.HostConfig.Links, links...)
 
 	s.Debugln("Creating cache directories...")
 	binds, volumesFrom, err := s.createVolumes(image)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	createContainerOptions.HostConfig.Binds = binds
 	createContainerOptions.HostConfig.VolumesFrom = volumesFrom
@@ -505,17 +536,18 @@ func (s *DockerExecutor) createContainer(image *docker.Image, cmd []string) (*do
 		if container != nil {
 			go s.removeContainer(container.ID)
 		}
-		return nil, err
+		return err
 	}
 
 	s.Debugln("Starting container", container.ID, "...")
 	err = s.client.StartContainer(container.ID, nil)
 	if err != nil {
 		go s.removeContainer(container.ID)
-		return nil, err
+		return err
 	}
 
-	return container, nil
+	s.buildContainer = container
+	return nil
 }
 
 func (s *DockerExecutor) removeContainer(id string) error {
@@ -583,7 +615,6 @@ func (s *DockerExecutor) Prepare(globalConfig *common.Config, config *common.Run
 	if err != nil {
 		return err
 	}
-
 	s.Println("Using Docker executor with image", imageName, "...")
 
 	client, err := s.connect()
@@ -591,12 +622,6 @@ func (s *DockerExecutor) Prepare(globalConfig *common.Config, config *common.Run
 		return err
 	}
 	s.client = client
-
-	image, err := s.getDockerImage(imageName)
-	if err != nil {
-		return err
-	}
-	s.image = image
 	return nil
 }
 
@@ -609,9 +634,9 @@ func (s *DockerExecutor) Cleanup() {
 		s.removeContainer(cache.ID)
 	}
 
-	if s.container != nil {
-		s.removeContainer(s.container.ID)
-		s.container = nil
+	if s.buildContainer != nil {
+		s.removeContainer(s.buildContainer.ID)
+		s.buildContainer = nil
 	}
 
 	s.AbstractExecutor.Cleanup()
@@ -626,7 +651,8 @@ func (s *DockerExecutor) runServiceHealthCheckContainer(container *docker.Contai
 	waitContainerOpts := docker.CreateContainerOptions{
 		Name: container.Name + "-wait-for-service",
 		Config: &docker.Config{
-			Image: waitImage.ID,
+			Image:  waitImage.ID,
+			Labels: s.getLabels("wait", "wait="+container.ID),
 		},
 		HostConfig: &docker.HostConfig{
 			RestartPolicy: docker.NeverRestart(),
@@ -678,12 +704,12 @@ func (s *DockerExecutor) waitForServiceContainer(container *docker.Container, ti
 	var containerBuffer bytes.Buffer
 
 	err = s.client.Logs(docker.LogsOptions{
-		Container: container.ID,
+		Container:    container.ID,
 		OutputStream: &containerBuffer,
-		ErrorStream: &containerBuffer,
-		Stdout: true,
-		Stderr: true,
-		Timestamps: true,
+		ErrorStream:  &containerBuffer,
+		Stdout:       true,
+		Stderr:       true,
+		Timestamps:   true,
 	})
 	if err == nil {
 		if containerLog := containerBuffer.String(); containerLog != "" {
