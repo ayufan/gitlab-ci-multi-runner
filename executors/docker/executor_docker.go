@@ -14,15 +14,17 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 
+	"bytes"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"bytes"
 )
 
 type DockerExecutor struct {
 	executors.AbstractExecutor
 	client              *docker.Client
+	affinityContainer   *docker.Container
+	affinityEnvironment []string
 	buildContainer      *docker.Container
 	services            []*docker.Container
 	caches              []*docker.Container
@@ -160,6 +162,7 @@ func (s *DockerExecutor) createCacheVolume(containerName, containerPath string) 
 				containerPath: {},
 			},
 			Labels: s.getLabels("cache", "cache.dir="+containerPath),
+			Env:    s.affinityEnvironment,
 		},
 		HostConfig: &docker.HostConfig{},
 	}
@@ -329,6 +332,7 @@ func (s *DockerExecutor) createService(service, version string) (*docker.Contain
 		Name: containerName,
 		Config: &docker.Config{
 			Image:  serviceImage.ID,
+			Env:    append(s.affinityEnvironment, s.getServiceVariables()...),
 			Labels: s.getLabels("service", "service="+service, "service.version="+version),
 		},
 		HostConfig: &docker.HostConfig{
@@ -433,7 +437,7 @@ func (s *DockerExecutor) createServices() ([]string, error) {
 	return links, nil
 }
 
-func (s *DockerExecutor) connect() (*docker.Client, error) {
+func (s *DockerExecutor) connectToEndpoint(customEndpoint string) (*docker.Client, error) {
 	endpoint := "unix:///var/run/docker.sock"
 	tlsVerify := false
 	tlsCertPath := ""
@@ -450,6 +454,10 @@ func (s *DockerExecutor) connect() (*docker.Client, error) {
 		endpoint = host
 		tlsVerify, _ = strconv.ParseBool(os.Getenv("DOCKER_TLS_VERIFY"))
 		tlsCertPath = os.Getenv("DOCKER_CERT_PATH")
+	}
+
+	if customEndpoint != "" {
+		endpoint = customEndpoint
 	}
 
 	if tlsVerify {
@@ -475,9 +483,74 @@ func (s *DockerExecutor) connect() (*docker.Client, error) {
 	}
 }
 
+func (s *DockerExecutor) connect() (*docker.Client, error) {
+	return s.connectToEndpoint("")
+}
+
+func (s *DockerExecutor) createAffinityContainer() error {
+	affinityImage, err := s.getDockerImage("busybox")
+	if err != nil {
+		return err
+	}
+
+	affinityContainerOpts := docker.CreateContainerOptions{
+		Name: s.Build.ProjectUniqueName() + "-affinity",
+		Config: &docker.Config{
+			Image:  affinityImage.ID,
+			Labels: s.getLabels("affinity"),
+			Env: []string{
+				// schedule affinity container on different SwarmHost
+				"affinity:" + dockerLabelPrefix + ".type!=~affinity",
+			},
+		},
+		HostConfig: &docker.HostConfig{
+			RestartPolicy: docker.NeverRestart(),
+		},
+	}
+
+	// this will fail potentially some builds if there's name collision
+	s.removeContainer(affinityContainerOpts.Name)
+
+	s.Debugln("Starting the affinity container", affinityContainerOpts.Name, "...")
+	affinityContainer, err := s.client.CreateContainer(affinityContainerOpts)
+	if err != nil {
+		return err
+	}
+	err = s.client.StartContainer(affinityContainer.ID, nil)
+	if err != nil {
+		return err
+	}
+	s.affinityContainer = affinityContainer
+	s.affinityEnvironment = []string{
+		"affinity:container==" + affinityContainer.ID,
+	}
+
+	// hijack docker client: connect to swarm node
+	affinityContainer, err = s.client.InspectContainer(affinityContainer.ID)
+	if err != nil {
+		return err
+	}
+
+	if affinityContainer.Node != nil {
+		s.Debugln("Hijacking docker config, connecting to", affinityContainer.Node.Addr, "...")
+		client, err := s.connectToEndpoint("tcp://" + affinityContainer.Node.Addr)
+		if err != nil {
+			return err
+		}
+		s.client = client
+	}
+	return nil
+}
+
 func (s *DockerExecutor) createBuildContainer(cmd []string) error {
 	hostname := helpers.StringOrDefault(s.Config.Docker.Hostname, s.Build.ProjectUniqueName())
 	containerName := s.Build.ProjectUniqueName()
+
+	s.Debugln("Creating affinity container...")
+	err := s.createAffinityContainer()
+	if err != nil {
+		return err
+	}
 
 	// this will fail potentially some builds if there's name collision
 	s.removeContainer(containerName)
@@ -503,7 +576,7 @@ func (s *DockerExecutor) createBuildContainer(cmd []string) error {
 			AttachStderr: true,
 			OpenStdin:    true,
 			StdinOnce:    true,
-			Env:          s.ShellScript.Environment,
+			Env:          append(s.affinityEnvironment, s.ShellScript.Environment...),
 			Cmd:          cmd,
 			Labels:       s.getLabels("build"),
 		},
@@ -637,6 +710,11 @@ func (s *DockerExecutor) Cleanup() {
 	if s.buildContainer != nil {
 		s.removeContainer(s.buildContainer.ID)
 		s.buildContainer = nil
+	}
+
+	if s.affinityContainer != nil {
+		s.removeContainer(s.affinityContainer.ID)
+		s.affinityContainer = nil
 	}
 
 	s.AbstractExecutor.Cleanup()
