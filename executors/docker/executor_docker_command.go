@@ -45,7 +45,7 @@ func (s *DockerCommandExecutor) Start() error {
 	go func() {
 		s.Println()
 
-		err = s.watchContainer(preContainer, bytes.NewBufferString(s.BuildScript.PreScript))
+		err = s.watchContainer(preContainer, bytes.NewBufferString(s.BuildScript.PreScript + s.BuildScript.ExitScript))
 		if err != nil {
 			s.BuildFinish <- err
 			return
@@ -53,7 +53,7 @@ func (s *DockerCommandExecutor) Start() error {
 
 		s.Println()
 
-		err = s.watchContainer(buildContainer, bytes.NewBufferString(s.BuildScript.BuildScript))
+		err = s.watchContainer(buildContainer, bytes.NewBufferString(s.BuildScript.BuildScript + s.BuildScript.ExitScript))
 		if err != nil {
 			s.BuildFinish <- err
 			return
@@ -61,7 +61,7 @@ func (s *DockerCommandExecutor) Start() error {
 
 		s.Println()
 
-		err = s.watchContainer(postContainer, bytes.NewBufferString(s.BuildScript.PostScript))
+		err = s.watchContainer(postContainer, bytes.NewBufferString(s.BuildScript.PostScript + s.BuildScript.ExitScript))
 		if err != nil {
 			s.BuildFinish <- err
 			return

@@ -26,13 +26,32 @@ const CacheImage = "gitlab/gitlab-runner:cache"
 const ServiceImage = "gitlab/gitlab-runner:service"
 const PreBuildImage = "gitlab/gitlab-runner:build"
 const PostBuildImage = "gitlab/gitlab-runner:build"
+const AffinityImage = "gitlab/gitlab-runner:build"
 
 type DockerExecutor struct {
 	executors.AbstractExecutor
-	client   *docker.Client
-	builds   []*docker.Container
-	services []*docker.Container
-	caches   []*docker.Container
+	client              *docker.Client
+	builds              []*docker.Container
+	services            []*docker.Container
+	caches              []*docker.Container
+	affinityContainer   *docker.Container
+	affinityEnvironment []string
+	clientEnv           *docker.Env
+}
+
+func (s *DockerExecutor) isSwarmMaster() bool {
+	var driverStatus [][]string
+	if s.clientEnv.GetJSON("DriverStatus", &driverStatus) != nil {
+		return false
+	}
+
+	// HACK: There's no other way to detect if the node is swarm master
+	for _, env := range driverStatus {
+		if env[0] == "\bNodes" {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *DockerExecutor) getServiceVariables() []string {
@@ -68,16 +87,28 @@ func (s *DockerExecutor) getAuthConfig(imageName string) (docker.AuthConfigurati
 	return docker.AuthConfiguration{}, fmt.Errorf("No credentials found for %v", indexName)
 }
 
-func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error) {
+func (s *DockerExecutor) getDockerImage(imageName string) (imageID string, err error) {
 	if !strings.Contains(imageName, ":") {
 		imageName = imageName + ":latest"
+	}
+
+	if s.isSwarmMaster() {
+		if pulledImageCache.isExpired(imageName) {
+			s.Debugln("Image", imageName, "is expired.")
+			// Swarm Master will pull the image
+			s.client.RemoveImageExtended(imageName, docker.RemoveImageOptions{
+				NoPrune: true,
+			})
+			pulledImageCache.mark(imageName, "swarm", dockerImageTTL)
+		}
+		return imageName, nil
 	}
 
 	s.Debugln("Looking for image", imageName, "...")
 	image, err := s.client.InspectImage(imageName)
 	if err == nil {
 		if !pulledImageCache.isExpired(imageName) {
-			return image, nil
+			return image.ID, nil
 		}
 	}
 
@@ -96,19 +127,19 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 		if image != nil {
 			s.Warningln("Cannot pull the latest version of image", imageName, ":", err)
 			s.Warningln("Locally found image will be used instead.")
-			return image, nil
+			return image.ID, nil
 		} else {
-			return nil, err
+			return "", err
 		}
 	}
 
 	image, err = s.client.InspectImage(imageName)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	pulledImageCache.mark(imageName, image.ID, dockerImageTTL)
-	return image, nil
+	return image.ID, nil
 }
 
 func (s *DockerExecutor) getAbsoluteContainerPath(path string) string {
@@ -156,7 +187,7 @@ func (s *DockerExecutor) createCacheVolume(containerName, containerPath string) 
 	createContainerOptions := docker.CreateContainerOptions{
 		Name: containerName,
 		Config: &docker.Config{
-			Image: cacheImage.ID,
+			Image: cacheImage,
 			Cmd: []string{
 				containerPath,
 			},
@@ -164,6 +195,7 @@ func (s *DockerExecutor) createCacheVolume(containerName, containerPath string) 
 				containerPath: {},
 			},
 			Labels: s.getLabels("cache", "cache.dir="+containerPath),
+			Env:    s.affinityEnvironment,
 		},
 		HostConfig: &docker.HostConfig{},
 	}
@@ -332,9 +364,9 @@ func (s *DockerExecutor) createService(service, version string) (*docker.Contain
 	createContainerOpts := docker.CreateContainerOptions{
 		Name: containerName,
 		Config: &docker.Config{
-			Image:  serviceImage.ID,
+			Image:  serviceImage,
+			Env:    append(s.affinityEnvironment, s.getServiceVariables()...),
 			Labels: s.getLabels("service", "service="+service, "service.version="+version),
-			Env:    s.getServiceVariables(),
 		},
 		HostConfig: &docker.HostConfig{
 			RestartPolicy: docker.NeverRestart(),
@@ -481,7 +513,63 @@ func (s *DockerExecutor) connect() (*docker.Client, error) {
 	}
 }
 
+func (s *DockerExecutor) createAffinityContainer() error {
+	affinityImage, err := s.getDockerImage(AffinityImage)
+	if err != nil {
+		return err
+	}
+
+	affinityContainerOpts := docker.CreateContainerOptions{
+		Name: s.Build.ProjectUniqueName() + "-affinity",
+		Config: &docker.Config{
+			Image:  affinityImage,
+			Labels: s.getLabels("affinity"),
+			Env: []string{
+				// schedule affinity container on different SwarmHost
+				"affinity:" + dockerLabelPrefix + ".type!=~affinity",
+			},
+			CPUShares: 1,                 // HACK: use something
+			Memory:    100 * 1024 * 1024, // HACK: use something
+		},
+		HostConfig: &docker.HostConfig{
+			RestartPolicy: docker.NeverRestart(),
+		},
+	}
+
+	// this will fail potentially some builds if there's name collision
+	s.removeContainer(affinityContainerOpts.Name)
+
+	s.Debugln("Starting the affinity container", affinityContainerOpts.Name, "...")
+	affinityContainer, err := s.client.CreateContainer(affinityContainerOpts)
+	if err != nil {
+		return err
+	}
+	s.affinityContainer = affinityContainer
+	s.affinityEnvironment = []string{
+		"affinity:container==" + affinityContainer.ID,
+	}
+	return nil
+}
+
 func (s *DockerExecutor) prepareBuildContainer() (options *docker.CreateContainerOptions, err error) {
+	if s.isSwarmMaster() {
+		s.Infoln("Preparing Swarm node...")
+		s.Debugln("Creating affinity container...")
+		for i := 0; i < 30; i++ {
+			err = s.createAffinityContainer()
+			if err == nil {
+				break
+			}
+
+			s.Warningln("Failed to prepare swarm node:", err)
+			time.Sleep(5 * time.Second)
+		}
+
+		if err != nil {
+			return
+		}
+	}
+
 	options = &docker.CreateContainerOptions{
 		Config: &docker.Config{
 			Tty:          false,
@@ -490,7 +578,7 @@ func (s *DockerExecutor) prepareBuildContainer() (options *docker.CreateContaine
 			AttachStderr: true,
 			OpenStdin:    true,
 			StdinOnce:    true,
-			Env:          s.BuildScript.Environment,
+			Env:          append(s.affinityEnvironment, s.BuildScript.Environment...),
 		},
 		HostConfig: &docker.HostConfig{
 			Privileged:    s.Config.Docker.Privileged,
@@ -529,7 +617,7 @@ func (s *DockerExecutor) createContainer(containerType, imageName string, cmd []
 
 	// Fill container options
 	options.Name = containerName
-	options.Config.Image = image.ID
+	options.Config.Image = image
 	options.Config.Hostname = hostname
 	options.Config.Cmd = cmd
 	options.Config.Labels = s.getLabels(containerType)
@@ -672,6 +760,10 @@ func (s *DockerExecutor) Prepare(globalConfig *common.Config, config *common.Run
 		return err
 	}
 	s.client = client
+	s.clientEnv, err = client.Info()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -688,6 +780,11 @@ func (s *DockerExecutor) Cleanup() {
 		s.removeContainer(build.ID)
 	}
 
+	if s.affinityContainer != nil {
+		s.removeContainer(s.affinityContainer.ID)
+		s.affinityContainer = nil
+	}
+
 	s.AbstractExecutor.Cleanup()
 }
 
@@ -700,7 +797,7 @@ func (s *DockerExecutor) runServiceHealthCheckContainer(container *docker.Contai
 	waitContainerOpts := docker.CreateContainerOptions{
 		Name: container.Name + "-wait-for-service",
 		Config: &docker.Config{
-			Image:  waitImage.ID,
+			Image:  waitImage,
 			Labels: s.getLabels("wait", "wait="+container.ID),
 		},
 		HostConfig: &docker.HostConfig{

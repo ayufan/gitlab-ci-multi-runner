@@ -282,6 +282,7 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 		PreScript:   b.generatePreBuildScript(info),
 		BuildScript: b.generateCommands(info),
 		PostScript:  b.generatePostBuildScript(info),
+		ExitScript:  "\nexit 0\n",
 		Environment: b.GetVariables(info),
 	}
 

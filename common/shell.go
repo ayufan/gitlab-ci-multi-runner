@@ -12,6 +12,7 @@ type ShellScript struct {
 	PreScript   string
 	BuildScript string
 	PostScript  string
+	ExitScript  string
 	Command     string
 	Arguments   []string
 	PassFile    bool
@@ -42,7 +43,7 @@ func (s *ShellScript) GetFullCommand() string {
 }
 
 func (s *ShellScript) GetScriptBytes() []byte {
-	return []byte(s.PreScript + s.BuildScript + s.PostScript)
+	return []byte(s.PreScript + s.BuildScript + s.PostScript + s.ExitScript)
 }
 
 func (s *ShellScript) String() string {
