@@ -243,9 +243,9 @@ func (mr *RunCommand) loadConfig() error {
 func (mr *RunCommand) Start(s service.Service) error {
 	mr.builds = []*common.Build{}
 	mr.abortBuilds = make(chan os.Signal)
-	mr.interruptSignal = make(chan os.Signal)
+	mr.interruptSignal = make(chan os.Signal, 1)
 	mr.reloadSignal = make(chan os.Signal, 1)
-	mr.doneSignal = make(chan int)
+	mr.doneSignal = make(chan int, 1)
 
 	mr.println("Starting multi-runner from", mr.ConfigFile, "...")
 
