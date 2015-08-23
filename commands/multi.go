@@ -347,7 +347,7 @@ finish_worker:
 	go func() {
 		for signaled == syscall.SIGQUIT {
 			log.Warningln("Requested quit, waiting for builds to finish")
-			signaled <- mr.interruptSignal
+			signaled = <-mr.interruptSignal
 		}
 		for {
 			mr.abortBuilds <- signaled

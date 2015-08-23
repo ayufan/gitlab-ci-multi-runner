@@ -44,7 +44,7 @@ func (r *RunSingleCommand) Execute(c *cli.Context) {
 		// request stop, but wait for force exit
 		for interrupt == syscall.SIGQUIT {
 			log.Warningln("Requested quit, waiting for builds to finish")
-			interrupt <- signals
+			interrupt = <-signals
 		}
 
 		log.Warningln("Requested exit:", interrupt)
