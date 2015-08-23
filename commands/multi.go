@@ -276,6 +276,7 @@ func (mr *RunCommand) Run() {
 	go mr.startWorkers(startWorker, stopWorker, runners)
 
 	signal.Notify(mr.reloadSignal, syscall.SIGHUP)
+	signal.Notify(mr.interruptSignal, syscall.SIGQUIT)
 
 	currentWorkers := 0
 	workerIndex := 0
@@ -344,6 +345,10 @@ finish_worker:
 
 	// Pump signal to abort all builds
 	go func() {
+		for signaled == syscall.SIGQUIT {
+			log.Warningln("Requested quit, waiting for builds to finish")
+			signaled <- mr.interruptSignal
+		}
 		for {
 			mr.abortBuilds <- signaled
 		}

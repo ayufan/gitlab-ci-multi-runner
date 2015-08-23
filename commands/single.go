@@ -29,7 +29,7 @@ func (r *RunSingleCommand) Execute(c *cli.Context) {
 
 	config := common.NewConfig()
 	signals := make(chan os.Signal)
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 
 	log.Println("Starting runner for", r.URL, "with token", r.ShortDescription(), "...")
 
@@ -39,8 +39,15 @@ func (r *RunSingleCommand) Execute(c *cli.Context) {
 
 	go func() {
 		interrupt := <-signals
-		log.Warningln("Requested exit:", interrupt)
 		finished = true
+
+		// request stop, but wait for force exit
+		for interrupt == syscall.SIGQUIT {
+			log.Warningln("Requested quit, waiting for builds to finish")
+			interrupt <- signals
+		}
+
+		log.Warningln("Requested exit:", interrupt)
 
 		go func() {
 			for {
