@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"text/template"
 )
 
 type BashShell struct {
@@ -27,6 +28,80 @@ func (b *BashShell) echoColored(w io.Writer, text string) {
 
 func (b *BashShell) echoColoredFormat(w io.Writer, format string, a ...interface{}) {
 	b.echoColored(w, fmt.Sprintf(format, a...))
+}
+
+func (b *BashShell) installGit(w io.Writer) error {
+	installGitTmpl := `
+function installGit() {
+	PREFIX=
+	if [[ $(id -u) -ne 0 ]]; then
+		if which sudo >/dev/null 2>/dev/null; then
+			PREFIX="sudo "
+		elif [[ -x /usr/bin/sudo ]]; then
+			PREFIX="/usr/bin/sudo "
+		else
+			echo "{{.ANSI_YELLOW}}WARNING: Cannot install git: missing sudo.{{.ANSI_RESET}}"
+			return 1
+		fi
+	fi
+
+	UPDATE_CMD=
+	INSTALL_CMD=
+
+	echo "Installing git..."
+	if which apt-get >/dev/null 2>/dev/null; then # Debian/Ubuntu support
+		UPDATE_CMD="apt-get update -y -q"
+		INSTALL_CMD="apt-get install -y git-core ca-certificates"
+	elif [[ -x /usr/bin/apt-get ]]; then
+		UPDATE_CMD="/usr/bin/apt-get update -y -q"
+		INSTALL_CMD="/usr/bin/apt-get install -y git-core ca-certificates"
+	elif which yum >/dev/null 2>/dev/null; then # RedHat/CentOS support
+		INSTALL_CMD="yum install -y git"
+	elif [[ -x /usr/bin/yum ]]; then # RedHat/CentOS support
+		INSTALL_CMD="/usr/bin/yum install -y git"
+	else
+		echo "{{.ANSI_YELLOW}}WARNING: Cannot install git: unsupported OS.{{.ANSI_RESET}}"
+		return 1
+	fi
+
+	if [[ -n "$UPDATE_CMD" ]]; then
+		echo "{{.ANSI_GREEN}$$ $PREFIX$UPDATE_CMD{{.ANSI_RESET}}"
+		$PREFIX $UPDATE_CMD || true
+	fi
+
+	if [[ -n "$INSTALL_CMD" ]]; then
+		echo "{{.ANSI_GREEN}$$ $PREFIX$INSTALL_CMD{{.ANSI_RESET}}"
+		if ! $PREFIX $INSTALL_CMD; then
+			echo "{{.ANSI_YELLOW}}WARNING: Cannot install git: the build may fail.{{.ANSI_RESET}}"
+			return 1
+		fi
+	fi
+}
+
+if ! which git >/dev/null 2>/dev/null && ! [[ -x /usr/bin/git ]]; then
+	installGit || true
+fi
+`
+	template, err := template.New("").Parse(installGitTmpl)
+	if err != nil {
+		return err
+	}
+
+	var to = &struct {
+		ANSI_GREEN string
+		ANSI_YELLOW string
+		ANSI_RESET string
+	}{
+		helpers.ANSI_BOLD_GREEN,
+		helpers.ANSI_BOLD_YELLOW,
+		helpers.ANSI_RESET,
+	}
+
+	err = template.Execute(w, to)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (b *BashShell) writeCloneCmd(w io.Writer, build *common.Build, projectDir string) {
