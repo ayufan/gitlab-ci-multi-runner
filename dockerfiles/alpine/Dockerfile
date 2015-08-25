@@ -11,6 +11,6 @@ RUN wget -O /usr/bin/gitlab-ci-multi-runner https://gitlab-ci-multi-runner-downl
 	chmod +x /usr/bin/gitlab-ci-multi-runner && \
 	ln -s /usr/bin/gitlab-ci-multi-runner /usr/bin/gitlab-runner
 
-VOLUME ["/etc/gitlab-runner", "/var/run/docker.sock"]
+VOLUME ["/etc/gitlab-runner"]
 ENTRYPOINT ["gitlab-ci-multi-runner"]
 CMD ["run"]
