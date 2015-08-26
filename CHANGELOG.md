@@ -8,6 +8,9 @@ v 0.6.0 (unreleased)
 - Fix docker volume removal issue
 - Add :latest to imageName if missing
 
+v 0.5.4
+- Update go-dockerclient to fix problems with creating docker containers
+
 v 0.5.3
 - Pin to specific Docker API version
 - Fix docker volume removal issue
