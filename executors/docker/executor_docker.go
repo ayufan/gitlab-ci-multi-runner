@@ -79,18 +79,18 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 
 	s.Debugln("Looking for image", imageName, "...")
 	image, err := s.client.InspectImage(imageName)
-	if err == nil && !shouldDownloadImage(imageName) {
+	if err == nil && !pulledImageCache.isRecent(imageName) {
 		return image, nil
 	}
 
 	s.Println("Pulling docker image", imageName, "...")
-	pullImageOptions := docker.PullImageOptions{
-		Repository: imageName,
-	}
-
 	authConfig, err := s.getAuthConfig(imageName)
 	if err != nil {
 		s.Debugln(err)
+	}
+
+	pullImageOptions := docker.PullImageOptions{
+		Repository: imageName,
 	}
 
 	err = s.client.PullImage(pullImageOptions, authConfig)
@@ -103,8 +103,13 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 		}
 	}
 
-	markAsDownloaded(imageName)
-	return s.client.InspectImage(imageName)
+	image, err = s.client.InspectImage(imageName)
+	if err != nil {
+		return nil, err
+	}
+
+	pulledImageCache.mark(imageName, image.ID)
+	return image, nil
 }
 
 func (s *DockerExecutor) getAbsoluteContainerPath(path string) string {
