@@ -8,6 +8,9 @@ v 0.6.0 (unreleased)
 - Fix docker volume removal issue
 - Add :latest to imageName if missing
 
+v 0.5.5
+- Fix cache_dir handling
+
 v 0.5.4
 - Update go-dockerclient to fix problems with creating docker containers
 
