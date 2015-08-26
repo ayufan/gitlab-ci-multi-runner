@@ -1,3 +1,6 @@
+v 0.5.4
+- Update go-dockerclient to fix problems with creating docker containers
+
 v 0.5.3
 - Pin to specific Docker API version
 - Fix docker volume removal issue
