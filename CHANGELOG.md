@@ -7,6 +7,13 @@ v 0.6.0 (unreleased)
 - Pin to specific Docker API version
 - Fix docker volume removal issue
 - Add :latest to imageName if missing
+- Pull docker images every minute
+- Added support for SIGQUIT to allow to gracefully finish runner: runner will not accept new jobs, will stop once all current jobs are finished.
+- Implicitly allow images added as services
+- Evaluate script command in subcontext, making it to close stdin (this change since 0.5.x where the separate file was created)
+- Pass container labels to docker
+- WARNING: By default allow to override image and services
+- Force to use go:1.4 for building packages
 
 v 0.5.5
 - Fix cache_dir handling
