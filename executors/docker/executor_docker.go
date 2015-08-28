@@ -17,6 +17,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	docker_helpers "gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/docker"
 	"bytes"
 )
 
@@ -52,9 +53,9 @@ func (s *DockerExecutor) getAuthConfig(imageName string) (docker.AuthConfigurati
 		return docker.AuthConfiguration{}, err
 	}
 
-	indexName, _ := helpers.SplitDockerImageName(imageName)
+	indexName, _ := docker_helpers.SplitDockerImageName(imageName)
 
-	authConfigs, err := helpers.ReadDockerAuthConfigs(user.HomeDir)
+	authConfigs, err := docker_helpers.ReadDockerAuthConfigs(user.HomeDir)
 	if err != nil {
 		// ignore doesn't exist errors
 		if os.IsNotExist(err) {
@@ -63,7 +64,7 @@ func (s *DockerExecutor) getAuthConfig(imageName string) (docker.AuthConfigurati
 		return docker.AuthConfiguration{}, err
 	}
 
-	authConfig := helpers.ResolveDockerAuthConfig(indexName, authConfigs)
+	authConfig := docker_helpers.ResolveDockerAuthConfig(indexName, authConfigs)
 	if authConfig != nil {
 		s.Debugln("Using", authConfig.Username, "to connect to", authConfig.ServerAddress, "in order to resolve", imageName, "...")
 		return *authConfig, nil
@@ -628,7 +629,7 @@ func (s *DockerExecutor) Prepare(globalConfig *common.Config, config *common.Run
 	}
 	s.Println("Using Docker executor with image", imageName, "...")
 
-	client, err := s.connect()
+	client, err := docker_helpers.Connect(s.Config.Docker.DockerCredentials, dockerAPIVersion)
 	if err != nil {
 		return err
 	}

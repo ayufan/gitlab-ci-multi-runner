@@ -11,14 +11,13 @@ import (
 	"github.com/BurntSushi/toml"
 	log "github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/docker"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/ssh"
 	"path/filepath"
 )
 
 type DockerConfig struct {
-	Host                   *string  `toml:"host" json:"host" long:"host" env:"DOCKER_HOST" description:"Docker daemon address"`
-	CertPath               *string  `toml:"tls_cert_path" json:"tls_cert_path" long:"cert-path" env:"DOCKER_CERT_PATH" description:"Certificate path"`
-	TLSVerify              *bool    `toml:"tls_verify" json:"tls_verify" long:"tlsverify" env:"DOCKER_TLS_VERIFY" description:"Use TLS and verify the remote"`
+	docker.DockerCredentials
 	Hostname               *string  `toml:"hostname" json:"hostname" long:"hostname" env:"DOCKER_HOSTNAME" description:"Custom container hostname"`
 	Image                  string   `toml:"image" json:"image" long:"image" env:"DOCKER_IMAGE" description:"Docker image to be used"`
 	Privileged             bool     `toml:"privileged" json:"privileged" long:"privileged" env:"DOCKER_PRIVILEGED" description:"Give extended privileges to container"`
