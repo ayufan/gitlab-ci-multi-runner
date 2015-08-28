@@ -11,7 +11,7 @@ import (
 	"github.com/BurntSushi/toml"
 	log "github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/ssh"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/ssh"
 	"path/filepath"
 )
 
