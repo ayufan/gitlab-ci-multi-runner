@@ -5,6 +5,7 @@ import (
 	"path"
 
 	log "github.com/Sirupsen/logrus"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/cli"
 	"github.com/codegangsta/cli"
 
 	"fmt"
@@ -24,37 +25,7 @@ func main() {
 	app.Version = fmt.Sprintf("%s (%s)", common.VERSION, common.REVISION)
 	app.Author = "Kamil Trzciński"
 	app.Email = "ayufan@ayufan.eu"
-
-	app.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:   "debug",
-			Usage:  "debug mode",
-			EnvVar: "DEBUG",
-		},
-		cli.StringFlag{
-			Name:  "log-level, l",
-			Value: "info",
-			Usage: "Log level (options: debug, info, warn, error, fatal, panic)",
-		},
-	}
-
-	// logs
-	app.Before = func(c *cli.Context) error {
-		log.SetOutput(os.Stderr)
-		level, err := log.ParseLevel(c.String("log-level"))
-		if err != nil {
-			log.Fatalf(err.Error())
-		}
-		log.SetLevel(level)
-
-		// If a log level wasn't specified and we are running in debug mode,
-		// enforce log-level=debug.
-		if !c.IsSet("log-level") && !c.IsSet("l") && c.Bool("debug") {
-			log.SetLevel(log.DebugLevel)
-		}
-		return nil
-	}
-
+	cli_helpers.SetupLogLevelOptions(app)
 	app.Commands = common.GetCommands()
 
 	if err := app.Run(os.Args); err != nil {
