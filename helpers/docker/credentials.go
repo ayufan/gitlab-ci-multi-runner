@@ -1,4 +1,4 @@
-package docker
+package docker_helpers
 
 type DockerCredentials struct {
 	Host                   *string  `toml:"host" json:"host" long:"host" env:"DOCKER_HOST" description:"Docker daemon address"`

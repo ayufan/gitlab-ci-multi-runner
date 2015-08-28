@@ -17,7 +17,7 @@ import (
 )
 
 type DockerConfig struct {
-	docker.DockerCredentials
+	docker_helpers.DockerCredentials
 	Hostname               *string  `toml:"hostname" json:"hostname" long:"hostname" env:"DOCKER_HOSTNAME" description:"Custom container hostname"`
 	Image                  string   `toml:"image" json:"image" long:"image" env:"DOCKER_IMAGE" description:"Docker image to be used"`
 	Privileged             bool     `toml:"privileged" json:"privileged" long:"privileged" env:"DOCKER_PRIVILEGED" description:"Give extended privileges to container"`

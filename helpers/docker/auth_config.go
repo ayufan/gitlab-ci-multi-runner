@@ -1,4 +1,4 @@
-package docker
+package docker_helpers
 
 import (
 	"strings"
