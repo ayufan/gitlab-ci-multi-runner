@@ -1,13 +1,14 @@
 package docker
 
 import (
-	"time"
 	"sync"
+	"time"
 )
 
 type PulledImage struct {
-	LastPulled time.Time
 	Id         string
+	LastPulled time.Time
+	TTL        time.Duration
 }
 
 type PulledImageCache struct {
@@ -17,11 +18,11 @@ type PulledImageCache struct {
 
 var pulledImageCache PulledImageCache
 
-func (c *PulledImageCache) isRecent(imageName string) bool {
+func (c *PulledImageCache) isExpired(imageName string) bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	if c.images == nil {
-		return false
+		return true
 	}
 	if image, ok := c.images[imageName]; ok {
 		currentTime := time.Now()
@@ -30,7 +31,7 @@ func (c *PulledImageCache) isRecent(imageName string) bool {
 			return true
 		}
 		// ct > lp + ttl: image expired
-		if currentTime.After(image.LastPulled.Add(dockerImageTTL)) {
+		if currentTime.After(image.LastPulled.Add(image.TTL)) {
 			return true
 		}
 		return false
@@ -38,7 +39,7 @@ func (c *PulledImageCache) isRecent(imageName string) bool {
 	return true
 }
 
-func (c *PulledImageCache) mark(imageName string, id string) {
+func (c *PulledImageCache) mark(imageName string, id string, ttl time.Duration) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if c.images == nil {
@@ -46,6 +47,7 @@ func (c *PulledImageCache) mark(imageName string, id string) {
 	}
 	c.images[imageName] = PulledImage{
 		LastPulled: time.Now(),
-		Id: id,
+		Id:         id,
+		TTL:        ttl,
 	}
 }

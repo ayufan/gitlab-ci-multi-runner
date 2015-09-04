@@ -80,8 +80,10 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 
 	s.Debugln("Looking for image", imageName, "...")
 	image, err := s.client.InspectImage(imageName)
-	if err == nil && !pulledImageCache.isRecent(imageName) {
-		return image, nil
+	if err == nil {
+		if !pulledImageCache.isExpired(imageName) {
+			return image, nil
+		}
 	}
 
 	s.Println("Pulling docker image", imageName, "...")
@@ -109,7 +111,7 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 		return nil, err
 	}
 
-	pulledImageCache.mark(imageName, image.ID)
+	pulledImageCache.mark(imageName, image.ID, dockerImageTTL)
 	return image, nil
 }
 
