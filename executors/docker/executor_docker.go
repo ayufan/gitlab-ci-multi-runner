@@ -14,19 +14,19 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 
+	"bytes"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	docker_helpers "gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/docker"
-	"bytes"
 )
 
 type DockerExecutor struct {
 	executors.AbstractExecutor
-	client              *docker.Client
-	buildContainer      *docker.Container
-	services            []*docker.Container
-	caches              []*docker.Container
+	client         *docker.Client
+	buildContainer *docker.Container
+	services       []*docker.Container
+	caches         []*docker.Container
 }
 
 func (s *DockerExecutor) getServiceVariables() []string {
@@ -336,6 +336,7 @@ func (s *DockerExecutor) createService(service, version string) (*docker.Contain
 		Config: &docker.Config{
 			Image:  serviceImage.ID,
 			Labels: s.getLabels("service", "service="+service, "service.version="+version),
+			Env:    s.getServiceVariables(),
 		},
 		HostConfig: &docker.HostConfig{
 			RestartPolicy: docker.NeverRestart(),
