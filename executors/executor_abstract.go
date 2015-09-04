@@ -82,10 +82,10 @@ func (e *AbstractExecutor) PushTrace(config common.RunnerConfig, canceled chan b
 
 	for {
 		select {
-		case <-time.After(common.UpdateInterval * time.Second):
-		// check if build log changed
+		case <-time.After(common.UpdateInterval):
+			// check if build log changed
 			buildTraceLen := e.Build.BuildLogLen()
-			if buildTraceLen == lastSentTrace && time.Since(lastSentTime) > common.ForceTraceSentInterval {
+			if buildTraceLen == lastSentTrace && time.Since(lastSentTime) < common.ForceTraceSentInterval {
 				e.Debugln("updateBuildLog", "Nothing to send.")
 				continue
 			}
