@@ -132,6 +132,10 @@ func (s *RegisterCommand) askParallels() {
 	s.Parallels.BaseName = s.ask("parallels-vm", "Please enter the Parallels VM (eg. my-vm):")
 }
 
+func (s *RegisterCommand) askVbox() {
+	s.Vbox.BaseName = s.ask("vbox-vm", "Please enter the Vbox VM (eg. my-vm):")
+}
+
 func (s *RegisterCommand) askSSHServer() {
 	if host := s.ask("ssh-host", "Please enter the SSH server address (eg. my.server.com):"); host != "" {
 		s.SSH.Host = &host
@@ -225,19 +229,28 @@ func (c *RegisterCommand) Execute(context *cli.Context) {
 		c.askDocker()
 		c.SSH = nil
 		c.Parallels = nil
+        c.Vbox = nil
 	case "docker-ssh":
 		c.askDocker()
 		c.askSSHLogin()
 		c.Parallels = nil
+        c.Vbox = nil
 	case "ssh":
 		c.askSSHServer()
 		c.askSSHLogin()
 		c.Docker = nil
 		c.Parallels = nil
+        c.Vbox = nil
 	case "parallels":
 		c.askParallels()
 		c.askSSHServer()
 		c.Docker = nil
+        c.Vbox = nil
+    case "Vbox":
+        c.askVbox()
+		c.askSSHLogin()
+        c.Docker = nil
+		c.Parallels = nil
 	}
 
 	c.addRunner(&c.RunnerConfig)
@@ -259,6 +272,7 @@ func init() {
 				Parallels: &common.ParallelsConfig{},
 				SSH:       &ssh.Config{},
 				Docker:    &common.DockerConfig{},
+				Vbox:      &common.VboxConfig{},
 			},
 		},
 		network: &network.GitLabClient{},
