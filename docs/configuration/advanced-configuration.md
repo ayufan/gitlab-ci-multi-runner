@@ -70,6 +70,7 @@ There are a couple of available executors currently.
 | `docker-ssh`  | run build using Docker container, but connect to it with SSH - this requires the presence of `[runners.docker]` , `[runners.ssh]` and [Docker Engine][] installed on the system that the Runner runs. **Note: This will run the docker container on the local machine, it just changes how the commands are run inside that container. If you want to run docker commands on an external machine, then you should change the `host` parameter in the `runners.docker` section.|
 | `ssh`         | run build remotely with SSH - this requires the presence of `[runners.ssh]` |
 | `parallels`   | run build using Parallels VM, but connect to it with SSH - this requires the presence of `[runners.parallels]` and `[runners.ssh]` |
+| `vbox`        | run build using Virtualbox VM, but connect to it with SSH - this requires the presence of `[runners.vbox]` and `[runners.ssh]` |
 
 ## The SHELLS
 
@@ -243,6 +244,23 @@ Example:
 [runners.parallels]
   base_name = "my-parallels-image"
   template_name = ""
+  disable_snapshots = false
+```
+
+## The [runners.vbox] section
+
+This defines the VirtualBox parameters.
+
+| Parameter | Explanation |
+| --------- | ----------- |
+| `base_name`         | name of VirtualBox VM which will be cloned |
+| `disable_snapshots` | if disabled the VMs will be destroyed after build |
+
+Example:
+
+```bash
+[runners.vbox]
+  base_name = "my-parallels-image"
   disable_snapshots = false
 ```
 
