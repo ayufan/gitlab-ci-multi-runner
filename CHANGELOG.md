@@ -14,6 +14,7 @@ v 0.6.0 (unreleased)
 - Pass container labels to docker
 - WARNING: By default allow to override image and services
 - Force to use go:1.4 for building packages
+- Fix tags handling when using git fetch: fetch all tags and prune the old ones
 
 v 0.5.5
 - Fix cache_dir handling
