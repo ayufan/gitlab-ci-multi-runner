@@ -9,11 +9,10 @@ import (
 	"time"
 	"errors"
 	"strconv"
+	"runtime"
 
 	"github.com/Sirupsen/logrus"
 
-	// "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	// "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 )
 
 type StatusType string
@@ -27,6 +26,14 @@ const (
 	Saved                = "saved"
 	// TODO: more statuses
 )
+
+func GetVboxPath() string {
+	if runtime.GOOS == "windows" {
+		return `c:\Program Files\Oracle\VirtualBox\VBoxManage.exe`
+	} else {
+		return `vboxmanage`
+	}
+}
 
 func VboxManageOutput(exe string, args ...string) (string, error) {
 
@@ -48,7 +55,8 @@ func VboxManageOutput(exe string, args ...string) (string, error) {
 }
 
 func VBoxManage(args ...string) (string, error) {
-	return VboxManageOutput("vboxmanage", args...)
+	vboxPath := GetVboxPath()
+	return VboxManageOutput(vboxPath, args...)
 }
 
 func Version() (string, error) {
