@@ -229,27 +229,27 @@ func (c *RegisterCommand) Execute(context *cli.Context) {
 		c.askDocker()
 		c.SSH = nil
 		c.Parallels = nil
-        c.Vbox = nil
+		c.Vbox = nil
 	case "docker-ssh":
 		c.askDocker()
 		c.askSSHLogin()
 		c.Parallels = nil
-        c.Vbox = nil
+		c.Vbox = nil
 	case "ssh":
 		c.askSSHServer()
 		c.askSSHLogin()
 		c.Docker = nil
 		c.Parallels = nil
-        c.Vbox = nil
+		c.Vbox = nil
 	case "parallels":
 		c.askParallels()
 		c.askSSHServer()
 		c.Docker = nil
-        c.Vbox = nil
-    case "Vbox":
-        c.askVbox()
+		c.Vbox = nil
+	case "Vbox":
+		c.askVbox()
 		c.askSSHLogin()
-        c.Docker = nil
+		c.Docker = nil
 		c.Parallels = nil
 	}
 
