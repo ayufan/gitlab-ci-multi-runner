@@ -37,7 +37,9 @@ func (s *VboxExecutor) verifyMachine(vmName string, sshPort string) error {
 		Stderr:         s.BuildLog,
 		ConnectRetries: 30,
 	}
+    host := `localhost`
     sshCommand.Port = &sshPort
+    sshCommand.Host = &host
 
 	s.Debugln("Connecting to SSH...")
     err := sshCommand.Connect()
@@ -238,7 +240,9 @@ func (s *VboxExecutor) Start() error {
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,
 	}
+    host := `localhost`
 	s.sshCommand.Port = &s.sshPort
+    s.sshCommand.Host = &host
 
     s.Debugln("Connecting to SSH server...")
     err := s.sshCommand.Connect()
