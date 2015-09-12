@@ -100,7 +100,7 @@ func FindNextPort(highport string, usedPorts [][]string) string {
 	return highport
 }
 
-func ConfigureSSH(vmName string) error {
+func ConfigureSSH(vmName string, vmSSHPort string) error {
 	var localport string
 	output, err := VBoxManage("list", "vms", "-l")
 	allPortsRe := regexp.MustCompile(`host port = (\d+)`)
@@ -113,7 +113,7 @@ func ConfigureSSH(vmName string) error {
 		localport = FindNextPort(highport, usedPorts)
 	}
 
-	rule := fmt.Sprintf("guestssh,tcp,127.0.0.1,%s,,22", localport)
+	rule := fmt.Sprintf("guestssh,tcp,127.0.0.1,%s,,%s", localport, vmSSHPort)
 	_, err = VBoxManage("modifyvm", vmName, "--natpf1", rule)
 	return err
 }

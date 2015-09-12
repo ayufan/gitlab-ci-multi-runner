@@ -86,7 +86,8 @@ func (s *VboxExecutor) CreateVM(vmName string) error {
         }
 
         s.Debugln("Creating localhost ssh forwarding...")
-        err := vbox.ConfigureSSH(vmName)
+	vmSSHPort := helpers.StringOrDefault(s.Config.SSH.Port, "22")
+        err := vbox.ConfigureSSH(vmName, vmSSHPort)
         if err != nil {
                 return err
         }
