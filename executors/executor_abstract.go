@@ -147,7 +147,7 @@ func (e *AbstractExecutor) Infoln(args ...interface{}) {
 func (e *AbstractExecutor) Warningln(args ...interface{}) {
 	// write to log file
 	if e.Build != nil {
-		e.Build.WriteString(helpers.ANSI_BOLD_YELLOW + "WARNING:" + fmt.Sprintln(args...) + helpers.ANSI_RESET)
+		e.Build.WriteString(helpers.ANSI_BOLD_YELLOW + "WARNING: " + fmt.Sprintln(args...) + helpers.ANSI_RESET)
 	}
 
 	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
@@ -213,7 +213,10 @@ func (e *AbstractExecutor) startBuild() error {
 }
 
 func (e *AbstractExecutor) verifyOptions() error {
-	for key, _ := range e.Build.Options {
+	for key, value := range e.Build.Options {
+		if value == nil {
+			continue
+		}
 		found := false
 		for _, option := range e.SupportedOptions {
 			if option == key {
@@ -223,7 +226,7 @@ func (e *AbstractExecutor) verifyOptions() error {
 		}
 
 		if !found {
-			e.Warningln("Defined '%s' is not supported for that executor", key)
+			e.Warningln("Defined", key, "is not supported for that executor")
 		}
 	}
 	return nil
