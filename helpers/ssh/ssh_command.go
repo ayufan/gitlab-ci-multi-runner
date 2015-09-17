@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"code.google.com/p/go.crypto/ssh"
+	"golang.org/x/crypto/ssh"
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io/ioutil"
