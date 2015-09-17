@@ -1,5 +1,5 @@
 package common
 
-const NAME = "gitlab-ci-multi-runner"
-const VERSION = "dev"
-const REVISION = "HEAD"
+var NAME = "gitlab-ci-multi-runner"
+var VERSION = "dev"
+var REVISION = "HEAD"

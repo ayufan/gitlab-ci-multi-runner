@@ -43,9 +43,11 @@ toolchain:
 	# Building toolchain...
 	gox -build-toolchain $(BUILD_PLATFORMS)
 
-build: version
+build:
 	# Building gitlab-ci-multi-runner for $(BUILD_PLATFORMS)
-	gox $(BUILD_PLATFORMS) -output="out/binaries/$(NAME)-{{.OS}}-{{.Arch}}"
+	gox $(BUILD_PLATFORMS) \
+		-ldflags "-X main.NAME $(PACKAGE_NAME) -X main.VERSION $(VERSION) -X main.REVISION $(REVISION)" \
+		-output="out/binaries/$(NAME)-{{.OS}}-{{.Arch}}"
 
 lint:
 	# Checking project code style...
@@ -78,10 +80,6 @@ build-and-deploy:
 	make package-deb-fpm ARCH=amd64 PACKAGE_ARCH=amd64
 	scp out/deb/$(PACKAGE_NAME)_amd64.deb $(SERVER):
 	ssh $(SERVER) dpkg -i $(PACKAGE_NAME)_amd64.deb
-
-version: FORCE
-	# Generating VERSION...
-	echo "package common\n\nconst NAME = \"$(PACKAGE_NAME)\"\nconst VERSION = \"$(VERSION)\"\nconst REVISION = \"$(REVISION)\"" > common/version.go
 
 package: package-deps package-deb package-rpm
 

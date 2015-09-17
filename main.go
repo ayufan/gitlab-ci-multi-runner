@@ -18,6 +18,16 @@ import (
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/ssh"
 )
 
+var NAME = "gitlab-ci-multi-runner"
+var VERSION = "dev"
+var REVISION = "HEAD"
+
+func init() {
+	common.NAME = NAME
+	common.VERSION = VERSION
+	common.REVISION = REVISION
+}
+
 func main() {
 	app := cli.NewApp()
 	app.Name = path.Base(os.Args[0])
