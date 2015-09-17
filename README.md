@@ -61,6 +61,7 @@ The config file is automatically migrated when GitLab Runner was installed from 
 * [Install on OSX (preferred)](docs/install/osx.md)
 * [Install on Windows (preferred)](docs/install/windows.md)
 * [Install as Docker Service](docs/install/docker.md)
+* [Use on FreeBSD](docs/install/freebsd.md)
 * [Manual installation (advanced)](docs/install/linux-manually.md)
 * [Bleeding edge (development)](docs/install/bleeding-edge.md)
 * [Install development environment](docs/development/README.md)
