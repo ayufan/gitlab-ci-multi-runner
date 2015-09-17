@@ -8,12 +8,16 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path"
 	"strings"
 )
+
+// ErrCannotParseDockercfg is the error returned by NewAuthConfigurations when the dockercfg cannot be parsed.
+var ErrCannotParseDockercfg = errors.New("Failed to read authentication from dockercfg")
 
 // AuthConfiguration represents authentication options to use in the PushImage
 // method. It represents the authentication in the Docker index server.
@@ -29,6 +33,10 @@ type AuthConfiguration struct {
 type AuthConfigurations struct {
 	Configs map[string]AuthConfiguration `json:"configs"`
 }
+
+// AuthConfigurations119 is used to serialize a set of AuthConfigurations
+// for Docker API >= 1.19.
+type AuthConfigurations119 map[string]AuthConfiguration
 
 // dockerConfig represents a registry authentation configuration from the
 // .dockercfg file.
@@ -99,6 +107,9 @@ func authConfigs(confs map[string]dockerConfig) (*AuthConfigurations, error) {
 			return nil, err
 		}
 		userpass := strings.Split(string(data), ":")
+		if len(userpass) != 2 {
+			return nil, ErrCannotParseDockercfg
+		}
 		c.Configs[reg] = AuthConfiguration{
 			Email:         conf.Email,
 			Username:      userpass[0],
@@ -111,17 +122,15 @@ func authConfigs(confs map[string]dockerConfig) (*AuthConfigurations, error) {
 
 // AuthCheck validates the given credentials. It returns nil if successful.
 //
-// See https://goo.gl/vPoEfJ for more details.
+// See https://goo.gl/m2SleN for more details.
 func (c *Client) AuthCheck(conf *AuthConfiguration) error {
 	if conf == nil {
 		return fmt.Errorf("conf is nil")
 	}
-	body, statusCode, err := c.do("POST", "/auth", doOptions{data: conf})
+	resp, err := c.do("POST", "/auth", doOptions{data: conf})
 	if err != nil {
 		return err
 	}
-	if statusCode > 400 {
-		return fmt.Errorf("auth error (%d): %s", statusCode, body)
-	}
+	resp.Body.Close()
 	return nil
 }

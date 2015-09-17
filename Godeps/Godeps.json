@@ -9,8 +9,8 @@
 		},
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
-			"Comment": "v0.8.2-2-g6ba91e2",
-			"Rev": "6ba91e24c498b49d0363c723e9e2ab2b5b8fd012"
+			"Comment": "v0.8.7",
+			"Rev": "418b41d23a1bf978c06faea5313ba194650ac088"
 		},
 		{
 			"ImportPath": "github.com/ayufan/golang-kardianos-service",
@@ -23,7 +23,7 @@
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",
-			"Rev": "6802df6d72617aa9dcaf134e35cd9f98f15edfbe"
+			"Rev": "163268693e2cf8be2920158b59ef438fc77b85e2"
 		},
 		{
 			"ImportPath": "github.com/kardianos/osext",
