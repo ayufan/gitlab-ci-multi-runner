@@ -10,7 +10,7 @@ endif
 ITTERATION := $(shell date +%s)
 PACKAGE_CLOUD ?= ayufan/gitlab-ci-multi-runner
 PACKAGE_CLOUD_URL ?= https://packagecloud.io/
-BUILD_PLATFORMS ?= -os="linux" -os="darwin" -os="windows"
+BUILD_PLATFORMS ?= -os="linux" -os="darwin" -os="windows" -os="freebsd"
 S3_UPLOAD_PATH ?= master
 DEB_PLATFORMS ?= debian/wheezy debian/jessie ubuntu/precise ubuntu/trusty ubuntu/utopic ubuntu/vivid
 DEB_ARCHS ?= amd64 i386 arm armhf
@@ -38,6 +38,10 @@ deps:
 	go get golang.org/x/tools/cmd/cover
 	-go get golang.org/x/sys/windows/svc
 	godep restore
+
+	# Fix broken BSD builds
+	rm -rf $(GOPATH)/src/github.com/fsouza/go-dockerclient/external/github.com/Sirupsen/logrus
+	ln -s $(GOPATH)/src/github.com/Sirupsen/logrus $(GOPATH)/src/github.com/fsouza/go-dockerclient/external/github.com/Sirupsen/
 
 toolchain:
 	# Building toolchain...

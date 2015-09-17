@@ -28,7 +28,7 @@ open go*-*.pkg
 
 ### For FreeBSD
 ```
-pkg install go-1.4.2
+pkg install go-1.4.2 gmake git mercurial
 ```
 
 ## 2. Configure Go
@@ -60,6 +60,8 @@ This will download and restore all dependencies required to build runner:
 ```
 make deps
 ```
+
+**For FreeBSD use `gmake deps`**
 
 ## 5. Run runner
 
