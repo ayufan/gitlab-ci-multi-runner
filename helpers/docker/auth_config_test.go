@@ -1,4 +1,4 @@
-package helpers
+package docker_helpers
 
 import (
 	"testing"

@@ -1,17 +1,12 @@
 image: golang:1.4
 
 before_script:
-- export PACKAGE_CLOUD_URL=https://packages.gitlab.com
-- export PACKAGE_CLOUD=runner/gitlab-ci-multi-runner
-- export ARTIFACTS_S3_BUCKET=gitlab-ci-multi-runner-downloads
 - source ci/prepare
 
 Bleeding Edge:
   script:
   - source ci/build
-  - make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"
-  tags:
-  - cross
+  - '[[ -n "$AWS_SECRET_ACCESS_KEY" ]] && make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"'
   only:
   - branches
 
@@ -19,10 +14,8 @@ Stable Release:
   script:
   - export RELEASE=true
   - source ci/build
-  - make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"
-  - make s3-upload "S3_UPLOAD_PATH=latest"
-  - make packagecloud
-  tags:
-  - cross
+  - '[[ -n "$AWS_SECRET_ACCESS_KEY" ]] && make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"'
+  - '[[ -n "$AWS_SECRET_ACCESS_KEY" ]] && make s3-upload "S3_UPLOAD_PATH=latest"'
+  - '[[ -n "$PACKAGECLOUD_TOKEN" ]] && make packagecloud'
   only:
   - tags

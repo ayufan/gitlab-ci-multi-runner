@@ -35,6 +35,7 @@ deps:
 	go get github.com/tools/godep
 	go get -u github.com/golang/lint/golint
 	go get github.com/mitchellh/gox
+	go get golang.org/x/tools/cmd/cover
 	-go get golang.org/x/sys/windows/svc
 	godep restore
 
