@@ -1,6 +1,9 @@
 {
 	"ImportPath": "gitlab.com/gitlab-org/gitlab-ci-multi-runner",
 	"GoVersion": "go1.4.2",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/BurntSushi/toml",
@@ -26,8 +29,24 @@
 			"Rev": "163268693e2cf8be2920158b59ef438fc77b85e2"
 		},
 		{
+			"ImportPath": "github.com/golang/mock/gomock",
+			"Rev": "06883d979f10cc178f2716846215c8cf90f9e363"
+		},
+		{
 			"ImportPath": "github.com/kardianos/osext",
 			"Rev": "efacde03154693404c65e7aa7d461ac9014acd0c"
+		},
+		{
+			"ImportPath": "github.com/stretchr/objx",
+			"Rev": "cbeaeb16a013161a98496fad62933b1d21786672"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/assert",
+			"Rev": "1297dc01ed0a819ff634c89707081a4df43baf6b"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/mock",
+			"Rev": "1297dc01ed0a819ff634c89707081a4df43baf6b"
 		},
 		{
 			"ImportPath": "gitlab.com/ayufan/golang-cli-helpers",
