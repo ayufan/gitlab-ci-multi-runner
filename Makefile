@@ -55,6 +55,11 @@ test:
 	# Running tests...
 	go test ./... -cover
 
+mocks: FORCE
+	go get github.com/vektra/mockery/.../
+	rm -rf mocks/
+	mockery -dir=$(GOPATH)/src/github.com/ayufan/golang-kardianos-service -name=Interface
+
 test-docker:
 	make test-docker-image IMAGE=centos:6 TYPE=rpm
 	make test-docker-image IMAGE=centos:7 TYPE=rpm

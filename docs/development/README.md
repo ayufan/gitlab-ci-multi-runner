@@ -26,6 +26,11 @@ wget https://storage.googleapis.com/golang/go1.4.2.darwin-amd64-osx10.8.pkg
 open go*-*.pkg
 ```
 
+### For FreeBSD
+```
+pkg install go-1.4.2
+```
+
 ## 2. Configure Go
 
 Add to `.profile` or `.bash_profile`:

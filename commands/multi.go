@@ -18,6 +18,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"math"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/service"
 )
 
 type RunnerHealth struct {
@@ -388,7 +389,7 @@ func (c *RunCommand) Execute(context *cli.Context) {
 		Arguments:   []string{"run"},
 	}
 
-	service, err := service.New(c, svcConfig)
+	service, err := service_helpers.New(c, svcConfig)
 	if err != nil {
 		log.Fatalln(err)
 	}

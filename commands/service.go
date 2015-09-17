@@ -8,6 +8,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"os"
 	"runtime"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/service"
 )
 
 const (
@@ -135,7 +136,7 @@ func RunServiceControl(c *cli.Context) {
 
 	svcConfig.Arguments = append(svcConfig.Arguments, "--syslog")
 
-	s, err := service.New(&NullService{}, svcConfig)
+	s, err := service_helpers.New(&NullService{}, svcConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
