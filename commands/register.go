@@ -2,7 +2,6 @@ package commands
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"os/signal"
 	"strconv"
@@ -42,8 +41,7 @@ func (s *RegisterCommand) ask(key, prompt string, allowEmptyOptional ...bool) st
 
 	if s.NonInteractive || prompt == "" {
 		if result == "" && !allowEmpty {
-			err := fmt.Errorf("The '%s' needs to be entered", key)
-			panic(err)
+			log.Fatalln("The", key, "needs to be entered")
 		}
 		return result
 	}
@@ -161,13 +159,15 @@ func (s *RegisterCommand) askRunner() {
 	s.URL = s.ask("url", "Please enter the gitlab-ci coordinator URL (e.g. https://gitlab.com/ci):")
 
 	if s.Token != "" {
+		log.Infoln("Token specified trying to verify runner...")
+		log.Warningln("If you want to register use the '-r' instead of '-t'.")
 		if !common.VerifyRunner(s.URL, s.Token) {
 			log.Fatalln("Failed to verify this runner. Perhaps you are having network problems")
 		}
 	} else {
 		s.RegistrationToken = s.ask("registration-token", "Please enter the gitlab-ci token for this runner:")
 		s.Name = s.ask("name", "Please enter the gitlab-ci description for this runner:")
-		s.TagList = s.ask("tag-list", "Please enter the gitlab-ci tags for this runner (comma separated):")
+		s.TagList = s.ask("tag-list", "Please enter the gitlab-ci tags for this runner (comma separated):", true)
 
 		result := common.RegisterRunner(s.URL, s.RegistrationToken, s.Name, s.TagList)
 		if result == nil {
