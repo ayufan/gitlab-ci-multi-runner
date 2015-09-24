@@ -1,9 +1,11 @@
 #!/bin/sh
 
-set -e
-
 host=$(env | grep _TCP_ADDR | cut -d = -f 2)
 port=$(env | grep _TCP_PORT | cut -d = -f 2)
+
+if [ -z "$host" ] || [ -z "$port" ]; then
+	echo "No HOST or PORT"
+fi
 
 echo -n "waiting for TCP connection to $host:$port..."
 
