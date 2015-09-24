@@ -61,6 +61,9 @@ test:
 	# Running tests...
 	go test ./... -cover
 
+dockerfiles:
+	make -C dockerfiles all
+
 mocks: FORCE
 	go get github.com/vektra/mockery/.../
 	rm -rf mocks/
