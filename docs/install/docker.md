@@ -45,8 +45,8 @@ Register the runner:
 ```bash
 docker exec -it gitlab-runner gitlab-runner register
 
-Please enter the gitlab-ci coordinator URL (e.g. http://gitlab-ci.org:3000/ )
-https://ci.gitlab.org/
+Please enter the gitlab-ci coordinator URL (e.g. https://gitlab.com/ci )
+https://gitlab.com/ci
 Please enter the gitlab-ci token for this runner
 xxx
 Please enter the gitlab-ci description for this runner
