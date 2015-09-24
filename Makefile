@@ -2,10 +2,11 @@ NAME ?= gitlab-ci-multi-runner
 PACKAGE_NAME ?= $(NAME)
 PACKAGE_CONFLICT ?= $(PACKAGE_NAME)-beta
 REVISION := $(shell git rev-parse --short HEAD || echo unknown)
-VERSION := $(shell git describe --tags || cat VERSION || echo dev)
-VERSION := $(shell echo $(VERSION) | sed -e 's/^v//g')
+LAST_TAG := $(shell git describe --tags --abbrev=0)
+COMMITS := $(shell echo `git log --oneline $(LAST_TAG)..HEAD | wc -l`)
+VERSION := $(shell (cat VERSION || echo dev) | sed -e 's/^v//g')
 ifneq ($(RELEASE),true)
-    VERSION := $(shell echo $(VERSION)-beta)
+    VERSION := $(shell echo $(VERSION)~beta.$(COMMITS).g$(REVISION))
 endif
 ITTERATION := $(shell date +%s)
 PACKAGE_CLOUD ?= ayufan/gitlab-ci-multi-runner
@@ -21,6 +22,7 @@ all: deps test lint toolchain build
 
 help:
 	# make all => deps test lint toolchain build
+	# make version - show information about current version
 	# make deps - install all dependencies
 	# make test - run project tests
 	# make lint - check project code style
@@ -29,6 +31,11 @@ help:
 	# make package - package project using FPM
 	# make packagecloud - send all packages to packagecloud
 	# make packagecloud-yank - remove specific version from packagecloud
+
+version: FORCE
+	@echo Current version: $(VERSION)
+	@echo Current iteration: $(ITTERATION)
+	@echo Current revision: $(REVISION)
 
 deps:
 	# Installing dependencies...

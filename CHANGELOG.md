@@ -3,7 +3,7 @@ v 0.6.0 (unreleased)
 - Added support for NTFSSecurity PowerShell module to address problems with long paths on Windows
 - Make the service startup more readable in case of failure: print a nice warning message
 - Command line interface for register and run-single accepts all possible config parameters now
-- Ask about tags and fix prompt to point to ci.gitlab.com
+- Ask about tags and fix prompt to point to gitlab.com/ci
 - Pin to specific Docker API version
 - Fix docker volume removal issue
 - Add :latest to imageName if missing
@@ -12,9 +12,16 @@ v 0.6.0 (unreleased)
 - Implicitly allow images added as services
 - Evaluate script command in subcontext, making it to close stdin (this change since 0.5.x where the separate file was created)
 - Pass container labels to docker
-- WARNING: By default allow to override image and services
 - Force to use go:1.4 for building packages
 - Fix tags handling when using git fetch: fetch all tags and prune the old ones
+- Remove docker socket from gitlab/gitlab-runner images
+- Pull (update) images and services every minute
+- Ignore options from Coordinator that are null
+- Provide FreeBSD binary
+- Use -ldflags for versioning
+- Update go packages
+- Fix segfault on service checker container
+- WARNING: By default allow to override image and services
 
 v 0.5.5
 - Fix cache_dir handling
