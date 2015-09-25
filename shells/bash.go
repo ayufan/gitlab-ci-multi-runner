@@ -116,7 +116,7 @@ func (b *BashShell) writeFetchCmd(w io.Writer, build *common.Build, projectDir s
 	io.WriteString(w, fmt.Sprintf("if [[ -d %s ]]; then\n", gitDir))
 	b.echoColoredFormat(w, "Fetching changes...")
 	io.WriteString(w, fmt.Sprintf("cd %s\n", projectDir))
-	io.WriteString(w, fmt.Sprintf("git clean -fdx\n"))
+	io.WriteString(w, fmt.Sprintf("git clean -ffdx\n"))
 	io.WriteString(w, fmt.Sprintf("git reset --hard > /dev/null\n"))
 	io.WriteString(w, fmt.Sprintf("git remote set-url origin %s\n", helpers.ShellEscape(build.RepoURL)))
 	io.WriteString(w, fmt.Sprintf("git fetch origin --tags -p\n"))
