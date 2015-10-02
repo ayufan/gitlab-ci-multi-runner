@@ -3,10 +3,7 @@ package common
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
@@ -83,22 +80,20 @@ type UpdateBuildRequest struct {
 	Trace string      `json:"trace,omitempty"`
 }
 
-func sendJSONRequest(url string, method string, statusCode int, request interface{}, response interface{}) int {
+func sendJSONRequest(url string, method string, statusCode int, request interface{}, response interface{}) (int, string) {
 	var body []byte
 	var err error
 
 	if request != nil {
 		body, err = json.Marshal(request)
 		if err != nil {
-			log.Errorf("Failed to marshal project object: %v", err)
-			return -1
+			return -1, fmt.Sprintf("failed to marshal project object: %v", err)
 		}
 	}
 
 	req, err := http.NewRequest(method, url, bytes.NewReader(body))
 	if err != nil {
-		log.Errorf("Failed to create NewRequest", err)
-		return -1
+		return -1, fmt.Sprintf("failed to create NewRequest: %v", err)
 	}
 
 	if request != nil {
@@ -107,8 +102,7 @@ func sendJSONRequest(url string, method string, statusCode int, request interfac
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Errorf("Couldn't execute %v against %s: %v", req.Method, req.URL, err)
-		return -1
+		return -1, fmt.Sprintf("couldn't execute %v against %s: %v", req.Method, req.URL, err)
 	}
 	defer res.Body.Close()
 
@@ -117,43 +111,28 @@ func sendJSONRequest(url string, method string, statusCode int, request interfac
 			d := json.NewDecoder(res.Body)
 			err = d.Decode(response)
 			if err != nil {
-				log.Errorf("Error decoding json payload %v", err)
-				return -1
+				return -1, fmt.Sprintf("Error decoding json payload %v", err)
 			}
 		}
 	}
 
-	return res.StatusCode
+	return res.StatusCode, res.Status
 }
 
-func getJSON(url string, statusCode int, response interface{}) int {
+func getJSON(url string, statusCode int, response interface{}) (int, string) {
 	return sendJSONRequest(url, "GET", statusCode, nil, response)
 }
 
-func postJSON(url string, statusCode int, request interface{}, response interface{}) int {
+func postJSON(url string, statusCode int, request interface{}, response interface{}) (int, string) {
 	return sendJSONRequest(url, "POST", statusCode, request, response)
 }
 
-func putJSON(url string, statusCode int, request interface{}, response interface{}) int {
+func putJSON(url string, statusCode int, request interface{}, response interface{}) (int, string) {
 	return sendJSONRequest(url, "PUT", statusCode, request, response)
 }
 
-func deleteJSON(url string, statusCode int, response interface{}) int {
+func deleteJSON(url string, statusCode int, response interface{}) (int, string) {
 	return sendJSONRequest(url, "DELETE", statusCode, nil, response)
-}
-
-func readPayload(r io.Reader) ([]byte, error) {
-	maxPayloadSize := int64(1<<63 - 1)
-	maxPayloadSize = int64(10 << 20) // 10 MB is a lot of text.
-	b, err := ioutil.ReadAll(io.LimitReader(r, maxPayloadSize+1))
-	if err != nil {
-		return nil, err
-	}
-	if int64(len(b)) > maxPayloadSize {
-		err = errors.New("http: POST too large")
-		return nil, err
-	}
-	return b, nil
 }
 
 func getURL(baseURL string, request string, a ...interface{}) string {
@@ -189,7 +168,7 @@ func GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 	}
 
 	var response GetBuildResponse
-	result := postJSON(getURL(config.URL, "builds/register.json"), 201, &request, &response)
+	result, statusText := postJSON(getURL(config.URL, "builds/register.json"), 201, &request, &response)
 
 	switch result {
 	case 201:
@@ -202,7 +181,7 @@ func GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 		log.Debugln(config.ShortDescription(), "Checking for builds...", "nothing")
 		return nil, true
 	default:
-		log.Warningln(config.ShortDescription(), "Checking for builds...", "failed")
+		log.Warningln(config.ShortDescription(), "Checking for builds...", "failed:", statusText)
 		return nil, true
 	}
 }
@@ -217,7 +196,7 @@ func RegisterRunner(url, token, description, tags string) *RegisterRunnerRespons
 	}
 
 	var response RegisterRunnerResponse
-	result := postJSON(getURL(url, "runners/register.json"), 201, &request, &response)
+	result, statusText := postJSON(getURL(url, "runners/register.json"), 201, &request, &response)
 	shortToken := helpers.ShortenToken(token)
 
 	switch result {
@@ -225,16 +204,16 @@ func RegisterRunner(url, token, description, tags string) *RegisterRunnerRespons
 		log.Println(shortToken, "Registering runner...", "succeeded")
 		return &response
 	case 403:
-		log.Errorln(shortToken, "Registering runner...", "forbidden")
+		log.Errorln(shortToken, "Registering runner...", "forbidden (check registration token)")
 		return nil
 	default:
-		log.Errorln(shortToken, "Registering runner...", "failed")
+		log.Errorln(shortToken, "Registering runner...", "failed", statusText)
 		return nil
 	}
 }
 
 func DeleteRunner(url, token string) bool {
-	result := deleteJSON(getURL(url, "runners/delete?token=%v", token), 200, nil)
+	result, statusText := deleteJSON(getURL(url, "runners/delete?token=%v", token), 200, nil)
 	shortToken := helpers.ShortenToken(token)
 
 	switch result {
@@ -245,13 +224,13 @@ func DeleteRunner(url, token string) bool {
 		log.Errorln(shortToken, "Deleting runner...", "forbidden")
 		return false
 	default:
-		log.Errorln(shortToken, "Deleting runner...", "failed", result)
+		log.Errorln(shortToken, "Deleting runner...", "failed", statusText)
 		return false
 	}
 }
 
 func VerifyRunner(url, token string) bool {
-	result := putJSON(getURL(url, "builds/%v?token=%v", -1, token), 200, nil, nil)
+	result, statusText := putJSON(getURL(url, "builds/%v?token=%v", -1, token), 200, nil, nil)
 	shortToken := helpers.ShortenToken(token)
 
 	switch result {
@@ -263,7 +242,7 @@ func VerifyRunner(url, token string) bool {
 		log.Errorln(shortToken, "Veryfing runner...", "is removed")
 		return false
 	default:
-		log.Errorln(shortToken, "Veryfing runner...", "failed", result)
+		log.Errorln(shortToken, "Veryfing runner...", "failed", statusText)
 		return true
 	}
 }
@@ -276,7 +255,7 @@ func UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) Up
 		Trace: trace,
 	}
 
-	result := putJSON(getURL(config.URL, "builds/%d.json", id), 200, &request, nil)
+	result, statusText := putJSON(getURL(config.URL, "builds/%d.json", id), 200, &request, nil)
 	switch result {
 	case 200:
 		log.Println(config.ShortDescription(), id, "Submitting build to coordinator...", "ok")
@@ -288,7 +267,7 @@ func UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) Up
 		log.Errorln(config.ShortDescription(), id, "Submitting build to coordinator...", "forbidden")
 		return UpdateAbort
 	default:
-		log.Warningln(config.ShortDescription(), id, "Submitting build to coordinator...", "failed")
+		log.Warningln(config.ShortDescription(), id, "Submitting build to coordinator...", "failed", statusText)
 		return UpdateFailed
 	}
 }
