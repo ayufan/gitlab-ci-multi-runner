@@ -260,7 +260,7 @@ Example:
 
 ```bash
 [runners.vbox]
-  base_name = "my-parallels-image"
+  base_name = "my-virtualbox-image"
   disable_snapshots = false
 ```
 
@@ -284,7 +284,7 @@ Example:
   port = "22"
   user = "root"
   password = "production-server-password"
-  identity_file = "
+  identity_file = ""
 ```
 
 ## Note
