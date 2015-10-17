@@ -29,11 +29,10 @@ func (b *PowerShell) writeCommandChecked(w io.Writer, format string, args ...int
 
 func (b *PowerShell) writeCloneCmd(w io.Writer, build *common.Build, dir string) {
 	b.writeCommand(w, "echo \"Cloning repository...\"")
-	b.writeCommand(w, "$NTFSSecurityRemoveItem2 = Get-Command Remove-Item2 -ErrorAction SilentlyContinue")
-	b.writeCommand(w, "$HasNTFSSecurityRemoveItem2 = ($NTFSSecurityRemoveItem2 -ne $null) -and ($NTFSSecurityRemoveItem2.ModuleName -eq \"NTFSSecurity\")")
-	b.writeCommand(w, "if($HasNTFSSecurityRemoveItem2 -and Test-Path \"%s\") {", dir)
+	b.writeCommand(w, "Import-Module -Name NTFSSecurity -ErrorAction SilentlyContinue")
+	b.writeCommand(w, "if( (Get-Command -Name Remove-Item2 -Module NTFSSecurity -ErrorAction SilentlyContinue) -and (Test-Path \"%s\") ) {", dir)
 	b.writeCommandChecked(w, "Remove-Item2 -Force -Recurse \"%s\"", dir)
-	b.writeCommand(w, "} elseif(Test-Path \"%s\") {")
+	b.writeCommand(w, "} elseif(Test-Path \"%s\") {", dir)
 	b.writeCommandChecked(w, "Remove-Item -Force -Recurse \"%s\"", dir)
 	b.writeCommand(w, "}")
 	b.writeCommandChecked(w, "(Test-Path \"%s\") -or (New-Item \"%s\" -ItemType \"directory\" )", dir, dir)
