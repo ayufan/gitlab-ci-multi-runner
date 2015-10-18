@@ -156,7 +156,7 @@ func (s *ParallelsExecutor) Prepare(globalConfig *common.Config, config *common.
 		return err
 	}
 
-	if s.ShellScript.PassFile {
+	if s.BuildScript.PassFile {
 		return errors.New("Parallels doesn't support shells that require script file")
 	}
 
@@ -275,9 +275,9 @@ func (s *ParallelsExecutor) Start() error {
 	s.Debugln("Starting SSH command...")
 	s.sshCommand = ssh.Command{
 		Config:      *s.Config.SSH,
-		Environment: s.ShellScript.Environment,
-		Command:     s.ShellScript.GetFullCommand(),
-		Stdin:       s.ShellScript.GetScriptBytes(),
+		Environment: s.BuildScript.Environment,
+		Command:     s.BuildScript.GetFullCommand(),
+		Stdin:       s.BuildScript.GetScriptBytes(),
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,
 	}
@@ -324,7 +324,7 @@ func init() {
 		ShowHostname: true,
 	}
 
-	create := func() common.Executor {
+	creator := func() common.Executor {
 		return &ParallelsExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
 				ExecutorOptions: options,
@@ -332,9 +332,9 @@ func init() {
 		}
 	}
 
-	common.RegisterExecutor("parallels", common.ExecutorFactory{
-		Create: create,
-		Features: common.FeaturesInfo{
+	common.RegisterExecutor("parallels", executors.DefaultExecutorProvider{
+		Creator: creator,
+		FeaturesInfo: common.FeaturesInfo{
 			Variables: true,
 		},
 	})

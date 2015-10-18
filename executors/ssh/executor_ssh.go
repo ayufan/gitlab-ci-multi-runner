@@ -20,7 +20,7 @@ func (s *SSHExecutor) Prepare(globalConfig *common.Config, config *common.Runner
 	}
 
 	s.Println("Using SSH executor...")
-	if s.ShellScript.PassFile {
+	if s.BuildScript.PassFile {
 		return errors.New("SSH doesn't support shells that require script file")
 	}
 	return nil
@@ -36,9 +36,9 @@ func (s *SSHExecutor) Start() error {
 	// Create SSH command
 	s.sshCommand = ssh.Command{
 		Config:      *s.Config.SSH,
-		Environment: s.ShellScript.Environment,
-		Command:     s.ShellScript.GetFullCommand(),
-		Stdin:       s.ShellScript.GetScriptBytes(),
+		Environment: s.BuildScript.Environment,
+		Command:     s.BuildScript.GetFullCommand(),
+		Stdin:       s.BuildScript.GetScriptBytes(),
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,
 	}
@@ -75,7 +75,7 @@ func init() {
 		ShowHostname: true,
 	}
 
-	create := func() common.Executor {
+	creator := func() common.Executor {
 		return &SSHExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
 				ExecutorOptions: options,
@@ -83,9 +83,9 @@ func init() {
 		}
 	}
 
-	common.RegisterExecutor("ssh", common.ExecutorFactory{
-		Create: create,
-		Features: common.FeaturesInfo{
+	common.RegisterExecutor("ssh", executors.DefaultExecutorProvider{
+		Creator: creator,
+		FeaturesInfo: common.FeaturesInfo{
 			Variables: true,
 		},
 	})

@@ -6,6 +6,7 @@ import (
 )
 
 type AbstractShell struct {
+	SupportedOptions []string
 }
 
 func (s *AbstractShell) GetDefaultVariables(build *Build, projectDir string) []string {
@@ -36,4 +37,8 @@ func (s *AbstractShell) GetBuildVariables(buildVariables []BuildVariable) []stri
 
 func (s *AbstractShell) GetVariables(build *Build, projectDir string, buildVariables []BuildVariable) []string {
 	return append(s.GetDefaultVariables(build, projectDir), s.GetBuildVariables(buildVariables)...)
+}
+
+func (s *AbstractShell) GetSupportedOptions() []string {
+	return s.SupportedOptions
 }

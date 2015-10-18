@@ -5,7 +5,6 @@ import (
 	"os"
 	"time"
 
-	"bufio"
 	log "github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
@@ -23,148 +22,17 @@ type ExecutorOptions struct {
 
 type AbstractExecutor struct {
 	ExecutorOptions
-	Config           *common.RunnerConfig
-	Build            *common.Build
-	BuildCanceled    chan bool
-	FinishLogWatcher chan bool
-	BuildFinish      chan error
-	BuildLog         *io.PipeWriter
-	ShellScript      *common.ShellScript
+	Config            common.RunnerConfig
+	Build             *common.Build
+	BuildFinish       chan error
+	BuildLog          *io.PipeWriter
+	BuildScript       *common.ShellScript
+
+	buildCanceled     chan bool
+	finishUpdateTrace chan bool
 }
 
-func (e *AbstractExecutor) ReadTrace(pipe *io.PipeReader) {
-	defer e.Debugln("ReadTrace finished")
-
-	traceStopped := false
-	traceOutputLimit := helpers.NonZeroOrDefault(e.Config.OutputLimit, common.DefaultOutputLimit)
-	traceOutputLimit *= 1024
-
-	reader := bufio.NewReader(pipe)
-	for {
-		r, s, err := reader.ReadRune()
-		if s <= 0 {
-			break
-		} else if traceStopped {
-			// ignore symbols if build log exceeded limit
-			continue
-		} else if err == nil {
-			e.Build.WriteRune(r)
-		} else {
-			// ignore invalid characters
-			continue
-		}
-
-		if e.Build.BuildLogLen() > traceOutputLimit {
-			output := fmt.Sprintf("\n%sBuild log exceeded limit of %v bytes.%s\n",
-				helpers.ANSI_BOLD_RED,
-				traceOutputLimit,
-				helpers.ANSI_RESET,
-			)
-			e.Build.WriteString(output)
-			traceStopped = true
-		}
-	}
-
-	pipe.Close()
-}
-
-func (e *AbstractExecutor) PushTrace(config common.RunnerConfig, canceled chan bool, finished chan bool) {
-	defer e.Debugln("PushTrace finished")
-
-	buildLog := e.BuildLog
-	if buildLog == nil {
-		<-finished
-		return
-	}
-
-	lastSentTrace := -1
-	lastSentTime := time.Now()
-
-	for {
-		select {
-		case <-time.After(common.UpdateInterval):
-			// check if build log changed
-			buildTraceLen := e.Build.BuildLogLen()
-			if buildTraceLen == lastSentTrace && time.Since(lastSentTime) < common.ForceTraceSentInterval {
-				e.Debugln("updateBuildLog", "Nothing to send.")
-				continue
-			}
-
-			buildTrace := e.Build.BuildLog()
-			switch common.UpdateBuild(config, e.Build.ID, common.Running, buildTrace) {
-			case common.UpdateSucceeded:
-				lastSentTrace = buildTraceLen
-				lastSentTime = time.Now()
-
-			case common.UpdateAbort:
-				e.Debugln("updateBuildLog", "Sending abort request...")
-				canceled <- true
-				e.Debugln("updateBuildLog", "Waiting for finished flag...")
-				<-finished
-				e.Debugln("updateBuildLog", "Thread finished.")
-				return
-			case common.UpdateFailed:
-			}
-
-		case <-finished:
-			e.Debugln("updateBuildLog", "Received finish.")
-			return
-		}
-	}
-}
-
-func (e *AbstractExecutor) Debugln(args ...interface{}) {
-	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
-	log.Debugln(args...)
-}
-
-func (e *AbstractExecutor) Println(args ...interface{}) {
-	if e.Build != nil {
-		e.Build.WriteString(fmt.Sprintln(args...))
-	}
-
-	if len(args) == 0 {
-		return
-	}
-
-	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
-	log.Println(args...)
-}
-
-func (e *AbstractExecutor) Infoln(args ...interface{}) {
-	if e.Build != nil {
-		e.Build.WriteString(helpers.ANSI_BOLD_GREEN + fmt.Sprintln(args...) + helpers.ANSI_RESET)
-	}
-
-	if len(args) == 0 {
-		return
-	}
-
-	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
-	log.Println(args...)
-}
-
-func (e *AbstractExecutor) Warningln(args ...interface{}) {
-	// write to log file
-	if e.Build != nil {
-		e.Build.WriteString(helpers.ANSI_BOLD_YELLOW + "WARNING: " + fmt.Sprintln(args...) + helpers.ANSI_RESET)
-	}
-
-	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
-	log.Warningln(args...)
-}
-
-func (e *AbstractExecutor) Errorln(args ...interface{}) {
-	// write to log file
-	if e.Build != nil {
-		e.Build.WriteString(helpers.ANSI_BOLD_RED + "ERROR: " + fmt.Sprintln(args...) + helpers.ANSI_RESET)
-	}
-
-	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
-	log.Errorln(args...)
-}
-
-func (e *AbstractExecutor) generateShellScript() error {
+func (e *AbstractExecutor) updateShell() error {
 	script := &e.Shell
 	script.Build = e.Build
 	script.Shell = helpers.StringOrDefault(e.Config.Shell, script.Shell)
@@ -184,13 +52,15 @@ func (e *AbstractExecutor) generateShellScript() error {
 
 	// Add secure variables
 	script.Environment = append(script.Environment, e.Build.Variables...)
+	return nil
+}
 
-	// Generate shell script
-	shellScript, err := common.GenerateShellScript(*script)
+func (e *AbstractExecutor) generateShellScript() error {
+	shellScript, err := common.GenerateShellScript(e.Shell)
 	if err != nil {
 		return err
 	}
-	e.ShellScript = shellScript
+	e.BuildScript = shellScript
 	e.Debugln("Shell script:", shellScript)
 	return nil
 }
@@ -198,8 +68,9 @@ func (e *AbstractExecutor) generateShellScript() error {
 func (e *AbstractExecutor) startBuild() error {
 	// Create pipe where data are read
 	reader, writer := io.Pipe()
-	go e.ReadTrace(reader)
 	e.BuildLog = writer
+	go e.readTrace(reader)
+	go e.updateTrace(e.Config, e.buildCanceled, e.finishUpdateTrace)
 
 	// Save hostname
 	if e.ShowHostname {
@@ -213,12 +84,17 @@ func (e *AbstractExecutor) startBuild() error {
 }
 
 func (e *AbstractExecutor) verifyOptions() error {
+	supportedOptions := e.SupportedOptions
+	if shell := common.GetShell(e.Shell.Shell); shell != nil {
+		supportedOptions = append(supportedOptions, shell.GetSupportedOptions()...)
+	}
+
 	for key, value := range e.Build.Options {
 		if value == nil {
 			continue
 		}
 		found := false
-		for _, option := range e.SupportedOptions {
+		for _, option := range supportedOptions {
 			if option == key {
 				found = true
 				break
@@ -233,11 +109,11 @@ func (e *AbstractExecutor) verifyOptions() error {
 }
 
 func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
-	e.Config = config
+	e.Config = *config
 	e.Build = build
-	e.BuildCanceled = make(chan bool, 1)
+	e.buildCanceled = make(chan bool, 1)
 	e.BuildFinish = make(chan error, 1)
-	e.FinishLogWatcher = make(chan bool)
+	e.finishUpdateTrace = make(chan bool)
 
 	err := e.startBuild()
 	if err != nil {
@@ -245,6 +121,11 @@ func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.R
 	}
 
 	e.Infoln(fmt.Sprintf("%s %s (%s)", common.NAME, common.VERSION, common.REVISION))
+
+	err = e.updateShell()
+	if err != nil {
+		return err
+	}
 
 	err = e.verifyOptions()
 	if err != nil {
@@ -255,8 +136,6 @@ func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.R
 	if err != nil {
 		return err
 	}
-
-	go e.PushTrace(*e.Config, e.BuildCanceled, e.FinishLogWatcher)
 	return nil
 }
 
@@ -271,7 +150,7 @@ func (e *AbstractExecutor) Wait() error {
 	// Wait for signals: cancel, timeout, abort or finish
 	log.Debugln(e.Config.ShortDescription(), e.Build.ID, "Waiting for signals...")
 	select {
-	case <-e.BuildCanceled:
+	case <-e.buildCanceled:
 		e.Println()
 		e.Warningln("Build got canceled.")
 		e.Build.FinishBuild(common.Failed)
@@ -310,7 +189,7 @@ func (e *AbstractExecutor) Finish(err error) {
 	if e.BuildLog != nil {
 		// wait for update log routine to finish
 		e.Debugln("Waiting for build log updater to finish")
-		e.FinishLogWatcher <- true
+		e.finishUpdateTrace <- true
 		e.Debugln("Build log updater finished.")
 	}
 

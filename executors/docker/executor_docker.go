@@ -512,7 +512,7 @@ func (s *DockerExecutor) createBuildContainer(cmd []string) error {
 			AttachStderr: true,
 			OpenStdin:    true,
 			StdinOnce:    true,
-			Env:          s.ShellScript.Environment,
+			Env:          s.BuildScript.Environment,
 			Cmd:          cmd,
 			Labels:       s.getLabels("build"),
 		},
@@ -618,7 +618,7 @@ func (s *DockerExecutor) Prepare(globalConfig *common.Config, config *common.Run
 		return err
 	}
 
-	if s.ShellScript.PassFile {
+	if s.BuildScript.PassFile {
 		return errors.New("Docker doesn't support shells that require script file")
 	}
 

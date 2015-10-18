@@ -12,44 +12,47 @@ type Executor interface {
 	Cleanup()
 }
 
-type ExecutorFactory struct {
-	Create   func() Executor
-	Features FeaturesInfo
+type ExecutorProvider interface {
+	CanCreate() bool
+	Create() Executor
+	Features() *FeaturesInfo
 }
 
-var executors map[string]ExecutorFactory
+var executors map[string]ExecutorProvider
 
-func RegisterExecutor(executor string, factory ExecutorFactory) {
+func RegisterExecutor(executor string, provider ExecutorProvider) {
 	log.Debugln("Registering", executor, "executor...")
 
 	if executors == nil {
-		executors = make(map[string]ExecutorFactory)
+		executors = make(map[string]ExecutorProvider)
 	}
 	if _, ok := executors[executor]; ok {
 		panic("Executor already exist: " + executor)
 	}
-	executors[executor] = factory
+	executors[executor] = provider
 }
 
-func GetExecutorFeatures(executor string) *FeaturesInfo {
+func GetExecutorProvider(executor string) ExecutorProvider {
 	if executors == nil {
 		return nil
 	}
 
-	if factory, ok := executors[executor]; ok {
-		return &factory.Features
-	}
+	provider, _ := executors[executor]
+	return provider
+}
 
+func GetExecutorFeatures(executor string) *FeaturesInfo {
+	provider := GetExecutorProvider(executor)
+	if provider != nil {
+		return provider.Features()
+	}
 	return nil
 }
 
 func NewExecutor(executor string) Executor {
-	if executors == nil {
-		return nil
-	}
-
-	if factory, ok := executors[executor]; ok {
-		return factory.Create()
+	provider := GetExecutorProvider(executor)
+	if provider != nil {
+		return provider.Create()
 	}
 
 	return nil

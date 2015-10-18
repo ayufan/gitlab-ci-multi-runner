@@ -34,9 +34,9 @@ func (s *DockerSSHExecutor) Start() error {
 	// Create SSH command
 	s.sshCommand = ssh.Command{
 		Config:      *s.Config.SSH,
-		Environment: s.ShellScript.Environment,
-		Command:     s.ShellScript.GetFullCommand(),
-		Stdin:       s.ShellScript.GetScriptBytes(),
+		Environment: s.BuildScript.Environment,
+		Command:     s.BuildScript.GetFullCommand(),
+		Stdin:       s.BuildScript.GetScriptBytes(),
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,
 	}
@@ -75,7 +75,7 @@ func init() {
 		SupportedOptions: []string{"image", "services"},
 	}
 
-	create := func() common.Executor {
+	creator := func() common.Executor {
 		return &DockerSSHExecutor{
 			DockerExecutor: DockerExecutor{
 				AbstractExecutor: executors.AbstractExecutor{
@@ -85,9 +85,9 @@ func init() {
 		}
 	}
 
-	common.RegisterExecutor("docker-ssh", common.ExecutorFactory{
-		Create: create,
-		Features: common.FeaturesInfo{
+	common.RegisterExecutor("docker-ssh", executors.DefaultExecutorProvider{
+		Creator: creator,
+		FeaturesInfo: common.FeaturesInfo{
 			Variables: true,
 			Image:     true,
 			Services:  true,

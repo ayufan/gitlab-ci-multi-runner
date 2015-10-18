@@ -18,7 +18,7 @@ func (s *DockerCommandExecutor) Start() error {
 	s.Debugln("Starting Docker command...")
 
 	// Create container
-	err := s.createBuildContainer(s.ShellScript.GetCommandWithArguments())
+	err := s.createBuildContainer(s.BuildScript.GetCommandWithArguments())
 	if err != nil {
 		return err
 	}
@@ -27,7 +27,7 @@ func (s *DockerCommandExecutor) Start() error {
 	go func() {
 		attachContainerOptions := docker.AttachToContainerOptions{
 			Container:    s.buildContainer.ID,
-			InputStream:  bytes.NewBufferString(s.ShellScript.Script),
+			InputStream:  bytes.NewBufferString(s.BuildScript.Script),
 			OutputStream: s.BuildLog,
 			ErrorStream:  s.BuildLog,
 			Logs:         true,
@@ -73,7 +73,7 @@ func init() {
 		SupportedOptions: []string{"image", "services"},
 	}
 
-	create := func() common.Executor {
+	creator := func() common.Executor {
 		return &DockerCommandExecutor{
 			DockerExecutor: DockerExecutor{
 				AbstractExecutor: executors.AbstractExecutor{
@@ -83,9 +83,9 @@ func init() {
 		}
 	}
 
-	common.RegisterExecutor("docker", common.ExecutorFactory{
-		Create: create,
-		Features: common.FeaturesInfo{
+	common.RegisterExecutor("docker", executors.DefaultExecutorProvider{
+		Creator: creator,
+		FeaturesInfo: common.FeaturesInfo{
 			Variables: true,
 			Image:     true,
 			Services:  true,
