@@ -109,10 +109,12 @@ func init() {
 		}
 	}
 
+	featuresUpdater := func(features *common.FeaturesInfo) {
+		features.Variables = true
+	}
+
 	common.RegisterExecutor("shell", executors.DefaultExecutorProvider{
 		Creator: creator,
-		FeaturesInfo: common.FeaturesInfo{
-			Variables: true,
-		},
+		FeaturesUpdater: featuresUpdater,
 	})
 }

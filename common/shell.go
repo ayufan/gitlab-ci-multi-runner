@@ -59,6 +59,7 @@ type Shell interface {
 	GetName() string
 	GetSupportedOptions() []string
 	GenerateScript(info ShellScriptInfo) (*ShellScript, error)
+	GetFeatures(features *FeaturesInfo)
 	IsDefault() bool
 }
 

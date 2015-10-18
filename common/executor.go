@@ -15,7 +15,7 @@ type Executor interface {
 type ExecutorProvider interface {
 	CanCreate() bool
 	Create() Executor
-	Features() *FeaturesInfo
+	GetFeatures(features *FeaturesInfo)
 }
 
 var executors map[string]ExecutorProvider
@@ -32,30 +32,13 @@ func RegisterExecutor(executor string, provider ExecutorProvider) {
 	executors[executor] = provider
 }
 
-func GetExecutorProvider(executor string) ExecutorProvider {
+func GetExecutor(executor string) ExecutorProvider {
 	if executors == nil {
 		return nil
 	}
 
 	provider, _ := executors[executor]
 	return provider
-}
-
-func GetExecutorFeatures(executor string) *FeaturesInfo {
-	provider := GetExecutorProvider(executor)
-	if provider != nil {
-		return provider.Features()
-	}
-	return nil
-}
-
-func NewExecutor(executor string) Executor {
-	provider := GetExecutorProvider(executor)
-	if provider != nil {
-		return provider.Create()
-	}
-
-	return nil
 }
 
 func GetExecutors() []string {
@@ -66,4 +49,13 @@ func GetExecutors() []string {
 		}
 	}
 	return names
+}
+
+func NewExecutor(executor string) Executor {
+	provider := GetExecutor(executor)
+	if provider != nil {
+		return provider.Create()
+	}
+
+	return nil
 }

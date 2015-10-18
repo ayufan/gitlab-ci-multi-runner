@@ -3,9 +3,8 @@ package executors
 import "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 
 type DefaultExecutorProvider struct {
-	common.FeaturesInfo
-
 	Creator func() common.Executor
+	FeaturesUpdater func(features *common.FeaturesInfo)
 }
 
 func (e DefaultExecutorProvider) CanCreate() bool {
@@ -19,6 +18,8 @@ func (e DefaultExecutorProvider) Create() common.Executor {
 	return e.Creator()
 }
 
-func (e DefaultExecutorProvider) Features() *common.FeaturesInfo {
-	return &e.FeaturesInfo
+func (e DefaultExecutorProvider) GetFeatures(features *common.FeaturesInfo) {
+	if e.FeaturesUpdater != nil {
+		e.FeaturesUpdater(features)
+	}
 }

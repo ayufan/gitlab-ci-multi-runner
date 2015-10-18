@@ -23,6 +23,7 @@ type FeaturesInfo struct {
 	Variables bool `json:"variables"`
 	Image     bool `json:"image"`
 	Services  bool `json:"services"`
+	Artifacts bool `json:"features"`
 }
 
 type VersionInfo struct {
@@ -154,8 +155,8 @@ func GetRunnerVersion(executor string) VersionInfo {
 		},
 	}
 
-	if features := GetExecutorFeatures(executor); features != nil {
-		info.Features = *features
+	if executor := GetExecutor(executor); executor != nil {
+		executor.GetFeatures(&info.Features)
 	}
 
 	return info

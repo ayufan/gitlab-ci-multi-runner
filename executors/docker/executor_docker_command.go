@@ -83,12 +83,14 @@ func init() {
 		}
 	}
 
+	featuresUpdater := func(features *common.FeaturesInfo) {
+		features.Variables = true
+		features.Image = true
+		features.Services = true
+	}
+
 	common.RegisterExecutor("docker", executors.DefaultExecutorProvider{
 		Creator: creator,
-		FeaturesInfo: common.FeaturesInfo{
-			Variables: true,
-			Image:     true,
-			Services:  true,
-		},
+		FeaturesUpdater: featuresUpdater,
 	})
 }

@@ -42,3 +42,6 @@ func (s *AbstractShell) GetVariables(build *Build, projectDir string, buildVaria
 func (s *AbstractShell) GetSupportedOptions() []string {
 	return s.SupportedOptions
 }
+
+func (s *AbstractShell) GetFeatures(features *FeaturesInfo) {
+}
