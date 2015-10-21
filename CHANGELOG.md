@@ -1,3 +1,6 @@
+v 0.6.1
+- Revert: Fix tags handling when using git fetch: fetch all tags and prune the old ones
+
 v 0.6.0
 - Fetch docker auth from ~/.docker/config.json or ~/.dockercfg
 - Added support for NTFSSecurity PowerShell module to address problems with long paths on Windows

@@ -119,7 +119,7 @@ func (b *BashShell) writeFetchCmd(w io.Writer, build *common.Build, projectDir s
 	io.WriteString(w, fmt.Sprintf("git clean -ffdx\n"))
 	io.WriteString(w, fmt.Sprintf("git reset --hard > /dev/null\n"))
 	io.WriteString(w, fmt.Sprintf("git remote set-url origin %s\n", helpers.ShellEscape(build.RepoURL)))
-	io.WriteString(w, fmt.Sprintf("git fetch origin --tags -p\n"))
+	io.WriteString(w, fmt.Sprintf("git fetch origin\n"))
 	io.WriteString(w, fmt.Sprintf("else\n"))
 	b.writeCloneCmd(w, build, projectDir)
 	io.WriteString(w, fmt.Sprintf("fi\n"))
