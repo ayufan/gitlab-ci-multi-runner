@@ -1,3 +1,6 @@
+v 0.6.2
+- Fix PowerShell
+
 v 0.6.1
 - Revert: Fix tags handling when using git fetch: fetch all tags and prune the old ones
 
