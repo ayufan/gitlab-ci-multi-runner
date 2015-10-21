@@ -100,6 +100,7 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 	if err != nil {
 		if image != nil {
 			s.Warningln("Cannot pull the latest version of image", imageName, ":", err)
+			s.Warningln("Locally found image will be used instead.")
 			return image, nil
 		} else {
 			return nil, err
