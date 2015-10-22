@@ -18,7 +18,7 @@ DEB_ARCHS ?= amd64 i386 arm armhf
 RPM_PLATFORMS ?= el/6 el/7 ol/6 ol/7
 RPM_ARCHS ?= x86_64 i686 arm armhf
 
-all: deps test lint toolchain build
+all: check deps test lint toolchain build
 
 help:
 	# make all => deps test lint toolchain build
@@ -31,6 +31,13 @@ help:
 	# make package - package project using FPM
 	# make packagecloud - send all packages to packagecloud
 	# make packagecloud-yank - remove specific version from packagecloud
+
+check:
+ifeq ($(RELEASE),true)
+	ifneq ($VERSION,$LAST_TAG)
+		$(error Bad version specified in VERSION file)
+	endif
+endif
 
 version: FORCE
 	@echo Current version: $(VERSION)
