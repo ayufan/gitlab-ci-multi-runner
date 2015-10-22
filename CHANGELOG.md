@@ -1,5 +1,7 @@
 v 0.6.2
-- Fix PowerShell
+- Fix PowerShell support
+- Make more descriptive pulling message
+- Add version check to Makefile
 
 v 0.6.1
 - Revert: Fix tags handling when using git fetch: fetch all tags and prune the old ones

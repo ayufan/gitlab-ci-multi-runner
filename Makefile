@@ -34,9 +34,9 @@ help:
 
 check:
 ifeq ($(RELEASE),true)
-	ifneq ($VERSION,$LAST_TAG)
-		$(error Bad version specified in VERSION file)
-	endif
+ifneq (v$(VERSION),$(LAST_TAG))
+	$(error Bad version specified in VERSION file: v$(VERSION) instead of $(LAST_TAG))
+endif
 endif
 
 version: FORCE
