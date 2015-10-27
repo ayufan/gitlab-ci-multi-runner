@@ -86,7 +86,7 @@ func (s *VboxExecutor) CreateVM(vmName string) error {
         }
 
         s.Debugln("Creating localhost ssh forwarding...")
-	vmSSHPort := helpers.StringOrDefault(s.Config.SSH.Port, "22")
+        vmSSHPort := helpers.StringOrDefault(s.Config.SSH.Port, "22")
         err := vbox.ConfigureSSH(vmName, vmSSHPort)
         if err != nil {
                 return err
@@ -121,7 +121,7 @@ func (s *VboxExecutor) Prepare(globalConfig *common.Config, config *common.Runne
                 return err
         }
 
-        if s.ShellScript.PassFile {
+        if s.BuildScript.PassFile {
                 return errors.New("Vbox doesn't support shells that require script file")
         }
 
@@ -235,9 +235,9 @@ func (s *VboxExecutor) Start() error {
         s.Println("Starting SSH command...")
         s.sshCommand = ssh.Command{
                 Config:      *s.Config.SSH,
-                Environment: s.ShellScript.Environment,
-                Command:     s.ShellScript.GetFullCommand(),
-                Stdin:       s.ShellScript.GetScriptBytes(),
+                Environment: s.BuildScript.Environment,
+                Command:     s.BuildScript.GetFullCommand(),
+                Stdin:       s.BuildScript.GetScriptBytes(),
                 Stdout:      s.BuildLog,
                 Stderr:      s.BuildLog,
         }
@@ -284,7 +284,7 @@ func init() {
                 ShowHostname: true,
         }
 
-        create := func() common.Executor {
+        creator := func() common.Executor {
                 return &VboxExecutor{
                         AbstractExecutor: executors.AbstractExecutor{
                                 ExecutorOptions: options,
@@ -292,10 +292,12 @@ func init() {
                 }
         }
 
-        common.RegisterExecutor("vbox", common.ExecutorFactory{
-                Create: create,
-                Features: common.FeaturesInfo{
-                        Variables: true,
-                },
+        featuresUpdater := func(features *common.FeaturesInfo) {
+                features.Variables = true
+        }
+
+        common.RegisterExecutor("vbox", executors.DefaultExecutorProvider{
+                Creator: creator,
+                FeaturesUpdater: featuresUpdater,
         })
 }
