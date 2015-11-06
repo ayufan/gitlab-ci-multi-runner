@@ -55,36 +55,6 @@ func (b *BashShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
 	io.WriteString(w, fmt.Sprintf("git checkout -qf %s\n", build.Sha))
 }
 
-func (b *BashShell) archiveArtifacts(w io.Writer, build *common.Build) {
-	var artifacts []string
-
-	if artifactsOption, ok := build.Options["artifacts"].([]interface{}); ok {
-		for _, artifactOption := range artifactsOption {
-			artifact, ok := artifactOption.(string)
-			if !ok {
-				// TODO: error handling
-				continue
-			}
-
-			if !strings.HasPrefix(artifact, "$(") {
-				artifact = helpers.ShellEscape(artifact)
-			}
-
-			artifacts = append(artifacts, artifact)
-		}
-	}
-
-	if len(artifacts) == 0 {
-		return
-	}
-
-	// TODO: error handling
-	io.WriteString(w, "shopt -s nullglob\n")
-	io.WriteString(w, "tar zcf artifacts.tar.gz " + strings.Join(artifacts, " ") + "\n")
-	io.WriteString(w, "curl -s -S --fail --retry=3 -X POST -F file=@artifacts.tar.gz " + helpers.ShellEscape(build.ArtifactsUploadURL) + "\n")
-	io.WriteString(w, "shopt -q nullglob\n")
-}
-
 func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
@@ -137,7 +107,6 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	}
 
 	io.WriteString(w, "\n")
-	b.archiveArtifacts(w, build)
 
 	w.Flush()
 
@@ -172,9 +141,5 @@ func (b *BashShell) IsDefault() bool {
 }
 
 func init() {
-	common.RegisterShell(&BashShell{
-		AbstractShell: AbstractShell{
-			SupportedOptions: []string{"artifacts"},
-		},
-	})
+	common.RegisterShell(&BashShell{})
 }
