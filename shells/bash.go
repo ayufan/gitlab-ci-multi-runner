@@ -95,9 +95,15 @@ func (b *BashShell) generateExports(info common.ShellScriptInfo) string {
 	return buffer.String()
 }
 
-func (b *BashShell) generateCloneScript(info common.ShellScriptInfo) string {
+func (b *BashShell) generatePreBuildScript(info common.ShellScriptInfo) string {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
+
+	if len(info.Build.Hostname) != 0 {
+		io.WriteString(w, fmt.Sprintf("echo Running on $(hostname) via %s...", helpers.ShellEscape(info.Build.Hostname)))
+	} else {
+		io.WriteString(w, "echo Running on $(hostname)...\n")
+	}
 
 	build := info.Build
 	projectDir := b.fullProjectDir(info)
@@ -140,21 +146,28 @@ func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
 	return buffer.String()
 }
 
+func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string {
+	var buffer bytes.Buffer
+	w := bufio.NewWriter(&buffer)
+	b.writeCd(w, info)
+
+	w.Flush()
+
+	return buffer.String()
+}
+
 func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
 
 	io.WriteString(w, "#!/usr/bin/env bash\n\n")
-	if len(info.Build.Hostname) != 0 {
-		io.WriteString(w, fmt.Sprintf("echo Running on $(hostname) via %s...", helpers.ShellEscape(info.Build.Hostname)))
-	} else {
-		io.WriteString(w, "echo Running on $(hostname)...\n")
-	}
 	io.WriteString(w, b.generateExports(info))
 	io.WriteString(w, "set -eo pipefail\n")
-	io.WriteString(w, ": | eval " + helpers.ShellEscape(b.generateCloneScript(info)) + "\n")
+	io.WriteString(w, ": | eval " + helpers.ShellEscape(b.generatePreBuildScript(info)) + "\n")
 	io.WriteString(w, "echo\n")
 	io.WriteString(w, ": | eval " + helpers.ShellEscape(b.generateCommands(info)) + "\n")
+	io.WriteString(w, "echo\n")
+	io.WriteString(w, ": | eval " + helpers.ShellEscape(b.generatePostBuildScript(info)) + "\n")
 
 	w.Flush()
 
