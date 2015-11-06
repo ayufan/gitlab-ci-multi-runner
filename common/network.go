@@ -140,23 +140,22 @@ func getURL(baseURL string, request string, a ...interface{}) string {
 	return fmt.Sprintf("%s/api/v1/%s", baseURL, fmt.Sprintf(request, a...))
 }
 
-func GetRunnerVersion(executor string) VersionInfo {
+func GetRunnerVersion(config RunnerConfig) VersionInfo {
 	info := VersionInfo{
 		Name:         NAME,
 		Version:      VERSION,
 		Revision:     REVISION,
 		Platform:     runtime.GOOS,
 		Architecture: runtime.GOARCH,
-		Executor:     executor,
-		Features: FeaturesInfo{
-			Variables: true,
-			Image:     true,
-			Services:  true,
-		},
+		Executor:     config.Executor,
 	}
 
-	if executor := GetExecutor(executor); executor != nil {
+	if executor := GetExecutor(config.Executor); executor != nil {
 		executor.GetFeatures(&info.Features)
+	}
+
+	if shell := GetShell(config.Shell); shell != nil {
+		shell.GetFeatures(&info.Features)
 	}
 
 	return info
@@ -164,7 +163,7 @@ func GetRunnerVersion(executor string) VersionInfo {
 
 func GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 	request := GetBuildRequest{
-		Info:  GetRunnerVersion(config.Executor),
+		Info:  GetRunnerVersion(config),
 		Token: config.Token,
 	}
 
@@ -190,7 +189,7 @@ func GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 func RegisterRunner(url, token, description, tags string) *RegisterRunnerResponse {
 	// TODO: pass executor
 	request := RegisterRunnerRequest{
-		Info:        GetRunnerVersion(""),
+		Info:        GetRunnerVersion(RunnerConfig{}),
 		Token:       token,
 		Description: description,
 		Tags:        tags,
@@ -250,7 +249,7 @@ func VerifyRunner(url, token string) bool {
 
 func UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) UpdateState {
 	request := UpdateBuildRequest{
-		Info:  GetRunnerVersion(config.Executor),
+		Info:  GetRunnerVersion(config),
 		Token: config.Token,
 		State: state,
 		Trace: trace,
