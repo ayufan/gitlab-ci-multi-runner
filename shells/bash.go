@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"path"
 )
 
 type BashShell struct {
@@ -25,8 +26,25 @@ func (b *BashShell) echoColored(w io.Writer, text string) {
 	io.WriteString(w, "echo " + helpers.ShellEscape(coloredText) + "\n")
 }
 
+func (b *BashShell) echoWarning(w io.Writer, text string) {
+	coloredText := helpers.ANSI_BOLD_YELLOW + text + helpers.ANSI_RESET
+	io.WriteString(w, "echo " + helpers.ShellEscape(coloredText) + "\n")
+}
+
 func (b *BashShell) echoColoredFormat(w io.Writer, format string, a ...interface{}) {
 	b.echoColored(w, fmt.Sprintf(format, a...))
+}
+
+func (b *BashShell) executeCommand(w io.Writer, cmd string, arguments ...string) {
+	list := []string{
+		helpers.ShellEscape(cmd),
+	}
+
+	for _, argument := range arguments {
+		list = append(list, helpers.ShellEscape(argument))
+	}
+
+	io.WriteString(w, strings.Join(list, " ") + "\n")
 }
 
 func (b *BashShell) writeCloneCmd(w io.Writer, build *common.Build, projectDir string) {
@@ -55,31 +73,35 @@ func (b *BashShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
 	io.WriteString(w, fmt.Sprintf("git checkout -qf %s\n", build.Sha))
 }
 
-func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
+func (b *BashShell) writeCd(w io.Writer, info common.ShellScriptInfo) {
+	io.WriteString(w, fmt.Sprintf("cd %s\n", helpers.ShellEscape(b.fullProjectDir(info))))
+}
+
+func (b *BashShell) fullProjectDir(info common.ShellScriptInfo) string {
+	projectDir := info.Build.FullProjectDir()
+	return helpers.ToSlash(projectDir)
+}
+
+func (b *BashShell) generateExports(info common.ShellScriptInfo) string {
+	var buffer bytes.Buffer
+	w := bufio.NewWriter(&buffer)
+
+	// Set env variables from build script
+	for _, keyValue := range b.GetVariables(info.Build, b.fullProjectDir(info), info.Environment) {
+		io.WriteString(w, "export " + helpers.ShellEscape(keyValue) + "\n")
+	}
+	w.Flush()
+
+	return buffer.String()
+}
+
+func (b *BashShell) generateCloneScript(info common.ShellScriptInfo) string {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
 
 	build := info.Build
-	projectDir := build.FullProjectDir()
-	projectDir = helpers.ToSlash(projectDir)
+	projectDir := b.fullProjectDir(info)
 	gitDir := filepath.Join(projectDir, ".git")
-
-	if len(build.Hostname) != 0 {
-		io.WriteString(w, fmt.Sprintf("echo Running on $(hostname) via %s...", helpers.ShellEscape(build.Hostname)))
-	} else {
-		io.WriteString(w, "echo Running on $(hostname)...\n")
-	}
-	io.WriteString(w, "\n")
-	io.WriteString(w, "echo\n")
-	io.WriteString(w, "\n")
-
-	// Set env variables from build script
-	for _, keyValue := range b.GetVariables(build, projectDir, info.Environment) {
-		io.WriteString(w, "export " + helpers.ShellEscape(keyValue) + "\n")
-	}
-	io.WriteString(w, "\n")
-	io.WriteString(w, "set -eo pipefail\n")
-	io.WriteString(w, "\n")
 
 	if build.AllowGitFetch {
 		b.writeFetchCmd(w, build, helpers.ShellEscape(projectDir), helpers.ShellEscape(gitDir))
@@ -88,15 +110,22 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	}
 
 	b.writeCheckoutCmd(w, build)
-	io.WriteString(w, "\n")
-	io.WriteString(w, "echo\n")
-	io.WriteString(w, "\n")
+	w.Flush()
 
-	commands := build.Commands
+	return buffer.String()
+}
+
+func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
+	var buffer bytes.Buffer
+	w := bufio.NewWriter(&buffer)
+
+	b.writeCd(w, info)
+
+	commands := info.Build.Commands
 	commands = strings.TrimSpace(commands)
 	for _, command := range strings.Split(commands, "\n") {
 		command = strings.TrimSpace(command)
-		if !helpers.BoolOrDefault(build.Runner.DisableVerbose, false) {
+		if !helpers.BoolOrDefault(info.Build.Runner.DisableVerbose, false) {
 			if command != "" {
 				b.echoColored(w, "$ " + command)
 			} else {
@@ -106,16 +135,32 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 		io.WriteString(w, command+"\n")
 	}
 
-	io.WriteString(w, "\n")
+	w.Flush()
+
+	return buffer.String()
+}
+
+func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
+	var buffer bytes.Buffer
+	w := bufio.NewWriter(&buffer)
+
+	io.WriteString(w, "#!/usr/bin/env bash\n\n")
+	if len(info.Build.Hostname) != 0 {
+		io.WriteString(w, fmt.Sprintf("echo Running on $(hostname) via %s...", helpers.ShellEscape(info.Build.Hostname)))
+	} else {
+		io.WriteString(w, "echo Running on $(hostname)...\n")
+	}
+	io.WriteString(w, b.generateExports(info))
+	io.WriteString(w, "set -eo pipefail\n")
+	io.WriteString(w, ": | eval " + helpers.ShellEscape(b.generateCloneScript(info)) + "\n")
+	io.WriteString(w, "echo\n")
+	io.WriteString(w, ": | eval " + helpers.ShellEscape(b.generateCommands(info)) + "\n")
 
 	w.Flush()
 
-	// evaluate script in subcontext, this is required to close stdin
-	scriptCommand := "#!/usr/bin/env bash\n: | eval " + helpers.ShellEscape(buffer.String())
-
 	script := common.ShellScript{
-		Script:      scriptCommand,
-		Environment: b.GetVariables(build, projectDir, info.Environment),
+		Script:      buffer.String(),
+		Environment: b.GetVariables(info.Build, b.fullProjectDir(info), info.Environment),
 	}
 
 	// su
