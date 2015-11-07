@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 	"strconv"
+	"path"
 )
 
 type BashShell struct {
@@ -19,6 +20,10 @@ type BashShell struct {
 
 func (b *BashShell) GetName() string {
 	return "bash"
+}
+
+func (b *BashShell) GetFeatures(features *common.FeaturesInfo) {
+	features.Artifacts = true
 }
 
 func (b *BashShell) executeCommand(w io.Writer, cmd string, arguments ...string) {
@@ -166,10 +171,62 @@ func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
 	return buffer.String()
 }
 
+func (b *BashShell) findFiles(w io.Writer, list interface{}, filepath string) {
+	hash, ok := list.(map[interface{}]interface{})
+	if !ok {
+		return
+	}
+
+	if paths, ok := hash["paths"].([]interface{}); ok {
+		var files []string
+
+		// TODO
+		// this is limited only to files stored in current directory
+		// we should move this find method possibly to GitLab Runner
+		for _, artifactPath := range paths {
+			if file, ok := artifactPath.(string); ok {
+				file := "./" + path.Clean(file)
+				files = append(files, "-wholename " + strconv.Quote(file))
+			}
+		}
+
+		if len(files) != 0 {
+			files := "'(' " + strings.Join(files, " -or ") + " ')'"
+			b.executeCommandFormat(w, "find . %s -type f >> %q", files, filepath)
+		}
+	}
+
+	if untracked, ok := hash["untracked"].(bool); ok && untracked {
+		b.executeCommandFormat(w, "git ls-files -o >> %q", filepath)
+	}
+}
+
 func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
 	b.writeCdBuildDir(w, info)
+
+	// Find artifacts
+	b.findFiles(w, info.Build.Options["artficats"], "artifacts.files")
+
+	// If we have list of files create archive
+	b.writeIfFile(w, "artifacts.files")
+	b.echoColored(w, "Archiving artifacts...")
+	b.executeCommand(w, "tar", "-zcv", "-T", "artifacts.files", "-f", "artifacts.tgz")
+	b.writeEndIf(w)
+
+	// If archive is created upload it
+	b.writeIfFile(w, "artifacts.tgz")
+	b.echoColored(w, "Uploading artifacts...")
+	b.executeCommand(w, "du", "-h", "artifacts.tgz")
+	b.executeCommand(w, "curl", "-s", "-S", "--fail", "--retry", "3", "-X", "POST",
+		"-#",
+		"-o", "artifacts.upload.log",
+		"-T", "artifacts.tgz",
+		"-H", "Content-Disposition: attachment; filename=artifacts.tgz",
+		"-H", "BUILD-TOKEN: " + info.Build.Token,
+		common.GetArtifactsUploadURL(*info.Build.Runner, info.Build.ID))
+	b.writeEndIf(w)
 
 	w.Flush()
 
@@ -219,5 +276,9 @@ func (b *BashShell) IsDefault() bool {
 }
 
 func init() {
-	common.RegisterShell(&BashShell{})
+	common.RegisterShell(&BashShell{
+		AbstractShell: AbstractShell{
+			SupportedOptions: []string{"artifacts"},
+		},
+	})
 }
