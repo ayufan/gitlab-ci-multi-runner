@@ -93,6 +93,7 @@ func (s *ShellExecutor) Cleanup() {
 func init() {
 	options := executors.ExecutorOptions{
 		DefaultBuildsDir: "builds",
+		DefaultCacheDir:  "cache",
 		SharedBuildsDir:  true,
 		Shell: common.ShellScriptInfo{
 			Shell: common.GetDefaultShell(),
@@ -114,7 +115,7 @@ func init() {
 	}
 
 	common.RegisterExecutor("shell", executors.DefaultExecutorProvider{
-		Creator: creator,
+		Creator:         creator,
 		FeaturesUpdater: featuresUpdater,
 	})
 }

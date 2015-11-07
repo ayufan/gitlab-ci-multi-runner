@@ -64,6 +64,7 @@ func (s *DockerCommandExecutor) Start() error {
 func init() {
 	options := executors.ExecutorOptions{
 		DefaultBuildsDir: "/builds",
+		DefaultCacheDir:  "/cache",
 		SharedBuildsDir:  false,
 		Shell: common.ShellScriptInfo{
 			Shell: "bash",
@@ -90,7 +91,7 @@ func init() {
 	}
 
 	common.RegisterExecutor("docker", executors.DefaultExecutorProvider{
-		Creator: creator,
+		Creator:         creator,
 		FeaturesUpdater: featuresUpdater,
 	})
 }
