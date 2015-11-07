@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"path"
 	"strconv"
 )
 
@@ -22,7 +21,7 @@ func (b *BashShell) GetName() string {
 	return "bash"
 }
 
-func (b *BashShell) executeCommand(w io.Writer, cmd string, arguments ...interface{}) {
+func (b *BashShell) executeCommand(w io.Writer, cmd string, arguments ...string) {
 	list := []string{
 		helpers.ShellEscape(cmd),
 	}
@@ -34,7 +33,7 @@ func (b *BashShell) executeCommand(w io.Writer, cmd string, arguments ...interfa
 	io.WriteString(w, strings.Join(list, " ") + "\n")
 }
 
-func (b *BashShell) executeCommandFormat(w io.Writer, format string, arguments ...string) {
+func (b *BashShell) executeCommandFormat(w io.Writer, format string, arguments ...interface{}) {
 	io.WriteString(w, fmt.Sprintf(format + "\n", arguments...))
 }
 
@@ -91,7 +90,7 @@ func (b *BashShell) writeFetchCmd(w io.Writer, build *common.Build, projectDir s
 
 func (b *BashShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
 	b.echoColoredFormat(w, "Checking out %s as %s...", build.Sha[0:8], build.RefName)
-	b.executeCommand(w, "git", "checkout", build.Sha))
+	b.executeCommand(w, "git", "checkout", build.Sha)
 }
 
 func (b *BashShell) writeCdBuildDir(w io.Writer, info common.ShellScriptInfo) {

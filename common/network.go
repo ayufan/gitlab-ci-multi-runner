@@ -154,8 +154,10 @@ func GetRunnerVersion(config RunnerConfig) VersionInfo {
 		executor.GetFeatures(&info.Features)
 	}
 
-	if shell := GetShell(config.Shell); shell != nil {
-		shell.GetFeatures(&info.Features)
+	if config.Shell != nil {
+		if shell := GetShell(*config.Shell); shell != nil {
+			shell.GetFeatures(&info.Features)
+		}
 	}
 
 	return info
