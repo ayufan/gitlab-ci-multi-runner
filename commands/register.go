@@ -13,10 +13,12 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/ssh"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/network"
 )
 
 type RegisterCommand struct {
 	context    *cli.Context
+	network    common.Network
 	reader     *bufio.Reader
 	registered bool
 
@@ -161,15 +163,16 @@ func (s *RegisterCommand) askRunner() {
 	if s.Token != "" {
 		log.Infoln("Token specified trying to verify runner...")
 		log.Warningln("If you want to register use the '-r' instead of '-t'.")
-		if !common.VerifyRunner(s.URL, s.Token) {
+		if !s.network.VerifyRunner(s.RunnerCredentials) {
 			log.Fatalln("Failed to verify this runner. Perhaps you are having network problems")
 		}
 	} else {
-		s.RegistrationToken = s.ask("registration-token", "Please enter the gitlab-ci token for this runner:")
+		// we store registration token as token, since we pass that to RunnerCredentials
+		s.Token = s.ask("registration-token", "Please enter the gitlab-ci token for this runner:")
 		s.Name = s.ask("name", "Please enter the gitlab-ci description for this runner:")
 		s.TagList = s.ask("tag-list", "Please enter the gitlab-ci tags for this runner (comma separated):", true)
 
-		result := common.RegisterRunner(s.URL, s.RegistrationToken, s.Name, s.TagList)
+		result := s.network.RegisterRunner(s.RunnerCredentials, s.Name, s.TagList)
 		if result == nil {
 			log.Fatalln("Failed to register this runner. Perhaps you are having network problems")
 		}
@@ -191,7 +194,7 @@ func (c *RegisterCommand) Execute(context *cli.Context) {
 		defer func() {
 			if r := recover(); r != nil {
 				if c.registered {
-					common.DeleteRunner(c.URL, c.Token)
+					c.network.DeleteRunner(c.RunnerCredentials)
 				}
 
 				// pass panic to next defer
@@ -204,7 +207,7 @@ func (c *RegisterCommand) Execute(context *cli.Context) {
 
 		go func() {
 			s := <-signals
-			common.DeleteRunner(c.URL, c.Token)
+			c.network.DeleteRunner(c.RunnerCredentials)
 			log.Fatalf("RECEIVED SIGNAL: %v", s)
 		}()
 	}
@@ -254,5 +257,6 @@ func init() {
 			SSH:       &ssh.Config{},
 			Docker:    &common.DockerConfig{},
 		},
+		network: &network.GitLabClient{},
 	})
 }

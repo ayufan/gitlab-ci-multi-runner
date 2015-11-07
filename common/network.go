@@ -1,17 +1,5 @@
 package common
 
-import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"net/http"
-
-	log "github.com/Sirupsen/logrus"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"runtime"
-	"strings"
-)
-
 type UpdateState int
 
 const (
@@ -74,6 +62,14 @@ type RegisterRunnerResponse struct {
 	Token string `json:"token,omitempty"`
 }
 
+type DeleteRunnerRequest struct {
+	Token string `json:"token,omitempty"`
+}
+
+type VerifyRunnerRequest struct {
+	Token string `json:"token,omitempty"`
+}
+
 type UpdateBuildRequest struct {
 	Info  VersionInfo `json:"info,omitempty"`
 	Token string      `json:"token,omitempty"`
@@ -81,200 +77,11 @@ type UpdateBuildRequest struct {
 	Trace string      `json:"trace,omitempty"`
 }
 
-func sendJSONRequest(url string, method string, statusCode int, request interface{}, response interface{}) (int, string) {
-	var body []byte
-	var err error
-
-	if request != nil {
-		body, err = json.Marshal(request)
-		if err != nil {
-			return -1, fmt.Sprintf("failed to marshal project object: %v", err)
-		}
-	}
-
-	req, err := http.NewRequest(method, url, bytes.NewReader(body))
-	if err != nil {
-		return -1, fmt.Sprintf("failed to create NewRequest: %v", err)
-	}
-
-	if request != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return -1, fmt.Sprintf("couldn't execute %v against %s: %v", req.Method, req.URL, err)
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode == statusCode {
-		if response != nil {
-			d := json.NewDecoder(res.Body)
-			err = d.Decode(response)
-			if err != nil {
-				return -1, fmt.Sprintf("Error decoding json payload %v", err)
-			}
-		}
-	}
-
-	return res.StatusCode, res.Status
-}
-
-func getJSON(url string, statusCode int, response interface{}) (int, string) {
-	return sendJSONRequest(url, "GET", statusCode, nil, response)
-}
-
-func postJSON(url string, statusCode int, request interface{}, response interface{}) (int, string) {
-	return sendJSONRequest(url, "POST", statusCode, request, response)
-}
-
-func putJSON(url string, statusCode int, request interface{}, response interface{}) (int, string) {
-	return sendJSONRequest(url, "PUT", statusCode, request, response)
-}
-
-func deleteJSON(url string, statusCode int, response interface{}) (int, string) {
-	return sendJSONRequest(url, "DELETE", statusCode, nil, response)
-}
-
-func getURL(baseURL string, request string, a ...interface{}) string {
-	baseURL = strings.TrimRight(baseURL, "/")
-	return fmt.Sprintf("%s/api/v1/%s", baseURL, fmt.Sprintf(request, a...))
-}
-
-func GetRunnerVersion(config RunnerConfig) VersionInfo {
-	info := VersionInfo{
-		Name:         NAME,
-		Version:      VERSION,
-		Revision:     REVISION,
-		Platform:     runtime.GOOS,
-		Architecture: runtime.GOARCH,
-		Executor:     config.Executor,
-	}
-
-	if executor := GetExecutor(config.Executor); executor != nil {
-		executor.GetFeatures(&info.Features)
-	}
-
-	if config.Shell != nil {
-		if shell := GetShell(*config.Shell); shell != nil {
-			shell.GetFeatures(&info.Features)
-		}
-	}
-
-	return info
-}
-
-func GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
-	request := GetBuildRequest{
-		Info:  GetRunnerVersion(config),
-		Token: config.Token,
-	}
-
-	var response GetBuildResponse
-	result, statusText := postJSON(getURL(config.URL, "builds/register.json"), 201, &request, &response)
-
-	switch result {
-	case 201:
-		log.Println(config.ShortDescription(), "Checking for builds...", "received")
-		return &response, true
-	case 403:
-		log.Errorln(config.ShortDescription(), "Checking for builds...", "forbidden")
-		return nil, false
-	case 404:
-		log.Debugln(config.ShortDescription(), "Checking for builds...", "nothing")
-		return nil, true
-	default:
-		log.Warningln(config.ShortDescription(), "Checking for builds...", "failed:", statusText)
-		return nil, true
-	}
-}
-
-func RegisterRunner(url, token, description, tags string) *RegisterRunnerResponse {
-	// TODO: pass executor
-	request := RegisterRunnerRequest{
-		Info:        GetRunnerVersion(RunnerConfig{}),
-		Token:       token,
-		Description: description,
-		Tags:        tags,
-	}
-
-	var response RegisterRunnerResponse
-	result, statusText := postJSON(getURL(url, "runners/register.json"), 201, &request, &response)
-	shortToken := helpers.ShortenToken(token)
-
-	switch result {
-	case 201:
-		log.Println(shortToken, "Registering runner...", "succeeded")
-		return &response
-	case 403:
-		log.Errorln(shortToken, "Registering runner...", "forbidden (check registration token)")
-		return nil
-	default:
-		log.Errorln(shortToken, "Registering runner...", "failed", statusText)
-		return nil
-	}
-}
-
-func DeleteRunner(url, token string) bool {
-	result, statusText := deleteJSON(getURL(url, "runners/delete?token=%v", token), 200, nil)
-	shortToken := helpers.ShortenToken(token)
-
-	switch result {
-	case 200:
-		log.Println(shortToken, "Deleting runner...", "succeeded")
-		return true
-	case 403:
-		log.Errorln(shortToken, "Deleting runner...", "forbidden")
-		return false
-	default:
-		log.Errorln(shortToken, "Deleting runner...", "failed", statusText)
-		return false
-	}
-}
-
-func VerifyRunner(url, token string) bool {
-	result, statusText := putJSON(getURL(url, "builds/%v?token=%v", -1, token), 200, nil, nil)
-	shortToken := helpers.ShortenToken(token)
-
-	switch result {
-	case 404:
-		// this is expected due to fact that we ask for non-existing job
-		log.Println(shortToken, "Veryfing runner...", "is alive")
-		return true
-	case 403:
-		log.Errorln(shortToken, "Veryfing runner...", "is removed")
-		return false
-	default:
-		log.Errorln(shortToken, "Veryfing runner...", "failed", statusText)
-		return true
-	}
-}
-
-func UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) UpdateState {
-	request := UpdateBuildRequest{
-		Info:  GetRunnerVersion(config),
-		Token: config.Token,
-		State: state,
-		Trace: trace,
-	}
-
-	result, statusText := putJSON(getURL(config.URL, "builds/%d.json", id), 200, &request, nil)
-	switch result {
-	case 200:
-		log.Println(config.ShortDescription(), id, "Submitting build to coordinator...", "ok")
-		return UpdateSucceeded
-	case 404:
-		log.Warningln(config.ShortDescription(), id, "Submitting build to coordinator...", "aborted")
-		return UpdateAbort
-	case 403:
-		log.Errorln(config.ShortDescription(), id, "Submitting build to coordinator...", "forbidden")
-		return UpdateAbort
-	default:
-		log.Warningln(config.ShortDescription(), id, "Submitting build to coordinator...", "failed", statusText)
-		return UpdateFailed
-	}
-}
-
-func GetArtifactsUploadURL(config RunnerConfig, id int) string {
-	return getURL(config.URL, "builds/%d/artifacts", id)
+type Network interface {
+	GetBuild(config RunnerConfig) (*GetBuildResponse, bool)
+	RegisterRunner(config RunnerCredentials, description, tags string) *RegisterRunnerResponse
+	DeleteRunner(config RunnerCredentials) bool
+	VerifyRunner(config RunnerCredentials) bool
+	UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) UpdateState
+	GetArtifactsUploadURL(config RunnerCredentials, id int) string
 }

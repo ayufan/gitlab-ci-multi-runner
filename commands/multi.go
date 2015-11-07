@@ -18,6 +18,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/service"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/network"
 	"math"
 )
 
@@ -28,6 +29,7 @@ type RunnerHealth struct {
 
 type RunCommand struct {
 	configOptions
+	network common.Network
 
 	ServiceName      string `short:"n" long:"service" description:"Use different names for different services"`
 	WorkingDirectory string `short:"d" long:"working-directory" description:"Specify custom working directory"`
@@ -161,7 +163,7 @@ func (mr *RunCommand) requestBuild(runner *common.RunnerConfig) *common.Build {
 		return nil
 	}
 
-	buildData, healthy := common.GetBuild(*runner)
+	buildData, healthy := mr.network.GetBuild(*runner)
 	if healthy {
 		mr.makeHealthy(runner)
 	} else {
@@ -412,5 +414,6 @@ func (c *RunCommand) Execute(context *cli.Context) {
 func init() {
 	common.RegisterCommand2("run", "run multi runner service", &RunCommand{
 		ServiceName: defaultServiceName,
+		network:     &network.GitLabClient{},
 	})
 }

@@ -8,12 +8,14 @@ import (
 	log "github.com/Sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/network"
 	"os/signal"
 	"syscall"
 )
 
 type RunSingleCommand struct {
 	common.RunnerConfig
+	network common.Network
 }
 
 func (r *RunSingleCommand) Execute(c *cli.Context) {
@@ -65,7 +67,7 @@ func (r *RunSingleCommand) Execute(c *cli.Context) {
 	}()
 
 	for !finished {
-		buildData, healthy := common.GetBuild(r.RunnerConfig)
+		buildData, healthy := r.network.GetBuild(r.RunnerConfig)
 		if !healthy {
 			log.Println("Runner is not healthy!")
 			select {
@@ -96,5 +98,7 @@ func (r *RunSingleCommand) Execute(c *cli.Context) {
 }
 
 func init() {
-	common.RegisterCommand2("run-single", "start single runner", &RunSingleCommand{})
+	common.RegisterCommand2("run-single", "start single runner", &RunSingleCommand{
+		network: &network.GitLabClient{},
+	})
 }

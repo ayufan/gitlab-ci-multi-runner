@@ -120,7 +120,7 @@ func (e *AbstractExecutor) updateTrace(config common.RunnerConfig, canceled chan
 			}
 
 			buildTrace := e.Build.BuildLog()
-			switch common.UpdateBuild(config, e.Build.ID, common.Running, buildTrace) {
+			switch e.Build.Network.UpdateBuild(config, e.Build.ID, common.Running, buildTrace) {
 			case common.UpdateSucceeded:
 				lastSentTrace = buildTraceLen
 				lastSentTime = time.Now()

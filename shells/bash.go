@@ -257,7 +257,7 @@ func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string 
 		"-o", "artifacts.upload.log",
 		"-H", "BUILD-TOKEN: "+info.Build.Token,
 		"-F", "file=@artifacts.tgz",
-		common.GetArtifactsUploadURL(*info.Build.Runner, info.Build.ID))
+		info.Build.Network.GetArtifactsUploadURL(info.Build.Runner.RunnerCredentials, info.Build.ID))
 	b.executeCommand(w, "rm", "-f", "artifacts.tgz")
 	b.writeEndIf(w)
 

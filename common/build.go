@@ -25,6 +25,7 @@ const (
 
 type Build struct {
 	GetBuildResponse `yaml:",inline"`
+	Network          Network
 	BuildState       BuildState     `json:"build_state"`
 	BuildStarted     time.Time      `json:"build_started"`
 	BuildFinished    time.Time      `json:"build_finished"`
@@ -216,7 +217,7 @@ func (b *Build) SendBuildLog() {
 
 	buildTrace = b.BuildLog()
 	for {
-		if UpdateBuild(*b.Runner, b.ID, b.BuildState, buildTrace) != UpdateFailed {
+		if b.Network.UpdateBuild(*b.Runner, b.ID, b.BuildState, buildTrace) != UpdateFailed {
 			break
 		} else {
 			time.Sleep(UpdateRetryInterval * time.Second)
