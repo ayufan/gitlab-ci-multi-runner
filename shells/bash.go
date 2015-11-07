@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 	"path"
+	"strconv"
 )
 
 type BashShell struct {
@@ -21,60 +22,80 @@ func (b *BashShell) GetName() string {
 	return "bash"
 }
 
+func (b *BashShell) executeCommand(w io.Writer, cmd string, arguments ...interface{}) {
+	list := []string{
+		helpers.ShellEscape(cmd),
+	}
+
+	for _, argument := range arguments {
+		list = append(list, strconv.Quote(argument))
+	}
+
+	io.WriteString(w, strings.Join(list, " ") + "\n")
+}
+
+func (b *BashShell) executeCommandFormat(w io.Writer, format string, arguments ...string) {
+	io.WriteString(w, fmt.Sprintf(format + "\n", arguments...))
+}
+
 func (b *BashShell) echoColored(w io.Writer, text string) {
 	coloredText := helpers.ANSI_BOLD_GREEN + text + helpers.ANSI_RESET
-	io.WriteString(w, "echo " + helpers.ShellEscape(coloredText) + "\n")
+	b.executeCommand(w, "echo", coloredText)
 }
 
 func (b *BashShell) echoWarning(w io.Writer, text string) {
 	coloredText := helpers.ANSI_BOLD_YELLOW + text + helpers.ANSI_RESET
-	io.WriteString(w, "echo " + helpers.ShellEscape(coloredText) + "\n")
+	b.executeCommand(w, "echo", coloredText)
 }
 
 func (b *BashShell) echoColoredFormat(w io.Writer, format string, a ...interface{}) {
 	b.echoColored(w, fmt.Sprintf(format, a...))
 }
 
-func (b *BashShell) executeCommand(w io.Writer, cmd string, arguments ...string) {
-	list := []string{
-		helpers.ShellEscape(cmd),
-	}
+func (b *BashShell) writeIfDirectory(w io.Writer, directory string) {
+	b.executeCommandFormat(w, "if [[ -d %q ]]; then", directory)
+}
 
-	for _, argument := range arguments {
-		list = append(list, helpers.ShellEscape(argument))
-	}
+func (b *BashShell) writeIfFile(w io.Writer, directory string) {
+	b.executeCommandFormat(w, "if [[ -e %q ]]; then", directory)
+}
 
-	io.WriteString(w, strings.Join(list, " ") + "\n")
+func (b *BashShell) writeElse(w io.Writer) {
+	b.executeCommandFormat(w, "else")
+}
+
+func (b *BashShell) writeEndIf(w io.Writer) {
+	b.executeCommandFormat(w, "fi")
 }
 
 func (b *BashShell) writeCloneCmd(w io.Writer, build *common.Build, projectDir string) {
 	b.echoColoredFormat(w, "Cloning repository...")
-	io.WriteString(w, fmt.Sprintf("rm -rf %s\n", projectDir))
-	io.WriteString(w, fmt.Sprintf("mkdir -p %s\n", projectDir))
-	io.WriteString(w, fmt.Sprintf("git clone %s %s\n", helpers.ShellEscape(build.RepoURL), projectDir))
-	io.WriteString(w, fmt.Sprintf("cd %s\n", projectDir))
+	b.executeCommand(w, "rm", "-rf", projectDir)
+	b.executeCommand(w, "mkdir", "-p", projectDir)
+	b.executeCommand(w, "git", "clone", build.RepoURL, projectDir)
+	b.executeCommand(w, "cd", projectDir)
 }
 
 func (b *BashShell) writeFetchCmd(w io.Writer, build *common.Build, projectDir string, gitDir string) {
-	io.WriteString(w, fmt.Sprintf("if [[ -d %s ]]; then\n", gitDir))
+	b.writeIfDirectory(w, gitDir)
 	b.echoColoredFormat(w, "Fetching changes...")
-	io.WriteString(w, fmt.Sprintf("cd %s\n", projectDir))
-	io.WriteString(w, fmt.Sprintf("git clean -ffdx\n"))
-	io.WriteString(w, fmt.Sprintf("git reset --hard > /dev/null\n"))
-	io.WriteString(w, fmt.Sprintf("git remote set-url origin %s\n", helpers.ShellEscape(build.RepoURL)))
-	io.WriteString(w, fmt.Sprintf("git fetch origin\n"))
-	io.WriteString(w, fmt.Sprintf("else\n"))
+	b.executeCommand(w, "cd", projectDir)
+	b.executeCommand(w, "git", "clean", "-ffdx")
+	b.executeCommand(w, "git", "reset", "--hard")
+	b.executeCommand(w, "git", "remote", "set-url", "origin", build.RepoURL)
+	b.executeCommand(w, "git", "fetch", "origin")
+	b.writeElse(w)
 	b.writeCloneCmd(w, build, projectDir)
-	io.WriteString(w, fmt.Sprintf("fi\n"))
+	b.writeEndIf(w)
 }
 
 func (b *BashShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
 	b.echoColoredFormat(w, "Checking out %s as %s...", build.Sha[0:8], build.RefName)
-	io.WriteString(w, fmt.Sprintf("git checkout -qf %s\n", build.Sha))
+	b.executeCommand(w, "git", "checkout", build.Sha))
 }
 
-func (b *BashShell) writeCd(w io.Writer, info common.ShellScriptInfo) {
-	io.WriteString(w, fmt.Sprintf("cd %s\n", helpers.ShellEscape(b.fullProjectDir(info))))
+func (b *BashShell) writeCdBuildDir(w io.Writer, info common.ShellScriptInfo) {
+	b.executeCommand(w, "cd", b.fullProjectDir(info))
 }
 
 func (b *BashShell) fullProjectDir(info common.ShellScriptInfo) string {
@@ -88,7 +109,7 @@ func (b *BashShell) generateExports(info common.ShellScriptInfo) string {
 
 	// Set env variables from build script
 	for _, keyValue := range b.GetVariables(info.Build, b.fullProjectDir(info), info.Environment) {
-		io.WriteString(w, "export " + helpers.ShellEscape(keyValue) + "\n")
+		b.executeCommand(w, "export", keyValue)
 	}
 	w.Flush()
 
@@ -100,9 +121,9 @@ func (b *BashShell) generatePreBuildScript(info common.ShellScriptInfo) string {
 	w := bufio.NewWriter(&buffer)
 
 	if len(info.Build.Hostname) != 0 {
-		io.WriteString(w, fmt.Sprintf("echo Running on $(hostname) via %s...", helpers.ShellEscape(info.Build.Hostname)))
+		b.executeCommand(w, "echo", "Running on $(hostname) via " + info.Build.Hostname + "...")
 	} else {
-		io.WriteString(w, "echo Running on $(hostname)...\n")
+		b.executeCommand(w, "echo", "Running on $(hostname)...")
 	}
 
 	build := info.Build
@@ -110,9 +131,9 @@ func (b *BashShell) generatePreBuildScript(info common.ShellScriptInfo) string {
 	gitDir := filepath.Join(projectDir, ".git")
 
 	if build.AllowGitFetch {
-		b.writeFetchCmd(w, build, helpers.ShellEscape(projectDir), helpers.ShellEscape(gitDir))
+		b.writeFetchCmd(w, build, projectDir, gitDir)
 	} else {
-		b.writeCloneCmd(w, build, helpers.ShellEscape(projectDir))
+		b.writeCloneCmd(w, build, projectDir)
 	}
 
 	b.writeCheckoutCmd(w, build)
@@ -125,7 +146,7 @@ func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
 
-	b.writeCd(w, info)
+	b.writeCdBuildDir(w, info)
 
 	commands := info.Build.Commands
 	commands = strings.TrimSpace(commands)
@@ -135,7 +156,7 @@ func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
 			if command != "" {
 				b.echoColored(w, "$ " + command)
 			} else {
-				io.WriteString(w, "echo\n")
+				b.executeCommand(w, "echo")
 			}
 		}
 		io.WriteString(w, command+"\n")
@@ -149,7 +170,7 @@ func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
 func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
-	b.writeCd(w, info)
+	b.writeCdBuildDir(w, info)
 
 	w.Flush()
 
