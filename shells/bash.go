@@ -32,7 +32,7 @@ func (b *BashShell) executeCommand(w io.Writer, cmd string, arguments ...string)
 	}
 
 	for _, argument := range arguments {
-		list = append(list, strconv.Quote(argument))
+		list = append(list, helpers.ShellEscape(argument))
 	}
 
 	io.WriteString(w, strings.Join(list, " ") + "\n")
@@ -172,7 +172,7 @@ func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
 }
 
 func (b *BashShell) findFiles(w io.Writer, list interface{}, filepath string) {
-	hash, ok := list.(map[interface{}]interface{})
+	hash, ok := list.(map[string]interface{})
 	if !ok {
 		return
 	}
@@ -207,7 +207,7 @@ func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string 
 	b.writeCdBuildDir(w, info)
 
 	// Find artifacts
-	b.findFiles(w, info.Build.Options["artficats"], "artifacts.files")
+	b.findFiles(w, info.Build.Options["artifacts"], "artifacts.files")
 
 	// If we have list of files create archive
 	b.writeIfFile(w, "artifacts.files")
@@ -222,9 +222,8 @@ func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string 
 	b.executeCommand(w, "curl", "-s", "-S", "--fail", "--retry", "3", "-X", "POST",
 		"-#",
 		"-o", "artifacts.upload.log",
-		"-T", "artifacts.tgz",
-		"-H", "Content-Disposition: attachment; filename=artifacts.tgz",
 		"-H", "BUILD-TOKEN: " + info.Build.Token,
+		"-F", "file=@artifacts.tgz",
 		common.GetArtifactsUploadURL(*info.Build.Runner, info.Build.ID))
 	b.writeEndIf(w)
 
