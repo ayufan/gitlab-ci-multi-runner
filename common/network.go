@@ -9,6 +9,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"runtime"
+	"strings"
 )
 
 type UpdateState int
@@ -61,6 +62,7 @@ type GetBuildResponse struct {
 	Timeout       int             `json:"timeout,omitempty"`
 	Variables     []BuildVariable `json:"variables"`
 	Options       BuildOptions    `json:"options"`
+	Token         string          `json:"token"`
 }
 
 type RegisterRunnerRequest struct {
@@ -137,6 +139,7 @@ func deleteJSON(url string, statusCode int, response interface{}) (int, string) 
 }
 
 func getURL(baseURL string, request string, a ...interface{}) string {
+	baseURL = strings.TrimRight(baseURL, "/")
 	return fmt.Sprintf("%s/api/v1/%s", baseURL, fmt.Sprintf(request, a...))
 }
 
@@ -272,4 +275,8 @@ func UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) Up
 		log.Warningln(config.ShortDescription(), id, "Submitting build to coordinator...", "failed", statusText)
 		return UpdateFailed
 	}
+}
+
+func GetArtifactsUploadURL(config RunnerConfig, id int) string {
+	return getURL(config.URL, "builds/%d/artifacts", id)
 }
