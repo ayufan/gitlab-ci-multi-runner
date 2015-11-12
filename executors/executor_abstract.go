@@ -14,6 +14,7 @@ import (
 
 type ExecutorOptions struct {
 	DefaultBuildsDir string
+	DefaultCacheDir  string
 	SharedBuildsDir  bool
 	Shell            common.ShellScriptInfo
 	ShowHostname     bool
@@ -79,7 +80,8 @@ func (e *AbstractExecutor) startBuild() error {
 
 	// Start actual build
 	rootDir := helpers.StringOrDefault(e.Config.BuildsDir, e.DefaultBuildsDir)
-	e.Build.StartBuild(rootDir, e.SharedBuildsDir)
+	cacheDir := helpers.StringOrDefault(e.Config.CacheDir, e.DefaultCacheDir)
+	e.Build.StartBuild(rootDir, cacheDir, e.SharedBuildsDir)
 	return nil
 }
 

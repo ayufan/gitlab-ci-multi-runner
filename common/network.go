@@ -25,6 +25,7 @@ type FeaturesInfo struct {
 	Image     bool `json:"image"`
 	Services  bool `json:"services"`
 	Artifacts bool `json:"features"`
+	Cache     bool `json:"cache"`
 }
 
 type VersionInfo struct {
@@ -63,6 +64,9 @@ type GetBuildResponse struct {
 	Variables     []BuildVariable `json:"variables"`
 	Options       BuildOptions    `json:"options"`
 	Token         string          `json:"token"`
+	Name          string          `json:"name"`
+	Stage         string          `json:"stage"`
+	Tag           bool            `json:"tag"`
 }
 
 type RegisterRunnerRequest struct {

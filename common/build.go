@@ -31,6 +31,7 @@ type Build struct {
 	BuildAbort       chan os.Signal `json:"-" yaml:"-"`
 	RootDir          string         `json:"-" yaml:"-"`
 	BuildDir         string         `json:"-" yaml:"-"`
+	CacheDir         string         `json:"-" yaml:"-"`
 	Hostname         string         `json:"-" yaml:"-"`
 	Runner           *RunnerConfig  `json:"runner"`
 
@@ -137,11 +138,27 @@ func (b *Build) FullProjectDir() string {
 	return b.BuildDir
 }
 
-func (b *Build) StartBuild(rootDir string, sharedDir bool) {
+func (b *Build) CacheFileForRef(ref string) string {
+	if b.CacheDir != "" {
+		return filepath.Join(b.CacheDir, ref, b.Name+".tgz")
+	}
+	return ""
+}
+
+func (b *Build) CacheFile() string {
+	// For tags we don't create cache
+	if b.Tag {
+		return ""
+	}
+	return b.CacheFileForRef(b.RefName)
+}
+
+func (b *Build) StartBuild(rootDir, cacheDir string, sharedDir bool) {
 	b.BuildStarted = time.Now()
 	b.BuildState = Pending
 	b.RootDir = rootDir
 	b.BuildDir = filepath.Join(rootDir, b.ProjectUniqueDir(sharedDir))
+	b.CacheDir = filepath.Join(cacheDir, b.ProjectUniqueDir(false))
 }
 
 func (b *Build) FinishBuild(buildState BuildState) {

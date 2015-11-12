@@ -24,6 +24,7 @@ func (b *BashShell) GetName() string {
 
 func (b *BashShell) GetFeatures(features *common.FeaturesInfo) {
 	features.Artifacts = true
+	features.Cache = true
 }
 
 func (b *BashShell) executeCommand(w io.Writer, cmd string, arguments ...string) {
@@ -141,6 +142,32 @@ func (b *BashShell) generatePreBuildScript(info common.ShellScriptInfo) string {
 	}
 
 	b.writeCheckoutCmd(w, build)
+
+	cacheFile := info.Build.CacheFile()
+	cacheFile2 := info.Build.CacheFileForRef("master")
+	if cacheFile == "" {
+		cacheFile = cacheFile2
+		cacheFile2 = ""
+	}
+
+	// Try to restore from main cache, if not found cache for master
+	if cacheFile != "" {
+		// If we have cache, restore it
+		b.writeIfFile(w, cacheFile)
+		b.echoColored(w, "Restoring cache...")
+		b.executeCommand(w, "tar", "-zxfv", "-f", cacheFile)
+		if cacheFile2 != "" {
+			b.writeElse(w)
+
+			// If we have cache, restore it
+			b.writeIfFile(w, cacheFile2)
+			b.echoColored(w, "Restoring cache...")
+			b.executeCommand(w, "tar", "-zxfv", "-f", cacheFile2)
+			b.writeEndIf(w)
+		}
+		b.writeEndIf(w)
+	}
+
 	w.Flush()
 
 	return buffer.String()
@@ -205,6 +232,18 @@ func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string 
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
 	b.writeCdBuildDir(w, info)
+
+	if cacheFile := info.Build.CacheFile(); cacheFile != "" {
+		// Find files to cache
+		b.findFiles(w, info.Build.Options["caches"], "caches.files")
+
+		// If we have list of files create archive
+		b.writeIfFile(w, "cache.files")
+		b.echoColored(w, "Archiving caches...")
+		b.executeCommand(w, "mkdir", "-p", filepath.Dir(cacheFile))
+		b.executeCommand(w, "tar", "-zcv", "-T", "caches.files", "-f", cacheFile)
+		b.writeEndIf(w)
+	}
 
 	// Find artifacts
 	b.findFiles(w, info.Build.Options["artifacts"], "artifacts.files")
@@ -277,7 +316,7 @@ func (b *BashShell) IsDefault() bool {
 func init() {
 	common.RegisterShell(&BashShell{
 		AbstractShell: AbstractShell{
-			SupportedOptions: []string{"artifacts"},
+			SupportedOptions: []string{"artifacts", "cache"},
 		},
 	})
 }
