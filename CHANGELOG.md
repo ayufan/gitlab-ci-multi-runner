@@ -1,6 +1,7 @@
 v 0.7.0 (unreleased)
 - Refactor code structure
 - Refactor bash script adding pre-build and post-build steps
+- Add support for build artifacts
 
 v 0.6.1
 - Revert: Fix tags handling when using git fetch: fetch all tags and prune the old ones
