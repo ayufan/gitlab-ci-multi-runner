@@ -7,7 +7,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -199,34 +198,39 @@ func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
 	return b.finalize(buffer.String())
 }
 
-func (b *BashShell) findFiles(w io.Writer, list interface{}, filepath string) {
+func (b *BashShell) archiveFiles(w io.Writer, list interface{}, archivePath string) {
 	hash, ok := list.(map[string]interface{})
 	if !ok {
 		return
 	}
 
-	if paths, ok := hash["paths"].([]interface{}); ok {
-		var files []string
+	args := []string{
+		"archive",
+		"-output",
+		archivePath,
+	}
 
-		// TODO
-		// this is limited only to files stored in current directory
-		// we should move this find method possibly to GitLab Runner
+	// Collect paths
+	if paths, ok := hash["paths"].([]interface{}); ok {
 		for _, artifactPath := range paths {
 			if file, ok := artifactPath.(string); ok {
-				file := "./" + path.Clean(file)
-				files = append(files, "-wholename "+strconv.Quote(file))
+				args = append(args, "-path", file)
 			}
 		}
-
-		if len(files) != 0 {
-			files := "'(' " + strings.Join(files, " -or ") + " ')'"
-			b.executeCommandFormat(w, "find . %s -type f >> %q", files, filepath)
-		}
 	}
 
+	// Archive also untracked files
 	if untracked, ok := hash["untracked"].(bool); ok && untracked {
-		b.executeCommandFormat(w, "git ls-files -o >> %q", filepath)
+		args = append(args, "-untracked")
 	}
+
+	// Skip creating archive
+	if len(args) <= 3 {
+		return
+	}
+
+	// Execute archive command
+	b.executeCommand(w, "gitlab-runner", args...)
 }
 
 func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string {
@@ -236,26 +240,13 @@ func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string 
 	b.writeExports(w, info)
 	b.writeCdBuildDir(w, info)
 
+	// Find cached files and archive them
 	if cacheFile := info.Build.CacheFile(); cacheFile != "" {
-		// Find files to cache
-		b.findFiles(w, info.Build.Options["caches"], "caches.files")
-
-		// If we have list of files create archive
-		b.writeIfFile(w, "cache.files")
-		b.echoColored(w, "Archiving caches...")
-		b.executeCommand(w, "mkdir", "-p", filepath.Dir(cacheFile))
-		b.executeCommand(w, "tar", "-zcv", "-T", "caches.files", "-f", cacheFile)
-		b.writeEndIf(w)
+		b.archiveFiles(w, info.Build.Options["cache"], cacheFile)
 	}
 
 	// Find artifacts
-	b.findFiles(w, info.Build.Options["artifacts"], "artifacts.files")
-
-	// If we have list of files create archive
-	b.writeIfFile(w, "artifacts.files")
-	b.echoColored(w, "Archiving artifacts...")
-	b.executeCommand(w, "tar", "-zcv", "-T", "artifacts.files", "-f", "artifacts.tgz")
-	b.writeEndIf(w)
+	b.archiveFiles(w, info.Build.Options["artifacts"], "artifacts.tgz")
 
 	// If archive is created upload it
 	b.writeIfFile(w, "artifacts.tgz")
@@ -267,6 +258,7 @@ func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string 
 		"-H", "BUILD-TOKEN: "+info.Build.Token,
 		"-F", "file=@artifacts.tgz",
 		common.GetArtifactsUploadURL(*info.Build.Runner, info.Build.ID))
+	b.executeCommand(w, "rm", "-f", "artifacts.tgz")
 	b.writeEndIf(w)
 
 	w.Flush()

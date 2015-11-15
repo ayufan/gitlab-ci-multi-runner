@@ -138,6 +138,9 @@ func (c *ArchiveCommand) archive() {
 		files.WriteString(string(file) + "\n")
 	}
 
+	// create directories to store archive
+	os.MkdirAll(filepath.Dir(c.Output), 0700)
+
 	flags := "-zcPv"
 	if c.Silent {
 		flags = "-zcP"
