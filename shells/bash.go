@@ -33,7 +33,7 @@ func (b *BashShell) executeCommand(w io.Writer, cmd string, arguments ...string)
 	}
 
 	for _, argument := range arguments {
-		list = append(list, helpers.ShellEscape(argument))
+		list = append(list, strconv.Quote(argument))
 	}
 
 	io.WriteString(w, strings.Join(list, " ")+"\n")
@@ -45,12 +45,12 @@ func (b *BashShell) executeCommandFormat(w io.Writer, format string, arguments .
 
 func (b *BashShell) echoColored(w io.Writer, text string) {
 	coloredText := helpers.ANSI_BOLD_GREEN + text + helpers.ANSI_RESET
-	b.executeCommand(w, "echo", coloredText)
+	b.executeCommandFormat(w, "echo %s", helpers.ShellEscape(coloredText))
 }
 
 func (b *BashShell) echoWarning(w io.Writer, text string) {
 	coloredText := helpers.ANSI_BOLD_YELLOW + text + helpers.ANSI_RESET
-	b.executeCommand(w, "echo", coloredText)
+	b.executeCommandFormat(w, "echo %s", helpers.ShellEscape(coloredText))
 }
 
 func (b *BashShell) echoColoredFormat(w io.Writer, format string, a ...interface{}) {
@@ -103,6 +103,10 @@ func (b *BashShell) writeCdBuildDir(w io.Writer, info common.ShellScriptInfo) {
 	b.executeCommand(w, "cd", b.fullProjectDir(info))
 }
 
+func (b *BashShell) writeExport(w io.Writer, keyValue string) {
+	b.executeCommand(w, "export", keyValue)
+}
+
 func (b *BashShell) fullProjectDir(info common.ShellScriptInfo) string {
 	projectDir := info.Build.FullProjectDir()
 	return helpers.ToSlash(projectDir)
@@ -111,7 +115,7 @@ func (b *BashShell) fullProjectDir(info common.ShellScriptInfo) string {
 func (b *BashShell) writeExports(w io.Writer, info common.ShellScriptInfo) {
 	// Set env variables from build script
 	for _, keyValue := range b.GetVariables(info.Build, b.fullProjectDir(info), info.Environment) {
-		b.executeCommand(w, "export", keyValue)
+		b.writeExport(w, keyValue)
 	}
 }
 
