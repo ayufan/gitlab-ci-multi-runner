@@ -198,7 +198,7 @@ func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
 	return b.finalize(buffer.String())
 }
 
-func (b *BashShell) archiveFiles(w io.Writer, list interface{}, archivePath string) {
+func (b *BashShell) archiveFiles(w io.Writer, list interface{}, archiveType, archivePath string) {
 	hash, ok := list.(map[string]interface{})
 	if !ok {
 		return
@@ -230,6 +230,7 @@ func (b *BashShell) archiveFiles(w io.Writer, list interface{}, archivePath stri
 	}
 
 	// Execute archive command
+	b.echoColoredFormat(w, "Archiving %s...", archiveType)
 	b.executeCommand(w, "gitlab-runner", args...)
 }
 
@@ -242,11 +243,11 @@ func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string 
 
 	// Find cached files and archive them
 	if cacheFile := info.Build.CacheFile(); cacheFile != "" {
-		b.archiveFiles(w, info.Build.Options["cache"], cacheFile)
+		b.archiveFiles(w, info.Build.Options["cache"], "cache", cacheFile)
 	}
 
 	// Find artifacts
-	b.archiveFiles(w, info.Build.Options["artifacts"], "artifacts.tgz")
+	b.archiveFiles(w, info.Build.Options["artifacts"], "artifacts", "artifacts.tgz")
 
 	// If archive is created upload it
 	b.writeIfFile(w, "artifacts.tgz")

@@ -7,6 +7,7 @@ import (
 	"github.com/codegangsta/cli"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -141,24 +142,46 @@ func (c *ArchiveCommand) archive() {
 	// create directories to store archive
 	os.MkdirAll(filepath.Dir(c.Output), 0700)
 
+	tempFile, err := ioutil.TempFile(filepath.Dir(c.Output), "archive_")
+	if err != nil {
+		logrus.Fatalln("Failed to create temporary archive", err)
+	}
+	tempFile.Close()
+	defer os.Remove(tempFile.Name())
+
+	logrus.Debugln("Temporary file", tempFile.Name())
+
 	flags := "-zcPv"
 	if c.Silent {
 		flags = "-zcP"
 	}
 
-	cmd := exec.Command("tar", flags, "-T", "-", "-f", c.Output)
+	cmd := exec.Command("tar", flags, "-T", "-", "-f", tempFile.Name())
 	cmd.Env = os.Environ()
 	cmd.Stdin = &files
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		logrus.Fatalln("Failed to create archive", err)
 	}
+
+	err = os.Rename(tempFile.Name(), c.Output)
+	if err != nil {
+		logrus.Warningln("Failed to rename archive", err)
+	}
+
 	logrus.Infoln("Done!")
 }
 
 func (c *ArchiveCommand) Execute(context *cli.Context) {
+	logrus.SetFormatter(
+		&logrus.TextFormatter{
+			ForceColors:      true,
+			DisableTimestamp: false,
+		},
+	)
+
 	wd, err := os.Getwd()
 	if err != nil {
 		logrus.Fatalln("Failed to get current working directory", err)
