@@ -610,6 +610,10 @@ func (s *DockerExecutor) getImageName() (string, error) {
 		return imageOption, nil
 	}
 
+	if s.Config.Docker.Image == "" {
+		return "", errors.New("Missing image")
+	}
+
 	return s.Config.Docker.Image, nil
 }
 
