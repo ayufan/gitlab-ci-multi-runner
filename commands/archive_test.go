@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+const UntrackedFileName = "some_fancy_untracked_file"
+
 var currentDir, _ = os.Getwd()
 
 func randomTempFile(t *testing.T) string {
@@ -104,10 +106,13 @@ func TestArchiveNotAddingDuplicateFiles(t *testing.T) {
 func TestArchiveAddingUntrackedFiles(t *testing.T) {
 	cmd := createArchiveCommand(t)
 	defer os.Remove(cmd.Output)
+	err := ioutil.WriteFile(UntrackedFileName, []byte{}, 0700)
+	assert.NoError(t, err)
 	cmd.Untracked = true
 	cmd.Execute(nil)
 	files := readArchiveContent(t, cmd)
 	assert.NotEmpty(t, files)
+	assert.True(t, files[UntrackedFileName])
 }
 
 func TestArchiveUpdating(t *testing.T) {
