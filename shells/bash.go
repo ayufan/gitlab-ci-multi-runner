@@ -7,11 +7,11 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
+	"path"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"strconv"
-	"path"
+	"strings"
 )
 
 type BashShell struct {
@@ -36,11 +36,11 @@ func (b *BashShell) executeCommand(w io.Writer, cmd string, arguments ...string)
 		list = append(list, helpers.ShellEscape(argument))
 	}
 
-	io.WriteString(w, strings.Join(list, " ") + "\n")
+	io.WriteString(w, strings.Join(list, " ")+"\n")
 }
 
 func (b *BashShell) executeCommandFormat(w io.Writer, format string, arguments ...interface{}) {
-	io.WriteString(w, fmt.Sprintf(format + "\n", arguments...))
+	io.WriteString(w, fmt.Sprintf(format+"\n", arguments...))
 }
 
 func (b *BashShell) echoColored(w io.Writer, text string) {
@@ -108,25 +108,21 @@ func (b *BashShell) fullProjectDir(info common.ShellScriptInfo) string {
 	return helpers.ToSlash(projectDir)
 }
 
-func (b *BashShell) generateExports(info common.ShellScriptInfo) string {
-	var buffer bytes.Buffer
-	w := bufio.NewWriter(&buffer)
-
+func (b *BashShell) writeExports(w io.Writer, info common.ShellScriptInfo) {
 	// Set env variables from build script
 	for _, keyValue := range b.GetVariables(info.Build, b.fullProjectDir(info), info.Environment) {
 		b.executeCommand(w, "export", keyValue)
 	}
-	w.Flush()
-
-	return buffer.String()
 }
 
 func (b *BashShell) generatePreBuildScript(info common.ShellScriptInfo) string {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
 
+	b.writeExports(w, info)
+
 	if len(info.Build.Hostname) != 0 {
-		b.executeCommand(w, "echo", "Running on $(hostname) via " + info.Build.Hostname + "...")
+		b.executeCommand(w, "echo", "Running on $(hostname) via "+info.Build.Hostname+"...")
 	} else {
 		b.executeCommand(w, "echo", "Running on $(hostname)...")
 	}
@@ -170,13 +166,14 @@ func (b *BashShell) generatePreBuildScript(info common.ShellScriptInfo) string {
 
 	w.Flush()
 
-	return buffer.String()
+	return b.finalize(buffer.String())
 }
 
 func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
 
+	b.writeExports(w, info)
 	b.writeCdBuildDir(w, info)
 
 	commands := info.Build.Commands
@@ -185,7 +182,7 @@ func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
 		command = strings.TrimSpace(command)
 		if !helpers.BoolOrDefault(info.Build.Runner.DisableVerbose, false) {
 			if command != "" {
-				b.echoColored(w, "$ " + command)
+				b.echoColored(w, "$ "+command)
 			} else {
 				b.executeCommand(w, "echo")
 			}
@@ -195,7 +192,7 @@ func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
 
 	w.Flush()
 
-	return buffer.String()
+	return b.finalize(buffer.String())
 }
 
 func (b *BashShell) findFiles(w io.Writer, list interface{}, filepath string) {
@@ -213,7 +210,7 @@ func (b *BashShell) findFiles(w io.Writer, list interface{}, filepath string) {
 		for _, artifactPath := range paths {
 			if file, ok := artifactPath.(string); ok {
 				file := "./" + path.Clean(file)
-				files = append(files, "-wholename " + strconv.Quote(file))
+				files = append(files, "-wholename "+strconv.Quote(file))
 			}
 		}
 
@@ -231,6 +228,8 @@ func (b *BashShell) findFiles(w io.Writer, list interface{}, filepath string) {
 func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
+
+	b.writeExports(w, info)
 	b.writeCdBuildDir(w, info)
 
 	if cacheFile := info.Build.CacheFile(); cacheFile != "" {
@@ -261,33 +260,31 @@ func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string 
 	b.executeCommand(w, "curl", "-s", "-S", "--fail", "--retry", "3", "-X", "POST",
 		"-#",
 		"-o", "artifacts.upload.log",
-		"-H", "BUILD-TOKEN: " + info.Build.Token,
+		"-H", "BUILD-TOKEN: "+info.Build.Token,
 		"-F", "file=@artifacts.tgz",
 		common.GetArtifactsUploadURL(*info.Build.Runner, info.Build.ID))
 	b.writeEndIf(w)
 
 	w.Flush()
 
+	return b.finalize(buffer.String())
+}
+
+func (b *BashShell) finalize(script string) string {
+	var buffer bytes.Buffer
+	w := bufio.NewWriter(&buffer)
+	io.WriteString(w, "#!/usr/bin/env bash\n\n")
+	io.WriteString(w, "set -eo pipefail\n")
+	io.WriteString(w, ": | eval "+helpers.ShellEscape(script)+"\n")
+	w.Flush()
 	return buffer.String()
 }
 
 func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
-	var buffer bytes.Buffer
-	w := bufio.NewWriter(&buffer)
-
-	io.WriteString(w, "#!/usr/bin/env bash\n\n")
-	io.WriteString(w, b.generateExports(info))
-	io.WriteString(w, "set -eo pipefail\n")
-	io.WriteString(w, ": | eval " + helpers.ShellEscape(b.generatePreBuildScript(info)) + "\n")
-	io.WriteString(w, "echo\n")
-	io.WriteString(w, ": | eval " + helpers.ShellEscape(b.generateCommands(info)) + "\n")
-	io.WriteString(w, "echo\n")
-	io.WriteString(w, ": | eval " + helpers.ShellEscape(b.generatePostBuildScript(info)) + "\n")
-
-	w.Flush()
-
 	script := common.ShellScript{
-		Script:      buffer.String(),
+		PreScript:   b.generatePreBuildScript(info),
+		BuildScript: b.generateCommands(info),
+		PostScript:  b.generatePostBuildScript(info),
 		Environment: b.GetVariables(info.Build, b.fullProjectDir(info), info.Environment),
 	}
 

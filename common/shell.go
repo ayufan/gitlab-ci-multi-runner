@@ -9,7 +9,9 @@ import (
 
 type ShellScript struct {
 	Environment []string
-	Script      string
+	PreScript   string
+	BuildScript string
+	PostScript  string
 	Command     string
 	Arguments   []string
 	PassFile    bool
@@ -40,7 +42,7 @@ func (s *ShellScript) GetFullCommand() string {
 }
 
 func (s *ShellScript) GetScriptBytes() []byte {
-	return []byte(s.Script)
+	return []byte(s.PreScript + s.BuildScript + s.PostScript)
 }
 
 func (s *ShellScript) String() string {
