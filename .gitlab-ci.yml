@@ -31,7 +31,7 @@ Mirror:
   script:
   - mkdir -p ~/.ssh
   - echo "$GITHUB_SSH_KEY" > ~/.ssh/id_rsa
-  - ssh-keyscan github.com > ~/.ssh/authorized_keys
+  - ssh-keyscan -H github.com > ~/.ssh/known_hosts
   - chmod -R 0600 ~/.ssh/
   - git remote add github git@github.com:ayufan/gitlab-ci-multi-runner.git
   - git fetch github
