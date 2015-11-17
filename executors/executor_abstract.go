@@ -104,7 +104,7 @@ func (e *AbstractExecutor) verifyOptions() error {
 		}
 
 		if !found {
-			e.Warningln("Defined", key, "is not supported for that executor")
+			e.Warningln(key, "is not supported by selected executor and shell")
 		}
 	}
 	return nil
