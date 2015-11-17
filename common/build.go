@@ -140,7 +140,12 @@ func (b *Build) FullProjectDir() string {
 
 func (b *Build) CacheFileForRef(ref string) string {
 	if b.CacheDir != "" {
-		return filepath.Join(b.CacheDir, ref, b.Name+".tgz")
+		cacheFile := filepath.Join(b.CacheDir, ref, b.Name+".tgz")
+		cacheFile, err := filepath.Rel(b.BuildDir, cacheFile)
+		if err != nil {
+			return ""
+		}
+		return cacheFile
 	}
 	return ""
 }
