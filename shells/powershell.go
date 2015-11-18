@@ -92,7 +92,7 @@ func (b *PowerShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellS
 		}
 
 		if !helpers.BoolOrDefault(build.Runner.DisableVerbose, false) {
-			b.writeCommand(w, "echo \"%s\"", command)
+			b.writeCommand(w, "echo \"%s\"", strings.Replace(command, "\"", "`\"", -1))
 		}
 		b.writeCommandChecked(w, "%s", command)
 	}
