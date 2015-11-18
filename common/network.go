@@ -9,6 +9,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"runtime"
+	"strings"
 )
 
 type UpdateState int
@@ -23,6 +24,8 @@ type FeaturesInfo struct {
 	Variables bool `json:"variables"`
 	Image     bool `json:"image"`
 	Services  bool `json:"services"`
+	Artifacts bool `json:"features"`
+	Cache     bool `json:"cache"`
 }
 
 type VersionInfo struct {
@@ -60,6 +63,10 @@ type GetBuildResponse struct {
 	Timeout       int             `json:"timeout,omitempty"`
 	Variables     []BuildVariable `json:"variables"`
 	Options       BuildOptions    `json:"options"`
+	Token         string          `json:"token"`
+	Name          string          `json:"name"`
+	Stage         string          `json:"stage"`
+	Tag           bool            `json:"tag"`
 }
 
 type RegisterRunnerRequest struct {
@@ -136,26 +143,28 @@ func deleteJSON(url string, statusCode int, response interface{}) (int, string) 
 }
 
 func getURL(baseURL string, request string, a ...interface{}) string {
+	baseURL = strings.TrimRight(baseURL, "/")
 	return fmt.Sprintf("%s/api/v1/%s", baseURL, fmt.Sprintf(request, a...))
 }
 
-func GetRunnerVersion(executor string) VersionInfo {
+func GetRunnerVersion(config RunnerConfig) VersionInfo {
 	info := VersionInfo{
 		Name:         NAME,
 		Version:      VERSION,
 		Revision:     REVISION,
 		Platform:     runtime.GOOS,
 		Architecture: runtime.GOARCH,
-		Executor:     executor,
-		Features: FeaturesInfo{
-			Variables: true,
-			Image:     true,
-			Services:  true,
-		},
+		Executor:     config.Executor,
 	}
 
-	if features := GetExecutorFeatures(executor); features != nil {
-		info.Features = *features
+	if executor := GetExecutor(config.Executor); executor != nil {
+		executor.GetFeatures(&info.Features)
+	}
+
+	if config.Shell != nil {
+		if shell := GetShell(*config.Shell); shell != nil {
+			shell.GetFeatures(&info.Features)
+		}
 	}
 
 	return info
@@ -163,7 +172,7 @@ func GetRunnerVersion(executor string) VersionInfo {
 
 func GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 	request := GetBuildRequest{
-		Info:  GetRunnerVersion(config.Executor),
+		Info:  GetRunnerVersion(config),
 		Token: config.Token,
 	}
 
@@ -189,7 +198,7 @@ func GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 func RegisterRunner(url, token, description, tags string) *RegisterRunnerResponse {
 	// TODO: pass executor
 	request := RegisterRunnerRequest{
-		Info:        GetRunnerVersion(""),
+		Info:        GetRunnerVersion(RunnerConfig{}),
 		Token:       token,
 		Description: description,
 		Tags:        tags,
@@ -249,7 +258,7 @@ func VerifyRunner(url, token string) bool {
 
 func UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) UpdateState {
 	request := UpdateBuildRequest{
-		Info:  GetRunnerVersion(config.Executor),
+		Info:  GetRunnerVersion(config),
 		Token: config.Token,
 		State: state,
 		Trace: trace,
@@ -270,4 +279,8 @@ func UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) Up
 		log.Warningln(config.ShortDescription(), id, "Submitting build to coordinator...", "failed", statusText)
 		return UpdateFailed
 	}
+}
+
+func GetArtifactsUploadURL(config RunnerConfig, id int) string {
+	return getURL(config.URL, "builds/%d/artifacts", id)
 }

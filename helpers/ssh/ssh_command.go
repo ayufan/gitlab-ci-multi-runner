@@ -10,6 +10,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io/ioutil"
+	"strconv"
 )
 
 type Command struct {
@@ -116,7 +117,7 @@ func (s *Command) Run() error {
 
 	var envVariables bytes.Buffer
 	for _, keyValue := range s.Environment {
-		envVariables.WriteString("export " + helpers.ShellEscape(keyValue) + "\n")
+		envVariables.WriteString("export " + strconv.Quote(keyValue) + "\n")
 	}
 
 	session.Stdin = io.MultiReader(

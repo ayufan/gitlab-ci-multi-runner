@@ -37,7 +37,7 @@ func (s *ShellExecutor) Start() error {
 	s.Debugln("Starting shell command...")
 
 	// Create execution command
-	s.cmd = exec.Command(s.ShellScript.Command, s.ShellScript.Arguments...)
+	s.cmd = exec.Command(s.BuildScript.Command, s.BuildScript.Arguments...)
 	if s.cmd == nil {
 		return errors.New("Failed to generate execution command")
 	}
@@ -45,26 +45,26 @@ func (s *ShellExecutor) Start() error {
 	helpers.SetProcessGroup(s.cmd)
 
 	// Fill process environment variables
-	s.cmd.Env = append(os.Environ(), s.ShellScript.Environment...)
+	s.cmd.Env = append(os.Environ(), s.BuildScript.Environment...)
 	s.cmd.Stdout = s.BuildLog
 	s.cmd.Stderr = s.BuildLog
 
-	if s.ShellScript.PassFile {
+	if s.BuildScript.PassFile {
 		scriptDir, err := ioutil.TempDir("", "build_script")
 		if err != nil {
 			return err
 		}
 		s.scriptDir = scriptDir
 
-		scriptFile := filepath.Join(scriptDir, "script."+s.ShellScript.Extension)
-		err = ioutil.WriteFile(scriptFile, s.ShellScript.GetScriptBytes(), 0700)
+		scriptFile := filepath.Join(scriptDir, "script."+s.BuildScript.Extension)
+		err = ioutil.WriteFile(scriptFile, s.BuildScript.GetScriptBytes(), 0700)
 		if err != nil {
 			return err
 		}
 
 		s.cmd.Args = append(s.cmd.Args, scriptFile)
 	} else {
-		s.cmd.Stdin = bytes.NewReader(s.ShellScript.GetScriptBytes())
+		s.cmd.Stdin = bytes.NewReader(s.BuildScript.GetScriptBytes())
 	}
 
 	// Start process
@@ -93,6 +93,7 @@ func (s *ShellExecutor) Cleanup() {
 func init() {
 	options := executors.ExecutorOptions{
 		DefaultBuildsDir: "builds",
+		DefaultCacheDir:  "cache",
 		SharedBuildsDir:  true,
 		Shell: common.ShellScriptInfo{
 			Shell: common.GetDefaultShell(),
@@ -101,7 +102,7 @@ func init() {
 		ShowHostname: false,
 	}
 
-	create := func() common.Executor {
+	creator := func() common.Executor {
 		return &ShellExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
 				ExecutorOptions: options,
@@ -109,10 +110,12 @@ func init() {
 		}
 	}
 
-	common.RegisterExecutor("shell", common.ExecutorFactory{
-		Create: create,
-		Features: common.FeaturesInfo{
-			Variables: true,
-		},
+	featuresUpdater := func(features *common.FeaturesInfo) {
+		features.Variables = true
+	}
+
+	common.RegisterExecutor("shell", executors.DefaultExecutorProvider{
+		Creator:         creator,
+		FeaturesUpdater: featuresUpdater,
 	})
 }

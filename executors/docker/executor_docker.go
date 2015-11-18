@@ -19,14 +19,20 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	docker_helpers "gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/docker"
+	"io"
 )
+
+const CacheImage = "gitlab/gitlab-runner:cache"
+const ServiceImage = "gitlab/gitlab-runner:service"
+const PreBuildImage = "gitlab/gitlab-runner:build"
+const PostBuildImage = "gitlab/gitlab-runner:build"
 
 type DockerExecutor struct {
 	executors.AbstractExecutor
-	client         *docker.Client
-	buildContainer *docker.Container
-	services       []*docker.Container
-	caches         []*docker.Container
+	client    *docker.Client
+	builds    []*docker.Container
+	services  []*docker.Container
+	caches    []*docker.Container
 }
 
 func (s *DockerExecutor) getServiceVariables() []string {
@@ -100,6 +106,7 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 	if err != nil {
 		if image != nil {
 			s.Warningln("Cannot pull the latest version of image", imageName, ":", err)
+			s.Warningln("Locally found image will be used instead.")
 			return image, nil
 		} else {
 			return nil, err
@@ -152,7 +159,7 @@ func (s *DockerExecutor) getLabels(containerType string, otherLabels ...string) 
 
 func (s *DockerExecutor) createCacheVolume(containerName, containerPath string) (*docker.Container, error) {
 	// get busybox image
-	cacheImage, err := s.getDockerImage("gitlab/gitlab-runner:cache")
+	cacheImage, err := s.getDockerImage(CacheImage)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +274,7 @@ func (s *DockerExecutor) addVolume(binds, volumesFrom *[]string, volume string) 
 	return err
 }
 
-func (s *DockerExecutor) createVolumes(image *docker.Image) ([]string, []string, error) {
+func (s *DockerExecutor) createVolumes() ([]string, []string, error) {
 	var binds, volumesFrom []string
 
 	for _, volume := range s.Config.Docker.Volumes {
@@ -484,37 +491,16 @@ func (s *DockerExecutor) connect() (*docker.Client, error) {
 	}
 }
 
-func (s *DockerExecutor) createBuildContainer(cmd []string) error {
-	hostname := helpers.StringOrDefault(s.Config.Docker.Hostname, s.Build.ProjectUniqueName())
-	containerName := s.Build.ProjectUniqueName()
-
-	// this will fail potentially some builds if there's name collision
-	s.removeContainer(containerName)
-
-	imageName, err := s.getImageName()
-	if err != nil {
-		return err
-	}
-
-	image, err := s.getDockerImage(imageName)
-	if err != nil {
-		return err
-	}
-
-	createContainerOptions := docker.CreateContainerOptions{
-		Name: containerName,
+func (s *DockerExecutor) prepareBuildContainer() (options *docker.CreateContainerOptions, err error) {
+	options = &docker.CreateContainerOptions{
 		Config: &docker.Config{
-			Hostname:     hostname,
-			Image:        image.ID,
 			Tty:          false,
 			AttachStdin:  true,
 			AttachStdout: true,
 			AttachStderr: true,
 			OpenStdin:    true,
 			StdinOnce:    true,
-			Env:          s.ShellScript.Environment,
-			Cmd:          cmd,
-			Labels:       s.getLabels("build"),
+			Env:          s.BuildScript.Environment,
 		},
 		HostConfig: &docker.HostConfig{
 			Privileged:    s.Config.Docker.Privileged,
@@ -527,36 +513,89 @@ func (s *DockerExecutor) createBuildContainer(cmd []string) error {
 	s.Debugln("Creating services...")
 	links, err := s.createServices()
 	if err != nil {
-		return err
+		return options, err
 	}
-	createContainerOptions.HostConfig.Links = append(createContainerOptions.HostConfig.Links, links...)
+	options.HostConfig.Links = append(options.HostConfig.Links, links...)
 
 	s.Debugln("Creating cache directories...")
-	binds, volumesFrom, err := s.createVolumes(image)
+	binds, volumesFrom, err := s.createVolumes()
 	if err != nil {
-		return err
+		return options, err
 	}
-	createContainerOptions.HostConfig.Binds = binds
-	createContainerOptions.HostConfig.VolumesFrom = volumesFrom
+	options.HostConfig.Binds = binds
+	options.HostConfig.VolumesFrom = volumesFrom
+	return
+}
 
-	s.Debugln("Creating container", createContainerOptions.Name, "...")
-	container, err := s.client.CreateContainer(createContainerOptions)
+func (s *DockerExecutor) createContainer(containerType, imageName string, cmd []string, options docker.CreateContainerOptions) (container *docker.Container, err error) {
+	hostname := helpers.StringOrDefault(s.Config.Docker.Hostname, s.Build.ProjectUniqueName())
+	containerName := s.Build.ProjectUniqueName() + "-" + containerType
+
+	// Fetch image
+	image, err := s.getDockerImage(imageName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fill container options
+	options.Name = containerName
+	options.Config.Image = image.ID
+	options.Config.Hostname = hostname
+	options.Config.Cmd = cmd
+	options.Config.Labels = s.getLabels(containerType)
+
+	// this will fail potentially some builds if there's name collision
+	s.removeContainer(containerName)
+
+	s.Debugln("Creating container", options.Name, "...")
+	container, err = s.client.CreateContainer(options)
 	if err != nil {
 		if container != nil {
 			go s.removeContainer(container.ID)
 		}
-		return err
+		return nil, err
 	}
 
+	s.builds = append(s.builds, container)
+	return
+}
+
+func (s *DockerExecutor) watchContainer(container *docker.Container, input io.Reader) (err error) {
 	s.Debugln("Starting container", container.ID, "...")
 	err = s.client.StartContainer(container.ID, nil)
 	if err != nil {
-		go s.removeContainer(container.ID)
-		return err
+		return
 	}
 
-	s.buildContainer = container
-	return nil
+	options := docker.AttachToContainerOptions{
+		Container:    container.ID,
+		InputStream:  input,
+		OutputStream: s.BuildLog,
+		ErrorStream:  s.BuildLog,
+		Logs:         true,
+		Stream:       true,
+		Stdin:        true,
+		Stdout:       true,
+		Stderr:       true,
+		RawTerminal:  false,
+	}
+
+	s.Debugln("Attaching to container...")
+	err = s.client.AttachToContainer(options)
+	if err != nil {
+		return
+	}
+
+	s.Debugln("Waiting for container...")
+	exitCode, err := s.client.WaitContainer(container.ID)
+	if err != nil {
+		return
+	}
+
+	if exitCode != 0 {
+		err = fmt.Errorf("exit code %d", exitCode)
+	}
+	return
 }
 
 func (s *DockerExecutor) removeContainer(id string) error {
@@ -584,8 +623,8 @@ func (s *DockerExecutor) verifyAllowedImage(image, optionName string, allowedIma
 		}
 	}
 
-	s.Println()
 	if len(allowedImages) != 0 {
+		s.Println()
 		s.Errorln("The", image, "is not present on list of allowed", optionName)
 		for _, allowedImage := range allowedImages {
 			s.Println("-", allowedImage)
@@ -609,6 +648,10 @@ func (s *DockerExecutor) getImageName() (string, error) {
 		return imageOption, nil
 	}
 
+	if s.Config.Docker.Image == "" {
+		return "", errors.New("Missing image")
+	}
+
 	return s.Config.Docker.Image, nil
 }
 
@@ -618,7 +661,7 @@ func (s *DockerExecutor) Prepare(globalConfig *common.Config, config *common.Run
 		return err
 	}
 
-	if s.ShellScript.PassFile {
+	if s.BuildScript.PassFile {
 		return errors.New("Docker doesn't support shells that require script file")
 	}
 
@@ -630,6 +673,7 @@ func (s *DockerExecutor) Prepare(globalConfig *common.Config, config *common.Run
 	if err != nil {
 		return err
 	}
+
 	s.Println("Using Docker executor with image", imageName, "...")
 
 	client, err := docker_helpers.Connect(s.Config.Docker.DockerCredentials, dockerAPIVersion)
@@ -649,16 +693,15 @@ func (s *DockerExecutor) Cleanup() {
 		s.removeContainer(cache.ID)
 	}
 
-	if s.buildContainer != nil {
-		s.removeContainer(s.buildContainer.ID)
-		s.buildContainer = nil
+	for _, build := range s.builds {
+		s.removeContainer(build.ID)
 	}
 
 	s.AbstractExecutor.Cleanup()
 }
 
 func (s *DockerExecutor) runServiceHealthCheckContainer(container *docker.Container, timeout time.Duration) error {
-	waitImage, err := s.getDockerImage("gitlab/gitlab-runner:service")
+	waitImage, err := s.getDockerImage(ServiceImage)
 	if err != nil {
 		return err
 	}

@@ -1,9 +1,14 @@
 image: golang:1.4
 
+stages:
+- build
+- mirror
+
 before_script:
 - source ci/prepare
 
 Bleeding Edge:
+  stage: build
   script:
   - source ci/build
   - '[[ -n "$AWS_SECRET_ACCESS_KEY" ]] && make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"'
@@ -11,6 +16,7 @@ Bleeding Edge:
   - branches
 
 Stable Release:
+  stage: build
   script:
   - export RELEASE=true
   - source ci/build
@@ -18,4 +24,18 @@ Stable Release:
   - '[[ -n "$AWS_SECRET_ACCESS_KEY" ]] && make s3-upload "S3_UPLOAD_PATH=latest"'
   - '[[ -n "$PACKAGECLOUD_TOKEN" ]] && make packagecloud'
   only:
-  - tags
+  - tags@gitlab-org/gitlab-ci-multi-runner
+
+Mirror:
+  stage: mirror
+  script:
+  - mkdir -p ~/.ssh
+  - echo "$GITHUB_SSH_KEY" > ~/.ssh/id_rsa
+  - ssh-keyscan -H github.com > ~/.ssh/known_hosts
+  - chmod -R 0600 ~/.ssh/
+  - git remote add github git@github.com:ayufan/gitlab-ci-multi-runner.git
+  - git fetch github
+  - git push github --mirror
+  only:
+  - master@gitlab-org/gitlab-ci-multi-runner
+  - tags@gitlab-org/gitlab-ci-multi-runner

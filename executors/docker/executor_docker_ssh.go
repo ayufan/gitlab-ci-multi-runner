@@ -20,13 +20,29 @@ func (s *DockerSSHExecutor) Start() error {
 
 	s.Debugln("Starting SSH command...")
 
-	// Create container
-	err := s.createBuildContainer([]string{})
+	imageName, err := s.getImageName()
 	if err != nil {
 		return err
 	}
 
-	containerData, err := s.client.InspectContainer(s.buildContainer.ID)
+	options, err := s.prepareBuildContainer()
+	if err != nil {
+		return err
+	}
+
+	// Start build container which will run actual build
+	container, err := s.createContainer("build", imageName, []string{}, *options)
+	if err != nil {
+		return err
+	}
+
+	s.Debugln("Starting container", container.ID, "...")
+	err = s.client.StartContainer(container.ID, nil)
+	if err != nil {
+		return err
+	}
+
+	containerData, err := s.client.InspectContainer(container.ID)
 	if err != nil {
 		return err
 	}
@@ -34,9 +50,9 @@ func (s *DockerSSHExecutor) Start() error {
 	// Create SSH command
 	s.sshCommand = ssh.Command{
 		Config:      *s.Config.SSH,
-		Environment: s.ShellScript.Environment,
-		Command:     s.ShellScript.GetFullCommand(),
-		Stdin:       s.ShellScript.GetScriptBytes(),
+		Environment: s.BuildScript.Environment,
+		Command:     s.BuildScript.GetFullCommand(),
+		Stdin:       s.BuildScript.GetScriptBytes(),
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,
 	}
@@ -75,7 +91,7 @@ func init() {
 		SupportedOptions: []string{"image", "services"},
 	}
 
-	create := func() common.Executor {
+	creator := func() common.Executor {
 		return &DockerSSHExecutor{
 			DockerExecutor: DockerExecutor{
 				AbstractExecutor: executors.AbstractExecutor{
@@ -85,12 +101,14 @@ func init() {
 		}
 	}
 
-	common.RegisterExecutor("docker-ssh", common.ExecutorFactory{
-		Create: create,
-		Features: common.FeaturesInfo{
-			Variables: true,
-			Image:     true,
-			Services:  true,
-		},
+	featuresUpdater := func(features *common.FeaturesInfo) {
+		features.Variables = true
+		features.Image = true
+		features.Services = true
+	}
+
+	common.RegisterExecutor("docker-ssh", executors.DefaultExecutorProvider{
+		Creator: creator,
+		FeaturesUpdater: featuresUpdater,
 	})
 }

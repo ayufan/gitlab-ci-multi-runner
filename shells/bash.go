@@ -9,8 +9,8 @@ import (
 	"io"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
-	"text/template"
 )
 
 type BashShell struct {
@@ -21,178 +21,268 @@ func (b *BashShell) GetName() string {
 	return "bash"
 }
 
+func (b *BashShell) GetFeatures(features *common.FeaturesInfo) {
+	features.Artifacts = true
+	features.Cache = true
+}
+
+func (b *BashShell) executeCommand(w io.Writer, cmd string, arguments ...string) {
+	list := []string{
+		helpers.ShellEscape(cmd),
+	}
+
+	for _, argument := range arguments {
+		list = append(list, strconv.Quote(argument))
+	}
+
+	io.WriteString(w, strings.Join(list, " ")+"\n")
+}
+
+func (b *BashShell) executeCommandFormat(w io.Writer, format string, arguments ...interface{}) {
+	io.WriteString(w, fmt.Sprintf(format+"\n", arguments...))
+}
+
 func (b *BashShell) echoColored(w io.Writer, text string) {
 	coloredText := helpers.ANSI_BOLD_GREEN + text + helpers.ANSI_RESET
-	io.WriteString(w, "echo " + helpers.ShellEscape(coloredText) + "\n")
+	b.executeCommandFormat(w, "echo %s", helpers.ShellEscape(coloredText))
+}
+
+func (b *BashShell) echoWarning(w io.Writer, text string) {
+	coloredText := helpers.ANSI_BOLD_YELLOW + text + helpers.ANSI_RESET
+	b.executeCommandFormat(w, "echo %s", helpers.ShellEscape(coloredText))
 }
 
 func (b *BashShell) echoColoredFormat(w io.Writer, format string, a ...interface{}) {
 	b.echoColored(w, fmt.Sprintf(format, a...))
 }
 
-func (b *BashShell) installGit(w io.Writer) error {
-	installGitTmpl := `
-function installGit() {
-	PREFIX=
-	if [[ $(id -u) -ne 0 ]]; then
-		if which sudo >/dev/null 2>/dev/null; then
-			PREFIX="sudo "
-		elif [[ -x /usr/bin/sudo ]]; then
-			PREFIX="/usr/bin/sudo "
-		else
-			echo "{{.ANSI_YELLOW}}WARNING: Cannot install git: missing sudo.{{.ANSI_RESET}}"
-			return 1
-		fi
-	fi
-
-	UPDATE_CMD=
-	INSTALL_CMD=
-
-	echo "Installing git..."
-	if which apt-get >/dev/null 2>/dev/null; then # Debian/Ubuntu support
-		UPDATE_CMD="apt-get update -y -q"
-		INSTALL_CMD="apt-get install -y git-core ca-certificates"
-	elif [[ -x /usr/bin/apt-get ]]; then
-		UPDATE_CMD="/usr/bin/apt-get update -y -q"
-		INSTALL_CMD="/usr/bin/apt-get install -y git-core ca-certificates"
-	elif which yum >/dev/null 2>/dev/null; then # RedHat/CentOS support
-		INSTALL_CMD="yum install -y git"
-	elif [[ -x /usr/bin/yum ]]; then # RedHat/CentOS support
-		INSTALL_CMD="/usr/bin/yum install -y git"
-	else
-		echo "{{.ANSI_YELLOW}}WARNING: Cannot install git: unsupported OS.{{.ANSI_RESET}}"
-		return 1
-	fi
-
-	if [[ -n "$UPDATE_CMD" ]]; then
-		echo "{{.ANSI_GREEN}$$ $PREFIX$UPDATE_CMD{{.ANSI_RESET}}"
-		$PREFIX $UPDATE_CMD || true
-	fi
-
-	if [[ -n "$INSTALL_CMD" ]]; then
-		echo "{{.ANSI_GREEN}$$ $PREFIX$INSTALL_CMD{{.ANSI_RESET}}"
-		if ! $PREFIX $INSTALL_CMD; then
-			echo "{{.ANSI_YELLOW}}WARNING: Cannot install git: the build may fail.{{.ANSI_RESET}}"
-			return 1
-		fi
-	fi
+func (b *BashShell) writeIfDirectory(w io.Writer, directory string) {
+	b.executeCommandFormat(w, "if [[ -d %q ]]; then", directory)
 }
 
-if ! which git >/dev/null 2>/dev/null && ! [[ -x /usr/bin/git ]]; then
-	installGit || true
-fi
-`
-	template, err := template.New("").Parse(installGitTmpl)
-	if err != nil {
-		return err
-	}
+func (b *BashShell) writeIfFile(w io.Writer, directory string) {
+	b.executeCommandFormat(w, "if [[ -e %q ]]; then", directory)
+}
 
-	var to = &struct {
-		ANSI_GREEN string
-		ANSI_YELLOW string
-		ANSI_RESET string
-	}{
-		helpers.ANSI_BOLD_GREEN,
-		helpers.ANSI_BOLD_YELLOW,
-		helpers.ANSI_RESET,
-	}
+func (b *BashShell) writeElse(w io.Writer) {
+	b.executeCommandFormat(w, "else")
+}
 
-	err = template.Execute(w, to)
-	if err != nil {
-		return err
-	}
-	return nil
+func (b *BashShell) writeEndIf(w io.Writer) {
+	b.executeCommandFormat(w, "fi")
 }
 
 func (b *BashShell) writeCloneCmd(w io.Writer, build *common.Build, projectDir string) {
 	b.echoColoredFormat(w, "Cloning repository...")
-	io.WriteString(w, fmt.Sprintf("rm -rf %s\n", projectDir))
-	io.WriteString(w, fmt.Sprintf("mkdir -p %s\n", projectDir))
-	io.WriteString(w, fmt.Sprintf("git clone %s %s\n", helpers.ShellEscape(build.RepoURL), projectDir))
-	io.WriteString(w, fmt.Sprintf("cd %s\n", projectDir))
+	b.executeCommand(w, "rm", "-rf", projectDir)
+	b.executeCommand(w, "mkdir", "-p", projectDir)
+	b.executeCommand(w, "git", "clone", build.RepoURL, projectDir)
+	b.executeCommand(w, "cd", projectDir)
 }
 
 func (b *BashShell) writeFetchCmd(w io.Writer, build *common.Build, projectDir string, gitDir string) {
-	io.WriteString(w, fmt.Sprintf("if [[ -d %s ]]; then\n", gitDir))
+	b.writeIfDirectory(w, gitDir)
 	b.echoColoredFormat(w, "Fetching changes...")
-	io.WriteString(w, fmt.Sprintf("cd %s\n", projectDir))
-	io.WriteString(w, fmt.Sprintf("git clean -ffdx\n"))
-	io.WriteString(w, fmt.Sprintf("git reset --hard > /dev/null\n"))
-	io.WriteString(w, fmt.Sprintf("git remote set-url origin %s\n", helpers.ShellEscape(build.RepoURL)))
-	io.WriteString(w, fmt.Sprintf("git fetch origin --tags -p\n"))
-	io.WriteString(w, fmt.Sprintf("else\n"))
+	b.executeCommand(w, "cd", projectDir)
+	b.executeCommand(w, "git", "clean", "-ffdx")
+	b.executeCommand(w, "git", "reset", "--hard")
+	b.executeCommand(w, "git", "remote", "set-url", "origin", build.RepoURL)
+	b.executeCommand(w, "git", "fetch", "origin")
+	b.writeElse(w)
 	b.writeCloneCmd(w, build, projectDir)
-	io.WriteString(w, fmt.Sprintf("fi\n"))
+	b.writeEndIf(w)
 }
 
 func (b *BashShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
 	b.echoColoredFormat(w, "Checking out %s as %s...", build.Sha[0:8], build.RefName)
-	io.WriteString(w, fmt.Sprintf("git checkout -qf %s\n", build.Sha))
+	b.executeCommand(w, "git", "checkout", build.Sha)
 }
 
-func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
+func (b *BashShell) writeCdBuildDir(w io.Writer, info common.ShellScriptInfo) {
+	b.executeCommand(w, "cd", b.fullProjectDir(info))
+}
+
+func (b *BashShell) writeExport(w io.Writer, keyValue string) {
+	b.executeCommand(w, "export", keyValue)
+}
+
+func (b *BashShell) fullProjectDir(info common.ShellScriptInfo) string {
+	projectDir := info.Build.FullProjectDir()
+	return helpers.ToSlash(projectDir)
+}
+
+func (b *BashShell) writeExports(w io.Writer, info common.ShellScriptInfo) {
+	// Set env variables from build script
+	for _, keyValue := range b.GetVariables(info.Build, b.fullProjectDir(info), info.Environment) {
+		b.writeExport(w, keyValue)
+	}
+}
+
+func (b *BashShell) generatePreBuildScript(info common.ShellScriptInfo) string {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
 
+	b.writeExports(w, info)
+
+	if len(info.Build.Hostname) != 0 {
+		b.executeCommand(w, "echo", "Running on $(hostname) via "+info.Build.Hostname+"...")
+	} else {
+		b.executeCommand(w, "echo", "Running on $(hostname)...")
+	}
+
 	build := info.Build
-	projectDir := build.FullProjectDir()
-	projectDir = helpers.ToSlash(projectDir)
+	projectDir := b.fullProjectDir(info)
 	gitDir := filepath.Join(projectDir, ".git")
 
-	if len(build.Hostname) != 0 {
-		io.WriteString(w, fmt.Sprintf("echo Running on $(hostname) via %s...", helpers.ShellEscape(build.Hostname)))
-	} else {
-		io.WriteString(w, "echo Running on $(hostname)...\n")
-	}
-	io.WriteString(w, "\n")
-	io.WriteString(w, "echo\n")
-	io.WriteString(w, "\n")
-
-	// Set env variables from build script
-	for _, keyValue := range b.GetVariables(build, projectDir, info.Environment) {
-		io.WriteString(w, "export " + helpers.ShellEscape(keyValue) + "\n")
-	}
-	io.WriteString(w, "\n")
-	b.installGit(w)
-	io.WriteString(w, "\n")
-	io.WriteString(w, "set -eo pipefail\n")
-	io.WriteString(w, "\n")
-
 	if build.AllowGitFetch {
-		b.writeFetchCmd(w, build, helpers.ShellEscape(projectDir), helpers.ShellEscape(gitDir))
+		b.writeFetchCmd(w, build, projectDir, gitDir)
 	} else {
-		b.writeCloneCmd(w, build, helpers.ShellEscape(projectDir))
+		b.writeCloneCmd(w, build, projectDir)
 	}
 
 	b.writeCheckoutCmd(w, build)
-	io.WriteString(w, "\n")
-	io.WriteString(w, "echo\n")
-	io.WriteString(w, "\n")
 
-	commands := build.Commands
+	cacheFile := info.Build.CacheFile()
+	cacheFile2 := info.Build.CacheFileForRef("master")
+	if cacheFile == "" {
+		cacheFile = cacheFile2
+		cacheFile2 = ""
+	}
+
+	// Try to restore from main cache, if not found cache for master
+	if cacheFile != "" {
+		// If we have cache, restore it
+		b.writeIfFile(w, cacheFile)
+		b.echoColored(w, "Restoring cache...")
+		b.executeCommand(w, "tar", "-zxfv", "-f", cacheFile)
+		if cacheFile2 != "" {
+			b.writeElse(w)
+
+			// If we have cache, restore it
+			b.writeIfFile(w, cacheFile2)
+			b.echoColored(w, "Restoring cache...")
+			b.executeCommand(w, "tar", "-zxfv", "-f", cacheFile2)
+			b.writeEndIf(w)
+		}
+		b.writeEndIf(w)
+	}
+
+	w.Flush()
+
+	return b.finalize(buffer.String())
+}
+
+func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
+	var buffer bytes.Buffer
+	w := bufio.NewWriter(&buffer)
+
+	b.writeExports(w, info)
+	b.writeCdBuildDir(w, info)
+
+	commands := info.Build.Commands
 	commands = strings.TrimSpace(commands)
 	for _, command := range strings.Split(commands, "\n") {
 		command = strings.TrimSpace(command)
-		if !helpers.BoolOrDefault(build.Runner.DisableVerbose, false) {
+		if !helpers.BoolOrDefault(info.Build.Runner.DisableVerbose, false) {
 			if command != "" {
-				b.echoColored(w, "$ " + command)
+				b.echoColored(w, "$ "+command)
 			} else {
-				io.WriteString(w, "echo\n")
+				b.executeCommand(w, "echo")
 			}
 		}
 		io.WriteString(w, command+"\n")
 	}
 
-	io.WriteString(w, "\n")
+	w.Flush()
+
+	return b.finalize(buffer.String())
+}
+
+func (b *BashShell) archiveFiles(w io.Writer, list interface{}, archiveType, archivePath string) {
+	hash, ok := list.(map[string]interface{})
+	if !ok {
+		return
+	}
+
+	args := []string{
+		"archive",
+		"-output",
+		archivePath,
+	}
+
+	// Collect paths
+	if paths, ok := hash["paths"].([]interface{}); ok {
+		for _, artifactPath := range paths {
+			if file, ok := artifactPath.(string); ok {
+				args = append(args, "-path", file)
+			}
+		}
+	}
+
+	// Archive also untracked files
+	if untracked, ok := hash["untracked"].(bool); ok && untracked {
+		args = append(args, "-untracked")
+	}
+
+	// Skip creating archive
+	if len(args) <= 3 {
+		return
+	}
+
+	// Execute archive command
+	b.echoColoredFormat(w, "Archiving %s...", archiveType)
+	b.executeCommand(w, "gitlab-runner", args...)
+}
+
+func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string {
+	var buffer bytes.Buffer
+	w := bufio.NewWriter(&buffer)
+
+	b.writeExports(w, info)
+	b.writeCdBuildDir(w, info)
+
+	// Find cached files and archive them
+	if cacheFile := info.Build.CacheFile(); cacheFile != "" {
+		b.archiveFiles(w, info.Build.Options["cache"], "cache", cacheFile)
+	}
+
+	// Find artifacts
+	b.archiveFiles(w, info.Build.Options["artifacts"], "artifacts", "artifacts.tgz")
+
+	// If archive is created upload it
+	b.writeIfFile(w, "artifacts.tgz")
+	b.echoColored(w, "Uploading artifacts...")
+	b.executeCommand(w, "du", "-h", "artifacts.tgz")
+	b.executeCommand(w, "curl", "-s", "-S", "--fail", "--retry", "3", "-X", "POST",
+		"-#",
+		"-o", "artifacts.upload.log",
+		"-H", "BUILD-TOKEN: "+info.Build.Token,
+		"-F", "file=@artifacts.tgz",
+		common.GetArtifactsUploadURL(*info.Build.Runner, info.Build.ID))
+	b.executeCommand(w, "rm", "-f", "artifacts.tgz")
+	b.writeEndIf(w)
 
 	w.Flush()
 
-	// evaluate script in subcontext, this is required to close stdin
-	scriptCommand := "#!/usr/bin/env bash\n: | eval " + helpers.ShellEscape(buffer.String())
+	return b.finalize(buffer.String())
+}
 
+func (b *BashShell) finalize(script string) string {
+	var buffer bytes.Buffer
+	w := bufio.NewWriter(&buffer)
+	io.WriteString(w, "#!/usr/bin/env bash\n\n")
+	io.WriteString(w, "set -eo pipefail\n")
+	io.WriteString(w, ": | eval "+helpers.ShellEscape(script)+"\n")
+	w.Flush()
+	return buffer.String()
+}
+
+func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
 	script := common.ShellScript{
-		Script:      scriptCommand,
-		Environment: b.GetVariables(build, projectDir, info.Environment),
+		PreScript:   b.generatePreBuildScript(info),
+		BuildScript: b.generateCommands(info),
+		PostScript:  b.generatePostBuildScript(info),
+		Environment: b.GetVariables(info.Build, b.fullProjectDir(info), info.Environment),
 	}
 
 	// su
@@ -218,5 +308,9 @@ func (b *BashShell) IsDefault() bool {
 }
 
 func init() {
-	common.RegisterShell(&BashShell{})
+	common.RegisterShell(&BashShell{
+		AbstractShell: AbstractShell{
+			SupportedOptions: []string{"artifacts", "cache"},
+		},
+	})
 }

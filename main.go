@@ -33,10 +33,17 @@ func main() {
 	app.Name = path.Base(os.Args[0])
 	app.Usage = "a GitLab Runner"
 	app.Version = fmt.Sprintf("%s (%s)", common.VERSION, common.REVISION)
-	app.Author = "Kamil Trzciński"
-	app.Email = "ayufan@ayufan.eu"
+	app.Authors = []cli.Author{
+		cli.Author{
+			Name: "Kamil Trzciński",
+			Email: "ayufan@ayufan.eu",
+		},
+	}
 	cli_helpers.SetupLogLevelOptions(app)
 	app.Commands = common.GetCommands()
+	app.CommandNotFound = func(context *cli.Context, command string) {
+		log.Fatalln("Command", command, "not found.")
+	}
 
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)

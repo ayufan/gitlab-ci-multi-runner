@@ -1,3 +1,12 @@
+v 0.7.0 (unreleased)
+- Refactor code structure
+- Refactor bash script adding pre-build and post-build steps
+- Add support for build artifacts
+- Add support for caching build directories
+
+v 0.6.1
+- Revert: Fix tags handling when using git fetch: fetch all tags and prune the old ones
+
 v 0.6.0
 - Fetch docker auth from ~/.docker/config.json or ~/.dockercfg
 - Added support for NTFSSecurity PowerShell module to address problems with long paths on Windows

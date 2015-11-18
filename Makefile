@@ -134,6 +134,8 @@ package-deb-fpm:
 		--replaces gitlab-runner \
 		--depends ca-certificates \
 		--depends git \
+		--depends curl \
+		--depends tar \
 		--deb-suggests docker \
 		-a $(PACKAGE_ARCH) \
 		packaging/root/=/ \
@@ -155,6 +157,9 @@ package-rpm-fpm:
 		--conflicts $(PACKAGE_CONFLICT) \
 		--provides gitlab-runner \
 		--replaces gitlab-runner \
+		--depends git \
+		--depends curl \
+		--depends tar \
 		-a $(PACKAGE_ARCH) \
 		packaging/root/=/ \
 		out/binaries/$(NAME)-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner

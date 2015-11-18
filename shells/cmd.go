@@ -43,7 +43,7 @@ func (b *CmdShell) writeFetchCmd(w io.Writer, build *common.Build, dir string) {
 	b.writeCommandChecked(w, "git clean -ffdx")
 	b.writeCommandChecked(w, "git reset --hard > NUL")
 	b.writeCommandChecked(w, "git remote set-url origin \"%s\"", build.RepoURL)
-	b.writeCommandChecked(w, "git fetch origin --tags -p")
+	b.writeCommandChecked(w, "git fetch origin")
 	b.writeCommand(w, ") ELSE (")
 	b.writeCloneCmd(w, build, dir)
 	b.writeCommand(w, ")")
@@ -97,7 +97,7 @@ func (b *CmdShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScr
 
 	script := common.ShellScript{
 		Environment: b.GetVariables(build, projectDir, info.Environment),
-		Script:      buffer.String(),
+		BuildScript: buffer.String(),
 		Command:     "cmd",
 		Arguments:   []string{"/Q", "/C"},
 		PassFile:    true,

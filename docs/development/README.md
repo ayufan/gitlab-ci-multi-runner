@@ -74,7 +74,7 @@ go run main.go
 You can run runner in debug-mode:
 
 ```
-go run --debug main.go
+go run main.go --debug run
 ```
 
 ## 6. Compile and install runner binary
