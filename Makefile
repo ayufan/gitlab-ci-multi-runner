@@ -136,7 +136,7 @@ package-deb-fpm:
 		--depends git \
 		--depends curl \
 		--depends tar \
-		--deb-suggests docker \
+		--deb-suggests docker-engine \
 		-a $(PACKAGE_ARCH) \
 		packaging/root/=/ \
 		out/binaries/$(NAME)-linux-$(ARCH)=/usr/bin/gitlab-ci-multi-runner

@@ -117,7 +117,7 @@ func (s *Command) Run() error {
 
 	var envVariables bytes.Buffer
 	for _, keyValue := range s.Environment {
-		envVariables.WriteString("export " + strconv.Quote(keyValue) + "\n")
+		envVariables.WriteString("export " + helpers.ShellEscape(keyValue) + "\n")
 	}
 
 	session.Stdin = io.MultiReader(

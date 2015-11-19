@@ -32,7 +32,7 @@ func (b *BashShell) executeCommand(w io.Writer, cmd string, arguments ...string)
 	}
 
 	for _, argument := range arguments {
-		list = append(list, strconv.Quote(argument))
+		list = append(list, helpers.ShellEscape(argument))
 	}
 
 	io.WriteString(w, strings.Join(list, " ")+"\n")
@@ -125,9 +125,9 @@ func (b *BashShell) generatePreBuildScript(info common.ShellScriptInfo) string {
 	b.writeExports(w, info)
 
 	if len(info.Build.Hostname) != 0 {
-		b.executeCommand(w, "echo", "Running on $(hostname) via "+info.Build.Hostname+"...")
+		b.executeCommandFormat(w, "echo %q", "Running on $(hostname) via "+info.Build.Hostname+"...")
 	} else {
-		b.executeCommand(w, "echo", "Running on $(hostname)...")
+		b.executeCommandFormat(w, "echo %q", "Running on $(hostname)...")
 	}
 
 	build := info.Build
