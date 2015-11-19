@@ -32,7 +32,7 @@ func (b *BashShell) executeCommand(w io.Writer, cmd string, arguments ...string)
 	}
 
 	for _, argument := range arguments {
-		list = append(list, helpers.ShellEscape(argument))
+		list = append(list, strconv.Quote(argument))
 	}
 
 	io.WriteString(w, strings.Join(list, " ")+"\n")
@@ -103,7 +103,7 @@ func (b *BashShell) writeCdBuildDir(w io.Writer, info common.ShellScriptInfo) {
 }
 
 func (b *BashShell) writeExport(w io.Writer, keyValue string) {
-	b.executeCommand(w, "export", keyValue)
+	io.WriteString(w, "export " + helpers.ShellEscape(keyValue) + "\n")
 }
 
 func (b *BashShell) fullProjectDir(info common.ShellScriptInfo) string {

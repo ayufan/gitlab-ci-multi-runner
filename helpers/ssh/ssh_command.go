@@ -10,7 +10,6 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io/ioutil"
-	"strconv"
 )
 
 type Command struct {
