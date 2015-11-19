@@ -140,7 +140,21 @@ func (b *Build) FullProjectDir() string {
 
 func (b *Build) CacheFileForRef(ref string) string {
 	if b.CacheDir != "" {
-		cacheFile := filepath.Join(b.CacheDir, ref, b.Name+".tgz")
+		cacheGroup := filepath.Join(b.Name, ref)
+
+		// Get cache:group
+		if hash, ok := b.Options["cache"].(map[string]interface{}); ok {
+			if group, ok := hash["group"].(string); ok && group != "" {
+				cacheGroup = group
+			}
+		}
+
+		// Ignore groups that are nil
+		if cacheGroup == "" {
+			return ""
+		}
+
+		cacheFile := filepath.Join(b.CacheDir, cacheGroup, "cache.tgz")
 		cacheFile, err := filepath.Rel(b.BuildDir, cacheFile)
 		if err != nil {
 			return ""
