@@ -22,11 +22,11 @@ type ExecutorOptions struct {
 
 type AbstractExecutor struct {
 	ExecutorOptions
-	Config            common.RunnerConfig
-	Build             *common.Build
-	BuildFinish       chan error
-	BuildLog          *io.PipeWriter
-	BuildScript       *common.ShellScript
+	Config      common.RunnerConfig
+	Build       *common.Build
+	BuildFinish chan error
+	BuildLog    *io.PipeWriter
+	BuildScript *common.ShellScript
 
 	buildCanceled     chan bool
 	finishUpdateTrace chan bool

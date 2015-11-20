@@ -3,7 +3,7 @@ package executors
 import "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 
 type DefaultExecutorProvider struct {
-	Creator func() common.Executor
+	Creator         func() common.Executor
 	FeaturesUpdater func(features *common.FeaturesInfo)
 }
 

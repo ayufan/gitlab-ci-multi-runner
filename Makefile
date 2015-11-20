@@ -18,14 +18,16 @@ DEB_ARCHS ?= amd64 i386 arm armhf
 RPM_PLATFORMS ?= el/6 el/7 ol/6 ol/7
 RPM_ARCHS ?= x86_64 i686 arm armhf
 
-all: deps test lint toolchain build
+all: deps fmt test lint toolchain build
 
 help:
 	# make all => deps test lint toolchain build
 	# make version - show information about current version
 	# make deps - install all dependencies
+	# make fmt - check source formatting
 	# make test - run project tests
 	# make lint - check project code style
+	# make verify - run fmt, test and lint
 	# make toolchain - install crossplatform toolchain
 	# make build - build project for all supported OSes
 	# make package - package project using FPM
@@ -36,6 +38,8 @@ version: FORCE
 	@echo Current version: $(VERSION)
 	@echo Current iteration: $(ITTERATION)
 	@echo Current revision: $(REVISION)
+
+verify: fmt test lint
 
 deps:
 	# Installing dependencies...
@@ -60,13 +64,17 @@ build:
 		-ldflags "-X main.NAME $(PACKAGE_NAME) -X main.VERSION $(VERSION) -X main.REVISION $(REVISION)" \
 		-output="out/binaries/$(NAME)-{{.OS}}-{{.Arch}}"
 
+fmt:
+	# Checking project code formatting...
+	@go fmt ./... | awk '{ print "Please run go fmt"; exit 1 }'
+
 lint:
 	# Checking project code style...
-	golint ./... | grep -v "be unexported"
+	@golint ./... | grep -v "be unexported"
 
 test:
 	# Running tests...
-	go test ./... -cover
+	@go test ./... -cover
 
 dockerfiles:
 	make -C dockerfiles all

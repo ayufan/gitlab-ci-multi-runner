@@ -17,12 +17,12 @@ func RegisterCommand(command cli.Command) {
 	commands = append(commands, command)
 }
 
-func RegisterCommand2(name, usage string, data Commander, flags... cli.Flag) {
+func RegisterCommand2(name, usage string, data Commander, flags ...cli.Flag) {
 	RegisterCommand(cli.Command{
-		Name: name,
-		Usage: usage,
+		Name:   name,
+		Usage:  usage,
 		Action: data.Execute,
-		Flags: append(flags, clihelpers.GetFlagsFromStruct(data)...),
+		Flags:  append(flags, clihelpers.GetFlagsFromStruct(data)...),
 	})
 }
 

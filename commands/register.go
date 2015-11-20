@@ -16,21 +16,21 @@ import (
 )
 
 type RegisterCommand struct {
-	context           *cli.Context
-	reader            *bufio.Reader
-	registered        bool
+	context    *cli.Context
+	reader     *bufio.Reader
+	registered bool
 
 	configOptions
-	TagList           string              `long:"tag-list" env:"RUNNER_TAG_LIST" description:"Tag list"`
-	NonInteractive    bool                `short:"n" long:"non-interactive" env:"REGISTER_NON_INTERACTIVE" description:"Run registration unattended"`
-	LeaveRunner       bool                `long:"leave-runner" env:"REGISTER_LEAVE_RUNNER" description:"Don't remove runner if registration fails"`
-	RegistrationToken string              `short:"r" long:"registration-token" env:"REGISTRATION_TOKEN" description:"Runner's registration token"`
+	TagList           string `long:"tag-list" env:"RUNNER_TAG_LIST" description:"Tag list"`
+	NonInteractive    bool   `short:"n" long:"non-interactive" env:"REGISTER_NON_INTERACTIVE" description:"Run registration unattended"`
+	LeaveRunner       bool   `long:"leave-runner" env:"REGISTER_LEAVE_RUNNER" description:"Don't remove runner if registration fails"`
+	RegistrationToken string `short:"r" long:"registration-token" env:"REGISTRATION_TOKEN" description:"Runner's registration token"`
 
 	common.RunnerConfig
-	DockerMySQL       string              `long:"docker-mysql" env:"DOCKER_MYSQL" description:"MySQL version (or specify latest) to link as service Docker service"`
-	DockerPostgreSQL  string              `long:"docker-postgres" env:"DOCKER_POSTGRES" description:"PostgreSQL version (or specify latest) to link as service Docker service"`
-	DockerMongoDB     string              `long:"docker-mongo" env:"DOCKER_MONGO" description:"MongoDB version (or specify latest) to link as service Docker service"`
-	DockerRedis       string              `long:"docker-redis" env:"DOCKER_REDIS" description:"Redis version (or specify latest) to link as service Docker service"`
+	DockerMySQL      string `long:"docker-mysql" env:"DOCKER_MYSQL" description:"MySQL version (or specify latest) to link as service Docker service"`
+	DockerPostgreSQL string `long:"docker-postgres" env:"DOCKER_POSTGRES" description:"PostgreSQL version (or specify latest) to link as service Docker service"`
+	DockerMongoDB    string `long:"docker-mongo" env:"DOCKER_MONGO" description:"MongoDB version (or specify latest) to link as service Docker service"`
+	DockerRedis      string `long:"docker-redis" env:"DOCKER_REDIS" description:"Redis version (or specify latest) to link as service Docker service"`
 }
 
 func (s *RegisterCommand) ask(key, prompt string, allowEmptyOptional ...bool) string {
@@ -173,7 +173,7 @@ func (s *RegisterCommand) askRunner() {
 		if result == nil {
 			log.Fatalln("Failed to register this runner. Perhaps you are having network problems")
 		}
-		
+
 		s.Token = result.Token
 		s.registered = true
 	}

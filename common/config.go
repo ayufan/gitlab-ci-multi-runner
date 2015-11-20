@@ -39,27 +39,27 @@ type ParallelsConfig struct {
 }
 
 type RunnerCredentials struct {
-	URL            string  `toml:"url" json:"url" short:"u" long:"url" env:"CI_SERVER_URL" required:"true" description:"Runner URL"`
-	Token          string  `toml:"token" json:"token" short:"t" long:"token" env:"CI_SERVER_TOKEN" required:"true" description:"Runner token"`
+	URL   string `toml:"url" json:"url" short:"u" long:"url" env:"CI_SERVER_URL" required:"true" description:"Runner URL"`
+	Token string `toml:"token" json:"token" short:"t" long:"token" env:"CI_SERVER_TOKEN" required:"true" description:"Runner token"`
 }
 
 type RunnerConfig struct {
 	RunnerCredentials
-	Name           string  `toml:"name" json:"name" long:"name" env:"RUNNER_NAME" description:"Runner name"`
-	Limit          *int    `toml:"limit" json:"limit" long:"limit" env:"RUNNER_LIMIT" description:"Maximum number of builds processed by this runner"`
-	Executor       string  `toml:"executor" json:"executor" long:"executor" env:"RUNNER_EXECUTOR" required:"true" description:"Select executor, eg. shell, docker, etc."`
-	BuildsDir      *string `toml:"builds_dir" json:"builds_dir" long:"builds-dir" env:"RUNNER_BUILDS_DIR" description:"Directory where builds are stored"`
-	CacheDir       *string `toml:"cache_dir" json:"cache_dir" long:"cache-dir" env:"RUNNER_CACHE_DIR" description:"Directory where build cache is stored"`
+	Name      string  `toml:"name" json:"name" long:"name" env:"RUNNER_NAME" description:"Runner name"`
+	Limit     *int    `toml:"limit" json:"limit" long:"limit" env:"RUNNER_LIMIT" description:"Maximum number of builds processed by this runner"`
+	Executor  string  `toml:"executor" json:"executor" long:"executor" env:"RUNNER_EXECUTOR" required:"true" description:"Select executor, eg. shell, docker, etc."`
+	BuildsDir *string `toml:"builds_dir" json:"builds_dir" long:"builds-dir" env:"RUNNER_BUILDS_DIR" description:"Directory where builds are stored"`
+	CacheDir  *string `toml:"cache_dir" json:"cache_dir" long:"cache-dir" env:"RUNNER_CACHE_DIR" description:"Directory where build cache is stored"`
 
-	Environment    []string `toml:"environment" json:"environment" long:"env" env:"RUNNER_ENV" description:"Custom environment variables injected to build environment"`
+	Environment []string `toml:"environment" json:"environment" long:"env" env:"RUNNER_ENV" description:"Custom environment variables injected to build environment"`
 
 	Shell          *string `toml:"shell" json:"shell" long:"shell" env:"RUNNER_SHELL" description:"Select bash, cmd or powershell"`
 	DisableVerbose *bool   `toml:"disable_verbose" json:"disable_verbose"`
 	OutputLimit    *int    `toml:"output_limit" long:"ouput-limit" env:"RUNNER_OUTPUT_LIMIT" description:"Maximum build trace size"`
 
-	SSH            *ssh.Config      `toml:"ssh" json:"ssh" group:"ssh executor" namespace:"ssh"`
-	Docker         *DockerConfig    `toml:"docker" json:"docker" group:"docker executor" namespace:"docker"`
-	Parallels      *ParallelsConfig `toml:"parallels" json:"parallels" group:"parallels executor" namespace:"parallels"`
+	SSH       *ssh.Config      `toml:"ssh" json:"ssh" group:"ssh executor" namespace:"ssh"`
+	Docker    *DockerConfig    `toml:"docker" json:"docker" group:"docker executor" namespace:"docker"`
+	Parallels *ParallelsConfig `toml:"parallels" json:"parallels" group:"parallels executor" namespace:"parallels"`
 }
 
 type BaseConfig struct {
@@ -94,7 +94,7 @@ func (c *RunnerConfig) GetVariables() BuildVariables {
 			variables = append(variables, variable)
 		}
 	}
-	
+
 	return variables
 }
 

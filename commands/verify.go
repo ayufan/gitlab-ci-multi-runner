@@ -48,5 +48,5 @@ func (c *VerifyCommand) Execute(context *cli.Context) {
 }
 
 func init() {
-	common.RegisterCommand2("verify",  "verify all registered runners", &VerifyCommand{})
+	common.RegisterCommand2("verify", "verify all registered runners", &VerifyCommand{})
 }

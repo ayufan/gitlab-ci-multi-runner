@@ -6,9 +6,9 @@ import (
 	"github.com/codegangsta/cli"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/service"
 	"os"
 	"runtime"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/service"
 )
 
 const (

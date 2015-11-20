@@ -9,8 +9,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"testing"
 	"strings"
+	"testing"
 	"time"
 )
 
@@ -153,4 +153,3 @@ func TestArchiveUpdating(t *testing.T) {
 	assert.NoError(t, err, "Archive is created")
 	assert.NotEqual(t, archive3.ModTime(), archive4.ModTime(), "File is updated in archive")
 }
-

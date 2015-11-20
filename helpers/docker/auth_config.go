@@ -1,11 +1,11 @@
 package docker_helpers
 
 import (
-	"strings"
-	"path"
 	"github.com/fsouza/go-dockerclient"
-	"os"
 	"io"
+	"os"
+	"path"
+	"strings"
 )
 
 // IndexName is the name of the index
@@ -16,7 +16,7 @@ func SplitDockerImageName(reposName string) (string, string) {
 	nameParts := strings.SplitN(reposName, "/", 2)
 	var indexName, remoteName string
 	if len(nameParts) == 1 || (!strings.Contains(nameParts[0], ".") &&
-	!strings.Contains(nameParts[0], ":") && nameParts[0] != "localhost") {
+		!strings.Contains(nameParts[0], ":") && nameParts[0] != "localhost") {
 		// This is a Docker Index repos (ex: samalba/hipache or ubuntu)
 		// 'docker.io'
 		indexName = DefaultDockerRegistry

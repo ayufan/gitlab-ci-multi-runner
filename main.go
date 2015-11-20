@@ -5,17 +5,17 @@ import (
 	"path"
 
 	log "github.com/Sirupsen/logrus"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/cli"
 	"github.com/codegangsta/cli"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/cli"
 
 	"fmt"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/commands"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/shells"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/docker"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/parallels"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/shell"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/ssh"
+	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/shells"
 )
 
 var NAME = "gitlab-ci-multi-runner"
@@ -35,7 +35,7 @@ func main() {
 	app.Version = fmt.Sprintf("%s (%s)", common.VERSION, common.REVISION)
 	app.Authors = []cli.Author{
 		cli.Author{
-			Name: "Kamil Trzciński",
+			Name:  "Kamil Trzciński",
 			Email: "ayufan@ayufan.eu",
 		},
 	}

@@ -29,10 +29,10 @@ const PostBuildImage = "gitlab/gitlab-runner:build"
 
 type DockerExecutor struct {
 	executors.AbstractExecutor
-	client    *docker.Client
-	builds    []*docker.Container
-	services  []*docker.Container
-	caches    []*docker.Container
+	client   *docker.Client
+	builds   []*docker.Container
+	services []*docker.Container
+	caches   []*docker.Container
 }
 
 func (s *DockerExecutor) getServiceVariables() []string {

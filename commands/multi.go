@@ -17,8 +17,8 @@ import (
 	"fmt"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"math"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/service"
+	"math"
 )
 
 type RunnerHealth struct {

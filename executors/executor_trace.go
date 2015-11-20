@@ -1,13 +1,13 @@
 package executors
 
 import (
-	log "github.com/Sirupsen/logrus"
-	"fmt"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"time"
 	"bufio"
+	"fmt"
+	log "github.com/Sirupsen/logrus"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
+	"time"
 )
 
 func (e *AbstractExecutor) Debugln(args ...interface{}) {
@@ -112,7 +112,7 @@ func (e *AbstractExecutor) updateTrace(config common.RunnerConfig, canceled chan
 	for {
 		select {
 		case <-time.After(common.UpdateInterval):
-		// check if build log changed
+			// check if build log changed
 			buildTraceLen := e.Build.BuildLogLen()
 			if buildTraceLen == lastSentTrace && time.Since(lastSentTime) < common.ForceTraceSentInterval {
 				e.Debugln("updateBuildLog", "Nothing to send.")

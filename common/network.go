@@ -46,21 +46,21 @@ type GetBuildRequest struct {
 type BuildOptions map[string]interface{}
 
 type GetBuildResponse struct {
-	ID            int             `json:"id,omitempty"`
-	ProjectID     int             `json:"project_id,omitempty"`
-	Commands      string          `json:"commands,omitempty"`
-	RepoURL       string          `json:"repo_url,omitempty"`
-	Sha           string          `json:"sha,omitempty"`
-	RefName       string          `json:"ref,omitempty"`
-	BeforeSha     string          `json:"before_sha,omitempty"`
-	AllowGitFetch bool            `json:"allow_git_fetch,omitempty"`
-	Timeout       int             `json:"timeout,omitempty"`
-	Variables     BuildVariables  `json:"variables"`
-	Options       BuildOptions    `json:"options"`
-	Token         string          `json:"token"`
-	Name          string          `json:"name"`
-	Stage         string          `json:"stage"`
-	Tag           bool            `json:"tag"`
+	ID            int            `json:"id,omitempty"`
+	ProjectID     int            `json:"project_id,omitempty"`
+	Commands      string         `json:"commands,omitempty"`
+	RepoURL       string         `json:"repo_url,omitempty"`
+	Sha           string         `json:"sha,omitempty"`
+	RefName       string         `json:"ref,omitempty"`
+	BeforeSha     string         `json:"before_sha,omitempty"`
+	AllowGitFetch bool           `json:"allow_git_fetch,omitempty"`
+	Timeout       int            `json:"timeout,omitempty"`
+	Variables     BuildVariables `json:"variables"`
+	Options       BuildOptions   `json:"options"`
+	Token         string         `json:"token"`
+	Name          string         `json:"name"`
+	Stage         string         `json:"stage"`
+	Tag           bool           `json:"tag"`
 }
 
 type RegisterRunnerRequest struct {

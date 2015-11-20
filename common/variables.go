@@ -1,10 +1,10 @@
 package common
 
 import (
-	"fmt"
-	"strings"
 	"errors"
+	"fmt"
 	"os"
+	"strings"
 )
 
 type BuildVariable struct {
@@ -63,7 +63,7 @@ func ParseVariable(text string) (variable BuildVariable, err error) {
 		return
 	}
 	variable = BuildVariable{
-		Key: keyValue[0],
+		Key:   keyValue[0],
 		Value: keyValue[1],
 	}
 	return

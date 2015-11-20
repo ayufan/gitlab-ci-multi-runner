@@ -8,10 +8,10 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"fmt"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"fmt"
 )
 
 type ShellExecutor struct {
@@ -31,7 +31,7 @@ func (s *ShellExecutor) Prepare(globalConfig *common.Config, config *common.Runn
 		return fmt.Errorf("Getwd: %v", err)
 	}
 
-	mapping := func(key string) string{
+	mapping := func(key string) string {
 		switch key {
 		case "PWD":
 			return wd
