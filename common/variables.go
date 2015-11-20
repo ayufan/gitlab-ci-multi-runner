@@ -35,6 +35,23 @@ func (b BuildVariables) StringList() (variables []string) {
 	return variables
 }
 
+func (b BuildVariables) Get(key string) string {
+	for _, variable := range b {
+		if variable.Key == key {
+			return variable.Value
+		}
+	}
+	return ""
+}
+
+func (b BuildVariables) Expand() (variables BuildVariables) {
+	for _, variable := range b {
+		variable.Value = os.Expand(variable.Value, b.Get)
+		variables = append(variables, variable)
+	}
+	return variables
+}
+
 func ParseVariable(text string) (variable BuildVariable, err error) {
 	keyValue := strings.SplitN(text, "=", 2)
 	if len(keyValue) != 2 {

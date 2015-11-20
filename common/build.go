@@ -272,6 +272,5 @@ func (b *Build) GetAllVariables() BuildVariables {
 	variables := b.Runner.GetVariables()
 	variables = append(variables, b.GetDefaultVariables()...)
 	variables = append(variables, b.Variables...)
-	return variables
+	return variables.Expand()
 }
-
