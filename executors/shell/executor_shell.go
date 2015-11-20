@@ -11,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"fmt"
 )
 
 type ShellExecutor struct {
@@ -24,7 +25,26 @@ func (s *ShellExecutor) Prepare(globalConfig *common.Config, config *common.Runn
 		s.Shell.User = globalConfig.User
 	}
 
-	err := s.AbstractExecutor.Prepare(globalConfig, config, build)
+	// expand environment variables to have current directory
+	wd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("Getwd: %v", err)
+	}
+
+	mapping := func(key string) string{
+		switch key {
+		case "PWD":
+			return wd
+		default:
+			return ""
+		}
+	}
+
+	s.DefaultBuildsDir = os.Expand(s.DefaultBuildsDir, mapping)
+	s.DefaultCacheDir = os.Expand(s.DefaultCacheDir, mapping)
+
+	// Pass control to executor
+	err = s.AbstractExecutor.Prepare(globalConfig, config, build)
 	if err != nil {
 		return err
 	}
@@ -92,8 +112,8 @@ func (s *ShellExecutor) Cleanup() {
 
 func init() {
 	options := executors.ExecutorOptions{
-		DefaultBuildsDir: "builds",
-		DefaultCacheDir:  "cache",
+		DefaultBuildsDir: "$PWD/builds",
+		DefaultCacheDir:  "$PWD/cache",
 		SharedBuildsDir:  true,
 		Shell: common.ShellScriptInfo{
 			Shell: common.GetDefaultShell(),
