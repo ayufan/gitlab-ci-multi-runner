@@ -3,12 +3,17 @@ package network
 import (
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -16,11 +21,17 @@ import (
 type client struct {
 	http.Client
 	url        *url.URL
+	caFile     string
 	skipVerify bool
 	updateTime time.Time
 }
 
 func (n *client) ensureTlsConfig() {
+	// certificate got modified
+	if stat, err := os.Stat(n.caFile); err == nil && n.updateTime.Before(stat.ModTime()) {
+		n.Transport = nil
+	}
+
 	// create or update transport
 	if n.Transport == nil {
 		n.updateTime = time.Now()
@@ -33,6 +44,25 @@ func (n *client) createTransport() {
 	tlsConfig := tls.Config{
 		MinVersion:         tls.VersionTLS10,
 		InsecureSkipVerify: n.skipVerify,
+	}
+
+	// load TLS certificate
+	if file := n.caFile; file != "" {
+		logrus.Debugln("Trying to load", file, "...")
+
+		data, err := ioutil.ReadFile(file)
+		if err == nil {
+			pool := x509.NewCertPool()
+			if pool.AppendCertsFromPEM(data) {
+				tlsConfig.RootCAs = pool
+			} else {
+				logrus.Errorln("Failed to parse PEM in", n.caFile)
+			}
+		} else {
+			if !os.IsNotExist(err) {
+				logrus.Errorln("Failed to load", n.caFile, err)
+			}
+		}
 	}
 
 	// create transport
@@ -107,7 +137,14 @@ func newClient(config common.RunnerCredentials) (c *client, err error) {
 	}
 
 	c = &client{
-		url: url,
+		url:        url,
+		skipVerify: config.TLSSkipVerify,
+		caFile:     config.TLSCAFile,
+	}
+
+	if CertificateDirectory != "" && c.caFile == "" {
+		hostAndPort := strings.Split(url.Host, ":")
+		c.caFile = filepath.Join(CertificateDirectory, hostAndPort[0]+".crt")
 	}
 
 	return

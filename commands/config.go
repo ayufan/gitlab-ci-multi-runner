@@ -2,8 +2,18 @@ package commands
 
 import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/network"
 	"os"
+	"path/filepath"
 )
+
+func getDefaultConfigFile() string {
+	return filepath.Join(getDefaultConfigDirectory(), "config.toml")
+}
+
+func getDefaultCertificateDirectory() string {
+	return filepath.Join(getDefaultConfigDirectory(), "certs")
+}
 
 type configOptions struct {
 	config *common.Config
@@ -44,4 +54,6 @@ func init() {
 	if configFile == "" {
 		os.Setenv("CONFIG_FILE", getDefaultConfigFile())
 	}
+
+	network.CertificateDirectory = getDefaultCertificateDirectory()
 }
