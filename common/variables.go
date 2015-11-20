@@ -44,9 +44,13 @@ func (b BuildVariables) Get(key string) string {
 	return ""
 }
 
+func (b BuildVariables) ExpandValue(value string) string {
+	return os.Expand(value, b.Get)
+}
+
 func (b BuildVariables) Expand() (variables BuildVariables) {
 	for _, variable := range b {
-		variable.Value = os.Expand(variable.Value, b.Get)
+		variable.Value = b.ExpandValue(variable.Value)
 		variables = append(variables, variable)
 	}
 	return variables

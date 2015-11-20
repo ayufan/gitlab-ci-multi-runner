@@ -367,6 +367,7 @@ func (s *DockerExecutor) getServiceNames() ([]string, error) {
 				s.Errorln("Invalid service name passed:", service)
 				return nil, errors.New("invalid service name")
 			}
+			serviceName = s.Build.GetAllVariables().ExpandValue(serviceName)
 
 			err := s.verifyAllowedImage(serviceName, "services", s.Config.Docker.AllowedServices, s.Config.Docker.Services)
 			if err != nil {
@@ -629,12 +630,13 @@ func (s *DockerExecutor) verifyAllowedImage(image, optionName string, allowedIma
 }
 
 func (s *DockerExecutor) getImageName() (string, error) {
-	if imageOption, ok := s.Build.Options["image"].(string); ok && imageOption != "" {
-		err := s.verifyAllowedImage(imageOption, "images", s.Config.Docker.AllowedImages, []string{s.Config.Docker.Image})
+	if image, ok := s.Build.Options["image"].(string); ok && image != "" {
+		image = s.Build.GetAllVariables().ExpandValue(image)
+		err := s.verifyAllowedImage(image, "images", s.Config.Docker.AllowedImages, []string{s.Config.Docker.Image})
 		if err != nil {
 			return "", err
 		}
-		return imageOption, nil
+		return image, nil
 	}
 
 	if s.Config.Docker.Image == "" {

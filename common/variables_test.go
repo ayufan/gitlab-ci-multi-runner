@@ -59,4 +59,5 @@ func TestVariablesExpansion(t *testing.T) {
 	assert.Equal(t, expanded.Get("key"), "value_of_value_of_$undefined")
 	assert.Equal(t, expanded.Get("public"), "value_of_")
 	assert.Equal(t, expanded.Get("private"), "value_of_value_of_$undefined")
+	assert.Equal(t, expanded.ExpandValue("${public} ${private}"), "value_of_ value_of_value_of_$undefined")
 }
