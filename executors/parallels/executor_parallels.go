@@ -10,7 +10,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/ssh"
 
-	prl "gitlab.com/gitlab-org/gitlab-ci-multi-runner/parallels"
+	prl "gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/parallels"
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 )
