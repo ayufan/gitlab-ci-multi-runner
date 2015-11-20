@@ -54,7 +54,6 @@ type ShellScriptInfo struct {
 	Build       *Build
 	Type        ShellType
 	User        *string
-	Environment []BuildVariable
 }
 
 type Shell interface {

@@ -86,6 +86,18 @@ func (c *RunnerConfig) String() string {
 	return fmt.Sprintf("%v url=%v token=%v executor=%v", c.Name, c.URL, c.Token, c.Executor)
 }
 
+func (c *RunnerConfig) GetVariables() BuildVariables {
+	var variables BuildVariables
+
+	for _, environment := range c.Environment {
+		if variable, err := ParseVariable(environment); err == nil {
+			variables = append(variables, variable)
+		}
+	}
+	
+	return variables
+}
+
 func NewConfig() *Config {
 	return &Config{
 		BaseConfig: BaseConfig{

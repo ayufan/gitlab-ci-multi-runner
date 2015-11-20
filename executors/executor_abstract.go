@@ -9,7 +9,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
-	"strings"
 )
 
 type ExecutorOptions struct {
@@ -37,22 +36,6 @@ func (e *AbstractExecutor) updateShell() error {
 	script := &e.Shell
 	script.Build = e.Build
 	script.Shell = helpers.StringOrDefault(e.Config.Shell, script.Shell)
-
-	// Add config variables
-	for _, environment := range e.Config.Environment {
-		keyValue := strings.SplitN(environment, "=", 2)
-		if len(keyValue) != 2 {
-			continue
-		}
-		variable := common.BuildVariable{
-			Key: keyValue[0],
-			Value: keyValue[1],
-		}
-		script.Environment = append(script.Environment, variable)
-	}
-
-	// Add secure variables
-	script.Environment = append(script.Environment, e.Build.Variables...)
 	return nil
 }
 

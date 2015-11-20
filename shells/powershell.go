@@ -100,7 +100,7 @@ func (b *PowerShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellS
 	w.Flush()
 
 	script := common.ShellScript{
-		Environment: b.GetVariables(build, projectDir, info.Environment),
+		Environment: b.GetVariables(info),
 		BuildScript: buffer.String(),
 		Command:     "powershell",
 		Arguments:   []string{"-noprofile", "-noninteractive", "-executionpolicy", "Bypass", "-command"},

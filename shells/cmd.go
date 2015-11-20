@@ -96,7 +96,7 @@ func (b *CmdShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScr
 	w.Flush()
 
 	script := common.ShellScript{
-		Environment: b.GetVariables(build, projectDir, info.Environment),
+		Environment: b.GetVariables(info),
 		BuildScript: buffer.String(),
 		Command:     "cmd",
 		Arguments:   []string{"/Q", "/C"},

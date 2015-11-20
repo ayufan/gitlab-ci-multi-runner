@@ -102,8 +102,8 @@ func (b *BashShell) writeCdBuildDir(w io.Writer, info common.ShellScriptInfo) {
 	b.executeCommand(w, "cd", b.fullProjectDir(info))
 }
 
-func (b *BashShell) writeExport(w io.Writer, keyValue string) {
-	io.WriteString(w, "export " + helpers.ShellEscape(keyValue) + "\n")
+func (b *BashShell) writeExport(w io.Writer, variable common.BuildVariable) {
+	b.executeCommandFormat(w, "export %s=%s", helpers.ShellEscape(variable.Key), helpers.ShellEscape(variable.Value))
 }
 
 func (b *BashShell) fullProjectDir(info common.ShellScriptInfo) string {
@@ -112,9 +112,8 @@ func (b *BashShell) fullProjectDir(info common.ShellScriptInfo) string {
 }
 
 func (b *BashShell) writeExports(w io.Writer, info common.ShellScriptInfo) {
-	// Set env variables from build script
-	for _, keyValue := range b.GetVariables(info.Build, b.fullProjectDir(info), info.Environment) {
-		b.writeExport(w, keyValue)
+	for _, variable := range info.Build.GetAllVariables() {
+		b.writeExport(w, variable)
 	}
 }
 
@@ -282,7 +281,7 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 		PreScript:   b.generatePreBuildScript(info),
 		BuildScript: b.generateCommands(info),
 		PostScript:  b.generatePostBuildScript(info),
-		Environment: b.GetVariables(info.Build, b.fullProjectDir(info), info.Environment),
+		Environment: b.GetVariables(info),
 	}
 
 	// su

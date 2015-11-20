@@ -36,18 +36,7 @@ type DockerExecutor struct {
 }
 
 func (s *DockerExecutor) getServiceVariables() []string {
-	variables := s.Config.Environment
-
-	for _, buildVariable := range s.Build.Variables {
-		if !buildVariable.Public {
-			continue
-		}
-
-		variable := fmt.Sprintf("%s=%s", buildVariable.Key, buildVariable.Value)
-		variables = append(variables, variable)
-	}
-
-	return variables
+	return s.Build.GetAllVariables().Public().StringList()
 }
 
 func (s *DockerExecutor) getAuthConfig(imageName string) (docker.AuthConfiguration, error) {

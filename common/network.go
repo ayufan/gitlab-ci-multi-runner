@@ -43,12 +43,6 @@ type GetBuildRequest struct {
 	Token string      `json:"token,omitempty"`
 }
 
-type BuildVariable struct {
-	Key    string `json:"key"`
-	Value  string `json:"value"`
-	Public bool   `json:"public"`
-}
-
 type BuildOptions map[string]interface{}
 
 type GetBuildResponse struct {
@@ -61,7 +55,7 @@ type GetBuildResponse struct {
 	BeforeSha     string          `json:"before_sha,omitempty"`
 	AllowGitFetch bool            `json:"allow_git_fetch,omitempty"`
 	Timeout       int             `json:"timeout,omitempty"`
-	Variables     []BuildVariable `json:"variables"`
+	Variables     BuildVariables  `json:"variables"`
 	Options       BuildOptions    `json:"options"`
 	Token         string          `json:"token"`
 	Name          string          `json:"name"`
