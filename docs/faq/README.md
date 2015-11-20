@@ -30,3 +30,7 @@ project to use *git fetch* from the GitLab CI project settings page.
 The [NTFSSecurity](https://ntfssecurity.codeplex.com/) PowerShell module provides
 a *Remove-Item2* method which supports long paths. The Gitlab CI Multi Runner will
 detect it if it is available and automatically make use of it.
+
+## 4. I'm seeing `x509: certificate signed by unknown authority`
+
+Please [See the self-signed certificates](../configuration/tls-self-signed.md)

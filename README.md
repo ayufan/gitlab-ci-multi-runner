@@ -72,6 +72,7 @@ The config file is automatically migrated when GitLab Runner was installed from 
 
 ### Advanced Configuration
 
+* [See the self-signed certificates](docs/configuration/tls-self-signed.md)
 * [See advanced configuration options](docs/configuration/advanced-configuration.md)
 * [See example configuration file](config.toml.example)
 * [See security considerations](docs/security/index.md)

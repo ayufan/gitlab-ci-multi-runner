@@ -28,6 +28,8 @@ This defines one runner entry.
 | `name`              | not used, just informatory |
 | `url`               | CI URL |
 | `token`             | runner token |
+| `tls-ca-file`       | file containing the certificates to verify the peer when using HTTPS |
+| `tls-skip-verify`   | whether to verify the TLS certificate when using HTTPS, default: false |
 | `limit`             | limit how many jobs can be handled concurrently by this token. 0 simply means don't limit |
 | `executor`          | select how a project should be built, see next section |
 | `shell`             | the name of shell to generate the script (default value is platform dependent) |
