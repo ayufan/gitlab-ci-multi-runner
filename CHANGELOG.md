@@ -3,6 +3,15 @@ v 0.7.0 (unreleased)
 - Refactor bash script adding pre-build and post-build steps
 - Add support for build artifacts
 - Add support for caching build directories
+- Add command to generate archive with cached folders or artifacts
+- Use separate containers to run pre-build (git clonning), build (user scripts) and post-build (uploading artifacts)
+- Expand variables, allowing to use $CI_BUILD_TAG in image names, or in other variables
+- Make shell executor to use absolute path for project dir
+- Be strict about code formatting
+- Move network related code to separate package
+- Automatically load TLS certificates stored in /etc/gitlab-runner/certs/<hostname>.crt
+- Allow to specify tls-ca-file during registration
+- Allow to disable tls verification during registration
 
 v 0.6.1
 - Revert: Fix tags handling when using git fetch: fetch all tags and prune the old ones

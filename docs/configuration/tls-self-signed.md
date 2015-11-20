@@ -10,12 +10,12 @@ The GitLab Runner provides these options:
 
 2. GitLab Runner reads the PEM (**DER format is not supported**) certificate from predefined file:
 
-    - `/etc/gitlab-runner/certs/hostname.crt` on *nix systems when gitlab-runner is executed as root.
-    - `~/.gitlab-runner/certs/hostname.crt` on *nix systems when gitlab-runner is executed as non-root,
-    - `./certs/hostname.crt` on other systems.
-        
-    If address of your server is: `https://my.gitlab.server.com:8443/`.
-    Create the certificate file at: `/etc/gitlab-runner/certs/my.gitlab.server.com`. 
+        - `/etc/gitlab-runner/certs/hostname.crt` on *nix systems when gitlab-runner is executed as root.
+        - `~/.gitlab-runner/certs/hostname.crt` on *nix systems when gitlab-runner is executed as non-root,
+        - `./certs/hostname.crt` on other systems.
+            
+        If address of your server is: `https://my.gitlab.server.com:8443/`.
+        Create the certificate file at: `/etc/gitlab-runner/certs/my.gitlab.server.com`. 
 
 3. GitLab Runner exposes `tls-ca-file` option during registration and in [`config.toml`](advanced-configuration.md)
 which allows you to specify custom file with certificates. This file will be read everytime when runner tries to
@@ -25,9 +25,10 @@ access the GitLab server.
 which allows you to skip TLS verification when connecting to server.
 **This approach is INSECURE! Use at your own risk!**
 Anyone can eavesdrop your connection:
-- see the runner token which is used to authenticate against GitLab,
-- see tokens which are used to clone GitLab projects,
-- see the secure variables that are passed to runner.
+
+        - see the runner token which is used to authenticate against GitLab,
+        - see tokens which are used to clone GitLab projects,
+        - see the secure variables that are passed to runner.
 
 ### Git cloning
 
