@@ -4,7 +4,7 @@ import (
 	"os"
 	"path"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/cli"
 
@@ -29,6 +29,16 @@ func init() {
 }
 
 func main() {
+	defer func() {
+		if r := recover(); r != nil {
+			// log panics forces exit
+			if _, ok := r.(*logrus.Entry); ok {
+				os.Exit(1)
+			}
+			panic(r)
+		}
+	}()
+
 	app := cli.NewApp()
 	app.Name = path.Base(os.Args[0])
 	app.Usage = "a GitLab Runner"
@@ -42,10 +52,10 @@ func main() {
 	cli_helpers.SetupLogLevelOptions(app)
 	app.Commands = common.GetCommands()
 	app.CommandNotFound = func(context *cli.Context, command string) {
-		log.Fatalln("Command", command, "not found.")
+		logrus.Fatalln("Command", command, "not found.")
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 }

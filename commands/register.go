@@ -43,7 +43,7 @@ func (s *RegisterCommand) ask(key, prompt string, allowEmptyOptional ...bool) st
 
 	if s.NonInteractive || prompt == "" {
 		if result == "" && !allowEmpty {
-			log.Fatalln("The", key, "needs to be entered")
+			log.Panicln("The", key, "needs to be entered")
 		}
 		return result
 	}
@@ -85,7 +85,7 @@ func (s *RegisterCommand) askExecutor() {
 		} else {
 			message := "Invalid executor specified"
 			if s.NonInteractive {
-				log.Fatalln(message)
+				log.Panicln(message)
 			} else {
 				log.Errorln(message)
 			}
@@ -164,7 +164,7 @@ func (s *RegisterCommand) askRunner() {
 		log.Infoln("Token specified trying to verify runner...")
 		log.Warningln("If you want to register use the '-r' instead of '-t'.")
 		if !s.network.VerifyRunner(s.RunnerCredentials) {
-			log.Fatalln("Failed to verify this runner. Perhaps you are having network problems")
+			log.Panicln("Failed to verify this runner. Perhaps you are having network problems")
 		}
 	} else {
 		// we store registration token as token, since we pass that to RunnerCredentials
@@ -174,7 +174,7 @@ func (s *RegisterCommand) askRunner() {
 
 		result := s.network.RegisterRunner(s.RunnerCredentials, s.Name, s.TagList)
 		if result == nil {
-			log.Fatalln("Failed to register this runner. Perhaps you are having network problems")
+			log.Panicln("Failed to register this runner. Perhaps you are having network problems")
 		}
 
 		s.Token = result.Token
@@ -186,7 +186,7 @@ func (c *RegisterCommand) Execute(context *cli.Context) {
 	c.context = context
 	err := c.loadConfig()
 	if err != nil {
-		log.Fatalln(err)
+		log.Panicln(err)
 	}
 	c.askRunner()
 
