@@ -179,6 +179,7 @@ func (mr *RunCommand) requestBuild(runner *common.RunnerConfig) *common.Build {
 		GetBuildResponse: *buildData,
 		Runner:           runner,
 		BuildAbort:       mr.abortBuilds,
+		Network:          mr.network,
 	}
 	return newBuild
 }

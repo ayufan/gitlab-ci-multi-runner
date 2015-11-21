@@ -89,6 +89,7 @@ func (r *RunSingleCommand) Execute(c *cli.Context) {
 			GetBuildResponse: *buildData,
 			Runner:           &r.RunnerConfig,
 			BuildAbort:       abortSignal,
+			Network:          r.network,
 		}
 		newBuild.AssignID()
 		newBuild.Run(config)
