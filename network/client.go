@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"errors"
 )
 
 type client struct {
@@ -47,7 +48,7 @@ func (n *client) createTransport() {
 	}
 
 	// load TLS certificate
-	if file := n.caFile; file != "" {
+	if file := n.caFile; file != "" && !n.skipVerify {
 		logrus.Debugln("Trying to load", file, "...")
 
 		data, err := ioutil.ReadFile(file)
@@ -101,6 +102,10 @@ func (n *client) do(uri, method string, statusCode int, request interface{}, res
 		req.Header.Set("Content-Type", "application/json")
 	}
 
+	if response != nil {
+		req.Header.Set("Accept", "application/json")
+	}
+
 	n.ensureTlsConfig()
 
 	res, err := n.Do(req)
@@ -111,6 +116,10 @@ func (n *client) do(uri, method string, statusCode int, request interface{}, res
 
 	if res.StatusCode == statusCode {
 		if response != nil {
+			if contentType := res.Header.Get("Content-Type"); contentType != "application/json" {
+				return -1, fmt.Sprintf("Server should return application/json. Got: %v", contentType)
+			}
+
 			d := json.NewDecoder(res.Body)
 			err = d.Decode(response)
 			if err != nil {
@@ -133,6 +142,11 @@ func (n *client) fullUrl(uri string, a ...interface{}) string {
 func newClient(config common.RunnerCredentials) (c *client, err error) {
 	url, err := url.Parse(strings.TrimRight(config.URL, "/") + "/api/v1/")
 	if err != nil {
+		return
+	}
+
+	if url.Scheme != "http" && url.Scheme != "https" {
+		err = errors.New("only http or https scheme supported")
 		return
 	}
 
