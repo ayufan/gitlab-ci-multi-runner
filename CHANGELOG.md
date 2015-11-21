@@ -1,10 +1,10 @@
-v 0.7.0 (unreleased)
+v 0.7.0
 - Refactor code structure
 - Refactor bash script adding pre-build and post-build steps
 - Add support for build artifacts
 - Add support for caching build directories
 - Add command to generate archive with cached folders or artifacts
-- Use separate containers to run pre-build (git clonning), build (user scripts) and post-build (uploading artifacts)
+- Use separate containers to run pre-build (git cloning), build (user scripts) and post-build (uploading artifacts)
 - Expand variables, allowing to use $CI_BUILD_TAG in image names, or in other variables
 - Make shell executor to use absolute path for project dir
 - Be strict about code formatting
