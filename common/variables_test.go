@@ -50,12 +50,13 @@ func TestInvalidParseVariable(t *testing.T) {
 func TestVariablesExpansion(t *testing.T) {
 	all := BuildVariables{
 		{"key", "value_of_$public", false},
-		{"public", "value_of_$undefined", true},
+		{"public", "some_value", true},
 		{"private", "value_of_${public}", false},
+		{"public", "value_of_$undefined", true},
 	}
 
 	expanded := all.Expand()
-	assert.Len(t, expanded, 3)
+	assert.Len(t, expanded, 4)
 	assert.Equal(t, expanded.Get("key"), "value_of_value_of_$undefined")
 	assert.Equal(t, expanded.Get("public"), "value_of_")
 	assert.Equal(t, expanded.Get("private"), "value_of_value_of_$undefined")
