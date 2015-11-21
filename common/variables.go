@@ -36,7 +36,7 @@ func (b BuildVariables) StringList() (variables []string) {
 }
 
 func (b BuildVariables) Get(key string) string {
-	for i := len(b)-1; i >= 0; i-- {
+	for i := len(b) - 1; i >= 0; i-- {
 		if b[i].Key == key {
 			return b[i].Value
 		}

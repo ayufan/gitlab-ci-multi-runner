@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
@@ -16,7 +17,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	"errors"
 )
 
 type client struct {
