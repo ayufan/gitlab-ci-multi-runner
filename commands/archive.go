@@ -109,6 +109,7 @@ func (c *ArchiveCommand) processUntracked() {
 	cmd.Env = os.Environ()
 	cmd.Stdout = &output
 	cmd.Stderr = os.Stderr
+	logrus.Debugln("Executing command:", strings.Join(cmd.Args, " "))
 	err := cmd.Run()
 	if err == nil {
 		reader := bufio.NewReader(&output)
@@ -133,7 +134,7 @@ func (c *ArchiveCommand) archive() {
 		return
 	}
 
-	logrus.Infoln("Creating archive", c.Output, "...")
+	logrus.Infoln("Creating archive", filepath.Base(c.Output), "...")
 	var files bytes.Buffer
 	for _, file := range c.sortedFiles() {
 		files.WriteString(string(file) + "\n")
@@ -149,7 +150,7 @@ func (c *ArchiveCommand) archive() {
 	tempFile.Close()
 	defer os.Remove(tempFile.Name())
 
-	logrus.Debugln("Temporary file", tempFile.Name())
+	logrus.Debugln("Temporary file:", tempFile.Name())
 
 	flags := "-zcPv"
 	if c.Silent {
@@ -161,14 +162,15 @@ func (c *ArchiveCommand) archive() {
 	cmd.Stdin = &files
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	logrus.Debugln("Executing command:", strings.Join(cmd.Args, " "))
 	err = cmd.Run()
 	if err != nil {
-		logrus.Fatalln("Failed to create archive", err)
+		logrus.Fatalln("Failed to create archive:", err)
 	}
 
 	err = os.Rename(tempFile.Name(), c.Output)
 	if err != nil {
-		logrus.Warningln("Failed to rename archive", err)
+		logrus.Warningln("Failed to rename archive:", err)
 	}
 
 	logrus.Infoln("Done!")
@@ -184,7 +186,7 @@ func (c *ArchiveCommand) Execute(context *cli.Context) {
 
 	wd, err := os.Getwd()
 	if err != nil {
-		logrus.Fatalln("Failed to get current working directory", err)
+		logrus.Fatalln("Failed to get current working directory:", err)
 	}
 	if c.Output == "" {
 		logrus.Fatalln("Missing archive file name!")
@@ -198,7 +200,7 @@ func (c *ArchiveCommand) Execute(context *cli.Context) {
 
 	ai, err := os.Stat(c.Output)
 	if err != nil && !os.IsNotExist(err) {
-		logrus.Fatalln("Failed to verify archive", c.Output, err)
+		logrus.Fatalln("Failed to verify archive:", c.Output, err)
 	}
 	if ai != nil {
 		if !c.isChanged(ai.ModTime()) {

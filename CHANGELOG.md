@@ -1,3 +1,7 @@
+v 0.7.1
+- Fix caching support
+- Suppress tar verbose output
+
 v 0.7.0
 - Refactor code structure
 - Refactor bash script adding pre-build and post-build steps

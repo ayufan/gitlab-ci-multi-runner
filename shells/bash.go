@@ -153,14 +153,14 @@ func (b *BashShell) generatePreBuildScript(info common.ShellScriptInfo) string {
 		// If we have cache, restore it
 		b.writeIfFile(w, cacheFile)
 		b.echoColored(w, "Restoring cache...")
-		b.executeCommand(w, "tar", "-zxfv", "-f", cacheFile)
+		b.executeCommand(w, "tar", "-zxf", cacheFile)
 		if cacheFile2 != "" {
 			b.writeElse(w)
 
 			// If we have cache, restore it
 			b.writeIfFile(w, cacheFile2)
 			b.echoColored(w, "Restoring cache...")
-			b.executeCommand(w, "tar", "-zxfv", "-f", cacheFile2)
+			b.executeCommand(w, "tar", "-zxf", cacheFile2)
 			b.writeEndIf(w)
 		}
 		b.writeEndIf(w)
@@ -205,7 +205,8 @@ func (b *BashShell) archiveFiles(w io.Writer, list interface{}, archiveType, arc
 
 	args := []string{
 		"archive",
-		"-output",
+		"--silent",
+		"--output",
 		archivePath,
 	}
 
@@ -213,14 +214,14 @@ func (b *BashShell) archiveFiles(w io.Writer, list interface{}, archiveType, arc
 	if paths, ok := hash["paths"].([]interface{}); ok {
 		for _, artifactPath := range paths {
 			if file, ok := artifactPath.(string); ok {
-				args = append(args, "-path", file)
+				args = append(args, "--path", file)
 			}
 		}
 	}
 
 	// Archive also untracked files
 	if untracked, ok := hash["untracked"].(bool); ok && untracked {
-		args = append(args, "-untracked")
+		args = append(args, "--untracked")
 	}
 
 	// Skip creating archive
