@@ -34,6 +34,7 @@ This defines one runner entry.
 | `executor`          | select how a project should be built, see next section |
 | `shell`             | the name of shell to generate the script (default value is platform dependent) |
 | `builds_dir`        | directory where builds will be stored in context of selected executor (Locally, Docker, SSH) |
+| `cache_dir`         | directory where build caches will be stored in context of selected executor (Locally, Docker, SSH) |
 | `environment`       | append or overwrite environment variables |
 | `disable_verbose`   | don't print run commands |
 | `output_limit`      | set maximum build log size in kilobytes, by default set to 4096 (4MB) |
