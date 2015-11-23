@@ -1,3 +1,6 @@
+v 0.7.2
+- Use absolute path when executing archive command
+
 v 0.7.1
 - Fix caching support
 - Suppress tar verbose output

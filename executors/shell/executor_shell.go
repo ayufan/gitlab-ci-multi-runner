@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"fmt"
+	"github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
@@ -111,13 +112,20 @@ func (s *ShellExecutor) Cleanup() {
 }
 
 func init() {
+	// Look for self
+	runnerCommand, err := exec.LookPath(os.Args[0])
+	if err != nil {
+		logrus.Warningln(err)
+	}
+
 	options := executors.ExecutorOptions{
 		DefaultBuildsDir: "$PWD/builds",
 		DefaultCacheDir:  "$PWD/cache",
 		SharedBuildsDir:  true,
 		Shell: common.ShellScriptInfo{
-			Shell: common.GetDefaultShell(),
-			Type:  common.LoginShell,
+			Shell:         common.GetDefaultShell(),
+			Type:          common.LoginShell,
+			RunnerCommand: runnerCommand,
 		},
 		ShowHostname: false,
 	}

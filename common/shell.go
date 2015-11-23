@@ -50,10 +50,11 @@ func (s *ShellScript) String() string {
 }
 
 type ShellScriptInfo struct {
-	Shell string
-	Build *Build
-	Type  ShellType
-	User  *string
+	Shell         string
+	Build         *Build
+	Type          ShellType
+	User          *string
+	RunnerCommand string
 }
 
 type Shell interface {
