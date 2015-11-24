@@ -198,32 +198,44 @@ func (s *DockerExecutor) createCacheVolume(containerName, containerPath string) 
 	return container, nil
 }
 
-func (s *DockerExecutor) addCacheVolume(binds, volumesFrom *[]string, containerPath string) error {
+func (s *DockerExecutor) addCacheVolume(binds, volumesFrom *[]string, containerPath string, shared bool) error {
 	var err error
 	containerPath = s.getAbsoluteContainerPath(containerPath)
 
 	// disable cache for automatic container cache, but leave it for host volumes (they are shared on purpose)
 	if helpers.BoolOrDefault(s.Config.Docker.DisableCache, false) {
-		s.Debugln("Container cache for", containerPath, " is disabled.")
+		s.Debugln("Container cache for", containerPath, "is disabled.")
 		return nil
 	}
 
-	hash := md5.Sum([]byte(containerPath))
+	hash := fmt.Sprintf("%x",md5.Sum([]byte(containerPath)))
 
 	// use host-based cache
 	if cacheDir := helpers.StringOrDefault(s.Config.Docker.CacheDir, ""); cacheDir != "" {
-		hostPath := fmt.Sprintf("%s/%s/%x", cacheDir, s.Build.ProjectUniqueName(), hash)
-		hostPath, err := filepath.Abs(hostPath)
+		hostPath, err := filepath.Abs(cacheDir)
 		if err != nil {
 			return err
 		}
+
+		// For shared directory
+		if shared {
+			hostPath = filepath.Join(hostPath, "runner-" + s.Build.Runner.ShortDescription())
+			hostPath = filepath.Join(hostPath, "project-" + strconv.Itoa(s.Build.ProjectID))
+		} else {
+			hostPath = filepath.Join(hostPath, s.Build.Runner.ShortDescription())
+		}
+		hostPath = filepath.Join(hostPath, hash)
+
 		s.Debugln("Using path", hostPath, "as cache for", containerPath, "...")
 		*binds = append(*binds, fmt.Sprintf("%v:%v", hostPath, containerPath))
 		return nil
 	}
 
 	// get existing cache container
-	containerName := fmt.Sprintf("%s-cache-%x", s.Build.ProjectUniqueName(), hash)
+	containerName := fmt.Sprintf("%s-cache-%s", s.Build.ProjectUniqueName(), hash)
+	if shared {
+		containerName = fmt.Sprintf("runner-%s-project-%d-cache-%s", s.Build.Runner.ShortDescription(), s.Build.ProjectID, hash)
+	}
 	container, _ := s.client.InspectContainer(containerName)
 
 	// check if we have valid cache, if not remove the broken container
@@ -245,7 +257,7 @@ func (s *DockerExecutor) addCacheVolume(binds, volumesFrom *[]string, containerP
 	return nil
 }
 
-func (s *DockerExecutor) addVolume(binds, volumesFrom *[]string, volume string) error {
+func (s *DockerExecutor) addVolume(binds, volumesFrom *[]string, volume string, shared bool) error {
 	var err error
 	hostVolume := strings.SplitN(volume, ":", 2)
 	switch len(hostVolume) {
@@ -254,7 +266,7 @@ func (s *DockerExecutor) addVolume(binds, volumesFrom *[]string, volume string) 
 
 	case 1:
 		// disable cache disables
-		err = s.addCacheVolume(binds, volumesFrom, hostVolume[0])
+		err = s.addCacheVolume(binds, volumesFrom, hostVolume[0], shared)
 	}
 
 	if err != nil {
@@ -265,9 +277,8 @@ func (s *DockerExecutor) addVolume(binds, volumesFrom *[]string, volume string) 
 
 func (s *DockerExecutor) createVolumes() ([]string, []string, error) {
 	var binds, volumesFrom []string
-
 	for _, volume := range s.Config.Docker.Volumes {
-		s.addVolume(&binds, &volumesFrom, volume)
+		s.addVolume(&binds, &volumesFrom, volume, true)
 	}
 
 	// Cache Git sources:
@@ -279,7 +290,7 @@ func (s *DockerExecutor) createVolumes() ([]string, []string, error) {
 	if filepath.IsAbs(parentDir) && parentDir != "/" {
 		if s.Build.AllowGitFetch && !helpers.BoolOrDefault(s.Config.Docker.DisableCache, false) {
 			// create persistent cache container
-			s.addVolume(&binds, &volumesFrom, parentDir)
+			s.addVolume(&binds, &volumesFrom, parentDir, false)
 		} else {
 			// create temporary cache container
 			container, _ := s.createCacheVolume("", parentDir)
