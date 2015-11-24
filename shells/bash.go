@@ -42,17 +42,6 @@ func (b *BashShell) executeCommandFormat(w io.Writer, format string, arguments .
 	io.WriteString(w, fmt.Sprintf(format+"\n", arguments...))
 }
 
-func (b *BashShell) echoColoredTimestamp(w io.Writer, text, timestamp string) {
-	coloredText := helpers.ANSI_BOLD_GREEN + text + helpers.ANSI_RESET
-	timestampText := ""
-	if timestamp != "" {
-		timestampText = helpers.ShellEscape(helpers.ANSI_BOLD_BLUE) +
-			strconv.Quote(" (Elapsed time: "+timestamp+")") +
-			helpers.ShellEscape(helpers.ANSI_RESET)
-	}
-	b.executeCommandFormat(w, "echo %s", helpers.ShellEscape(coloredText)+timestampText)
-}
-
 func (b *BashShell) echoColored(w io.Writer, text string) {
 	coloredText := helpers.ANSI_BOLD_GREEN + text + helpers.ANSI_RESET
 	b.executeCommandFormat(w, "echo %s", helpers.ShellEscape(coloredText))
@@ -188,7 +177,6 @@ func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
 
 	b.writeExports(w, info)
 	b.writeCdBuildDir(w, info)
-	b.executeCommandFormat(w, "CI_TIMESTAMP=%s", "$(date +%s)")
 
 	commands := info.Build.Commands
 	commands = strings.TrimSpace(commands)
@@ -196,8 +184,7 @@ func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
 		command = strings.TrimSpace(command)
 		if !helpers.BoolOrDefault(info.Build.Runner.DisableVerbose, false) {
 			if command != "" {
-				b.executeCommandFormat(w, "ELAPSED_TIME=%s", "$(($(date +%s)-$CI_TIMESTAMP))")
-				b.echoColoredTimestamp(w, "$ "+command, "$ELAPSED_TIME")
+				b.echoColored(w, "$ "+command)
 			} else {
 				b.executeCommand(w, "echo")
 			}
