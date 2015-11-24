@@ -200,16 +200,43 @@ func (b *Build) BuildLogLen() int {
 	return b.buildLog.Len()
 }
 
-func (b *Build) WriteString(data string) (int, error) {
+func (b *Build) writeTimestamp() (int, error) {
+	elapsedTime := time.Since(b.BuildStarted)
+	return b.buildLog.WriteString(helpers.ANSI_BOLD_CYAN + fmt.Sprintf("%.1f", elapsedTime.Seconds()) + "] " + helpers.ANSI_RESET)
+}
+
+func (b *Build) WriteString(data string) (n int, err error) {
 	b.buildLogLock.Lock()
 	defer b.buildLogLock.Unlock()
-	return b.buildLog.WriteString(data)
+	var nn int
+	for _, line := range strings.SplitAfter(data, "\n") {
+		nn, err = b.buildLog.WriteString(line)
+		if err != nil {
+			break
+		}
+		n += nn
+
+		if strings.HasSuffix(line, "\n") {
+			nn, err = b.writeTimestamp()
+			if err != nil {
+				break
+			}
+			n += nn
+		}
+	}
+	return
 }
 
 func (b *Build) WriteRune(r rune) (int, error) {
 	b.buildLogLock.Lock()
 	defer b.buildLogLock.Unlock()
-	return b.buildLog.WriteRune(r)
+	n, err := b.buildLog.WriteRune(r)
+	if err == nil && r == '\n' {
+		var nn int
+		nn, err = b.writeTimestamp()
+		n += nn
+	}
+	return n, err
 }
 
 func (b *Build) SendBuildLog() {
