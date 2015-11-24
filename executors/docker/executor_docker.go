@@ -36,7 +36,7 @@ type DockerExecutor struct {
 }
 
 func (s *DockerExecutor) getServiceVariables() []string {
-	return s.Build.GetAllVariables().Public().StringList()
+	return s.Build.GetAllVariables().PublicOrInternal().StringList()
 }
 
 func (s *DockerExecutor) getAuthConfig(imageName string) (docker.AuthConfiguration, error) {

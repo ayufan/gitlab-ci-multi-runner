@@ -8,9 +8,10 @@ import (
 )
 
 type BuildVariable struct {
-	Key    string `json:"key"`
-	Value  string `json:"value"`
-	Public bool   `json:"public"`
+	Key      string `json:"key"`
+	Value    string `json:"value"`
+	Public   bool   `json:"public"`
+	Internal bool   `json:"-"`
 }
 
 type BuildVariables []BuildVariable
@@ -19,9 +20,9 @@ func (b BuildVariable) String() string {
 	return fmt.Sprintf("%s=%s", b.Key, b.Value)
 }
 
-func (b BuildVariables) Public() (variables BuildVariables) {
+func (b BuildVariables) PublicOrInternal() (variables BuildVariables) {
 	for _, variable := range b {
-		if variable.Public {
+		if variable.Public || variable.Internal {
 			variables = append(variables, variable)
 		}
 	}

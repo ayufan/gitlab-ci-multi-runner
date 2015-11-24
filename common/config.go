@@ -93,6 +93,7 @@ func (c *RunnerConfig) GetVariables() BuildVariables {
 
 	for _, environment := range c.Environment {
 		if variable, err := ParseVariable(environment); err == nil {
+			variable.Internal = true
 			variables = append(variables, variable)
 		}
 	}
