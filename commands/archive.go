@@ -3,142 +3,41 @@ package commands
 import (
 	"bufio"
 	"bytes"
-	"github.com/Sirupsen/logrus"
-	"github.com/codegangsta/cli"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
+
+	"github.com/EMSSConsulting/Thargo"
+	"github.com/Sirupsen/logrus"
+	"github.com/codegangsta/cli"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 )
 
 type ArchiveCommand struct {
-	Paths     []string `long:"path" description:"Add paths to archive"`
+	Paths     []string `long:"path" description:"Glob based filters used to include files"`
 	Untracked bool     `long:"untracked" description:"Add git untracked files"`
 	Output    string   `long:"output" description:"The filepath to output file"`
 	Silent    bool     `long:"silent" description:"Suppress archiving ouput"`
 
+	files map[string]time.Time
 	wd    string
-	files map[string]os.FileInfo
 }
 
 func (c *ArchiveCommand) isChanged(modTime time.Time) bool {
-	for _, info := range c.files {
-		if modTime.Before(info.ModTime()) {
+	for _, fileModTime := range c.files {
+		if modTime.Before(fileModTime) {
 			return true
 		}
 	}
 	return false
 }
 
-func (c *ArchiveCommand) sortedFiles() []string {
-	files := make([]string, len(c.files))
-
-	i := 0
-	for file := range c.files {
-		files[i] = file
-		i++
-	}
-
-	sort.Strings(files)
-	return files
-}
-
-func (c *ArchiveCommand) add(path string, info os.FileInfo) (err error) {
-	if info == nil {
-		info, err = os.Lstat(path)
-	}
-	if err == nil {
-		c.files[path] = info
-	} else if os.IsNotExist(err) {
-		logrus.Warningln("File", path, "doesn't exist")
-		err = nil
-	}
-	return
-}
-
-func (c *ArchiveCommand) process(match string) error {
-	absolute, err := filepath.Abs(match)
-	if err != nil {
-		return err
-	}
-
-	relative, err := filepath.Rel(c.wd, absolute)
-	if err != nil {
-		return err
-	}
-
-	// store relative path if points to current working directory
-	if strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
-		return c.add(absolute, nil)
-	} else {
-		return c.add(relative, nil)
-	}
-}
-
-func (c *ArchiveCommand) processPaths() {
-	for _, path := range c.Paths {
-		matches, err := filepath.Glob(path)
-		if err != nil {
-			logrus.Warningln(err)
-			continue
-		}
-
-		for _, match := range matches {
-			err := filepath.Walk(match, func(path string, info os.FileInfo, err error) error {
-				return c.process(path)
-			})
-			if err != nil {
-				logrus.Warningln("Walking", match, err)
-			}
-		}
-	}
-}
-
-func (c *ArchiveCommand) processUntracked() {
-	if !c.Untracked {
-		return
-	}
-
-	var output bytes.Buffer
-	cmd := exec.Command("git", "ls-files", "-o")
-	cmd.Env = os.Environ()
-	cmd.Stdout = &output
-	cmd.Stderr = os.Stderr
-	logrus.Debugln("Executing command:", strings.Join(cmd.Args, " "))
-	err := cmd.Run()
-	if err == nil {
-		reader := bufio.NewReader(&output)
-		for {
-			line, _, err := reader.ReadLine()
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				logrus.Warningln(err)
-				break
-			}
-			c.process(string(line))
-		}
-	} else {
-		logrus.Warningln(err)
-	}
-}
-
 func (c *ArchiveCommand) archive() {
-	if len(c.files) == 0 {
-		logrus.Infoln("No files to archive.")
-		return
-	}
-
 	logrus.Infoln("Creating archive", filepath.Base(c.Output), "...")
-	var files bytes.Buffer
-	for _, file := range c.sortedFiles() {
-		files.WriteString(string(file) + "\n")
-	}
 
 	// create directories to store archive
 	os.MkdirAll(filepath.Dir(c.Output), 0700)
@@ -148,26 +47,75 @@ func (c *ArchiveCommand) archive() {
 		logrus.Fatalln("Failed to create temporary archive", err)
 	}
 	tempFile.Close()
+
 	defer os.Remove(tempFile.Name())
+
+	archive, err := thargo.NewArchiveFile(tempFile.Name(), nil)
+	if err != nil {
+		logrus.Fatalln("Failed to open archive for writing: ", err)
+	}
 
 	logrus.Debugln("Temporary file:", tempFile.Name())
 
-	flags := "-zcPv"
-	if c.Silent {
-		flags = "-zcP"
+	includePredicate := func(entry thargo.Entry) bool {
+		header, err := entry.Header()
+		if err != nil {
+			return false
+		}
+			
+		// Fix up the header name if the path is outside of the cwd
+		if filepath.HasPrefix(header.Name, "../") {
+			absPath, err := filepath.Abs(header.Name)
+			if err != nil {
+				return false
+			}
+			
+			header.Name = absPath
+		}
+
+		// Don't include duplicate files
+		if _, exists := c.files[header.Name]; exists {
+			return false
+		}
+
+		c.files[header.Name] = header.ChangeTime
+		return true
 	}
 
-	cmd := exec.Command("tar", flags, "-T", "-", "-f", tempFile.Name())
-	cmd.Env = os.Environ()
-	cmd.Stdin = &files
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	logrus.Debugln("Executing command:", strings.Join(cmd.Args, " "))
-	err = cmd.Run()
-	if err != nil {
-		logrus.Fatalln("Failed to create archive:", err)
+	for _, filter := range c.Paths {
+		if !c.Silent {
+			logrus.Infof("Adding '%s' to archive", filter)
+		}
+		
+		if err := archive.AddIf(&thargo.FileSystemTarget{
+			Path:    c.wd,
+			Pattern: filter,
+		}, includePredicate); err != nil {
+			logrus.Warnf("Failed to add '%s' to archive: %s", filter, err)
+		}
 	}
 
+	if c.Untracked {
+		if err := archive.AddIf(&GitUntrackedFilesTarget{
+			Path: c.wd,
+		}, includePredicate); err != nil {
+			logrus.Warnf("Failed to add git untracked files to archive: %s", err)
+		}
+	}
+
+	if err := archive.Close(); err != nil {
+		logrus.Warningln("Failed to close temp archive: ", err)
+	}
+	
+	ai, err := os.Stat(c.Output)
+	if err != nil && !os.IsNotExist(err) {
+		logrus.Fatalln("Failed to verify archive:", c.Output, err)
+	}
+	if ai != nil && !c.isChanged(ai.ModTime()) {
+		logrus.Infoln("Archive is up to date!")
+		return
+	}
+	
 	err = os.Rename(tempFile.Name(), c.Output)
 	if err != nil {
 		logrus.Warningln("Failed to rename archive:", err)
@@ -193,25 +141,86 @@ func (c *ArchiveCommand) Execute(context *cli.Context) {
 	}
 
 	c.wd = wd
-	c.files = make(map[string]os.FileInfo)
+	c.files = make(map[string]time.Time)
 
-	c.processPaths()
-	c.processUntracked()
-
-	ai, err := os.Stat(c.Output)
-	if err != nil && !os.IsNotExist(err) {
-		logrus.Fatalln("Failed to verify archive:", c.Output, err)
-	}
-	if ai != nil {
-		if !c.isChanged(ai.ModTime()) {
-			logrus.Infoln("Archive is up to date!")
-			return
-		}
+	if len(c.Paths) == 0 && !c.Untracked {
+		logrus.Infoln("No inclusion filters specified.")
+		return
 	}
 
 	c.archive()
+
+	if !c.Silent {
+		for file := range c.files {
+			logrus.Println(" - ", file)
+		}
+	}
 }
 
 func init() {
 	common.RegisterCommand2("archive", "find and archive files (internal)", &ArchiveCommand{})
+}
+
+// GitUntrackedFilesTarget is a Thargo target which provides a list of untracked
+// git files for inclusion in an archive.
+type GitUntrackedFilesTarget struct {
+	Path string
+}
+
+func (t *GitUntrackedFilesTarget) Entries() ([]thargo.Entry, error) {
+	entries := []thargo.Entry{}
+
+	var output bytes.Buffer
+	cmd := exec.Command("git", "ls-files", "-o")
+	cmd.Env = os.Environ()
+	cmd.Stdout = &output
+	cmd.Stderr = os.Stderr
+	logrus.Debugln("Executing command:", strings.Join(cmd.Args, " "))
+	err := cmd.Run()
+	if err == nil {
+		reader := bufio.NewReader(&output)
+		for {
+			line, _, err := reader.ReadLine()
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				logrus.Warningln(err)
+				break
+			}
+
+			entry, err := t.processFile(string(line))
+			if err != nil {
+				logrus.Warningln("Failed to include untracked file", line, err)
+			} else if entry == nil {
+				continue
+			}
+
+			entries = append(entries, entry)
+		}
+	} else {
+		logrus.Warningln(err)
+	}
+
+	return entries, nil
+}
+
+func (t *GitUntrackedFilesTarget) processFile(path string) (thargo.Entry, error) {
+	f, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	// Skip directories
+	if f.IsDir() {
+		return nil, nil
+	}
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return &thargo.FileEntry{Name: path, Path: absPath, Info: f}, nil
 }

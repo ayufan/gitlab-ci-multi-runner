@@ -1,17 +1,13 @@
 package commands
 
 import (
-	"bufio"
-	"bytes"
 	"github.com/stretchr/testify/assert"
-	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
+	"github.com/EMSSConsulting/Thargo"
 )
 
 const UntrackedFileName = "some_fancy_untracked_file"
@@ -21,8 +17,9 @@ var currentDir, _ = os.Getwd()
 func randomTempFile(t *testing.T) string {
 	file, err := ioutil.TempFile("", "archive_")
 	assert.NoError(t, err)
-	defer file.Close()
-	defer os.Remove(file.Name())
+	file.Close()
+	os.Remove(file.Name())
+	
 	return file.Name()
 }
 
@@ -43,26 +40,20 @@ func filesInFolder(path string) []string {
 
 func readArchiveContent(t *testing.T, c *ArchiveCommand) (resultMap map[string]bool) {
 	resultMap = make(map[string]bool)
-
-	cmd := exec.Command("tar", "-ztf", c.Output)
-	cmd.Env = os.Environ()
-	cmd.Stderr = os.Stderr
-	result, err := cmd.Output()
+	
+	archive, err := thargo.NewArchiveFile(c.Output, nil)
 	assert.NoError(t, err)
 
-	reader := bufio.NewReader(bytes.NewReader(result))
-	for {
-		line, prefix, err := reader.ReadLine()
-		if err == io.EOF {
-			break
-		}
-		assert.NoError(t, err, "ReadLine")
-		assert.False(t, prefix, "ReadLine")
-		file := strings.TrimSpace(string(line))
-		resultMap[file] = true
-	}
+	assert.NoError(t, archive.Extract(func(entry thargo.SaveableEntry) error {
+		header, err := entry.Header()
+		assert.NoError(t, err)
+		
+		resultMap[header.Name] = true
+		
+		return nil
+	}))
 
-	return
+	return resultMap
 }
 
 func verifyArchiveContent(t *testing.T, c *ArchiveCommand, files ...string) {
@@ -122,7 +113,7 @@ func TestArchiveUpdating(t *testing.T) {
 	cmd := createArchiveCommand(t)
 	defer os.Remove(cmd.Output)
 	cmd.Paths = []string{
-		"commands",
+		"commands/*",
 		tempFile,
 	}
 
@@ -133,7 +124,7 @@ func TestArchiveUpdating(t *testing.T) {
 	cmd.Execute(nil)
 	archive2, err := os.Stat(cmd.Output)
 	assert.NoError(t, err, "Archive is created")
-	assert.Equal(t, archive1.ModTime(), archive2.ModTime(), "Archive should not be modyfied")
+	assert.Equal(t, archive1.ModTime(), archive2.ModTime(), "Archive should not be modified")
 
 	time.Sleep(time.Second)
 	err = ioutil.WriteFile(tempFile, []byte{}, 0700)
