@@ -43,6 +43,7 @@ func readArchiveContent(t *testing.T, c *ArchiveCommand) (resultMap map[string]b
 	
 	archive, err := thargo.NewArchiveFile(c.Output, nil)
 	assert.NoError(t, err)
+	defer archive.Close()
 
 	assert.NoError(t, archive.Extract(func(entry thargo.SaveableEntry) error {
 		header, err := entry.Header()
