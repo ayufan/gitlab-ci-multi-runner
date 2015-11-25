@@ -153,14 +153,14 @@ func (b *BashShell) generatePreBuildScript(info common.ShellScriptInfo) string {
 		// If we have cache, restore it
 		b.writeIfFile(w, cacheFile)
 		b.echoColored(w, "Restoring cache...")
-		b.executeCommand(w, "tar", "-zxf", cacheFile)
+		b.extractFiles(w, info.RunnerCommand, "cache", cacheFile)
 		if cacheFile2 != "" {
 			b.writeElse(w)
 
 			// If we have cache, restore it
 			b.writeIfFile(w, cacheFile2)
 			b.echoColored(w, "Restoring cache...")
-			b.executeCommand(w, "tar", "-zxf", cacheFile2)
+			b.extractFiles(w, info.RunnerCommand, "cache", cacheFile2)
 			b.writeEndIf(w)
 		}
 		b.writeEndIf(w)
@@ -195,6 +195,22 @@ func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
 	w.Flush()
 
 	return b.finalize(buffer.String())
+}
+
+func (b *BashShell) extractFiles(w io.Writer, runnerCommand, archiveType, archivePath string) {
+	args := []string{
+		"extract",
+		"--silent",
+		"--input",
+		archivePath,
+	}
+
+	// Execute extract command
+	b.echoColoredFormat(w, "Extracting %s...", archiveType)
+	if runnerCommand == "" {
+		runnerCommand = "gitlab-runner"
+	}
+	b.executeCommand(w, runnerCommand, args...)
 }
 
 func (b *BashShell) archiveFiles(w io.Writer, list interface{}, runnerCommand, archiveType, archivePath string) {
