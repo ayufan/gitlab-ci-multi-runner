@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Sirupsen/logrus"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -17,6 +15,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/Sirupsen/logrus"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 )
 
 type client struct {
@@ -78,28 +79,17 @@ func (n *client) createTransport() {
 	}
 }
 
-func (n *client) do(uri, method string, statusCode int, request interface{}, response interface{}) (int, string) {
-	var body []byte
+type RequestPreparer func(uri string) (*http.Request, error)
 
+func (n *client) do(uri string, prepRequest RequestPreparer, statusCode int, response interface{}) (int, string) {
 	url, err := n.url.Parse(uri)
 	if err != nil {
 		return -1, err.Error()
 	}
 
-	if request != nil {
-		body, err = json.Marshal(request)
-		if err != nil {
-			return -1, fmt.Sprintf("failed to marshal project object: %v", err)
-		}
-	}
-
-	req, err := http.NewRequest(method, url.String(), bytes.NewReader(body))
+	req, err := prepRequest(url.String())
 	if err != nil {
-		return -1, fmt.Sprintf("failed to create NewRequest: %v", err)
-	}
-
-	if request != nil {
-		req.Header.Set("Content-Type", "application/json")
+		return -1, fmt.Sprintf("failed to prepare request: %v", err)
 	}
 
 	if response != nil {
@@ -129,6 +119,30 @@ func (n *client) do(uri, method string, statusCode int, request interface{}, res
 	}
 
 	return res.StatusCode, res.Status
+}
+
+func (n *client) doJson(uri, method string, statusCode int, request interface{}, response interface{}) (int, string) {
+	return n.do(uri, func(url string) (*http.Request, error) {
+		var body []byte
+		var err error
+		if request != nil {
+			body, err = json.Marshal(request)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal project object: %v", err)
+			}
+		}
+
+		req, err := http.NewRequest(method, url, bytes.NewReader(body))
+		if err != nil {
+			return nil, err
+		}
+
+		if request != nil {
+			req.Header.Set("Content-Type", "application/json")
+		}
+		
+		return req, nil
+	}, statusCode, response)
 }
 
 func (n *client) fullUrl(uri string, a ...interface{}) string {
