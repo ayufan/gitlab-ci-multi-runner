@@ -26,6 +26,8 @@ type DockerConfig struct {
 	CacheDir               *string  `toml:"cache_dir" json:"cache_dir" long:"cache-dir" env:"DOCKER_CACHE_DIR" description:"Directory where to store caches"`
 	ExtraHosts             []string `toml:"extra_hosts" json:"extra_hosts" long:"extra-hosts" env:"DOCKER_EXTRA_HOSTS" description:"Add a custom host-to-IP mapping"`
 	Links                  []string `toml:"links" json:"links" long:"links" env:"DOCKER_LINKS" description:"Add link to another container"`
+	CPUShares              *int64   `toml:"cpu_shares" json:"cpu_shares" long:"cpu-shares" env:"DOCKER_CPU_SHARES"`
+	Memory                 *int64   `toml:"memory" json:"memory" long:"memory" env:"DOCKER_MEMORY"`
 	Services               []string `toml:"services" json:"services" long:"services" env:"DOCKER_SERVICES" description:"Add service that is started with container"`
 	WaitForServicesTimeout *int     `toml:"wait_for_services_timeout" json:"wait_for_services_timeout" long:"wait-for-services-timeout" env:"DOCKER_WAIT_FOR_SERVICES_TIMEOUT" description:"How long to wait for service startup"`
 	AllowedImages          []string `toml:"allowed_images" json:"allowed_images" long:"allowed-images" env:"DOCKER_ALLOWED_IMAGES" description:"Whitelist allowed images"`

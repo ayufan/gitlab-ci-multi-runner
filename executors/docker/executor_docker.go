@@ -93,14 +93,14 @@ func (s *DockerExecutor) getDockerImage(imageName string) (imageID string, err e
 	}
 
 	if s.isSwarmMaster() {
-		if pulledImageCache.isExpired(imageName) {
-			s.Debugln("Image", imageName, "is expired.")
-			// Swarm Master will pull the image
-			s.client.RemoveImageExtended(imageName, docker.RemoveImageOptions{
-				NoPrune: true,
-			})
-			pulledImageCache.mark(imageName, "swarm", dockerImageTTL)
-		}
+//		if pulledImageCache.isExpired(imageName) {
+//			s.Debugln("Image", imageName, "is expired.")
+//			// Swarm Master will pull the image
+//			s.client.RemoveImageExtended(imageName, docker.RemoveImageOptions{
+//				NoPrune: true,
+//			})
+//			pulledImageCache.mark(imageName, "swarm", dockerImageTTL)
+//		}
 		return imageName, nil
 	}
 
@@ -522,18 +522,27 @@ func (s *DockerExecutor) createAffinityContainer() error {
 	affinityContainerOpts := docker.CreateContainerOptions{
 		Name: s.Build.ProjectUniqueName() + "-affinity",
 		Config: &docker.Config{
-			Image:  affinityImage,
-			Labels: s.getLabels("affinity"),
-			Env: []string{
-				// schedule affinity container on different SwarmHost
-				"affinity:" + dockerLabelPrefix + ".type!=~affinity",
-			},
-			CPUShares: 1,                 // HACK: use something
-			Memory:    100 * 1024 * 1024, // HACK: use something
+			Image:     affinityImage,
+			Labels:    s.getLabels("affinity"),
+			CPUShares: 1,
+			Memory:    128 * 1024 * 1024,
 		},
 		HostConfig: &docker.HostConfig{
 			RestartPolicy: docker.NeverRestart(),
 		},
+	}
+
+	imageName, err := s.getImageName()
+	if err == nil {
+		affinityContainerOpts.Config.Env = append(affinityContainerOpts.Config.Env, "affinity:image==~"+imageName)
+	}
+
+	if s.Config.Docker.CPUShares != nil {
+		affinityContainerOpts.Config.CPUShares = *s.Config.Docker.CPUShares
+	}
+
+	if s.Config.Docker.Memory != nil {
+		affinityContainerOpts.Config.Memory = *s.Config.Docker.Memory
 	}
 
 	// this will fail potentially some builds if there's name collision
