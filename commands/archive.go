@@ -21,6 +21,7 @@ type ArchiveCommand struct {
 	Untracked bool     `long:"untracked" description:"Add git untracked files"`
 	Output    string   `long:"output" description:"The filepath to output file"`
 	Silent    bool     `long:"silent" description:"Suppress archiving ouput"`
+	List      bool     `long:"list" description:"List files to archive"`
 
 	wd    string
 	files map[string]os.FileInfo
@@ -128,6 +129,17 @@ func (c *ArchiveCommand) processUntracked() {
 	}
 }
 
+func (c *ArchiveCommand) listFiles() {
+	if len(c.files) == 0 {
+		logrus.Infoln("No files to archive.")
+		return
+	}
+
+	for _, file := range c.sortedFiles() {
+		println(string(file))
+	}
+}
+
 func (c *ArchiveCommand) archive() {
 	if len(c.files) == 0 {
 		logrus.Infoln("No files to archive.")
@@ -157,7 +169,7 @@ func (c *ArchiveCommand) archive() {
 		flags = "-zcP"
 	}
 
-	cmd := exec.Command("tar", flags, "-T", "-", "-f", tempFile.Name())
+	cmd := exec.Command("tar", flags, "-T", "-", "--no-recursion", "-f", tempFile.Name())
 	cmd.Env = os.Environ()
 	cmd.Stdin = &files
 	cmd.Stdout = os.Stdout
@@ -188,7 +200,7 @@ func (c *ArchiveCommand) Execute(context *cli.Context) {
 	if err != nil {
 		logrus.Fatalln("Failed to get current working directory:", err)
 	}
-	if c.Output == "" {
+	if c.Output == "" && !c.List {
 		logrus.Fatalln("Missing archive file name!")
 	}
 
@@ -209,7 +221,11 @@ func (c *ArchiveCommand) Execute(context *cli.Context) {
 		}
 	}
 
-	c.archive()
+	if c.List {
+		c.listFiles()
+	} else {
+		c.archive()
+	}
 }
 
 func init() {

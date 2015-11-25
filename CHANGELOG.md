@@ -1,6 +1,7 @@
 v 0.7.2
 - Use absolute path when executing archive command
 - Fix regression when variables were not passed to service container
+- Fix duplicate files in cache or artifacts archive
 
 v 0.7.1
 - Fix caching support
