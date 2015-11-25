@@ -51,10 +51,10 @@ func (n *GitLabClient) getRunnerVersion(config RunnerConfig) VersionInfo {
 	return info
 }
 
-func (n *GitLabClient) do(runner RunnerCredentials, method, uri string, statusCode int, request interface{}, response interface{}) (int, string) {
+func (n *GitLabClient) do(runner RunnerCredentials, method, uri string, statusCode int, request interface{}, response interface{}) (int, string, string) {
 	c, err := n.getClient(runner)
 	if err != nil {
-		return clientError, err.Error()
+		return clientError, err.Error(), ""
 	}
 
 	return c.do(uri, method, statusCode, request, response)
@@ -67,11 +67,12 @@ func (n *GitLabClient) GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 	}
 
 	var response GetBuildResponse
-	result, statusText := n.do(config.RunnerCredentials, "POST", "builds/register.json", 201, &request, &response)
+	result, statusText, certificates := n.do(config.RunnerCredentials, "POST", "builds/register.json", 201, &request, &response)
 
 	switch result {
 	case 201:
 		config.Log().Println("Checking for builds...", "received")
+		response.TLSCAChain = certificates
 		return &response, true
 	case 403:
 		config.Log().Errorln("Checking for builds...", "forbidden")
@@ -98,7 +99,7 @@ func (n *GitLabClient) RegisterRunner(runner RunnerCredentials, description, tag
 	}
 
 	var response RegisterRunnerResponse
-	result, statusText := n.do(runner, "POST", "runners/register.json", 201, &request, &response)
+	result, statusText, _ := n.do(runner, "POST", "runners/register.json", 201, &request, &response)
 
 	switch result {
 	case 201:
@@ -121,7 +122,7 @@ func (n *GitLabClient) DeleteRunner(runner RunnerCredentials) bool {
 		Token: runner.Token,
 	}
 
-	result, statusText := n.do(runner, "DELETE", "runners/delete", 200, &request, nil)
+	result, statusText, _ := n.do(runner, "DELETE", "runners/delete", 200, &request, nil)
 
 	switch result {
 	case 200:
@@ -145,7 +146,7 @@ func (n *GitLabClient) VerifyRunner(runner RunnerCredentials) bool {
 	}
 
 	// HACK: we use non-existing build id to check if receive forbidden or not found
-	result, statusText := n.do(runner, "PUT", fmt.Sprintf("builds/%d", -1), 200, &request, nil)
+	result, statusText, _ := n.do(runner, "PUT", fmt.Sprintf("builds/%d", -1), 200, &request, nil)
 
 	switch result {
 	case 404:
@@ -172,7 +173,7 @@ func (n *GitLabClient) UpdateBuild(config RunnerConfig, id int, state BuildState
 		Trace: trace,
 	}
 
-	result, statusText := n.do(config.RunnerCredentials, "PUT", fmt.Sprintf("builds/%d.json", id), 200, &request, nil)
+	result, statusText, _ := n.do(config.RunnerCredentials, "PUT", fmt.Sprintf("builds/%d.json", id), 200, &request, nil)
 	switch result {
 	case 200:
 		config.Log().Println(id, "Submitting build to coordinator...", "ok")

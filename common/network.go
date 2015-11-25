@@ -49,6 +49,7 @@ type GetBuildResponse struct {
 	Name          string         `json:"name"`
 	Stage         string         `json:"stage"`
 	Tag           bool           `json:"tag"`
+	TLSCAChain    string         `json:"-"`
 }
 
 type RegisterRunnerRequest struct {

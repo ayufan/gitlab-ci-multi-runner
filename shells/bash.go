@@ -38,6 +38,19 @@ func (b *BashShell) executeCommand(w io.Writer, cmd string, arguments ...string)
 	io.WriteString(w, strings.Join(list, " ")+"\n")
 }
 
+func (b *BashShell) executeTlsCommand(w io.Writer, caBundle, cmd string, arguments ...string) {
+	var list []string
+
+	list = append(list, caBundle+"=<(echo \"$CI_SERVER_CA_CHAIN\")")
+	list = append(list, helpers.ShellEscape(cmd))
+
+	for _, argument := range arguments {
+		list = append(list, strconv.Quote(argument))
+	}
+
+	io.WriteString(w, strings.Join(list, " ")+"\n")
+}
+
 func (b *BashShell) executeCommandFormat(w io.Writer, format string, arguments ...interface{}) {
 	io.WriteString(w, fmt.Sprintf(format+"\n", arguments...))
 }
@@ -76,7 +89,7 @@ func (b *BashShell) writeCloneCmd(w io.Writer, build *common.Build, projectDir s
 	b.echoColoredFormat(w, "Cloning repository...")
 	b.executeCommand(w, "rm", "-rf", projectDir)
 	b.executeCommand(w, "mkdir", "-p", projectDir)
-	b.executeCommand(w, "git", "clone", build.RepoURL, projectDir)
+	b.executeTlsCommand(w, "GIT_SSL_CAINFO", "git", "clone", build.RepoURL, projectDir)
 	b.executeCommand(w, "cd", projectDir)
 }
 
@@ -87,7 +100,7 @@ func (b *BashShell) writeFetchCmd(w io.Writer, build *common.Build, projectDir s
 	b.executeCommand(w, "git", "clean", "-ffdx")
 	b.executeCommand(w, "git", "reset", "--hard")
 	b.executeCommand(w, "git", "remote", "set-url", "origin", build.RepoURL)
-	b.executeCommand(w, "git", "fetch", "origin")
+	b.executeTlsCommand(w, "GIT_SSL_CAINFO", "git", "fetch", "origin")
 	b.writeElse(w)
 	b.writeCloneCmd(w, build, projectDir)
 	b.writeEndIf(w)
@@ -257,7 +270,8 @@ func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string 
 		b.writeIfFile(w, "artifacts.tgz")
 		b.echoColored(w, "Uploading artifacts...")
 		b.executeCommand(w, "du", "-h", "artifacts.tgz")
-		b.executeCommand(w, "curl", "-s", "-S", "--fail", "--retry", "3", "-X", "POST",
+		b.executeTlsCommand(w, "CURL_CA_BUNDLE", "curl",
+			"-s", "-S", "--fail", "--retry", "3", "-X", "POST",
 			"-#",
 			"-o", "artifacts.upload.log",
 			"-H", "BUILD-TOKEN: "+info.Build.Token,
