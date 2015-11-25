@@ -62,14 +62,14 @@ func (c *ArchiveCommand) archive() {
 		if err != nil {
 			return false
 		}
-			
+
 		// Fix up the header name if the path is outside of the cwd
 		if filepath.HasPrefix(header.Name, "../") {
 			absPath, err := filepath.Abs(header.Name)
 			if err != nil {
 				return false
 			}
-			
+
 			header.Name = absPath
 		}
 
@@ -86,7 +86,7 @@ func (c *ArchiveCommand) archive() {
 		if !c.Silent {
 			logrus.Infof("Adding '%s' to archive", filter)
 		}
-		
+
 		if err := archive.AddIf(&thargo.FileSystemTarget{
 			Path:    c.wd,
 			Pattern: filter,
@@ -106,7 +106,7 @@ func (c *ArchiveCommand) archive() {
 	if err := archive.Close(); err != nil {
 		logrus.Warningln("Failed to close temp archive: ", err)
 	}
-	
+
 	ai, err := os.Stat(c.Output)
 	if err != nil && !os.IsNotExist(err) {
 		logrus.Fatalln("Failed to verify archive:", c.Output, err)
@@ -115,7 +115,7 @@ func (c *ArchiveCommand) archive() {
 		logrus.Infoln("Archive is up to date!")
 		return
 	}
-	
+
 	err = os.Rename(tempFile.Name(), c.Output)
 	if err != nil {
 		logrus.Warningln("Failed to rename archive:", err)
