@@ -2,9 +2,7 @@ package network
 
 import (
 	"fmt"
-	"github.com/Sirupsen/logrus"
 	. "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"runtime"
 )
 
@@ -73,19 +71,19 @@ func (n *GitLabClient) GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 
 	switch result {
 	case 201:
-		logrus.Println(config.ShortDescription(), "Checking for builds...", "received")
+		config.Log().Println("Checking for builds...", "received")
 		return &response, true
 	case 403:
-		logrus.Errorln(config.ShortDescription(), "Checking for builds...", "forbidden")
+		config.Log().Errorln("Checking for builds...", "forbidden")
 		return nil, false
 	case 404:
-		logrus.Debugln(config.ShortDescription(), "Checking for builds...", "nothing")
+		config.Log().Debugln("Checking for builds...", "nothing")
 		return nil, true
 	case clientError:
-		logrus.Errorln(config.ShortDescription(), "Checking for builds...", "error:", statusText)
+		config.Log().WithField("status", statusText).Errorln("Checking for builds...", "error")
 		return nil, false
 	default:
-		logrus.Warningln(config.ShortDescription(), "Checking for builds...", "failed:", statusText)
+		config.Log().WithField("status", statusText).Warningln("Checking for builds...", "failed")
 		return nil, true
 	}
 }
@@ -101,20 +99,19 @@ func (n *GitLabClient) RegisterRunner(runner RunnerCredentials, description, tag
 
 	var response RegisterRunnerResponse
 	result, statusText := n.do(runner, "POST", "runners/register.json", 201, &request, &response)
-	shortToken := helpers.ShortenToken(runner.Token)
 
 	switch result {
 	case 201:
-		logrus.Println(shortToken, "Registering runner...", "succeeded")
+		runner.Log().Println("Registering runner...", "succeeded")
 		return &response
 	case 403:
-		logrus.Errorln(shortToken, "Registering runner...", "forbidden (check registration token)")
+		runner.Log().Errorln("Registering runner...", "forbidden (check registration token)")
 		return nil
 	case clientError:
-		logrus.Errorln(shortToken, "Registering runner...", "error", statusText)
+		runner.Log().WithField("status", statusText).Errorln("Registering runner...", "error")
 		return nil
 	default:
-		logrus.Errorln(shortToken, "Registering runner...", "failed", statusText)
+		runner.Log().WithField("status", statusText).Errorln("Registering runner...", "failed")
 		return nil
 	}
 }
@@ -125,20 +122,19 @@ func (n *GitLabClient) DeleteRunner(runner RunnerCredentials) bool {
 	}
 
 	result, statusText := n.do(runner, "DELETE", "runners/delete", 200, &request, nil)
-	shortToken := helpers.ShortenToken(runner.Token)
 
 	switch result {
 	case 200:
-		logrus.Println(shortToken, "Deleting runner...", "succeeded")
+		runner.Log().Println("Deleting runner...", "succeeded")
 		return true
 	case 403:
-		logrus.Errorln(shortToken, "Deleting runner...", "forbidden")
+		runner.Log().Errorln("Deleting runner...", "forbidden")
 		return false
 	case clientError:
-		logrus.Errorln(shortToken, "Deleting runner...", "error", statusText)
+		runner.Log().WithField("status", statusText).Errorln("Deleting runner...", "error")
 		return false
 	default:
-		logrus.Errorln(shortToken, "Deleting runner...", "failed", statusText)
+		runner.Log().WithField("status", statusText).Errorln("Deleting runner...", "failed")
 		return false
 	}
 }
@@ -150,21 +146,20 @@ func (n *GitLabClient) VerifyRunner(runner RunnerCredentials) bool {
 
 	// HACK: we use non-existing build id to check if receive forbidden or not found
 	result, statusText := n.do(runner, "PUT", fmt.Sprintf("builds/%d", -1), 200, &request, nil)
-	shortToken := helpers.ShortenToken(runner.Token)
 
 	switch result {
 	case 404:
 		// this is expected due to fact that we ask for non-existing job
-		logrus.Println(shortToken, "Veryfing runner...", "is alive")
+		runner.Log().Println("Veryfing runner...", "is alive")
 		return true
 	case 403:
-		logrus.Errorln(shortToken, "Veryfing runner...", "is removed")
+		runner.Log().Errorln("Veryfing runner...", "is removed")
 		return false
 	case clientError:
-		logrus.Errorln(shortToken, "Veryfing runner...", "error", statusText)
+		runner.Log().WithField("status", statusText).Errorln("Veryfing runner...", "error")
 		return false
 	default:
-		logrus.Errorln(shortToken, "Veryfing runner...", "failed", statusText)
+		runner.Log().WithField("status", statusText).Errorln("Veryfing runner...", "failed")
 		return true
 	}
 }
@@ -180,19 +175,19 @@ func (n *GitLabClient) UpdateBuild(config RunnerConfig, id int, state BuildState
 	result, statusText := n.do(config.RunnerCredentials, "PUT", fmt.Sprintf("builds/%d.json", id), 200, &request, nil)
 	switch result {
 	case 200:
-		logrus.Println(config.ShortDescription(), id, "Submitting build to coordinator...", "ok")
+		config.Log().Println(id, "Submitting build to coordinator...", "ok")
 		return UpdateSucceeded
 	case 404:
-		logrus.Warningln(config.ShortDescription(), id, "Submitting build to coordinator...", "aborted")
+		config.Log().Warningln(id, "Submitting build to coordinator...", "aborted")
 		return UpdateAbort
 	case 403:
-		logrus.Errorln(config.ShortDescription(), id, "Submitting build to coordinator...", "forbidden")
+		config.Log().Errorln(id, "Submitting build to coordinator...", "forbidden")
 		return UpdateAbort
 	case clientError:
-		logrus.Errorln(config.ShortDescription(), id, "Submitting build to coordinator...", "error", statusText)
+		config.Log().WithField("status", statusText).Errorln(id, "Submitting build to coordinator...", "error")
 		return UpdateAbort
 	default:
-		logrus.Warningln(config.ShortDescription(), id, "Submitting build to coordinator...", "failed", statusText)
+		config.Log().WithField("status", statusText).Warningln(id, "Submitting build to coordinator...", "failed")
 		return UpdateFailed
 	}
 }

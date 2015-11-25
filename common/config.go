@@ -81,12 +81,16 @@ type Config struct {
 	Loaded  bool      `json:"-"`
 }
 
-func (c *RunnerConfig) ShortDescription() string {
+func (c *RunnerCredentials) ShortDescription() string {
 	return helpers.ShortenToken(c.Token)
 }
 
-func (c *RunnerConfig) UniqueID() string {
+func (c *RunnerCredentials) UniqueID() string {
 	return c.URL + c.Token
+}
+
+func (c *RunnerCredentials) Log() *log.Entry {
+	return log.WithField("runner", c.ShortDescription())
 }
 
 func (c *RunnerConfig) String() string {
