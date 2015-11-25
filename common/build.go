@@ -215,6 +215,10 @@ func (b *Build) WriteRune(r rune) (int, error) {
 func (b *Build) SendBuildLog() {
 	var buildTrace string
 
+	if b.Network == nil {
+		return
+	}
+
 	buildTrace = b.BuildLog()
 	for {
 		if b.Network.UpdateBuild(*b.Runner, b.ID, b.BuildState, buildTrace) != UpdateFailed {

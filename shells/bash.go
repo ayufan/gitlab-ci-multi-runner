@@ -249,21 +249,23 @@ func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string 
 		b.archiveFiles(w, info.Build.Options["cache"], info.RunnerCommand, "cache", cacheFile)
 	}
 
-	// Find artifacts
-	b.archiveFiles(w, info.Build.Options["artifacts"], info.RunnerCommand, "artifacts", "artifacts.tgz")
+	if info.Build.Network != nil {
+		// Find artifacts
+		b.archiveFiles(w, info.Build.Options["artifacts"], info.RunnerCommand, "artifacts", "artifacts.tgz")
 
-	// If archive is created upload it
-	b.writeIfFile(w, "artifacts.tgz")
-	b.echoColored(w, "Uploading artifacts...")
-	b.executeCommand(w, "du", "-h", "artifacts.tgz")
-	b.executeCommand(w, "curl", "-s", "-S", "--fail", "--retry", "3", "-X", "POST",
-		"-#",
-		"-o", "artifacts.upload.log",
-		"-H", "BUILD-TOKEN: "+info.Build.Token,
-		"-F", "file=@artifacts.tgz",
-		info.Build.Network.GetArtifactsUploadURL(info.Build.Runner.RunnerCredentials, info.Build.ID))
-	b.executeCommand(w, "rm", "-f", "artifacts.tgz")
-	b.writeEndIf(w)
+		// If archive is created upload it
+		b.writeIfFile(w, "artifacts.tgz")
+		b.echoColored(w, "Uploading artifacts...")
+		b.executeCommand(w, "du", "-h", "artifacts.tgz")
+		b.executeCommand(w, "curl", "-s", "-S", "--fail", "--retry", "3", "-X", "POST",
+			"-#",
+			"-o", "artifacts.upload.log",
+			"-H", "BUILD-TOKEN: "+info.Build.Token,
+			"-F", "file=@artifacts.tgz",
+			info.Build.Network.GetArtifactsUploadURL(info.Build.Runner.RunnerCredentials, info.Build.ID))
+		b.executeCommand(w, "rm", "-f", "artifacts.tgz")
+		b.writeEndIf(w)
+	}
 
 	w.Flush()
 

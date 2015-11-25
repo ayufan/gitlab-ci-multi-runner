@@ -252,10 +252,12 @@ func getHostname() string {
 func init() {
 	common.RegisterCommand2("register", "register a new runner", &RegisterCommand{
 		RunnerConfig: common.RunnerConfig{
-			Name:      getHostname(),
-			Parallels: &common.ParallelsConfig{},
-			SSH:       &ssh.Config{},
-			Docker:    &common.DockerConfig{},
+			Name: getHostname(),
+			RunnerSettings: common.RunnerSettings{
+				Parallels: &common.ParallelsConfig{},
+				SSH:       &ssh.Config{},
+				Docker:    &common.DockerConfig{},
+			},
 		},
 		network: &network.GitLabClient{},
 	})

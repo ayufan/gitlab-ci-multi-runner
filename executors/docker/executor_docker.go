@@ -773,6 +773,6 @@ func (s *DockerExecutor) waitForServiceContainer(container *docker.Container, ti
 	buffer.WriteString("\n")
 	buffer.WriteString(helpers.ANSI_BOLD_YELLOW + "*********" + helpers.ANSI_RESET + "\n")
 	buffer.WriteString("\n")
-	s.Build.WriteString(buffer.String())
+	io.Copy(s.BuildLog, &buffer)
 	return err
 }

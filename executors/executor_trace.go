@@ -101,7 +101,7 @@ func (e *AbstractExecutor) updateTrace(config common.RunnerConfig, canceled chan
 	defer e.Debugln("PushTrace finished")
 
 	buildLog := e.BuildLog
-	if buildLog == nil {
+	if buildLog == nil || e.Build.Network == nil {
 		<-finished
 		return
 	}
