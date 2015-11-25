@@ -5,6 +5,9 @@ import (
 	"github.com/Sirupsen/logrus"
 	. "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"net/http"
+	"io"
+	"mime/multipart"
 	"runtime"
 )
 
@@ -212,4 +215,50 @@ func (n *GitLabClient) GetArtifactsUploadURL(config RunnerCredentials, id int) s
 		return ""
 	}
 	return c.fullUrl("builds/%d/artifacts", id)
+}
+
+func (n *GitLabClient) UploadArtifacts(config RunnerConfig, id int, data io.Reader) bool {
+	result, statusText := n.do(config.RunnerCredentials, n.GetArtifactsUploadURL(config.RunnerCredentials, id), func(url string) (*http.Request, error) {
+		pipeOut, pipeIn := io.Pipe()
+		
+		mpw := multipart.NewWriter(pipeIn)
+		wr, err := mpw.CreateFormFile("file", "artifacts.tar.gz")
+		if err != nil {
+			return nil, err
+		}
+		
+		if _, err := io.Copy(wr, data); err != nil {
+			return nil, err
+		}
+		
+		if err := mpw.Close(); err != nil {
+			return nil, err
+		}
+		
+		if err := pipeIn.Close(); err != nil {
+			return nil, err
+		}
+		
+		req, err := http.NewRequest("POST", url, pipeOut)
+		if err != nil {
+			return nil, err
+		}
+		
+		return req, nil
+	}, 200, nil)
+	
+	switch result {
+	case 200:
+		logrus.Println(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "ok")
+		return true
+	case 403:
+		logrus.Errorln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "forbidden")
+		return false
+	case clientError:
+		logrus.Errorln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "error", statusText)
+		return false
+	default:
+		logrus.Warningln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "failed", statusText)
+		return false
+	}
 }
