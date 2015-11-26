@@ -95,7 +95,7 @@ func TestClientDo(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		
+
 		req.Header.Set("Accept", "application/json")
 		return req, nil
 	}, 200, &res)
@@ -106,7 +106,7 @@ func TestClientDo(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		
+
 		req.Header.Set("Content-Type", "application/json")
 		return req, nil
 	}, 200, nil)
@@ -122,7 +122,7 @@ func TestClientDo(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		
+
 		req.Header.Set("Content-Type", "application/json")
 		return req, nil
 	}, 200, &res)

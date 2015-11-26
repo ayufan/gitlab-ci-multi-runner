@@ -221,33 +221,33 @@ func (n *GitLabClient) GetArtifactsUploadURL(config RunnerCredentials, id int) s
 func (n *GitLabClient) UploadArtifacts(config RunnerConfig, id int, file os.File) bool {
 	result, statusText := n.do(config.RunnerCredentials, n.GetArtifactsUploadURL(config.RunnerCredentials, id), func(url string) (*http.Request, error) {
 		pipeOut, pipeIn := io.Pipe()
-		
+
 		mpw := multipart.NewWriter(pipeIn)
 		wr, err := mpw.CreateFormFile("file", "artifacts.tar.gz")
 		if err != nil {
 			return nil, err
 		}
-		
+
 		if _, err := io.Copy(wr, data); err != nil {
 			return nil, err
 		}
-		
+
 		if err := mpw.Close(); err != nil {
 			return nil, err
 		}
-		
+
 		if err := pipeIn.Close(); err != nil {
 			return nil, err
 		}
-		
+
 		req, err := http.NewRequest("POST", url, pipeOut)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		return req, nil
 	}, 200, nil)
-	
+
 	switch result {
 	case 200:
 		logrus.Println(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "ok")

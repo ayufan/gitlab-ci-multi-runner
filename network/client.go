@@ -140,7 +140,7 @@ func (n *client) doJson(uri, method string, statusCode int, request interface{},
 		if request != nil {
 			req.Header.Set("Content-Type", "application/json")
 		}
-		
+
 		return req, nil
 	}, statusCode, response)
 }
