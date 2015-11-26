@@ -8,7 +8,6 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"os"
 	"runtime"
 )
 
@@ -218,7 +217,7 @@ func (n *GitLabClient) GetArtifactsUploadURL(config RunnerCredentials, id int) s
 	return c.fullUrl("builds/%d/artifacts", id)
 }
 
-func (n *GitLabClient) UploadArtifacts(config RunnerConfig, id int, file os.File) bool {
+func (n *GitLabClient) UploadArtifacts(config RunnerConfig, id int, data io.Reader, dataLength int) bool {
 	result, statusText := n.do(config.RunnerCredentials, n.GetArtifactsUploadURL(config.RunnerCredentials, id), func(url string) (*http.Request, error) {
 		pipeOut, pipeIn := io.Pipe()
 
