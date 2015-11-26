@@ -237,6 +237,25 @@ func (b *BashShell) archiveFiles(w io.Writer, list interface{}, runnerCommand, a
 	b.executeCommand(w, runnerCommand, args...)
 }
 
+func (b *BashShell) uploadArtifacts(w io.Writer, build int, uniqueID, runnerCommand, archivePath string) {
+	args := []string {
+		"artifacts",
+		"--silent",
+		"--archive",
+		archivePath,
+		"--id",
+		uniqueID,
+		"--build",
+		string(build),
+	}
+	
+	b.echoColoredFormat(w, "Uploading artifacts...")
+	if runnerCommand == "" {
+		runnerCommand = "gitlab-runner"
+	}
+	b.executeCommand(w, runnerCommand, args...)
+}
+
 func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
@@ -256,12 +275,7 @@ func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string 
 	b.writeIfFile(w, "artifacts.tgz")
 	b.echoColored(w, "Uploading artifacts...")
 	b.executeCommand(w, "du", "-h", "artifacts.tgz")
-	b.executeCommand(w, "curl", "-s", "-S", "--fail", "--retry", "3", "-X", "POST",
-		"-#",
-		"-o", "artifacts.upload.log",
-		"-H", "BUILD-TOKEN: "+info.Build.Token,
-		"-F", "file=@artifacts.tgz",
-		info.Build.Network.GetArtifactsUploadURL(info.Build.Runner.RunnerCredentials, info.Build.ID))
+	b.uploadArtifacts(w, info.Build.ID, info.Build.Runner.UniqueID(), info.RunnerCommand, "artifacts.tgz")
 	b.executeCommand(w, "rm", "-f", "artifacts.tgz")
 	b.writeEndIf(w)
 
