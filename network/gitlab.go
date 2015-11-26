@@ -243,6 +243,8 @@ func (n *GitLabClient) UploadArtifacts(config RunnerConfig, id int, data io.Read
 		if err != nil {
 			return nil, err
 		}
+		
+		req.Header.Set("Content-Type", mpw.FormDataContentType())
 
 		return req, nil
 	}, 200, nil)
