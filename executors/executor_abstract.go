@@ -25,7 +25,7 @@ type AbstractExecutor struct {
 	Config      common.RunnerConfig
 	Build       *common.Build
 	BuildFinish chan error
-	BuildLog    *io.PipeWriter
+	BuildLog    io.WriteCloser
 	BuildScript *common.ShellScript
 
 	buildCanceled     chan bool
@@ -51,10 +51,15 @@ func (e *AbstractExecutor) generateShellScript() error {
 
 func (e *AbstractExecutor) startBuild() error {
 	// Create pipe where data are read
-	reader, writer := io.Pipe()
-	e.BuildLog = writer
-	go e.readTrace(reader)
-	go e.updateTrace(e.Config, e.buildCanceled, e.finishUpdateTrace)
+	if e.Build.Network != nil {
+		e.finishUpdateTrace = make(chan bool)
+		reader, writer := io.Pipe()
+		e.BuildLog = writer
+		go e.readTrace(reader)
+		go e.updateTrace(e.Config, e.buildCanceled, e.finishUpdateTrace)
+	} else {
+		e.BuildLog = os.Stdout
+	}
 
 	// Save hostname
 	if e.ShowHostname {
@@ -98,7 +103,6 @@ func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.R
 	e.Build = build
 	e.buildCanceled = make(chan bool, 1)
 	e.BuildFinish = make(chan error, 1)
-	e.finishUpdateTrace = make(chan bool)
 
 	err := e.startBuild()
 	if err != nil {
@@ -171,17 +175,18 @@ func (e *AbstractExecutor) Finish(err error) {
 
 	e.Debugln("Build took", e.Build.BuildDuration)
 
-	if e.BuildLog != nil {
+	if e.finishUpdateTrace != nil {
 		// wait for update log routine to finish
 		e.Debugln("Waiting for build log updater to finish")
 		e.finishUpdateTrace <- true
 		e.Debugln("Build log updater finished.")
 	}
 
-	e.Debugln("Build log: ", e.Build.BuildLog())
-
 	// Send final build state to server
-	e.Build.SendBuildLog()
+	if e.Build.Network != nil {
+		e.Debugln("Build log: ", e.Build.BuildLog())
+		e.Build.SendBuildLog()
+	}
 	e.Println("Build finished.")
 }
 

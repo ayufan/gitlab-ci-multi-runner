@@ -36,7 +36,7 @@ type DockerExecutor struct {
 }
 
 func (s *DockerExecutor) getServiceVariables() []string {
-	return s.Build.GetAllVariables().Public().StringList()
+	return s.Build.GetAllVariables().PublicOrInternal().StringList()
 }
 
 func (s *DockerExecutor) getAuthConfig(imageName string) (docker.AuthConfiguration, error) {
@@ -76,6 +76,9 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 	s.Debugln("Looking for image", imageName, "...")
 	image, err := s.client.InspectImage(imageName)
 	if err == nil {
+		if imageTTL := s.Config.Docker.ImageTTL; imageTTL != nil && *imageTTL == 0 {
+			return image, nil
+		}
 		if !pulledImageCache.isExpired(imageName) {
 			return image, nil
 		}
@@ -107,7 +110,12 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 		return nil, err
 	}
 
-	pulledImageCache.mark(imageName, image.ID, dockerImageTTL)
+	imageTTL := dockerImageTTL
+	if s.Config.Docker.ImageTTL != nil {
+		imageTTL = *s.Config.Docker.ImageTTL
+	}
+
+	pulledImageCache.mark(imageName, image.ID, imageTTL)
 	return image, nil
 }
 
@@ -773,6 +781,6 @@ func (s *DockerExecutor) waitForServiceContainer(container *docker.Container, ti
 	buffer.WriteString("\n")
 	buffer.WriteString(helpers.ANSI_BOLD_YELLOW + "*********" + helpers.ANSI_RESET + "\n")
 	buffer.WriteString("\n")
-	s.Build.WriteString(buffer.String())
+	io.Copy(s.BuildLog, &buffer)
 	return err
 }

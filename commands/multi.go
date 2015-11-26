@@ -47,24 +47,8 @@ type RunCommand struct {
 	doneSignal      chan int
 }
 
-func (mr *RunCommand) errorln(args ...interface{}) {
-	args = append([]interface{}{len(mr.builds)}, args...)
-	log.Errorln(args...)
-}
-
-func (mr *RunCommand) warningln(args ...interface{}) {
-	args = append([]interface{}{len(mr.builds)}, args...)
-	log.Warningln(args...)
-}
-
-func (mr *RunCommand) debugln(args ...interface{}) {
-	args = append([]interface{}{len(mr.builds)}, args...)
-	log.Debugln(args...)
-}
-
-func (mr *RunCommand) println(args ...interface{}) {
-	args = append([]interface{}{len(mr.builds)}, args...)
-	log.Println(args...)
+func (mr *RunCommand) log() *log.Entry {
+	return log.WithField("builds", len(mr.builds))
 }
 
 func (mr *RunCommand) getHealth(runner *common.RunnerConfig) *RunnerHealth {
@@ -91,7 +75,7 @@ func (mr *RunCommand) isHealthy(runner *common.RunnerConfig) bool {
 	}
 
 	if time.Since(health.lastCheck) > common.HealthCheckInterval*time.Second {
-		mr.errorln("Runner", runner.ShortDescription(), "is not healthy, but will be checked!")
+		mr.log().Errorln("Runner", runner.ShortDescription(), "is not healthy, but will be checked!")
 		health.failures = 0
 		health.lastCheck = time.Now()
 		return true
@@ -111,7 +95,7 @@ func (mr *RunCommand) makeUnhealthy(runner *common.RunnerConfig) {
 	health.failures++
 
 	if health.failures >= common.HealthyChecks {
-		mr.errorln("Runner", runner.ShortDescription(), "is not healthy and will be disabled!")
+		mr.log().Errorln("Runner", runner.ShortDescription(), "is not healthy and will be disabled!")
 	}
 }
 
@@ -121,7 +105,7 @@ func (mr *RunCommand) addBuild(newBuild *common.Build) {
 
 	newBuild.AssignID(mr.builds...)
 	mr.builds = append(mr.builds, newBuild)
-	mr.debugln("Added a new build", newBuild)
+	mr.log().Debugln("Added a new build", newBuild)
 }
 
 func (mr *RunCommand) removeBuild(deleteBuild *common.Build) bool {
@@ -131,7 +115,7 @@ func (mr *RunCommand) removeBuild(deleteBuild *common.Build) bool {
 	for idx, build := range mr.builds {
 		if build == deleteBuild {
 			mr.builds = append(mr.builds[0:idx], mr.builds[idx+1:]...)
-			mr.debugln("Build removed", deleteBuild)
+			mr.log().Debugln("Build removed", deleteBuild)
 			return true
 		}
 	}
@@ -174,7 +158,7 @@ func (mr *RunCommand) requestBuild(runner *common.RunnerConfig) *common.Build {
 		return nil
 	}
 
-	mr.debugln("Received new build for", runner.ShortDescription(), "build", buildData.ID)
+	mr.log().Debugln("Received new build for", runner.ShortDescription(), "build", buildData.ID)
 	newBuild := &common.Build{
 		GetBuildResponse: *buildData,
 		Runner:           runner,
@@ -186,7 +170,7 @@ func (mr *RunCommand) requestBuild(runner *common.RunnerConfig) *common.Build {
 
 func (mr *RunCommand) feedRunners(runners chan *common.RunnerConfig) {
 	for !mr.finished {
-		mr.debugln("Feeding runners to channel")
+		mr.log().Debugln("Feeding runners to channel")
 		config := mr.config
 		for _, runner := range config.Runners {
 			runners <- runner
@@ -196,11 +180,11 @@ func (mr *RunCommand) feedRunners(runners chan *common.RunnerConfig) {
 }
 
 func (mr *RunCommand) processRunners(id int, stopWorker chan bool, runners chan *common.RunnerConfig) {
-	mr.debugln("Starting worker", id)
+	mr.log().Debugln("Starting worker", id)
 	for !mr.finished {
 		select {
 		case runner := <-runners:
-			mr.debugln("Checking runner", runner, "on", id)
+			mr.log().Debugln("Checking runner", runner, "on", id)
 			newJob := mr.requestBuild(runner)
 			if newJob == nil {
 				break
@@ -215,7 +199,7 @@ func (mr *RunCommand) processRunners(id int, stopWorker chan bool, runners chan 
 			runtime.GC()
 
 		case <-stopWorker:
-			mr.debugln("Stopping worker", id)
+			mr.log().Debugln("Stopping worker", id)
 			return
 		}
 	}
@@ -250,8 +234,7 @@ func (mr *RunCommand) Start(s service.Service) error {
 	mr.interruptSignal = make(chan os.Signal, 1)
 	mr.reloadSignal = make(chan os.Signal, 1)
 	mr.doneSignal = make(chan int, 1)
-
-	mr.println("Starting multi-runner from", mr.ConfigFile, "...")
+	mr.log().Println("Starting multi-runner from", mr.ConfigFile, "...")
 
 	if len(mr.WorkingDirectory) > 0 {
 		err := os.Chdir(mr.WorkingDirectory)
@@ -314,7 +297,7 @@ finish_worker:
 		case <-time.After(common.ReloadConfigInterval * time.Second):
 			info, err := os.Stat(mr.ConfigFile)
 			if err != nil {
-				mr.errorln("Failed to stat config", err)
+				mr.log().Errorln("Failed to stat config", err)
 				break
 			}
 
@@ -324,22 +307,22 @@ finish_worker:
 
 			err = mr.loadConfig()
 			if err != nil {
-				mr.errorln("Failed to load config", err)
+				mr.log().Errorln("Failed to load config", err)
 				// don't reload the same file
 				mr.config.ModTime = info.ModTime()
 				break
 			}
 
-			mr.println("Config reloaded.")
+			mr.log().Println("Config reloaded.")
 
 		case <-mr.reloadSignal:
 			err := mr.loadConfig()
 			if err != nil {
-				mr.errorln("Failed to load config", err)
+				mr.log().Errorln("Failed to load config", err)
 				break
 			}
 
-			mr.println("Config reloaded.")
+			mr.log().Println("Config reloaded.")
 
 		case signaled = <-mr.interruptSignal:
 			break finish_worker
@@ -350,7 +333,7 @@ finish_worker:
 	// Pump signal to abort all builds
 	go func() {
 		for signaled == syscall.SIGQUIT {
-			log.Warningln("Requested quit, waiting for builds to finish")
+			mr.log().Warningln("Requested quit, waiting for builds to finish")
 			signaled = <-mr.interruptSignal
 		}
 		for {
@@ -363,12 +346,12 @@ finish_worker:
 		stopWorker <- true
 		currentWorkers--
 	}
-	mr.println("All workers stopped. Can exit now")
+	mr.log().Println("All workers stopped. Can exit now")
 	mr.doneSignal <- 0
 }
 
 func (mr *RunCommand) Stop(s service.Service) error {
-	mr.warningln("Requested service stop")
+	mr.log().Warningln("Requested service stop")
 	mr.interruptSignal <- os.Interrupt
 
 	signals := make(chan os.Signal)

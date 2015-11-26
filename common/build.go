@@ -215,6 +215,10 @@ func (b *Build) WriteRune(r rune) (int, error) {
 func (b *Build) SendBuildLog() {
 	var buildTrace string
 
+	if b.Network == nil {
+		return
+	}
+
 	buildTrace = b.BuildLog()
 	for {
 		if b.Network.UpdateBuild(*b.Runner, b.ID, b.BuildState, buildTrace) != UpdateFailed {
@@ -253,19 +257,20 @@ func (b *Build) String() string {
 
 func (b *Build) GetDefaultVariables() BuildVariables {
 	return BuildVariables{
-		{"CI", "true", true},
-		{"CI_BUILD_REF", b.Sha, true},
-		{"CI_BUILD_BEFORE_SHA", b.BeforeSha, true},
-		{"CI_BUILD_REF_NAME", b.RefName, true},
-		{"CI_BUILD_ID", strconv.Itoa(b.ID), true},
-		{"CI_BUILD_REPO", b.RepoURL, true},
-		{"CI_PROJECT_ID", strconv.Itoa(b.ProjectID), true},
-		{"CI_PROJECT_DIR", b.FullProjectDir(), true},
-		{"CI_SERVER", "yes", true},
-		{"CI_SERVER_NAME", "GitLab CI", true},
-		{"CI_SERVER_VERSION", "", true},
-		{"CI_SERVER_REVISION", "", true},
-		{"GITLAB_CI", "true", true},
+		{"CI", "true", true, true},
+		{"CI_BUILD_REF", b.Sha, true, true},
+		{"CI_BUILD_BEFORE_SHA", b.BeforeSha, true, true},
+		{"CI_BUILD_REF_NAME", b.RefName, true, true},
+		{"CI_BUILD_ID", strconv.Itoa(b.ID), true, true},
+		{"CI_BUILD_REPO", b.RepoURL, true, true},
+		{"CI_PROJECT_ID", strconv.Itoa(b.ProjectID), true, true},
+		{"CI_PROJECT_DIR", b.FullProjectDir(), true, true},
+		{"CI_SERVER", "yes", true, true},
+		{"CI_SERVER_NAME", "GitLab CI", true, true},
+		{"CI_SERVER_VERSION", "", true, true},
+		{"CI_SERVER_REVISION", "", true, true},
+		{"CI_SERVER_CA_CHAIN", b.TLSCAChain, true, true},
+		{"GITLAB_CI", "true", true, true},
 	}
 }
 

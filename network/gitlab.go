@@ -2,14 +2,16 @@ package network
 
 import (
 	"fmt"
-	"github.com/Sirupsen/logrus"
 	. "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+<<<<<<< HEAD
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
+=======
+>>>>>>> upstream/master
 	"runtime"
 )
 
@@ -23,7 +25,7 @@ func (n *GitLabClient) getClient(runner RunnerCredentials) (c *client, err error
 	if n.clients == nil {
 		n.clients = make(map[string]*client)
 	}
-	key := fmt.Sprintf("%s_%d_%s", runner.URL, runner.TLSSkipVerify, runner.TLSCAFile)
+	key := fmt.Sprintf("%s_%s", runner.URL, runner.TLSCAFile)
 	c = n.clients[key]
 	if c == nil {
 		c, err = newClient(runner)
@@ -58,19 +60,19 @@ func (n *GitLabClient) getRunnerVersion(config RunnerConfig) VersionInfo {
 	return info
 }
 
-func (n *GitLabClient) do(runner RunnerCredentials, uri string, prepRequest RequestPreparer, statusCode int, response interface{}) (int, string) {
+func (n *GitLabClient) do(runner RunnerCredentials, method, uri string, statusCode int, request interface{}, response interface{}) (int, string, string) {
 	c, err := n.getClient(runner)
 	if err != nil {
-		return clientError, err.Error()
+		return clientError, err.Error(), ""
 	}
 
 	return c.do(uri, prepRequest, statusCode, response)
 }
 
-func (n *GitLabClient) doJson(runner RunnerCredentials, method, uri string, statusCode int, request interface{}, response interface{}) (int, string) {
+func (n *GitLabClient) doJson(runner RunnerCredentials, method, uri string, statusCode int, request interface{}, response interface{}) (int, string, string) {
 	c, err := n.getClient(runner)
 	if err != nil {
-		return clientError, err.Error()
+		return clientError, err.Error(), ""
 	}
 
 	return c.doJson(uri, method, statusCode, request, response)
@@ -83,23 +85,24 @@ func (n *GitLabClient) GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 	}
 
 	var response GetBuildResponse
-	result, statusText := n.doJson(config.RunnerCredentials, "POST", "builds/register.json", 201, &request, &response)
+	result, statusText, _ := n.doJson(config.RunnerCredentials, "POST", "builds/register.json", 201, &request, &response)
 
 	switch result {
 	case 201:
-		logrus.Println(config.ShortDescription(), "Checking for builds...", "received")
+		config.Log().Println("Checking for builds...", "received")
+		response.TLSCAChain = certificates
 		return &response, true
 	case 403:
-		logrus.Errorln(config.ShortDescription(), "Checking for builds...", "forbidden")
+		config.Log().Errorln("Checking for builds...", "forbidden")
 		return nil, false
 	case 404:
-		logrus.Debugln(config.ShortDescription(), "Checking for builds...", "nothing")
+		config.Log().Debugln("Checking for builds...", "nothing")
 		return nil, true
 	case clientError:
-		logrus.Errorln(config.ShortDescription(), "Checking for builds...", "error:", statusText)
+		config.Log().WithField("status", statusText).Errorln("Checking for builds...", "error")
 		return nil, false
 	default:
-		logrus.Warningln(config.ShortDescription(), "Checking for builds...", "failed:", statusText)
+		config.Log().WithField("status", statusText).Warningln("Checking for builds...", "failed")
 		return nil, true
 	}
 }
@@ -114,21 +117,20 @@ func (n *GitLabClient) RegisterRunner(runner RunnerCredentials, description, tag
 	}
 
 	var response RegisterRunnerResponse
-	result, statusText := n.doJson(runner, "POST", "runners/register.json", 201, &request, &response)
-	shortToken := helpers.ShortenToken(runner.Token)
+	result, statusText, _ := n.doJson(runner, "POST", "runners/register.json", 201, &request, &response)
 
 	switch result {
 	case 201:
-		logrus.Println(shortToken, "Registering runner...", "succeeded")
+		runner.Log().Println("Registering runner...", "succeeded")
 		return &response
 	case 403:
-		logrus.Errorln(shortToken, "Registering runner...", "forbidden (check registration token)")
+		runner.Log().Errorln("Registering runner...", "forbidden (check registration token)")
 		return nil
 	case clientError:
-		logrus.Errorln(shortToken, "Registering runner...", "error", statusText)
+		runner.Log().WithField("status", statusText).Errorln("Registering runner...", "error")
 		return nil
 	default:
-		logrus.Errorln(shortToken, "Registering runner...", "failed", statusText)
+		runner.Log().WithField("status", statusText).Errorln("Registering runner...", "failed")
 		return nil
 	}
 }
@@ -138,21 +140,20 @@ func (n *GitLabClient) DeleteRunner(runner RunnerCredentials) bool {
 		Token: runner.Token,
 	}
 
-	result, statusText := n.doJson(runner, "DELETE", "runners/delete", 200, &request, nil)
-	shortToken := helpers.ShortenToken(runner.Token)
+	result, statusText, _ := n.doJson(runner, "DELETE", "runners/delete", 200, &request, nil)
 
 	switch result {
 	case 200:
-		logrus.Println(shortToken, "Deleting runner...", "succeeded")
+		runner.Log().Println("Deleting runner...", "succeeded")
 		return true
 	case 403:
-		logrus.Errorln(shortToken, "Deleting runner...", "forbidden")
+		runner.Log().Errorln("Deleting runner...", "forbidden")
 		return false
 	case clientError:
-		logrus.Errorln(shortToken, "Deleting runner...", "error", statusText)
+		runner.Log().WithField("status", statusText).Errorln("Deleting runner...", "error")
 		return false
 	default:
-		logrus.Errorln(shortToken, "Deleting runner...", "failed", statusText)
+		runner.Log().WithField("status", statusText).Errorln("Deleting runner...", "failed")
 		return false
 	}
 }
@@ -163,22 +164,21 @@ func (n *GitLabClient) VerifyRunner(runner RunnerCredentials) bool {
 	}
 
 	// HACK: we use non-existing build id to check if receive forbidden or not found
-	result, statusText := n.doJson(runner, "PUT", fmt.Sprintf("builds/%d", -1), 200, &request, nil)
-	shortToken := helpers.ShortenToken(runner.Token)
+	result, statusText, _ := n.doJson(runner, "PUT", fmt.Sprintf("builds/%d", -1), 200, &request, nil)
 
 	switch result {
 	case 404:
 		// this is expected due to fact that we ask for non-existing job
-		logrus.Println(shortToken, "Veryfing runner...", "is alive")
+		runner.Log().Println("Veryfing runner...", "is alive")
 		return true
 	case 403:
-		logrus.Errorln(shortToken, "Veryfing runner...", "is removed")
+		runner.Log().Errorln("Veryfing runner...", "is removed")
 		return false
 	case clientError:
-		logrus.Errorln(shortToken, "Veryfing runner...", "error", statusText)
+		runner.Log().WithField("status", statusText).Errorln("Veryfing runner...", "error")
 		return false
 	default:
-		logrus.Errorln(shortToken, "Veryfing runner...", "failed", statusText)
+		runner.Log().WithField("status", statusText).Errorln("Veryfing runner...", "failed")
 		return true
 	}
 }
@@ -191,22 +191,22 @@ func (n *GitLabClient) UpdateBuild(config RunnerConfig, id int, state BuildState
 		Trace: trace,
 	}
 
-	result, statusText := n.doJson(config.RunnerCredentials, "PUT", fmt.Sprintf("builds/%d.json", id), 200, &request, nil)
+	result, statusText, _ := n.doJson(config.RunnerCredentials, "PUT", fmt.Sprintf("builds/%d.json", id), 200, &request, nil)
 	switch result {
 	case 200:
-		logrus.Println(config.ShortDescription(), id, "Submitting build to coordinator...", "ok")
+		config.Log().Println(id, "Submitting build to coordinator...", "ok")
 		return UpdateSucceeded
 	case 404:
-		logrus.Warningln(config.ShortDescription(), id, "Submitting build to coordinator...", "aborted")
+		config.Log().Warningln(id, "Submitting build to coordinator...", "aborted")
 		return UpdateAbort
 	case 403:
-		logrus.Errorln(config.ShortDescription(), id, "Submitting build to coordinator...", "forbidden")
+		config.Log().Errorln(id, "Submitting build to coordinator...", "forbidden")
 		return UpdateAbort
 	case clientError:
-		logrus.Errorln(config.ShortDescription(), id, "Submitting build to coordinator...", "error", statusText)
+		config.Log().WithField("status", statusText).Errorln(id, "Submitting build to coordinator...", "error")
 		return UpdateAbort
 	default:
-		logrus.Warningln(config.ShortDescription(), id, "Submitting build to coordinator...", "failed", statusText)
+		config.Log().WithField("status", statusText).Warningln(id, "Submitting build to coordinator...", "failed")
 		return UpdateFailed
 	}
 }

@@ -10,9 +10,12 @@ import (
 	"time"
 )
 
+func (e *AbstractExecutor) log() *log.Entry {
+	return e.Config.Log().WithField("build", e.Build.ID)
+}
+
 func (e *AbstractExecutor) Debugln(args ...interface{}) {
-	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
-	log.Debugln(args...)
+	e.log().Debugln(args...)
 }
 
 func (e *AbstractExecutor) Println(args ...interface{}) {
@@ -24,8 +27,7 @@ func (e *AbstractExecutor) Println(args ...interface{}) {
 		return
 	}
 
-	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
-	log.Println(args...)
+	e.log().Println(args...)
 }
 
 func (e *AbstractExecutor) Infoln(args ...interface{}) {
@@ -37,8 +39,7 @@ func (e *AbstractExecutor) Infoln(args ...interface{}) {
 		return
 	}
 
-	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
-	log.Println(args...)
+	e.log().Println(args...)
 }
 
 func (e *AbstractExecutor) Warningln(args ...interface{}) {
@@ -47,8 +48,7 @@ func (e *AbstractExecutor) Warningln(args ...interface{}) {
 		e.Build.WriteString(helpers.ANSI_BOLD_YELLOW + "WARNING: " + fmt.Sprintln(args...) + helpers.ANSI_RESET)
 	}
 
-	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
-	log.Warningln(args...)
+	e.log().Warningln(args...)
 }
 
 func (e *AbstractExecutor) Errorln(args ...interface{}) {
@@ -57,8 +57,7 @@ func (e *AbstractExecutor) Errorln(args ...interface{}) {
 		e.Build.WriteString(helpers.ANSI_BOLD_RED + "ERROR: " + fmt.Sprintln(args...) + helpers.ANSI_RESET)
 	}
 
-	args = append([]interface{}{e.Config.ShortDescription(), e.Build.ID}, args...)
-	log.Errorln(args...)
+	e.log().Errorln(args...)
 }
 
 func (e *AbstractExecutor) readTrace(pipe *io.PipeReader) {
@@ -101,7 +100,7 @@ func (e *AbstractExecutor) updateTrace(config common.RunnerConfig, canceled chan
 	defer e.Debugln("PushTrace finished")
 
 	buildLog := e.BuildLog
-	if buildLog == nil {
+	if buildLog == nil || e.Build.Network == nil {
 		<-finished
 		return
 	}

@@ -140,7 +140,7 @@ func TestClientDoJson(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, c)
 
-	statusCode, statusText := c.doJson("test/auth", "GET", 200, nil, nil)
+	statusCode, statusText, _ := c.doJson("test/auth", "GET", 200, nil, nil)
 	assert.Equal(t, 403, statusCode, statusText)
 
 	req := struct {
@@ -153,16 +153,16 @@ func TestClientDoJson(t *testing.T) {
 		Key string `json:"key"`
 	}{}
 
-	statusCode, statusText = c.doJson("test/json", "GET", 200, nil, &res)
+	statusCode, statusText, _ = c.doJson("test/json", "GET", 200, nil, &res)
 	assert.Equal(t, 400, statusCode, statusText)
 
-	statusCode, statusText = c.doJson("test/json", "GET", 200, &req, nil)
+	statusCode, statusText, _ = c.doJson("test/json", "GET", 200, &req, nil)
 	assert.Equal(t, 406, statusCode, statusText)
 
-	statusCode, statusText = c.doJson("test/json", "GET", 200, nil, nil)
+	statusCode, statusText, _ = c.doJson("test/json", "GET", 200, nil, nil)
 	assert.Equal(t, 400, statusCode, statusText)
 
-	statusCode, statusText = c.doJson("test/json", "GET", 200, &req, &res)
+	statusCode, statusText, _ = c.doJson("test/json", "GET", 200, &req, &res)
 	assert.Equal(t, 200, statusCode, statusText)
 	assert.Equal(t, "value", res.Key, statusText)
 }
@@ -174,21 +174,9 @@ func TestClientInvalidSSL(t *testing.T) {
 	c, _ := newClient(RunnerCredentials{
 		URL: s.URL,
 	})
-	statusCode, statusText := c.doJson("test/ok", "GET", 200, nil, nil)
+	statusCode, statusText, _ := c.doJson("test/ok", "GET", 200, nil, nil)
 	assert.Equal(t, -1, statusCode, statusText)
 	assert.Contains(t, statusText, "certificate signed by unknown authority")
-}
-
-func TestClientSkipVerify(t *testing.T) {
-	s := httptest.NewTLSServer(http.HandlerFunc(clientHandler))
-	defer s.Close()
-
-	c, _ := newClient(RunnerCredentials{
-		URL:           s.URL,
-		TLSSkipVerify: true,
-	})
-	statusCode, statusText := c.doJson("test/ok", "GET", 200, nil, nil)
-	assert.Equal(t, 200, statusCode, statusText)
 }
 
 func TestClientTLSCAFile(t *testing.T) {
@@ -207,8 +195,9 @@ func TestClientTLSCAFile(t *testing.T) {
 		URL:       s.URL,
 		TLSCAFile: file.Name(),
 	})
-	statusCode, statusText := c.doJson("test/ok", "GET", 200, nil, nil)
+	statusCode, statusText, certificates := c.doJson("test/ok", "GET", 200, nil, nil)
 	assert.Equal(t, 200, statusCode, statusText)
+	assert.NotEmpty(t, certificates)
 }
 
 func TestClientCertificateInPredefinedDirectory(t *testing.T) {
@@ -226,6 +215,7 @@ func TestClientCertificateInPredefinedDirectory(t *testing.T) {
 	c, _ := newClient(RunnerCredentials{
 		URL: s.URL,
 	})
-	statusCode, statusText := c.doJson("test/ok", "GET", 200, nil, nil)
+	statusCode, statusText, certificates := c.doJson("test/ok", "GET", 200, nil, nil)
 	assert.Equal(t, 200, statusCode, statusText)
+	assert.NotEmpty(t, certificates)
 }

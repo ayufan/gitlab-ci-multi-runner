@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -81,10 +83,50 @@ func (n *client) createTransport() {
 
 type RequestPreparer func(uri string) (*http.Request, error)
 
+func (n *client) getCAChain(tls *tls.ConnectionState) (certificates string) {
+	if tls == nil {
+		return
+	}
+
+	list := make(map[string]*x509.Certificate)
+
+	for _, verifiedChain := range tls.VerifiedChains {
+	nextInChain:
+		for _, certificate := range verifiedChain {
+			signature := hex.EncodeToString(certificate.Signature)
+			if list[signature] != nil {
+				continue
+			}
+
+			// Always add signed by yourself
+			if certificate.CheckSignatureFrom(certificate) == nil {
+				list[signature] = certificate
+				continue
+			}
+
+			// We don't need to add certificates that are returned by server
+			for _, peerCertificate := range tls.PeerCertificates {
+				if peerCertificate == certificate {
+					continue nextInChain
+				}
+			}
+			list[signature] = certificate
+		}
+	}
+
+	for _, certificate := range list {
+		certificates += string(pem.EncodeToMemory(&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: certificate.Raw,
+		}))
+	}
+	return
+}
+
 func (n *client) do(uri string, prepRequest RequestPreparer, statusCode int, response interface{}) (int, string) {
 	url, err := n.url.Parse(uri)
 	if err != nil {
-		return -1, err.Error()
+		return -1, err.Error(), ""
 	}
 
 	req, err := prepRequest(url.String())
@@ -100,28 +142,28 @@ func (n *client) do(uri string, prepRequest RequestPreparer, statusCode int, res
 
 	res, err := n.Do(req)
 	if err != nil {
-		return -1, fmt.Sprintf("couldn't execute %v against %s: %v", req.Method, req.URL, err)
+		return -1, fmt.Sprintf("couldn't execute %v against %s: %v", req.Method, req.URL, err), ""
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode == statusCode {
 		if response != nil {
 			if contentType := res.Header.Get("Content-Type"); contentType != "application/json" {
-				return -1, fmt.Sprintf("Server should return application/json. Got: %v", contentType)
+				return -1, fmt.Sprintf("Server should return application/json. Got: %v", contentType), ""
 			}
 
 			d := json.NewDecoder(res.Body)
 			err = d.Decode(response)
 			if err != nil {
-				return -1, fmt.Sprintf("Error decoding json payload %v", err)
+				return -1, fmt.Sprintf("Error decoding json payload %v", err), ""
 			}
 		}
 	}
 
-	return res.StatusCode, res.Status
+	return res.StatusCode, res.Status, n.getCAChain(res.TLS)
 }
 
-func (n *client) doJson(uri, method string, statusCode int, request interface{}, response interface{}) (int, string) {
+func (n *client) doJson(uri, method string, statusCode int, request interface{}, response interface{}) (int, string, string) {
 	return n.do(uri, func(url string) (*http.Request, error) {
 		var body []byte
 		var err error
@@ -165,9 +207,8 @@ func newClient(config common.RunnerCredentials) (c *client, err error) {
 	}
 
 	c = &client{
-		url:        url,
-		skipVerify: config.TLSSkipVerify,
-		caFile:     config.TLSCAFile,
+		url:    url,
+		caFile: config.TLSCAFile,
 	}
 
 	if CertificateDirectory != "" && c.caFile == "" {
