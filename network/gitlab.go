@@ -217,16 +217,16 @@ func (n *GitLabClient) GetArtifactsUploadURL(config RunnerCredentials, id int) s
 	return c.fullUrl("builds/%d/artifacts", id)
 }
 
-func (n *GitLabClient) UploadArtifacts(config RunnerConfig, id int, data io.Reader, dataLength int) bool {
+func (n *GitLabClient) UploadArtifacts(config RunnerConfig, id int, data io.Reader) bool {
 	result, statusText := n.do(config.RunnerCredentials, n.GetArtifactsUploadURL(config.RunnerCredentials, id), func(url string) (*http.Request, error) {
 		pipeOut, pipeIn := io.Pipe()
-
+		
 		mpw := multipart.NewWriter(pipeIn)
 		wr, err := mpw.CreateFormFile("file", "artifacts.tar.gz")
 		if err != nil {
 			return nil, err
 		}
-
+		
 		if _, err := io.Copy(wr, data); err != nil {
 			return nil, err
 		}
