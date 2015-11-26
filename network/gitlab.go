@@ -245,6 +245,7 @@ func (n *GitLabClient) UploadArtifacts(config RunnerConfig, id int, data io.Read
 		}
 		
 		req.Header.Set("Content-Type", mpw.FormDataContentType())
+		req.Header.Set("BUILD-TOKEN", config.RunnerCredentials.Token)
 
 		return req, nil
 	}, 200, nil)
