@@ -5,9 +5,10 @@ import (
 	"github.com/Sirupsen/logrus"
 	. "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"net/http"
 	"io"
 	"mime/multipart"
+	"net/http"
+	"os"
 	"runtime"
 )
 
@@ -217,7 +218,7 @@ func (n *GitLabClient) GetArtifactsUploadURL(config RunnerCredentials, id int) s
 	return c.fullUrl("builds/%d/artifacts", id)
 }
 
-func (n *GitLabClient) UploadArtifacts(config RunnerConfig, id int, data io.Reader) bool {
+func (n *GitLabClient) UploadArtifacts(config RunnerConfig, id int, file os.File) bool {
 	result, statusText := n.do(config.RunnerCredentials, n.GetArtifactsUploadURL(config.RunnerCredentials, id), func(url string) (*http.Request, error) {
 		pipeOut, pipeIn := io.Pipe()
 		
