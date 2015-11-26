@@ -40,10 +40,9 @@ type ParallelsConfig struct {
 }
 
 type RunnerCredentials struct {
-	URL           string `toml:"url" json:"url" short:"u" long:"url" env:"CI_SERVER_URL" required:"true" description:"Runner URL"`
-	Token         string `toml:"token" json:"token" short:"t" long:"token" env:"CI_SERVER_TOKEN" required:"true" description:"Runner token"`
-	TLSSkipVerify bool   `toml:"tls-skip-verify" json:"tls-skip-verify" long:"tls-skip-verify" env:"CI_SERVER_TLS_SKIP_VERIFY" description:"Whether to verify the TLS certificate when using HTTPS (INSECURE)"`
-	TLSCAFile     string `toml:"tls-ca-file" json:"tls-ca-file" long:"tls-ca-file" env:"CI_SERVER_TLS_CA_FILE" description:"File containing the certificates to verify the peer when using HTTPS"`
+	URL       string `toml:"url" json:"url" short:"u" long:"url" env:"CI_SERVER_URL" required:"true" description:"Runner URL"`
+	Token     string `toml:"token" json:"token" short:"t" long:"token" env:"CI_SERVER_TOKEN" required:"true" description:"Runner token"`
+	TLSCAFile string `toml:"tls-ca-file" json:"tls-ca-file" long:"tls-ca-file" env:"CI_SERVER_TLS_CA_FILE" description:"File containing the certificates to verify the peer when using HTTPS"`
 }
 
 type RunnerSettings struct {

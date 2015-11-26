@@ -193,9 +193,8 @@ func newClient(config common.RunnerCredentials) (c *client, err error) {
 	}
 
 	c = &client{
-		url:        url,
-		skipVerify: config.TLSSkipVerify,
-		caFile:     config.TLSCAFile,
+		url:    url,
+		caFile: config.TLSCAFile,
 	}
 
 	if CertificateDirectory != "" && c.caFile == "" {

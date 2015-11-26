@@ -119,19 +119,6 @@ func TestClientInvalidSSL(t *testing.T) {
 	assert.Contains(t, statusText, "certificate signed by unknown authority")
 }
 
-func TestClientSkipVerify(t *testing.T) {
-	s := httptest.NewTLSServer(http.HandlerFunc(clientHandler))
-	defer s.Close()
-
-	c, _ := newClient(RunnerCredentials{
-		URL:           s.URL,
-		TLSSkipVerify: true,
-	})
-	statusCode, statusText, certificates := c.do("test/ok", "GET", 200, nil, nil)
-	assert.Equal(t, 200, statusCode, statusText)
-	assert.NotNil(t, certificates)
-}
-
 func TestClientTLSCAFile(t *testing.T) {
 	s := httptest.NewTLSServer(http.HandlerFunc(clientHandler))
 	defer s.Close()

@@ -16,7 +16,7 @@ func (n *GitLabClient) getClient(runner RunnerCredentials) (c *client, err error
 	if n.clients == nil {
 		n.clients = make(map[string]*client)
 	}
-	key := fmt.Sprintf("%s_%d_%s", runner.URL, runner.TLSSkipVerify, runner.TLSCAFile)
+	key := fmt.Sprintf("%s_%s", runner.URL, runner.TLSCAFile)
 	c = n.clients[key]
 	if c == nil {
 		c, err = newClient(runner)
