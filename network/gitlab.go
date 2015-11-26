@@ -222,7 +222,7 @@ func (n *GitLabClient) UploadArtifacts(config RunnerConfig, id int, data io.Read
 		pipeOut, pipeIn := io.Pipe()
 		
 		mpw := multipart.NewWriter(pipeIn)
-		wr, err := mpw.CreateFormFile("file", "artifacts.tar.gz")
+		wr, err := mpw.CreateFormFile("file", "artifacts.tgz")
 		if err != nil {
 			return nil, err
 		}
