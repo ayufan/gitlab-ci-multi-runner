@@ -6,8 +6,10 @@ import (
 	. "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"runtime"
 )
 
@@ -218,10 +220,17 @@ func (n *GitLabClient) GetArtifactsUploadURL(config RunnerCredentials, id int) s
 }
 
 func (n *GitLabClient) UploadArtifacts(config RunnerConfig, id int, data io.Reader) bool {
+	// Create this here so that we can dispose of it after the request has been sent
+	tempFile, err := ioutil.TempFile("", "artifacts_")
+	if err != nil {
+		logrus.Warningln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "failed", "failed to create temp upload file")
+	}
+	
+	defer tempFile.Close()
+	defer os.Remove(tempFile.Name())
+	
 	result, statusText := n.do(config.RunnerCredentials, n.GetArtifactsUploadURL(config.RunnerCredentials, id), func(url string) (*http.Request, error) {
-		pipeOut, pipeIn := io.Pipe()
-		
-		mpw := multipart.NewWriter(pipeIn)
+		mpw := multipart.NewWriter(tempFile)
 		wr, err := mpw.CreateFormFile("file", "artifacts.tgz")
 		if err != nil {
 			return nil, err
@@ -235,15 +244,21 @@ func (n *GitLabClient) UploadArtifacts(config RunnerConfig, id int, data io.Read
 			return nil, err
 		}
 
-		if err := pipeIn.Close(); err != nil {
+		if _, err := tempFile.Seek(0, 0); err != nil {
 			return nil, err
 		}
-
-		req, err := http.NewRequest("POST", url, pipeOut)
+		
+		fStat, err := os.Stat(tempFile.Name())
 		if err != nil {
 			return nil, err
 		}
 		
+		req, err := http.NewRequest("POST", url, tempFile)
+		if err != nil {
+			return nil, err
+		}
+		
+		req.Header.Set("Content-Length", string(fStat.Size()))
 		req.Header.Set("Content-Type", mpw.FormDataContentType())
 		req.Header.Set("BUILD-TOKEN", config.RunnerCredentials.Token)
 
