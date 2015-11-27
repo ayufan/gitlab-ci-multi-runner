@@ -2,8 +2,8 @@ package network
 
 import (
 	"fmt"
+	"github.com/Sirupsen/logrus"
 	. "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -57,7 +57,7 @@ func (n *GitLabClient) getRunnerVersion(config RunnerConfig) VersionInfo {
 	return info
 }
 
-func (n *GitLabClient) do(runner RunnerCredentials, method, uri string, statusCode int, request interface{}, response interface{}) (int, string, string) {
+func (n *GitLabClient) do(runner RunnerCredentials, uri string, prepRequest RequestPreparer, statusCode int, response interface{}) (int, string, string) {
 	c, err := n.getClient(runner)
 	if err != nil {
 		return clientError, err.Error(), ""
@@ -82,7 +82,7 @@ func (n *GitLabClient) GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 	}
 
 	var response GetBuildResponse
-	result, statusText, _ := n.doJson(config.RunnerCredentials, "POST", "builds/register.json", 201, &request, &response)
+	result, statusText, certificates := n.doJson(config.RunnerCredentials, "POST", "builds/register.json", 201, &request, &response)
 
 	switch result {
 	case 201:
@@ -222,17 +222,17 @@ func (n *GitLabClient) UploadArtifacts(config RunnerConfig, id int, data io.Read
 	if err != nil {
 		logrus.Warningln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "failed", "failed to create temp upload file")
 	}
-	
+
 	defer tempFile.Close()
 	defer os.Remove(tempFile.Name())
-	
-	result, statusText := n.do(config.RunnerCredentials, n.GetArtifactsUploadURL(config.RunnerCredentials, id), func(url string) (*http.Request, error) {
+
+	result, statusText, _ := n.do(config.RunnerCredentials, n.GetArtifactsUploadURL(config.RunnerCredentials, id), func(url string) (*http.Request, error) {
 		mpw := multipart.NewWriter(tempFile)
 		wr, err := mpw.CreateFormFile("file", "artifacts.tgz")
 		if err != nil {
 			return nil, err
 		}
-		
+
 		if _, err := io.Copy(wr, data); err != nil {
 			return nil, err
 		}
@@ -244,17 +244,17 @@ func (n *GitLabClient) UploadArtifacts(config RunnerConfig, id int, data io.Read
 		if _, err := tempFile.Seek(0, 0); err != nil {
 			return nil, err
 		}
-		
+
 		fStat, err := os.Stat(tempFile.Name())
 		if err != nil {
 			return nil, err
 		}
-		
+
 		req, err := http.NewRequest("POST", url, tempFile)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		req.Header.Set("Content-Length", string(fStat.Size()))
 		req.Header.Set("Content-Type", mpw.FormDataContentType())
 		req.Header.Set("BUILD-TOKEN", config.RunnerCredentials.Token)

@@ -123,7 +123,7 @@ func (n *client) getCAChain(tls *tls.ConnectionState) (certificates string) {
 	return
 }
 
-func (n *client) do(uri string, prepRequest RequestPreparer, statusCode int, response interface{}) (int, string) {
+func (n *client) do(uri string, prepRequest RequestPreparer, statusCode int, response interface{}) (int, string, string) {
 	url, err := n.url.Parse(uri)
 	if err != nil {
 		return -1, err.Error(), ""
@@ -131,7 +131,7 @@ func (n *client) do(uri string, prepRequest RequestPreparer, statusCode int, res
 
 	req, err := prepRequest(url.String())
 	if err != nil {
-		return -1, fmt.Sprintf("failed to prepare request: %v", err)
+		return -1, fmt.Sprintf("failed to prepare request: %v", err), ""
 	}
 
 	if response != nil {
