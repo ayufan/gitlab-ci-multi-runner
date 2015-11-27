@@ -3,15 +3,12 @@ package network
 import (
 	"fmt"
 	. "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-<<<<<<< HEAD
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
-=======
->>>>>>> upstream/master
 	"runtime"
 )
 
