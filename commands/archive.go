@@ -79,6 +79,10 @@ func (c *ArchiveCommand) archive() {
 			return false
 		}
 
+		if(c.List) {
+			println(header.Name)
+		}
+		
 		c.files[header.Name] = header.ChangeTime
 		return true
 	}
