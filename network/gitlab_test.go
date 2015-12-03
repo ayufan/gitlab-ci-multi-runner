@@ -26,10 +26,6 @@ func TestClients(t *testing.T) {
 	c2, _ := c.getClient(RunnerCredentials{
 		URL: "http://test2/",
 	})
-	c3, _ := c.getClient(RunnerCredentials{
-		URL:           "http://test/",
-		TLSSkipVerify: true,
-	})
 	c4, _ := c.getClient(RunnerCredentials{
 		URL:       "http://test/",
 		TLSCAFile: "ca_file",
@@ -40,7 +36,6 @@ func TestClients(t *testing.T) {
 	})
 	c6, c6err := c.getClient(brokenCredentials)
 	assert.NotEqual(t, c1, c2)
-	assert.NotEqual(t, c1, c3)
 	assert.NotEqual(t, c1, c4)
 	assert.Equal(t, c4, c5)
 	assert.Nil(t, c6)

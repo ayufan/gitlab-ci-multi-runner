@@ -6,30 +6,30 @@ import (
 )
 
 func TestVariableString(t *testing.T) {
-	v := BuildVariable{"key", "value", false}
+	v := BuildVariable{"key", "value", false, false}
 	assert.Equal(t, "key=value", v.String())
 }
 
-func TestPublicVariables(t *testing.T) {
-	v1 := BuildVariable{"key", "value", false}
-	v2 := BuildVariable{"public", "value", true}
-	v3 := BuildVariable{"private", "value", false}
+func TestPublicAndInternalVariables(t *testing.T) {
+	v1 := BuildVariable{"key", "value", false, false}
+	v2 := BuildVariable{"public", "value", true, false}
+	v3 := BuildVariable{"private", "value", false, true}
 	all := BuildVariables{v1, v2, v3}
-	public := all.Public()
-	assert.Contains(t, public, v2)
+	public := all.PublicOrInternal()
 	assert.NotContains(t, public, v1)
-	assert.NotContains(t, public, v3)
+	assert.Contains(t, public, v2)
+	assert.Contains(t, public, v3)
 }
 
 func TestListVariables(t *testing.T) {
-	v := BuildVariables{{"key", "value", false}}
+	v := BuildVariables{{"key", "value", false, false}}
 	assert.Equal(t, []string{"key=value"}, v.StringList())
 }
 
 func TestGetVariable(t *testing.T) {
-	v1 := BuildVariable{"key", "key_value", false}
-	v2 := BuildVariable{"public", "public_value", true}
-	v3 := BuildVariable{"private", "private_value", false}
+	v1 := BuildVariable{"key", "key_value", false, false}
+	v2 := BuildVariable{"public", "public_value", true, false}
+	v3 := BuildVariable{"private", "private_value", false, false}
 	all := BuildVariables{v1, v2, v3}
 
 	assert.Equal(t, "public_value", all.Get("public"))
@@ -39,7 +39,7 @@ func TestGetVariable(t *testing.T) {
 func TestParseVariable(t *testing.T) {
 	v, err := ParseVariable("key=value=value2")
 	assert.NoError(t, err)
-	assert.Equal(t, BuildVariable{"key", "value=value2", false}, v)
+	assert.Equal(t, BuildVariable{"key", "value=value2", false, false}, v)
 }
 
 func TestInvalidParseVariable(t *testing.T) {
@@ -49,10 +49,10 @@ func TestInvalidParseVariable(t *testing.T) {
 
 func TestVariablesExpansion(t *testing.T) {
 	all := BuildVariables{
-		{"key", "value_of_$public", false},
-		{"public", "some_value", true},
-		{"private", "value_of_${public}", false},
-		{"public", "value_of_$undefined", true},
+		{"key", "value_of_$public", false, false},
+		{"public", "some_value", true, false},
+		{"private", "value_of_${public}", false, false},
+		{"public", "value_of_$undefined", true, false},
 	}
 
 	expanded := all.Expand()

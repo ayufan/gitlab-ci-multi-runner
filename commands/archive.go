@@ -22,6 +22,7 @@ type ArchiveCommand struct {
 	Untracked bool     `long:"untracked" description:"Add git untracked files"`
 	Output    string   `long:"output" description:"The filepath to output file"`
 	Silent    bool     `long:"silent" description:"Suppress archiving ouput"`
+	List      bool     `long:"list" description:"List files to archive"`
 
 	files map[string]time.Time
 	wd    string
@@ -136,7 +137,7 @@ func (c *ArchiveCommand) Execute(context *cli.Context) {
 	if err != nil {
 		logrus.Fatalln("Failed to get current working directory:", err)
 	}
-	if c.Output == "" {
+	if c.Output == "" && !c.List {
 		logrus.Fatalln("Missing archive file name!")
 	}
 
