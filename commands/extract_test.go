@@ -35,15 +35,15 @@ func TestExtract(t *testing.T) {
 		Content: "test file",
 	})
 	defer os.Remove(c.Input)
-	
+
 	c.Execute(nil)
-	
+
 	stat, err := os.Stat("test.txt")
 	assert.False(t, os.IsNotExist(err), "Expected test.txt to exist")
 	if !os.IsNotExist(err) {
 		assert.NoError(t, err)
 	}
-	
+
 	if stat != nil {
 		defer os.Remove("test.txt")
 		assert.Equal(t, int64(9), stat.Size())

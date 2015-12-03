@@ -1,13 +1,13 @@
 package commands
 
 import (
+	"github.com/EMSSConsulting/Thargo"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
-	"github.com/EMSSConsulting/Thargo"
 )
 
 const UntrackedFileName = "some_fancy_untracked_file"
@@ -19,7 +19,7 @@ func randomTempFile(t *testing.T) string {
 	assert.NoError(t, err)
 	file.Close()
 	os.Remove(file.Name())
-	
+
 	return file.Name()
 }
 
@@ -40,7 +40,7 @@ func filesInFolder(path string) []string {
 
 func readArchiveContent(t *testing.T, c *ArchiveCommand) (resultMap map[string]bool) {
 	resultMap = make(map[string]bool)
-	
+
 	archive, err := thargo.NewArchiveFile(c.Output, nil)
 	assert.NoError(t, err)
 	defer archive.Close()
@@ -48,9 +48,9 @@ func readArchiveContent(t *testing.T, c *ArchiveCommand) (resultMap map[string]b
 	assert.NoError(t, archive.Extract(func(entry thargo.SaveableEntry) error {
 		header, err := entry.Header()
 		assert.NoError(t, err)
-		
+
 		resultMap[header.Name] = true
-		
+
 		return nil
 	}))
 

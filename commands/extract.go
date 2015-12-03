@@ -62,7 +62,7 @@ func (c *ExtractCommand) Execute(context *cli.Context) {
 	}
 
 	c.wd = wd
-	
+
 	c.extract()
 }
 
