@@ -3,7 +3,7 @@ package commands
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/binary"
+	"encoding/json"
 	"github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
@@ -38,7 +38,7 @@ func (c *ArtifactCommand) Execute(context *cli.Context) {
 
 	var config common.RunnerConfig
 
-	if err := binary.Read(configBuf, binary.LittleEndian, &config); err != nil {
+	if err := json.NewDecoder(configBuf).Decode(&config); err != nil {
 		logrus.Fatalln("Client config could not be parsed")
 	}
 
