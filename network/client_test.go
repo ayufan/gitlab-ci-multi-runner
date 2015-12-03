@@ -81,7 +81,7 @@ func TestClientDo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, c)
 
-	statusCode, statusText := c.do("test/auth", func(url string) (*http.Request, error) {
+	statusCode, statusText, _ := c.do("test/auth", func(url string) (*http.Request, error) {
 		return http.NewRequest("GET", url, bytes.NewReader([]byte{}))
 	}, 200, nil)
 	assert.Equal(t, 403, statusCode, statusText)
@@ -90,7 +90,7 @@ func TestClientDo(t *testing.T) {
 		Key string `json:"key"`
 	}{}
 
-	statusCode, statusText = c.do("test/json", func(url string) (*http.Request, error) {
+	statusCode, statusText, _ = c.do("test/json", func(url string) (*http.Request, error) {
 		req, err := http.NewRequest("GET", url, bytes.NewReader([]byte{}))
 		if err != nil {
 			return nil, err
@@ -101,7 +101,7 @@ func TestClientDo(t *testing.T) {
 	}, 200, &res)
 	assert.Equal(t, 400, statusCode, statusText)
 
-	statusCode, statusText = c.do("test/json", func(url string) (*http.Request, error) {
+	statusCode, statusText, _ = c.do("test/json", func(url string) (*http.Request, error) {
 		req, err := http.NewRequest("GET", url, bytes.NewReader([]byte(`{"query":true}`)))
 		if err != nil {
 			return nil, err
@@ -112,12 +112,12 @@ func TestClientDo(t *testing.T) {
 	}, 200, nil)
 	assert.Equal(t, 406, statusCode, statusText)
 
-	statusCode, statusText = c.do("test/json", func(url string) (*http.Request, error) {
+	statusCode, statusText, _ = c.do("test/json", func(url string) (*http.Request, error) {
 		return http.NewRequest("GET", url, bytes.NewReader([]byte{}))
 	}, 200, nil)
 	assert.Equal(t, 400, statusCode, statusText)
 
-	statusCode, statusText = c.do("test/json", func(url string) (*http.Request, error) {
+	statusCode, statusText, _ = c.do("test/json", func(url string) (*http.Request, error) {
 		req, err := http.NewRequest("GET", url, bytes.NewReader([]byte(`{"query":true}`)))
 		if err != nil {
 			return nil, err
