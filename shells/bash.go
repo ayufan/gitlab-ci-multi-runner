@@ -251,7 +251,7 @@ func (b *BashShell) archiveFiles(w io.Writer, list interface{}, runnerCommand, a
 }
 
 func (b *BashShell) uploadArtifacts(w io.Writer, build int, uniqueID, runnerCommand, archivePath string) {
-	args := []string {
+	args := []string{
 		"artifacts",
 		"--silent",
 		"--archive",
@@ -261,7 +261,7 @@ func (b *BashShell) uploadArtifacts(w io.Writer, build int, uniqueID, runnerComm
 		"--build",
 		string(build),
 	}
-	
+
 	b.echoColoredFormat(w, "Uploading artifacts...")
 	if runnerCommand == "" {
 		runnerCommand = "gitlab-runner"
@@ -284,7 +284,7 @@ func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string 
 	if info.Build.Network != nil {
 		// Find artifacts
 		b.archiveFiles(w, info.Build.Options["artifacts"], info.RunnerCommand, "artifacts", "artifacts.tgz")
-	
+
 		// If archive is created upload it
 		b.writeIfFile(w, "artifacts.tgz")
 		b.echoColored(w, "Uploading artifacts...")
