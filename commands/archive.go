@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/EMSSConsulting/Thargo"
 	"github.com/Sirupsen/logrus"
@@ -24,17 +23,8 @@ type ArchiveCommand struct {
 	Silent    bool     `long:"silent" description:"Suppress archiving ouput"`
 	List      bool     `long:"list" description:"List files to archive"`
 
-	files map[string]time.Time
+	files map[string]bool
 	wd    string
-}
-
-func (c *ArchiveCommand) isChanged(modTime time.Time) bool {
-	for _, fileModTime := range c.files {
-		if modTime.Before(fileModTime) {
-			return true
-		}
-	}
-	return false
 }
 
 func (c *ArchiveCommand) archive() {
@@ -58,72 +48,95 @@ func (c *ArchiveCommand) archive() {
 
 	logrus.Debugln("Temporary file:", tempFile.Name())
 
-	includePredicate := func(entry thargo.Entry) bool {
-		header, err := entry.Header()
-		if err != nil {
-			return false
-		}
-
-		// Fix up the header name if the path is outside of the cwd
-		if filepath.HasPrefix(header.Name, "../") {
-			absPath, err := filepath.Abs(header.Name)
+	filter := thargo.Filter{
+		Entry: func(entry thargo.Entry) bool {
+			header, err := entry.Header()
 			if err != nil {
 				return false
 			}
 
-			header.Name = absPath
-		}
+			// Fix up the header name if the path is outside of the cwd
+			if filepath.HasPrefix(header.Name, "../") {
+				absPath, err := filepath.Abs(header.Name)
+				if err != nil {
+					return false
+				}
 
-		// Don't include duplicate files
-		if _, exists := c.files[header.Name]; exists {
+				header.Name = absPath
+			}
+
+			// Don't include duplicate files
+			if _, exists := c.files[header.Name]; exists {
+				return false
+			}
+
+			if c.List {
+				println(header.Name)
+			}
+
+			c.files[header.Name] = true
+			return true
+		},
+		Entries: func(entries []thargo.Entry) bool {
+			ai, err := os.Stat(c.Output)
+			if err != nil && !os.IsNotExist(err) {
+				logrus.Fatalln("Failed to verify archive:", c.Output, err)
+			}
+
+			if ai == nil {
+				return true
+			}
+
+			for _, entry := range entries {
+				header, err := entry.Header()
+				if err != nil {
+					return false
+				}
+
+				if header.ModTime.After(ai.ModTime()) {
+					return true
+				}
+			}
+
 			return false
-		}
-
-		if(c.List) {
-			println(header.Name)
-		}
-		
-		c.files[header.Name] = header.ChangeTime
-		return true
+		},
 	}
+
+	targets := []thargo.Target{}
 
 	for _, filter := range c.Paths {
 		if !c.Silent {
 			logrus.Infof("Adding '%s' to archive", filter)
 		}
 
-		if err := archive.AddIf(&thargo.FileSystemTarget{
+		targets = append(targets, &thargo.FileSystemTarget{
 			Path:    c.wd,
 			Pattern: filter,
-		}, includePredicate); err != nil {
-			logrus.Warnf("Failed to add '%s' to archive: %s", filter, err)
-		}
+		})
 	}
 
 	if c.Untracked {
-		if err := archive.AddIf(&GitUntrackedFilesTarget{
+		targets = append(targets, &GitUntrackedFilesTarget{
 			Path: c.wd,
-		}, includePredicate); err != nil {
-			logrus.Warnf("Failed to add git untracked files to archive: %s", err)
-		}
+		})
+	}
+
+	added, err := archive.AddFiltered(targets, filter)
+	if err != nil {
+		logrus.Fatalln("Failed to add entries to archive: ", err)
 	}
 
 	if err := archive.Close(); err != nil {
 		logrus.Warningln("Failed to close temp archive: ", err)
 	}
 
-	ai, err := os.Stat(c.Output)
-	if err != nil && !os.IsNotExist(err) {
-		logrus.Fatalln("Failed to verify archive:", c.Output, err)
-	}
-	if ai != nil && !c.isChanged(ai.ModTime()) {
-		logrus.Infoln("Archive is up to date!")
-		return
-	}
-
-	err = os.Rename(tempFile.Name(), c.Output)
-	if err != nil {
-		logrus.Warningln("Failed to rename archive:", err)
+	if added == 0 {
+		logrus.Infoln("Archive up to date!")
+	} else {
+		err = os.Rename(tempFile.Name(), c.Output)
+		if err != nil {
+			logrus.Warningln("Failed to rename archive:", err)
+		}
 	}
 
 	logrus.Infoln("Done!")
@@ -146,7 +159,7 @@ func (c *ArchiveCommand) Execute(context *cli.Context) {
 	}
 
 	c.wd = wd
-	c.files = make(map[string]time.Time)
+	c.files = make(map[string]bool)
 
 	if len(c.Paths) == 0 && !c.Untracked {
 		logrus.Infoln("No inclusion filters specified.")
