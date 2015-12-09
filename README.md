@@ -138,4 +138,4 @@ GLOBAL OPTIONS:
 
 ### License
 
-GPLv3
+MIT
