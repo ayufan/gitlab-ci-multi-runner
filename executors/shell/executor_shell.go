@@ -10,6 +10,7 @@ import (
 
 	"fmt"
 	"github.com/Sirupsen/logrus"
+	"github.com/kardianos/osext"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
@@ -113,7 +114,7 @@ func (s *ShellExecutor) Cleanup() {
 
 func init() {
 	// Look for self
-	runnerCommand, err := exec.LookPath(os.Args[0])
+	runnerCommand, err := osext.Executable()
 	if err != nil {
 		logrus.Warningln(err)
 	}
