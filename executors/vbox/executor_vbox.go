@@ -4,13 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/ssh"
-
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/vbox"
-
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/vbox"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 )
 
