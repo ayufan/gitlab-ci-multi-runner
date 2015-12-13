@@ -63,7 +63,7 @@ func (s *VboxExecutor) restoreFromSnapshot() error {
 }
 
 // Vbox doesn't support templates
-func (s *VboxExecutor) CreateVM(vmName string) error {
+func (s *VboxExecutor) createVM(vmName string) error {
 	baseImage := s.Config.Vbox.BaseName
 	if baseImage == "" {
 		return errors.New("Missing Image setting from Vbox config")
@@ -174,7 +174,7 @@ func (s *VboxExecutor) Prepare(globalConfig *common.Config, config *common.Runne
 
 	if !vbox.Exist(s.vmName) {
 		s.Println("Creating new VM...")
-		err := s.CreateVM(s.vmName)
+		err := s.createVM(s.vmName)
 		if err != nil {
 			return err
 		}
