@@ -10,8 +10,7 @@ import (
 	"errors"
 	"strconv"
 	"runtime"
-
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 
 )
 
@@ -38,8 +37,7 @@ func GetVboxPath() string {
 func VboxManageOutput(exe string, args ...string) (string, error) {
 
 	var stdout, stderr bytes.Buffer
-
-	logrus.Debugf("Executing VBoxManageOutput: %#v", args)
+	log.Debugf("Executing VBoxManageOutput: %#v", args)
 	cmd := exec.Command(exe, args...)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -105,7 +103,7 @@ func ConfigureSSH(vmName string, vmSSHPort string) error {
 	output, err := VBoxManage("list", "vms", "-l")
 	allPortsRe := regexp.MustCompile(`host port = (\d+)`)
 	usedPorts := allPortsRe.FindAllStringSubmatch(output, -1)
-	logrus.Debugln(usedPorts)
+	log.Debugln(usedPorts)
 	if usedPorts == nil {
 		localport = "2222"
 	} else {
