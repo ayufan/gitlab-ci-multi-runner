@@ -169,6 +169,64 @@ builds outside the container.
 This will use `/path/to/bind/from/host` of the CI host inside the container at
 `/path/to/bind/in/container`.
 
+### Using a private Docker registry
+
+_This feature requires GitLab Runner v0.6.0 or higher_
+
+In order to use a docker image from a private registry which needs
+authentication, you must first authenticate against the docker registry in
+question.
+
+If you are using our Linux packages, then `gitlab-runner` is run by the user
+root (for non-root users, see the **Notes** section below).
+
+As root run:
+
+```bash
+docker login <registry>
+```
+
+Replace `<registry>` with the Fully Qualified Domain Name of the registry and
+optionally a port, for example:
+
+```bash
+docker login my.registry.tld:5000
+```
+
+The default value is `docker.io` which is the official registry Docker Inc.
+provides. If you omit the registry name, `docker.io` will be implied.
+
+After you enter the needed credentials, docker will inform you that the
+credentials are saved in `/root/.docker/config.json`. This location is the new
+default from Docker version 1.7.0 onwards.
+
+In the rare case you are running an older Docker Engine, then the credentials
+will be stored in `/root/.dockercfg`. GitLab Runner supports both locations for
+backwards compatibility.
+
+The steps performed by the Runner can be summed up to:
+
+1. The registry name is found from the image name
+1. If the value is not empty, the executor will try to look at `~/.dockercfg`
+   (Using `NewAuthConfigurationsFromDockerCfg()` method in go-dockerclient)
+1. If that fails for some reason, the executor will then look at
+   `~/.docker/config.json` (Which should be the new default from Docker 1.7.0)
+1. Finally, if an Authentication corresponding to the specified registry is
+   found, subsequent Pull will make use of it
+
+Now that the Runner is set up to authenticate against your private registry,
+learn [how to configure .gitlab-ci.yml][] in order to use that registry.
+
+**Notes**
+
+If you are running `gitlab-runner` with a non-root user, you must use that user
+to login to the private docker registry. This user will also need to be in the
+`docker` group in order to be able to run any docker commands. To add a user to
+the `docker` group use: `sudo usermod -aG user docker`.
+
+For reference, if you want to set up your own personal registry you might want
+to have a look at <https://docs.docker.com/registry/deploying/>.
+
 ## The [runners.parallels] section
 
 This defines the Parallels parameters.
