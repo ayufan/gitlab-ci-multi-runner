@@ -197,10 +197,9 @@ The default value is `docker.io` which is the official registry Docker Inc.
 provides. If you omit the registry name, `docker.io` will be implied.
 
 After you enter the needed credentials, docker will inform you that the
-credentials are saved in `/root/.docker/config.json`. This location is the new
-default from Docker version 1.7.0 onwards.
+credentials are saved in `/root/.docker/config.json`.
 
-In the rare case you are running an older Docker Engine, then the credentials
+In case you are running an older Docker Engine (< 1.7.0), then the credentials
 will be stored in `/root/.dockercfg`. GitLab Runner supports both locations for
 backwards compatibility.
 
@@ -215,7 +214,8 @@ The steps performed by the Runner can be summed up to:
    found, subsequent Pull will make use of it
 
 Now that the Runner is set up to authenticate against your private registry,
-learn [how to configure .gitlab-ci.yml][] in order to use that registry.
+learn [how to configure .gitlab-ci.yml][yaml-priv-reg] in order to use that
+registry.
 
 **Notes**
 
@@ -277,3 +277,4 @@ It depends on what you'd like to do.
 
 [TOML]: https://github.com/toml-lang/toml
 [Docker Engine]: https://www.docker.com/docker-engine
+[yaml-priv-reg]: http://doc.gitlab.com/ce/ci/yaml/README.html#using-a-private-docker-registry
