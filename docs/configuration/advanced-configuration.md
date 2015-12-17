@@ -1,15 +1,20 @@
-Configuration uses the TOML format as described here: <https://github.com/toml-lang/toml>.
-The file to be edited can be found in:
-1. `/etc/gitlab-runner/config.toml` on *nix systems when gitlab-runner is executed as root.
-**This is also path for service configuration**, 
-1. `~/.gitlab-runner/config.toml` on *nix systems when gitlab-runner is executed as non-root,
-1. `./config.toml` on other systems.
+# Advanced configuration
 
-### The global section
+GitLab Runner configuration uses the [TOML][] format.
+
+The file to be edited can be found in:
+
+1. `/etc/gitlab-runner/config.toml` on *nix systems when gitlab-runner is
+   executed as root. **This is also path for service configuration**
+1. `~/.gitlab-runner/config.toml` on *nix systems when gitlab-runner is
+   executed as non-root,
+1. `./config.toml` on other systems
+
+## The global section
 
 This defines global settings of multi-runner.
 
-| Setting | Explanation |
+| Setting | Description |
 | ------- | ----------- |
 | `concurrent` | limits how many jobs globally can be run concurrently. The most upper limit of jobs using all defined runners |
 
@@ -19,11 +24,11 @@ Example:
 concurrent = 4
 ```
 
-### The [[runners]] section
+## The [[runners]] section
 
 This defines one runner entry.
 
-| Setting | Explanation |
+| Setting | Description |
 | ------- | ----------- |
 | `name`              | not used, just informatory |
 | `url`               | CI URL |
@@ -54,33 +59,33 @@ Example:
   disable_verbose = false
 ```
 
-### The EXECUTORS
+## The EXECUTORS
 
 There are a couple of available executors currently.
 
-| Executor | Explanation |
+| Executor | Description |
 | -------- | ----------- |
 | `shell`       | run build locally, default |
-| `docker`      | run build using Docker container - this requires the presence of `[runners.docker]` |
-| `docker-ssh`  | run build using Docker container, but connect to it with SSH - this requires the presence of `[runners.docker]` and `[runners.ssh]` |
+| `docker`      | run build using Docker container - this requires the presence of `[runners.docker]` and [Docker Engine][] installed on the system that the Runner runs |
+| `docker-ssh`  | run build using Docker container, but connect to it with SSH - this requires the presence of `[runners.docker]` , `[runners.ssh]` and [Docker Engine][] installed on the system that the Runner runs |
 | `ssh`         | run build remotely with SSH - this requires the presence of `[runners.ssh]` |
 | `parallels`   | run build using Parallels VM, but connect to it with SSH - this requires the presence of `[runners.parallels]` and `[runners.ssh]` |
 
-### The SHELLS
+## The SHELLS
 
 There are a couple of available shells that can be run on different platforms.
 
-| Shell | Explanation |
+| Shell | Description |
 | ----- | ----------- |
 | `bash`        | generate Bash (Bourne-shell) script. All commands executed in Bash context (default for all Unix systems) |
 | `cmd`         | generate Windows Batch script. All commands are executed in Batch context (default for Windows) |
 | `powershell`  | generate Windows PowerShell script. All commands are executed in PowerShell context |
 
-### The [runners.docker] section
+## The [runners.docker] section
 
 This defines the Docker Container parameters.
 
-| Parameter | Explanation |
+| Parameter | Description |
 | --------- | ----------- |
 | `host`                      | specify custom Docker endpoint, by default `DOCKER_HOST` environment is used or `unix:///var/run/docker.sock` |
 | `hostname`                  | specify custom hostname for Docker container |
@@ -117,15 +122,19 @@ Example:
   allowed_services = ["postgres:9.4", "postgres:latest"]
 ```
 
-#### Volumes in the [runners.docker] section
+### Volumes in the [runners.docker] section
 
-You can find the complete guide of Docker volume usage [here](https://docs.docker.com/userguide/dockervolumes/).
+You can find the complete guide of Docker volume usage
+[here](https://docs.docker.com/userguide/dockervolumes/).
 
-Let's use some examples to explain how it work (we assume we have a working runners).
+Let's use some examples to explain how it work (assuming you have a working
+runner).
 
-##### Example 1: adding a data volume
+#### Example 1: adding a data volume
 
-A data volume is a specially-designated directory within one or more containers that bypasses the Union File System. Data volumes are designed to persist data, independent of the container's life cycle.
+A data volume is a specially-designated directory within one or more containers
+that bypasses the Union File System. Data volumes are designed to persist data,
+independent of the container's life cycle.
 
 ```bash
 [runners.docker]
@@ -138,11 +147,13 @@ A data volume is a specially-designated directory within one or more containers 
   volumes = ["/path/to/volume/in/container"]
 ```
 
-This will create a new volume inside the container at /path/to/volume/in/container.
+This will create a new volume inside the container at `/path/to/volume/in/container`.
 
-##### Example 2: mount a host directory as a data volume
+#### Example 2: mount a host directory as a data volume
 
-In addition to creating a volume using you can also mount a directory from your Docker daemon's host into a container. It's usefull when you want to store builds outside the container.
+In addition to creating a volume using you can also mount a directory from your
+Docker daemon's host into a container. It's useful when you want to store
+builds outside the container.
 
 ```bash
 [runners.docker]
@@ -155,13 +166,72 @@ In addition to creating a volume using you can also mount a directory from your 
   volumes = ["/path/to/bind/from/host:/path/to/bind/in/container:rw"]
 ```
 
-This will use /path/to/bind/from/host of the CI host inside the container at /path/to/bind/in/container.
+This will use `/path/to/bind/from/host` of the CI host inside the container at
+`/path/to/bind/in/container`.
 
-### The [runners.parallels] section
+### Using a private Docker registry
+
+_This feature requires GitLab Runner v0.6.0 or higher_
+
+In order to use a docker image from a private registry which needs
+authentication, you must first authenticate against the docker registry in
+question.
+
+If you are using our Linux packages, then `gitlab-runner` is run by the user
+root (for non-root users, see the **Notes** section below).
+
+As root run:
+
+```bash
+docker login <registry>
+```
+
+Replace `<registry>` with the Fully Qualified Domain Name of the registry and
+optionally a port, for example:
+
+```bash
+docker login my.registry.tld:5000
+```
+
+The default value is `docker.io` which is the official registry Docker Inc.
+provides. If you omit the registry name, `docker.io` will be implied.
+
+After you enter the needed credentials, docker will inform you that the
+credentials are saved in `/root/.docker/config.json`.
+
+In case you are running an older Docker Engine (< 1.7.0), then the credentials
+will be stored in `/root/.dockercfg`. GitLab Runner supports both locations for
+backwards compatibility.
+
+The steps performed by the Runner can be summed up to:
+
+1. The registry name is found from the image name
+1. If the value is not empty, the executor will try to look at `~/.dockercfg`
+   (Using `NewAuthConfigurationsFromDockerCfg()` method in go-dockerclient)
+1. If that fails for some reason, the executor will then look at
+   `~/.docker/config.json` (Which should be the new default from Docker 1.7.0)
+1. Finally, if an Authentication corresponding to the specified registry is
+   found, subsequent Pull will make use of it
+
+Now that the Runner is set up to authenticate against your private registry,
+learn [how to configure .gitlab-ci.yml][yaml-priv-reg] in order to use that
+registry.
+
+**Notes**
+
+If you are running `gitlab-runner` with a non-root user, you must use that user
+to login to the private docker registry. This user will also need to be in the
+`docker` group in order to be able to run any docker commands. To add a user to
+the `docker` group use: `sudo usermod -aG user docker`.
+
+For reference, if you want to set up your own personal registry you might want
+to have a look at <https://docs.docker.com/registry/deploying/>.
+
+## The [runners.parallels] section
 
 This defines the Parallels parameters.
 
-| Parameter | Explanation |
+| Parameter | Description |
 | --------- | ----------- |
 | `base_name`         | name of Parallels VM which will be cloned |
 | `template_name`     | custom name of Parallels VM linked template (optional) |
@@ -176,11 +246,11 @@ Example:
   disable_snapshots = false
 ```
 
-### The [runners.ssh] section
+## The [runners.ssh] section
 
 This defines the SSH connection parameters.
 
-| Parameter  | Explanation |
+| Parameter  | Description |
 | ---------- | ----------- |
 | `host`     | where to connect (overridden when using `docker-ssh`) |
 | `port`     | specify port, default: 22 |
@@ -199,6 +269,12 @@ Example:
   identity_file = "
 ```
 
-### Note
+## Note
 
-If you'd like to deploy to multiple servers using GitLab CI, you can create a single script that deploys to multiple servers or you can create many scripts. It depends on what you'd like to do.
+If you'd like to deploy to multiple servers using GitLab CI, you can create a
+single script that deploys to multiple servers or you can create many scripts.
+It depends on what you'd like to do.
+
+[TOML]: https://github.com/toml-lang/toml
+[Docker Engine]: https://www.docker.com/docker-engine
+[yaml-priv-reg]: http://doc.gitlab.com/ce/ci/yaml/README.html#using-a-private-docker-registry
