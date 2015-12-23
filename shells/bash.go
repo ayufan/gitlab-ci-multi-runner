@@ -211,7 +211,7 @@ func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
 }
 
 func (b *BashShell) archiveFiles(w io.Writer, list interface{}, runnerCommand, archiveType, archivePath string) {
-	hash, ok := list.(map[string]interface{})
+	hash, ok := helpers.ToConfigMap(list)
 	if !ok {
 		return
 	}
