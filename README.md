@@ -1,9 +1,9 @@
 ## GitLab Runner
 
-This is the GitLab Runner repository, the official GitLab CI
-runner written in Go. It runs tests and sends the results to GitLab CI.
+This is the repository of the official GitLab Runner written in Go.
+It runs tests and sends the results to GitLab.
 [GitLab CI](https://about.gitlab.com/gitlab-ci) is the open-source
-continuous integration server that coordinates the testing.
+continuous integration service included with GitLab that coordinates the testing.
 
 [![Build Status](https://ci.gitlab.com/projects/1885/status.png?ref=master)](https://ci.gitlab.com/projects/1885?ref=master)
 
@@ -17,7 +17,7 @@ The official repository for this project is on [GitLab.com](https://gitlab.com/g
 
 ### Requirements
 
-**None:** gitlab-ci-multi-runner is run as a single binary.
+**None:** GitLab Runner is run as a single binary.
 
 This project is designed for the Linux, OS X and Windows operating systems.
 
@@ -45,7 +45,7 @@ If you want to use **Docker** make sure that you have **1.5.0** at least install
 
 ### Version 0.5.0
 
-Version 0.5.0 introduces many security related changes. 
+Version 0.5.0 introduces many security related changes.
 One of such changes is the different location of `config.toml`.
 Previously (prior 0.5.0) config was read from current working directory.
 Currently, when `gitlab-runner` is executed by `root` or with `sudo` config is read from `/etc/gitlab-runner/config.toml`.
@@ -76,11 +76,7 @@ The config file is automatically migrated when GitLab Runner was installed from 
 * [See advanced configuration options](docs/configuration/advanced-configuration.md)
 * [See example configuration file](config.toml.example)
 * [See security considerations](docs/security/index.md)
-
-### Example integrations
-
-* [Integrate GitLab CE](docs/examples/gitlab.md)
-* [Integrate GitLab CI](docs/examples/gitlab-ci.md)
+* [Example configuration running the GitLab CE integration tests](docs/examples/gitlab.md)
 
 ### Extra projects?
 
@@ -129,12 +125,12 @@ GLOBAL OPTIONS:
 
 ### Future
 
-* It should be simple to add additional executors: DigitalOcean? Amazon EC2?
-* Maybe script annotations?
+* Please see the [GitLab Direction page](https://about.gitlab.com/direction/).
+* Feel free submit issues with feature proposals on the issue tracker.
 
 ### Author
 
-[Kamil Trzciński](mailto:ayufan@ayufan.eu), 2015, [Polidea](http://www.polidea.com/)
+[Kamil Trzciński](mailto:ayufan@ayufan.eu)
 
 ### License
 
