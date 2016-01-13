@@ -101,6 +101,7 @@ This defines the Docker Container parameters.
 | `services`                  | specify additional services that should be run with build. Please visit [Docker Registry](https://registry.hub.docker.com/) for list of available applications. Each service will be run in separate container and linked to the build. |
 | `allowed_images`            | specify wildcard list of images that can be specified in .gitlab-ci.yml |
 | `allowed_services`          | specify wildcard list of services that can be specified in .gitlab-ci.yml |
+| `shared_builds_dir`         | run each build in a different subdirectory of the builds directory (useful if `/builds` is shared between containers with a volume. ) |
 
 Example:
 

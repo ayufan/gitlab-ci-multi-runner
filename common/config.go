@@ -21,6 +21,7 @@ type DockerConfig struct {
 	Hostname               *string        `toml:"hostname" json:"hostname" long:"hostname" env:"DOCKER_HOSTNAME" description:"Custom container hostname"`
 	Image                  string         `toml:"image" json:"image" long:"image" env:"DOCKER_IMAGE" description:"Docker image to be used"`
 	Privileged             bool           `toml:"privileged" json:"privileged" long:"privileged" env:"DOCKER_PRIVILEGED" description:"Give extended privileges to container"`
+	SharedBuildsDir        bool           `toml:"shared_builds_dir" json:"shared_builds_dir" long:"shared_builds_dir" env:"DOCKER_SHARED_BUILDS_DIR" description:"Store each build in seperate folders in the builds directory."`
 	DisableCache           *bool          `toml:"disable_cache" json:"disable_cache" long:"disable-cache" env:"DOCKER_DISABLE_CACHE" description:"Disable all container caching"`
 	Volumes                []string       `toml:"volumes" json:"volumes" long:"volumes" env:"DOCKER_VOLUMES" description:"Bind mount a volumes"`
 	CacheDir               *string        `toml:"cache_dir" json:"cache_dir" long:"cache-dir" env:"DOCKER_CACHE_DIR" description:"Directory where to store caches"`

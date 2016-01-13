@@ -69,7 +69,7 @@ func (e *AbstractExecutor) startBuild() error {
 	// Start actual build
 	rootDir := helpers.StringOrDefault(e.Config.BuildsDir, e.DefaultBuildsDir)
 	cacheDir := helpers.StringOrDefault(e.Config.CacheDir, e.DefaultCacheDir)
-	e.Build.StartBuild(rootDir, cacheDir, e.SharedBuildsDir)
+	e.Build.StartBuild(rootDir, cacheDir, e.SharedBuildsDir || e.Config.Docker.SharedBuildsDir)
 	return nil
 }
 
