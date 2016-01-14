@@ -1,6 +1,7 @@
 package network
 
 import (
+	"bytes"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -80,7 +81,66 @@ func TestClientDo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, c)
 
-	statusCode, statusText, _ := c.do("test/auth", "GET", 200, nil, nil)
+	statusCode, statusText, _ := c.do("test/auth", func(url string) (*http.Request, error) {
+		return http.NewRequest("GET", url, bytes.NewReader([]byte{}))
+	}, 200, nil)
+	assert.Equal(t, 403, statusCode, statusText)
+
+	res := struct {
+		Key string `json:"key"`
+	}{}
+
+	statusCode, statusText, _ = c.do("test/json", func(url string) (*http.Request, error) {
+		req, err := http.NewRequest("GET", url, bytes.NewReader([]byte{}))
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Accept", "application/json")
+		return req, nil
+	}, 200, &res)
+	assert.Equal(t, 400, statusCode, statusText)
+
+	statusCode, statusText, _ = c.do("test/json", func(url string) (*http.Request, error) {
+		req, err := http.NewRequest("GET", url, bytes.NewReader([]byte(`{"query":true}`)))
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+		return req, nil
+	}, 200, nil)
+	assert.Equal(t, 406, statusCode, statusText)
+
+	statusCode, statusText, _ = c.do("test/json", func(url string) (*http.Request, error) {
+		return http.NewRequest("GET", url, bytes.NewReader([]byte{}))
+	}, 200, nil)
+	assert.Equal(t, 400, statusCode, statusText)
+
+	statusCode, statusText, _ = c.do("test/json", func(url string) (*http.Request, error) {
+		req, err := http.NewRequest("GET", url, bytes.NewReader([]byte(`{"query":true}`)))
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+		return req, nil
+	}, 200, &res)
+	assert.Equal(t, 200, statusCode, statusText)
+	assert.Equal(t, "value", res.Key, statusText)
+}
+
+func TestClientDoJson(t *testing.T) {
+	s := httptest.NewServer(http.HandlerFunc(clientHandler))
+	defer s.Close()
+
+	c, err := newClient(RunnerCredentials{
+		URL: s.URL,
+	})
+	assert.NoError(t, err)
+	assert.NotNil(t, c)
+
+	statusCode, statusText, _ := c.doJson("test/auth", "GET", 200, nil, nil)
 	assert.Equal(t, 403, statusCode, statusText)
 
 	req := struct {
@@ -93,16 +153,16 @@ func TestClientDo(t *testing.T) {
 		Key string `json:"key"`
 	}{}
 
-	statusCode, statusText, _ = c.do("test/json", "GET", 200, nil, &res)
+	statusCode, statusText, _ = c.doJson("test/json", "GET", 200, nil, &res)
 	assert.Equal(t, 400, statusCode, statusText)
 
-	statusCode, statusText, _ = c.do("test/json", "GET", 200, &req, nil)
+	statusCode, statusText, _ = c.doJson("test/json", "GET", 200, &req, nil)
 	assert.Equal(t, 406, statusCode, statusText)
 
-	statusCode, statusText, _ = c.do("test/json", "GET", 200, nil, nil)
+	statusCode, statusText, _ = c.doJson("test/json", "GET", 200, nil, nil)
 	assert.Equal(t, 400, statusCode, statusText)
 
-	statusCode, statusText, _ = c.do("test/json", "GET", 200, &req, &res)
+	statusCode, statusText, _ = c.doJson("test/json", "GET", 200, &req, &res)
 	assert.Equal(t, 200, statusCode, statusText)
 	assert.Equal(t, "value", res.Key, statusText)
 }
@@ -114,7 +174,7 @@ func TestClientInvalidSSL(t *testing.T) {
 	c, _ := newClient(RunnerCredentials{
 		URL: s.URL,
 	})
-	statusCode, statusText, _ := c.do("test/ok", "GET", 200, nil, nil)
+	statusCode, statusText, _ := c.doJson("test/ok", "GET", 200, nil, nil)
 	assert.Equal(t, -1, statusCode, statusText)
 	assert.Contains(t, statusText, "certificate signed by unknown authority")
 }
@@ -135,7 +195,7 @@ func TestClientTLSCAFile(t *testing.T) {
 		URL:       s.URL,
 		TLSCAFile: file.Name(),
 	})
-	statusCode, statusText, certificates := c.do("test/ok", "GET", 200, nil, nil)
+	statusCode, statusText, certificates := c.doJson("test/ok", "GET", 200, nil, nil)
 	assert.Equal(t, 200, statusCode, statusText)
 	assert.NotEmpty(t, certificates)
 }
@@ -155,7 +215,7 @@ func TestClientCertificateInPredefinedDirectory(t *testing.T) {
 	c, _ := newClient(RunnerCredentials{
 		URL: s.URL,
 	})
-	statusCode, statusText, certificates := c.do("test/ok", "GET", 200, nil, nil)
+	statusCode, statusText, certificates := c.doJson("test/ok", "GET", 200, nil, nil)
 	assert.Equal(t, 200, statusCode, statusText)
 	assert.NotEmpty(t, certificates)
 }
