@@ -15,6 +15,7 @@ import (
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/parallels"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/shell"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/ssh"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/shells"
 )
 
@@ -38,6 +39,10 @@ func main() {
 			panic(r)
 		}
 	}()
+
+	// Start background reaping of orphaned child processes.
+	// It allows the gitlab-runner to act as `init` process
+	go helpers.Reap()
 
 	app := cli.NewApp()
 	app.Name = path.Base(os.Args[0])
