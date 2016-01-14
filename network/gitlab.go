@@ -77,7 +77,7 @@ func (n *GitLabClient) GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 	case 403:
 		config.Log().Errorln("Checking for builds...", "forbidden")
 		return nil, false
-	case 404:
+	case 204, 404:
 		config.Log().Debugln("Checking for builds...", "nothing")
 		return nil, true
 	case clientError:
