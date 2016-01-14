@@ -284,7 +284,7 @@ func (s *DockerExecutor) createVolumes() ([]string, []string, error) {
 	parentDir := filepath.Dir(s.Build.FullProjectDir())
 
 	// Caching is supported only for absolute and non-root paths
-	if filepath.IsAbs(parentDir) && parentDir != "/" {
+	if filepath.IsAbs(parentDir) && parentDir != "/" && !s.Config.Docker.DisableBuildVolume {
 		if s.Build.AllowGitFetch && !helpers.BoolOrDefault(s.Config.Docker.DisableCache, false) {
 			// create persistent cache container
 			s.addVolume(&binds, &volumesFrom, parentDir)

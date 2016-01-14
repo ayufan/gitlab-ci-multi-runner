@@ -22,6 +22,7 @@ type DockerConfig struct {
 	Image                  string         `toml:"image" json:"image" long:"image" env:"DOCKER_IMAGE" description:"Docker image to be used"`
 	Privileged             bool           `toml:"privileged" json:"privileged" long:"privileged" env:"DOCKER_PRIVILEGED" description:"Give extended privileges to container"`
 	SharedBuildsDir        bool           `toml:"shared_builds_dir" json:"shared_builds_dir" long:"shared_builds_dir" env:"DOCKER_SHARED_BUILDS_DIR" description:"Store each build in seperate folders in the builds directory."`
+	DisableBuildVolume     bool           `toml:"disable_build_volume" json:"disable_build_volume" long:"disable_build_volume" env:"DOCKER_DISABLE_BUILD_VOLUME" description:"Don't create a volume that contains the cloned repository. You should only use this if you are going to create your own volume in the builds directory."`
 	DisableCache           *bool          `toml:"disable_cache" json:"disable_cache" long:"disable-cache" env:"DOCKER_DISABLE_CACHE" description:"Disable all container caching"`
 	Volumes                []string       `toml:"volumes" json:"volumes" long:"volumes" env:"DOCKER_VOLUMES" description:"Bind mount a volumes"`
 	CacheDir               *string        `toml:"cache_dir" json:"cache_dir" long:"cache-dir" env:"DOCKER_CACHE_DIR" description:"Directory where to store caches"`

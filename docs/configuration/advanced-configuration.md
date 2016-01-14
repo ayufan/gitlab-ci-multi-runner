@@ -102,6 +102,7 @@ This defines the Docker Container parameters.
 | `allowed_images`            | specify wildcard list of images that can be specified in .gitlab-ci.yml |
 | `allowed_services`          | specify wildcard list of services that can be specified in .gitlab-ci.yml |
 | `shared_builds_dir`         | run each build in a different subdirectory of the builds directory (useful if `/builds` is shared between containers with a volume. ) |
+| `disable_build_volume`      | don't create a volume that contains the cloned repository. You should only use this if you are going to create your own volume in the builds directory. |
 
 Example:
 
@@ -227,6 +228,68 @@ the `docker` group use: `sudo usermod -aG user docker`.
 
 For reference, if you want to set up your own personal registry you might want
 to have a look at <https://docs.docker.com/registry/deploying/>.
+
+
+### Using a Shared Docker in Docker Daemon
+
+If you want to be able to run Docker commands in your run's, one option is to
+run a [Docker daemon inside it's own container](https://hub.docker.com/_/docker/)
+and link to that container from your builds.
+
+First start up a docker daemon container on your host:
+
+```bash
+docker run --privileged --name some-docker -d docker:1.9-dind
+```
+
+Then tell your runner to use a container that contains the Docker binary and
+to link the Docker daemon to it.
+
+```toml
+[runners.docker]
+  # docker:1.9-git doesn't have bash installed, so this will actually not work.
+  # You should build your own image that extends from this and installs at
+  # least bash, and anything else you need (like Docker Compose), like
+  # https://github.com/saulshanabrook/docker-compose-image
+  image = "docker:1.9-git" 
+
+  links = ["some-docker:docker"]
+```
+
+#### Mounting Volumes
+
+if you try to mount a volume in your run, it will be empty. This is because
+it will share the path from the container running the docker daemon (`some-docker`)
+which doesn't have any of your files on it.
+
+The solution is to give that container access to your files by having it share
+the `/builds` directory with your run container. You should also have to tell
+Docker that we are now sharing this volume, between runs, so that it will
+seperarate the builds into different subdirectories.
+
+```bash
+docker run --privileged --name some-docker -v gitlab-builds:/builds -d docker:1.9-dind
+```
+
+```toml
+[runners.docker]
+  # docker:1.9-git doesn't have bash installed, so this will actually not work.
+  # You should build your own image that extends from this and installs at
+  # least bash, and anything else you need (like Docker Compose), like
+  # https://github.com/saulshanabrook/docker-compose-image
+  image = "docker:1.9-git" 
+
+  links = ["some-docker:docker"]
+
+  volumes = ["gitlab-builds:/builds"]
+  
+  shared_builds_dir = true
+
+  # By default, gitlab will make volume containing your code, so it is more
+  # performant to access it. We have to disable so that our shared volume will
+  # be used instead.
+  disable_build_volume = true 
+``` 
 
 ## The [runners.parallels] section
 
