@@ -14,6 +14,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"fmt"
+	"archive/zip"
 )
 
 type ArchiveCommand struct {
@@ -23,8 +25,8 @@ type ArchiveCommand struct {
 	Silent    bool     `long:"silent" description:"Suppress archiving ouput"`
 	List      bool     `long:"list" description:"List files to archive"`
 
-	wd    string
-	files map[string]os.FileInfo
+	wd        string
+	files     map[string]os.FileInfo
 }
 
 func (c *ArchiveCommand) isChanged(modTime time.Time) bool {
@@ -74,7 +76,7 @@ func (c *ArchiveCommand) process(match string) error {
 	}
 
 	// store relative path if points to current working directory
-	if strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+	if strings.HasPrefix(relative, ".." + string(filepath.Separator)) {
 		return c.add(absolute, nil)
 	} else {
 		return c.add(relative, nil)
@@ -140,6 +142,110 @@ func (c *ArchiveCommand) listFiles() {
 	}
 }
 
+func (c *ArchiveCommand) createZipArchive(fileName string, fileNames []string) error {
+	archiveFile, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer archiveFile.Close()
+
+	w := zip.NewWriter(archiveFile)
+	defer w.Close()
+
+	for _, fileName := range fileNames {
+		fi, err := os.Lstat(fileName)
+		if err != nil {
+			return err
+		}
+
+		fh, err := zip.FileInfoHeader(fi)
+		fh.Name = fileName
+
+		switch fi.Mode() & os.ModeType {
+		case os.ModeDir:
+			fh.Name += "/"
+
+			_, err := w.CreateHeader(fh)
+			if err != nil {
+				return err
+			}
+
+		case os.ModeSymlink:
+			fw, err := w.CreateHeader(fh)
+			if err != nil {
+				return err
+			}
+
+			link, err := os.Readlink(fileName)
+			if err != nil {
+				return err
+			}
+
+			io.WriteString(fw, link)
+
+		case os.ModeNamedPipe, os.ModeSocket, os.ModeDevice:
+			// Ignore the files that of these types
+			logrus.Warningln("File ignored: %q", fileName)
+			continue
+
+		default:
+			fh.Method = zip.Deflate
+			fw, err := w.CreateHeader(fh)
+			if err != nil {
+				return err
+			}
+
+			file, err := os.Open(fileName)
+			if err != nil {
+				return err
+			}
+
+			_, err = io.Copy(fw, file)
+			file.Close()
+			if err != nil {
+				return err
+			}
+			break
+		}
+
+		if !c.Silent {
+			fmt.Printf("%v\t%d\t%s\n", fh.Mode(), fh.UncompressedSize64, fh.Name)
+		}
+	}
+
+	return nil
+}
+
+func (c *ArchiveCommand) createTarArchive(fileName string, files []string) error {
+	var list bytes.Buffer
+	for _, file := range c.sortedFiles() {
+		list.WriteString(string(file) + "\n")
+	}
+
+	flags := "-zcPv"
+	if c.Silent {
+		flags = "-zcP"
+	}
+
+	cmd := exec.Command("tar", flags, "-T", "-", "--no-recursion", "-f", fileName)
+	cmd.Env = os.Environ()
+	cmd.Stdin = &list
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	logrus.Debugln("Executing command:", strings.Join(cmd.Args, " "))
+	return cmd.Run()
+}
+
+func (c *ArchiveCommand) createArchive(fileName string, files []string) error {
+	if strings.HasSuffix(c.Output, ".tgz") || strings.HasSuffix(c.Output, ".tar.gz") {
+		return c.createTarArchive(fileName, files)
+	} else if strings.HasSuffix(c.Output, ".zip") || strings.HasSuffix(c.Output, ".zip") {
+		return c.createZipArchive(fileName, files)
+	} else {
+		return fmt.Errorf("Unsupported archive format: %q", fileName)
+	}
+}
+
 func (c *ArchiveCommand) archive() {
 	if len(c.files) == 0 {
 		logrus.Infoln("No files to archive.")
@@ -147,10 +253,6 @@ func (c *ArchiveCommand) archive() {
 	}
 
 	logrus.Infoln("Creating archive", filepath.Base(c.Output), "...")
-	var files bytes.Buffer
-	for _, file := range c.sortedFiles() {
-		files.WriteString(string(file) + "\n")
-	}
 
 	// create directories to store archive
 	os.MkdirAll(filepath.Dir(c.Output), 0700)
@@ -163,19 +265,7 @@ func (c *ArchiveCommand) archive() {
 	defer os.Remove(tempFile.Name())
 
 	logrus.Debugln("Temporary file:", tempFile.Name())
-
-	flags := "-zcPv"
-	if c.Silent {
-		flags = "-zcP"
-	}
-
-	cmd := exec.Command("tar", flags, "-T", "-", "--no-recursion", "-f", tempFile.Name())
-	cmd.Env = os.Environ()
-	cmd.Stdin = &files
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	logrus.Debugln("Executing command:", strings.Join(cmd.Args, " "))
-	err = cmd.Run()
+	err = c.createArchive(tempFile.Name(), c.sortedFiles())
 	if err != nil {
 		logrus.Fatalln("Failed to create archive:", err)
 	}

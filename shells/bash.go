@@ -264,20 +264,20 @@ func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string 
 
 	if info.Build.Network != nil {
 		// Find artifacts
-		b.archiveFiles(w, info.Build.Options["artifacts"], info.RunnerCommand, "artifacts", "artifacts.tgz")
+		b.archiveFiles(w, info.Build.Options["artifacts"], info.RunnerCommand, "artifacts", "artifacts.zip")
 
 		// If archive is created upload it
-		b.writeIfFile(w, "artifacts.tgz")
+		b.writeIfFile(w, "artifacts.zip")
 		b.echoColored(w, "Uploading artifacts...")
-		b.executeCommand(w, "du", "-h", "artifacts.tgz")
+		b.executeCommand(w, "du", "-h", "artifacts.zip")
 		b.executeTlsCommand(w, "CURL_CA_BUNDLE", "curl",
 			"-s", "-S", "--fail", "--retry", "3", "-X", "POST",
 			"-#",
 			"-o", "artifacts.upload.log",
 			"-H", "BUILD-TOKEN: "+info.Build.Token,
-			"-F", "file=@artifacts.tgz",
+			"-F", "file=@artifacts.zip",
 			info.Build.Network.GetArtifactsUploadURL(info.Build.Runner.RunnerCredentials, info.Build.ID))
-		b.executeCommand(w, "rm", "-f", "artifacts.tgz")
+		b.executeCommand(w, "rm", "-f", "artifacts.zip")
 		b.writeEndIf(w)
 	}
 
