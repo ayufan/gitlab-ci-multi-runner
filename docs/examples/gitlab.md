@@ -21,5 +21,5 @@ gitlab-ci-multi-runner register \
 You now have a GitLab CE integration testing instance with bundle caching.
 Push some commits to test it.
 
-For [advanced setup](../configuration/advanced_setup.md), look into
+For [advanced configuration](../docs/configuration/advanced_configuration.md), look into
 `/home/gitlab_ci_multi_runner/config.toml` and tune it.
