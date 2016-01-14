@@ -1,14 +1,17 @@
 package network
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/Sirupsen/logrus"
 	. "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 )
 
@@ -57,22 +60,27 @@ func (n *GitLabClient) getRunnerVersion(config RunnerConfig) VersionInfo {
 	return info
 }
 
-func (n *GitLabClient) do(runner RunnerCredentials, uri string, prepRequest RequestPreparer, statusCode int, response interface{}) (int, string, string) {
+func (n *GitLabClient) doRaw(runner RunnerCredentials, method, uri string, statusCode int, request io.Reader, requestType string, response interface{}, headers http.Header) (int, string, string) {
 	c, err := n.getClient(runner)
 	if err != nil {
 		return clientError, err.Error(), ""
 	}
 
-	return c.do(uri, prepRequest, statusCode, response)
+	return c.do(uri, method, statusCode, request, requestType, response, headers)
 }
 
 func (n *GitLabClient) doJson(runner RunnerCredentials, method, uri string, statusCode int, request interface{}, response interface{}) (int, string, string) {
-	c, err := n.getClient(runner)
-	if err != nil {
-		return clientError, err.Error(), ""
+	var body io.Reader
+
+	if request != nil {
+		requestBody, err := json.Marshal(request)
+		if err != nil {
+			return -1, fmt.Sprintf("failed to marshal project object: %v", err), ""
+		}
+		body = bytes.NewReader(requestBody)
 	}
 
-	return c.doJson(uri, method, statusCode, request, response)
+	return n.doRaw(runner, uri, method, statusCode, body, "application/json", response, nil)
 }
 
 func (n *GitLabClient) GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
@@ -208,72 +216,68 @@ func (n *GitLabClient) UpdateBuild(config RunnerConfig, id int, state BuildState
 	}
 }
 
-func (n *GitLabClient) GetArtifactsUploadURL(config RunnerCredentials, id int) string {
-	c, err := n.getClient(config)
+func (n *GitLabClient) createArtifactsForm(mpw *multipart.Writer, artifactsFile string) error {
+	wr, err := mpw.CreateFormFile("file", filepath.Base(artifactsFile))
 	if err != nil {
-		return ""
+		return err
 	}
-	return c.fullUrl("builds/%d/artifacts", id)
+
+	file, err := os.Open(artifactsFile)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	fi, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	if fi.IsDir() {
+		return errors.New("Failed to upload directories")
+	}
+
+	_, err = io.Copy(wr, file)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (n *GitLabClient) UploadArtifacts(config RunnerConfig, id int, data io.Reader) bool {
-	// Create this here so that we can dispose of it after the request has been sent
-	tempFile, err := ioutil.TempFile("", "artifacts_")
-	if err != nil {
-		logrus.Warningln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "failed", "failed to create temp upload file")
-	}
+func (n *GitLabClient) UploadArtifacts(config RunnerCredentials, id int, artifactsFile string) UploadState {
+	pr, pw := io.Pipe()
+	defer pw.Close()
 
-	defer tempFile.Close()
-	defer os.Remove(tempFile.Name())
+	mpw := multipart.NewWriter(pw)
 
-	result, statusText, _ := n.do(config.RunnerCredentials, n.GetArtifactsUploadURL(config.RunnerCredentials, id), func(url string) (*http.Request, error) {
-		mpw := multipart.NewWriter(tempFile)
-		wr, err := mpw.CreateFormFile("file", "artifacts.tgz")
+	go func() {
+		defer mpw.Close()
+		defer pr.Close()
+		err := n.createArtifactsForm(mpw, artifactsFile)
 		if err != nil {
-			return nil, err
+			pr.CloseWithError(err)
 		}
+	}()
 
-		if _, err := io.Copy(wr, data); err != nil {
-			return nil, err
-		}
-
-		if err := mpw.Close(); err != nil {
-			return nil, err
-		}
-
-		if _, err := tempFile.Seek(0, 0); err != nil {
-			return nil, err
-		}
-
-		fStat, err := os.Stat(tempFile.Name())
-		if err != nil {
-			return nil, err
-		}
-
-		req, err := http.NewRequest("POST", url, tempFile)
-		if err != nil {
-			return nil, err
-		}
-
-		req.Header.Set("Content-Length", string(fStat.Size()))
-		req.Header.Set("Content-Type", mpw.FormDataContentType())
-		req.Header.Set("BUILD-TOKEN", config.RunnerCredentials.Token)
-
-		return req, nil
-	}, 200, nil)
+	headers := make(http.Header)
+	headers.Set("BUILD-TOKEN", config.Token)
+	result, statusText, _ := n.doRaw(config, "POST", fmt.Sprintf("builds/%d/artifacts.json", id), 200, pr, mpw.FormDataContentType(), nil, headers)
 
 	switch result {
 	case 200:
 		logrus.Println(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "ok")
-		return true
+		return UploadSucceeded
 	case 403:
 		logrus.Errorln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "forbidden")
-		return false
+		return UploadForbidden
+	case 413:
+		logrus.Errorln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "too large archive")
+		return UploadTooLarge
 	case clientError:
 		logrus.Errorln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "error", statusText)
-		return false
+		return UploadFailed
 	default:
 		logrus.Warningln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "failed", statusText)
-		return false
+		return UploadFailed
 	}
 }

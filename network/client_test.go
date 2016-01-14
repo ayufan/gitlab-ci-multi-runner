@@ -1,7 +1,6 @@
 package network
 
 import (
-	"bytes"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -72,65 +71,6 @@ func TestInvalidUrl(t *testing.T) {
 }
 
 func TestClientDo(t *testing.T) {
-	s := httptest.NewServer(http.HandlerFunc(clientHandler))
-	defer s.Close()
-
-	c, err := newClient(RunnerCredentials{
-		URL: s.URL,
-	})
-	assert.NoError(t, err)
-	assert.NotNil(t, c)
-
-	statusCode, statusText, _ := c.do("test/auth", func(url string) (*http.Request, error) {
-		return http.NewRequest("GET", url, bytes.NewReader([]byte{}))
-	}, 200, nil)
-	assert.Equal(t, 403, statusCode, statusText)
-
-	res := struct {
-		Key string `json:"key"`
-	}{}
-
-	statusCode, statusText, _ = c.do("test/json", func(url string) (*http.Request, error) {
-		req, err := http.NewRequest("GET", url, bytes.NewReader([]byte{}))
-		if err != nil {
-			return nil, err
-		}
-
-		req.Header.Set("Accept", "application/json")
-		return req, nil
-	}, 200, &res)
-	assert.Equal(t, 400, statusCode, statusText)
-
-	statusCode, statusText, _ = c.do("test/json", func(url string) (*http.Request, error) {
-		req, err := http.NewRequest("GET", url, bytes.NewReader([]byte(`{"query":true}`)))
-		if err != nil {
-			return nil, err
-		}
-
-		req.Header.Set("Content-Type", "application/json")
-		return req, nil
-	}, 200, nil)
-	assert.Equal(t, 406, statusCode, statusText)
-
-	statusCode, statusText, _ = c.do("test/json", func(url string) (*http.Request, error) {
-		return http.NewRequest("GET", url, bytes.NewReader([]byte{}))
-	}, 200, nil)
-	assert.Equal(t, 400, statusCode, statusText)
-
-	statusCode, statusText, _ = c.do("test/json", func(url string) (*http.Request, error) {
-		req, err := http.NewRequest("GET", url, bytes.NewReader([]byte(`{"query":true}`)))
-		if err != nil {
-			return nil, err
-		}
-
-		req.Header.Set("Content-Type", "application/json")
-		return req, nil
-	}, 200, &res)
-	assert.Equal(t, 200, statusCode, statusText)
-	assert.Equal(t, "value", res.Key, statusText)
-}
-
-func TestClientDoJson(t *testing.T) {
 	s := httptest.NewServer(http.HandlerFunc(clientHandler))
 	defer s.Close()
 

@@ -250,16 +250,18 @@ func (b *BashShell) archiveFiles(w io.Writer, list interface{}, runnerCommand, a
 	b.executeCommand(w, runnerCommand, args...)
 }
 
-func (b *BashShell) uploadArtifacts(w io.Writer, build int, uniqueID, runnerCommand, archivePath string) {
+func (b *BashShell) uploadArtifacts(w io.Writer, build *common.Build, runnerCommand, archivePath string) {
 	args := []string{
 		"artifacts",
 		"--silent",
+		"--url",
+		build.Runner.URL,
+		"--token",
+		build.Runner.Token,
+		"--build-id",
+		string(build.ID),
 		"--archive",
 		archivePath,
-		"--id",
-		uniqueID,
-		"--build",
-		string(build),
 	}
 
 	b.echoColoredFormat(w, "Uploading artifacts...")
@@ -289,7 +291,7 @@ func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string 
 		b.writeIfFile(w, "artifacts.tgz")
 		b.echoColored(w, "Uploading artifacts...")
 		b.executeCommand(w, "du", "-h", "artifacts.tgz")
-		b.uploadArtifacts(w, info.Build.ID, info.Build.Runner.UniqueID(), info.RunnerCommand, "artifacts.tgz")
+		b.uploadArtifacts(w, info.Build, info.RunnerCommand, "artifacts.tgz")
 		b.executeCommand(w, "rm", "-f", "artifacts.tgz")
 		b.writeEndIf(w)
 	}
