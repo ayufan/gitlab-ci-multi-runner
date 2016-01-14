@@ -11,4 +11,5 @@ RUN wget -O /usr/bin/gitlab-ci-multi-runner https://gitlab-ci-multi-runner-downl
 	chmod +x /usr/bin/gitlab-ci-multi-runner && \
 	ln -s /usr/bin/gitlab-ci-multi-runner /usr/bin/gitlab-runner
 
-ENTRYPOINT ["/bin/bash"]
+COPY ./docker-entrypoint.sh /
+ENTRYPOINT ["/docker-entrypoint.sh"]
