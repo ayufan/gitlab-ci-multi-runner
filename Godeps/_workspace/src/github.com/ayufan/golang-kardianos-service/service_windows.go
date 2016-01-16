@@ -327,7 +327,7 @@ func (ws *windowsService) Restart() error {
 	return s.Start()
 }
 
-func (s *windowsService) Status() error {
+func (ws *windowsService) Status() error {
 	m, err := mgr.Connect()
 	if err != nil {
 		return err
@@ -345,7 +345,7 @@ func (s *windowsService) Status() error {
 		return err
 	}
 
-	if status != svc.Running {
+	if status.State != svc.Running {
 		return ErrServiceIsNotRunning
 	}
 

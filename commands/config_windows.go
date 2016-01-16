@@ -12,5 +12,5 @@ func getDefaultConfigDirectory() string {
 	}
 }
 
-func userModeWarning() {
+func userModeWarning(withRun bool) {
 }
