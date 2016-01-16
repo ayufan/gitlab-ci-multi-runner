@@ -68,6 +68,10 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 	s.Debugln("Looking for image", imageName, "...")
 	image, err := s.client.InspectImage(imageName)
 	if err == nil {
+		// Don't pull image that is passed by ID
+		if image.ID == imageName {
+			return image, nil
+		}
 		if imageTTL := s.Config.Docker.ImageTTL; imageTTL != nil && *imageTTL == 0 {
 			return image, nil
 		}
