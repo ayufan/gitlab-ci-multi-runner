@@ -1,6 +1,6 @@
 // Copyright 2015 Daniel Theophanes.
 // Use of this source code is governed by a zlib-style
-// license that can be found in the LICENSE file.package service
+// license that can be found in the LICENSE file.
 
 package service
 
@@ -134,6 +134,24 @@ func (s *upstart) Stop() error {
 	return run("initctl", "stop", s.Name)
 }
 
+func (s *upstart) Status() error {
+	return checkStatus("initctl", []string{"status", s.Name}, "start/running", "Unknown job")
+}
+
+func (s *darwinLaunchdService) Status() error {
+	cmd := exec.Command("launchctl", "list", s.Name)
+	out, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+
+	if strings.Contains(string(out), "\"PID\"") {
+		return nil
+	}
+
+	return errors.New("process is not running")
+}
+
 func (s *upstart) Restart() error {
 	err := s.Stop()
 	if err != nil {
@@ -172,4 +190,3 @@ end script
 # http://upstart.ubuntu.com/cookbook/#changing-user
 exec start-stop-daemon --start {{if .UserName}}-c {{.UserName|cmd}}{{end}} {{if .WorkingDirectory}}-d {{.WorkingDirectory|cmd}}{{end}} --exec {{.Path}} -- {{range .Arguments}} {{.|cmd}}{{end}}
 `
-

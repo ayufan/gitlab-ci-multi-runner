@@ -1,6 +1,6 @@
 // Copyright 2015 Daniel Theophanes.
 // Use of this source code is governed by a zlib-style
-// license that can be found in the LICENSE file.package service
+// license that can be found in the LICENSE file.
 
 package service
 
@@ -68,5 +68,8 @@ func isInteractive() (bool, error) {
 var tf = map[string]interface{}{
 	"cmd": func(s string) string {
 		return `"` + strings.Replace(s, `"`, `\"`, -1) + `"`
+	},
+	"cmdEscape": func(s string) string {
+		return strings.Replace(s, " ", `\x20`, -1)
 	},
 }

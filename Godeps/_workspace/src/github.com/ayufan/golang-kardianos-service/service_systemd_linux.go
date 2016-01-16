@@ -1,6 +1,6 @@
 // Copyright 2015 Daniel Theophanes.
 // Use of this source code is governed by a zlib-style
-// license that can be found in the LICENSE file.package service
+// license that can be found in the LICENSE file.
 
 package service
 
@@ -11,7 +11,6 @@ import (
 	"os/signal"
 	"syscall"
 	"text/template"
-	"time"
 )
 
 func isSystemd() bool {
@@ -112,7 +111,6 @@ func (s *systemd) Uninstall() error {
 	}
 	return nil
 }
-
 func (s *systemd) Logger(errs chan<- error) (Logger, error) {
 	if system.Interactive() {
 		return ConsoleLogger, nil
@@ -145,14 +143,25 @@ func (s *systemd) Start() error {
 func (s *systemd) Stop() error {
 	return run("systemctl", "stop", s.Name+".service")
 }
-
-func (s *systemd) Restart() error {
-	err := s.Stop()
+func (s *systemd) Status() error {
+	return checkStatus("systemctl", []string{"status", s.Name + ".service"}, "active (running)", "not-found")
+}
+func (s *darwinLaunchdService) Status() error {
+	cmd := exec.Command("launchctl", "list", s.Name)
+	out, err := cmd.Output()
 	if err != nil {
 		return err
 	}
-	time.Sleep(50 * time.Millisecond)
-	return s.Start()
+
+	if strings.Contains(string(out), "\"PID\"") {
+		return nil
+	}
+
+	return errors.New("process is not running")
+}
+
+func (s *systemd) Restart() error {
+	return run("systemctl", "restart", s.Name+".service")
 }
 
 const systemdScript = `[Unit]

@@ -1,6 +1,6 @@
 // Copyright 2015 Daniel Theophanes.
 // Use of this source code is governed by a zlib-style
-// license that can be found in the LICENSE file.package service
+// license that can be found in the LICENSE file.
 
 // Package service provides a simple way to create a system service.
 // Currently supports Windows, Linux/(systemd | Upstart | SysV), and OSX/Launchd.
@@ -126,6 +126,10 @@ var (
 	ErrNameFieldRequired = errors.New("Config.Name field is required.")
 	// ErrNoServiceSystemDetected is returned when no system was detected.
 	ErrNoServiceSystemDetected = errors.New("No service system detected.")
+	// ErrServiceIsNotInstalled is returned when the service is not installed
+	ErrServiceIsNotInstalled = errors.New("Service is not installed.")
+	// ErrServiceIsNotRunning is returned when the service is not running
+	ErrServiceIsNotRunning = errors.New("Service is not running.")
 )
 
 // New creates a new service based on a service interface and configuration.
@@ -300,6 +304,10 @@ type Service interface {
 	// greater rights. Will return an error if the service is not present.
 	Uninstall() error
 
+	// Status returns nil if the given service is running.
+	// Will return an error if the service is not running or is not present.
+	Status() error
+
 	// Opens and returns a system logger. If the user program is running
 	// interactively rather then as a service, the returned logger will write to
 	// os.Stderr. If errs is non-nil errors will be sent on errs as well as
@@ -316,7 +324,7 @@ type Service interface {
 }
 
 // ControlAction list valid string texts to use in Control.
-var ControlAction = [5]string{"start", "stop", "restart", "install", "uninstall"}
+var ControlAction = [6]string{"start", "stop", "restart", "install", "uninstall", "status"}
 
 // Control issues control functions to the service from a given action string.
 func Control(s Service, action string) error {
@@ -332,6 +340,8 @@ func Control(s Service, action string) error {
 		err = s.Install()
 	case ControlAction[4]:
 		err = s.Uninstall()
+	case ControlAction[5]:
+		err = s.Status()
 	default:
 		err = fmt.Errorf("Unknown action %s", action)
 	}
