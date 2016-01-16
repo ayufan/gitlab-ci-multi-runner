@@ -1,6 +1,7 @@
 package network
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
@@ -166,6 +167,20 @@ func (n *client) do(uri, method string, statusCode int, request io.Reader, reque
 	}
 
 	return res.StatusCode, res.Status, n.getCAChain(res.TLS)
+}
+
+func (n *client) doJson(uri, method string, statusCode int, request interface{}, response interface{}) (int, string, string) {
+	var body io.Reader
+
+	if request != nil {
+		requestBody, err := json.Marshal(request)
+		if err != nil {
+			return -1, fmt.Sprintf("failed to marshal project object: %v", err), ""
+		}
+		body = bytes.NewReader(requestBody)
+	}
+
+	return n.do(uri, method, statusCode, body, "application/json", response, nil)
 }
 
 func (n *client) fullUrl(uri string, a ...interface{}) string {

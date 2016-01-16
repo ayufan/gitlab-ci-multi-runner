@@ -1,8 +1,6 @@
 package network
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/Sirupsen/logrus"
@@ -70,17 +68,12 @@ func (n *GitLabClient) doRaw(runner RunnerCredentials, method, uri string, statu
 }
 
 func (n *GitLabClient) doJson(runner RunnerCredentials, method, uri string, statusCode int, request interface{}, response interface{}) (int, string, string) {
-	var body io.Reader
-
-	if request != nil {
-		requestBody, err := json.Marshal(request)
-		if err != nil {
-			return -1, fmt.Sprintf("failed to marshal project object: %v", err), ""
-		}
-		body = bytes.NewReader(requestBody)
+	c, err := n.getClient(runner)
+	if err != nil {
+		return clientError, err.Error(), ""
 	}
 
-	return n.doRaw(runner, uri, method, statusCode, body, "application/json", response, nil)
+	return c.doJson(uri, method, statusCode, request, response)
 }
 
 func (n *GitLabClient) GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
@@ -246,16 +239,16 @@ func (n *GitLabClient) createArtifactsForm(mpw *multipart.Writer, artifactsFile 
 
 func (n *GitLabClient) UploadArtifacts(config RunnerCredentials, id int, artifactsFile string) UploadState {
 	pr, pw := io.Pipe()
-	defer pw.Close()
+	defer pr.Close()
 
 	mpw := multipart.NewWriter(pw)
 
 	go func() {
+		defer pw.Close()
 		defer mpw.Close()
-		defer pr.Close()
 		err := n.createArtifactsForm(mpw, artifactsFile)
 		if err != nil {
-			pr.CloseWithError(err)
+			pw.CloseWithError(err)
 		}
 	}()
 
