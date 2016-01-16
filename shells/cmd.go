@@ -1,12 +1,10 @@
 package shells
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"io"
 	"runtime"
 	"strings"
 )
@@ -15,89 +13,154 @@ type CmdShell struct {
 	AbstractShell
 }
 
+type CmdWriter struct {
+	bytes.Buffer
+}
+
+func batchQuote(text string) string {
+	return "\"" + batchEscape(text) + "\""
+}
+
+func batchEscape(text string) string {
+	// taken from: http://www.robvanderwoude.com/escapechars.php
+	text = strings.Replace(text, "\r", "", -1)
+	text = strings.Replace(text, "\n", "%nl%", -1)
+	text = strings.Replace(text, "^", "^^", -1)
+	text = strings.Replace(text, "!", "^^!", -1)
+	text = strings.Replace(text, "&", "^&", -1)
+	text = strings.Replace(text, "<", "^<", -1)
+	text = strings.Replace(text, ">", "^>", -1)
+	text = strings.Replace(text, "|", "^|", -1)
+	return text
+}
+
+func batchEscapeVariable(text string) string {
+	text = strings.Replace(text, "%", "%%", -1)
+	text = batchEscape(text)
+	return text
+}
+
 func (b *CmdShell) GetName() string {
 	return "cmd"
 }
 
-func (b *CmdShell) writeCommand(w io.Writer, format string, args ...interface{}) {
-	io.WriteString(w, fmt.Sprintf(format, args...)+"\r\n")
+func (b *CmdWriter) Line(text string) {
+	b.WriteString(text + "\r\n")
 }
 
-func (b *CmdShell) writeCommandChecked(w io.Writer, format string, args ...interface{}) {
-	b.writeCommand(w, format, args...)
-	b.writeCommand(w, "%s", "IF %errorlevel% NEQ 0 exit /b %errorlevel%")
+func (b *CmdWriter) checkErrorLevel() {
+	b.Line("IF %errorlevel% NEQ 0 exit /b %errorlevel%")
 }
 
-func (b *CmdShell) writeCloneCmd(w io.Writer, build *common.Build, dir string) {
-	b.writeCommand(w, "echo Cloning repository...")
-	b.writeCommandChecked(w, "rd /s /q \"%s\" 2> NUL 1>NUL", dir)
-	b.writeCommandChecked(w, "md \"%s\"", dir)
-	b.writeCommandChecked(w, "git clone \"%s\" \"%s\"", build.RepoURL, dir)
-	b.writeCommandChecked(w, "cd /D \"%s\"", dir)
+func (b *CmdWriter) Command(command string, arguments ...string) {
+	list := []string{
+		batchQuote(command),
+	}
+
+	for _, argument := range arguments {
+		list = append(list, batchQuote(argument))
+	}
+
+	b.Line(strings.Join(list, " "))
+	b.checkErrorLevel()
 }
 
-func (b *CmdShell) writeFetchCmd(w io.Writer, build *common.Build, dir string) {
-	b.writeCommand(w, "IF EXIST \"%s\\.git\" (", dir)
-	b.writeCommand(w, "echo Fetching changes...")
-	b.writeCommandChecked(w, "cd /D \"%s\"", dir)
-	b.writeCommandChecked(w, "git clean -ffdx")
-	b.writeCommandChecked(w, "git reset --hard > NUL")
-	b.writeCommandChecked(w, "git remote set-url origin \"%s\"", build.RepoURL)
-	b.writeCommandChecked(w, "git fetch origin")
-	b.writeCommand(w, ") ELSE (")
-	b.writeCloneCmd(w, build, dir)
-	b.writeCommand(w, ")")
+func (b *CmdWriter) Variable(variable common.BuildVariable) {
+	b.Line("SET " + batchEscapeVariable(variable.Key) + "=" + batchEscapeVariable(variable.Value))
 }
 
-func (b *CmdShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
-	b.writeCommand(w, "echo Checking out %s as %s...", build.Sha[0:8], build.RefName)
-	b.writeCommandChecked(w, "git checkout -qf \"%s\"", build.Sha)
+func (b *CmdWriter) IfDirectory(path string) {
+	b.Line("IF EXIST " + batchQuote(helpers.ToBackslash(path)) + "(")
+}
+
+func (b *CmdWriter) IfFile(path string) {
+	b.Line("IF EXIST " + batchQuote(helpers.ToBackslash(path)) + "(")
+}
+
+func (b *CmdWriter) Else() {
+	b.Line(") ELSE (")
+}
+
+func (b *CmdWriter) EndIf() {
+	b.Line(")")
+}
+
+func (b *CmdWriter) Cd(path string) {
+	b.Line("cd /D " + batchQuote(helpers.ToBackslash(path)))
+	b.checkErrorLevel()
+}
+
+func (b *CmdWriter) MkDirAll(path string) {
+	b.Line("md " + helpers.ToBackslash(path))
+	b.checkErrorLevel()
+}
+
+func (b *CmdWriter) RmDir(path string) {
+	b.Line("rd /s /q " + batchQuote(helpers.ToBackslash(path)) + " 2>NUL 1>NUL")
+	b.checkErrorLevel()
+}
+
+func (b *CmdWriter) RmFile(path string) {
+	b.Line("rd /s /q " + batchQuote(helpers.ToBackslash(path)) + " 2>NUL 1>NUL")
+	b.checkErrorLevel()
+}
+
+func (b *CmdWriter) Print(format string, arguments ...interface{}) {
+	coloredText := fmt.Sprintf(format, arguments...)
+	b.Line("echo " + batchEscapeVariable(coloredText))
+}
+
+func (b *CmdWriter) Notice(format string, arguments ...interface{}) {
+	coloredText := fmt.Sprintf(format, arguments...)
+	b.Line("echo " + batchEscapeVariable(coloredText))
+}
+
+func (b *CmdWriter) Warning(format string, arguments ...interface{}) {
+	coloredText := fmt.Sprintf(format, arguments...)
+	b.Line("echo " + batchEscapeVariable(coloredText))
+}
+
+func (b *CmdWriter) Error(format string, arguments ...interface{}) {
+	coloredText := fmt.Sprintf(format, arguments...)
+	b.Line("echo " + batchEscapeVariable(coloredText))
+}
+
+func (b *CmdWriter) EmptyLine() {
+	b.Line("echo.")
 }
 
 func (b *CmdShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
-	var buffer bytes.Buffer
-	w := bufio.NewWriter(&buffer)
+	w := &CmdWriter{}
+	w.Line("@echo off")
+	w.EmptyLine()
+	w.Line("setlocal enableextensions")
+	w.Line("set nl=^& echo.")
 
-	build := info.Build
-	projectDir := build.FullProjectDir()
-	projectDir = helpers.ToBackslash(projectDir)
-
-	b.writeCommand(w, "@echo off")
-	b.writeCommand(w, "echo.")
-	b.writeCommand(w, "setlocal enableextensions")
-
-	if len(build.Hostname) != 0 {
-		b.writeCommand(w, "echo Running on %s via %s...", "%COMPUTERNAME%", helpers.ShellEscape(build.Hostname))
+	if len(info.Build.Hostname) != 0 {
+		w.Line("echo Running on %COMPUTERNAME% via " + batchEscape(info.Build.Hostname) + "...")
 	} else {
-		b.writeCommand(w, "echo Running on %s...", "%COMPUTERNAME%")
+		w.Line("echo Running on %COMPUTERNAME%...")
 	}
 
-	if build.AllowGitFetch {
-		b.writeFetchCmd(w, build, projectDir)
-	} else {
-		b.writeCloneCmd(w, build, projectDir)
-	}
+	w.Line("call :prescript")
+	w.checkErrorLevel()
+	w.Line("call :buildscript")
+	w.checkErrorLevel()
+	w.Line("call :postscript")
+	w.checkErrorLevel()
+	w.Line("goto :EOF")
 
-	b.writeCheckoutCmd(w, build)
+	w.Line(":prescript")
+	b.GeneratePreBuild(w, info)
 
-	for _, command := range strings.Split(build.Commands, "\n") {
-		command = strings.TrimRight(command, " \t\r\n")
-		if strings.TrimSpace(command) == "" {
-			b.writeCommand(w, "echo.")
-			continue
-		}
+	w.Line(":buildscript")
+	b.GenerateCommands(w, info)
 
-		if !helpers.BoolOrDefault(build.Runner.DisableVerbose, false) {
-			b.writeCommand(w, "echo %s", command)
-		}
-		b.writeCommandChecked(w, "%s", command)
-	}
-
-	w.Flush()
+	w.Line(":postscript")
+	b.GeneratePostBuild(w, info)
 
 	script := common.ShellScript{
-		Environment: b.GetVariables(info),
-		BuildScript: buffer.String(),
+		BuildScript: w.String(),
 		Command:     "cmd",
 		Arguments:   []string{"/Q", "/C"},
 		PassFile:    true,

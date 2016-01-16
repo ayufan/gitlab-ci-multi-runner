@@ -1,12 +1,10 @@
 package shells
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"io"
 	"strings"
 )
 
@@ -14,94 +12,161 @@ type PowerShell struct {
 	AbstractShell
 }
 
+type PsWriter struct {
+	bytes.Buffer
+}
+
+func psQuote(text string) string {
+	// taken from: http://www.robvanderwoude.com/escapechars.php
+	text = strings.Replace(text, "`", "``", -1)
+	// text = strings.Replace(text, "\0", "`0", -1)
+	text = strings.Replace(text, "\a", "`a", -1)
+	text = strings.Replace(text, "\b", "`b", -1)
+	text = strings.Replace(text, "\f", "^f", -1)
+	text = strings.Replace(text, "\r", "`r", -1)
+	text = strings.Replace(text, "\n", "`n", -1)
+	text = strings.Replace(text, "\t", "^t", -1)
+	text = strings.Replace(text, "\v", "^v", -1)
+	text = strings.Replace(text, "#", "`#", -1)
+	text = strings.Replace(text, "'", "`'", -1)
+	text = strings.Replace(text, "\"", "`\"", -1)
+	return "\"" + text + "\""
+}
+
+func psQuoteVariable(text string) string {
+	text = strings.Replace(text, "$", "`$", -1)
+	text = psQuote(text)
+	return text
+}
+
+func (b *PsWriter) Line(text string) {
+	b.WriteString(text + "\r\n")
+}
+
+func (b *PsWriter) checkErrorLevel() {
+	b.Line("if (!$?) { Exit $LASTEXITCODE }")
+}
+
+func (b *PsWriter) Command(command string, arguments ...string) {
+	list := []string{
+		psQuote(command),
+	}
+
+	for _, argument := range arguments {
+		list = append(list, psQuote(argument))
+	}
+
+	b.Line(strings.Join(list, " "))
+	b.checkErrorLevel()
+}
+
+func (b *PsWriter) Variable(variable common.BuildVariable) {
+	b.Line("$env:" + variable.Key + "=" + psQuoteVariable(variable.Value))
+}
+
+func (b *PsWriter) IfDirectory(path string) {
+	b.Line("if(Test-Path " + psQuote(helpers.ToBackslash(path)) + " {")
+}
+
+func (b *PsWriter) IfFile(path string) {
+	b.Line("if(Test-Path " + psQuote(helpers.ToBackslash(path)) + " {")
+}
+
+func (b *PsWriter) Else() {
+	b.Line("} else {")
+}
+
+func (b *PsWriter) EndIf() {
+	b.Line("}")
+}
+
+func (b *PsWriter) Cd(path string) {
+	b.Line("cd " + psQuote(helpers.ToBackslash(path)))
+	b.checkErrorLevel()
+}
+
+func (b *PsWriter) MkDirAll(path string) {
+	path = psQuote(helpers.ToBackslash(path))
+	b.Line("(Test-Path " + path + ") -or (New-Item " + path + " -ItemType \"directory\")")
+	b.checkErrorLevel()
+}
+
+func (b *PsWriter) RmDir(path string) {
+	path = psQuote(helpers.ToBackslash(path))
+	b.Line("if( (Get-Command -Name Remove-Item2 -Module NTFSSecurity -ErrorAction SilentlyContinue) -and (Test-Path " + path + ") ) {")
+	b.Line("Remove-Item2 -Force -Recurse " + path)
+	b.Line("} elseif(Test-Path " + path + ") {")
+	b.Line("Remove-Item -Force -Recurse " + path)
+	b.Line("}")
+	b.checkErrorLevel()
+}
+
+func (b *PsWriter) RmFile(path string) {
+	path = psQuote(helpers.ToBackslash(path))
+	b.Line("if( (Get-Command -Name Remove-Item2 -Module NTFSSecurity -ErrorAction SilentlyContinue) -and (Test-Path " + path + ") ) {")
+	b.Line("Remove-Item2 -Force " + path)
+	b.Line("} elseif(Test-Path " + path + ") {")
+	b.Line("Remove-Item -Force " + path)
+	b.Line("}")
+	b.checkErrorLevel()
+}
+
+func (b *PsWriter) Print(format string, arguments ...interface{}) {
+	coloredText := fmt.Sprintf(format, arguments...)
+	b.Line("echo " + psQuoteVariable(coloredText))
+}
+
+func (b *PsWriter) Notice(format string, arguments ...interface{}) {
+	coloredText := fmt.Sprintf(format, arguments...)
+	b.Line("echo " + psQuoteVariable(coloredText))
+}
+
+func (b *PsWriter) Warning(format string, arguments ...interface{}) {
+	coloredText := fmt.Sprintf(format, arguments...)
+	b.Line("echo " + psQuoteVariable(coloredText))
+}
+
+func (b *PsWriter) Error(format string, arguments ...interface{}) {
+	coloredText := fmt.Sprintf(format, arguments...)
+	b.Line("echo " + psQuoteVariable(coloredText))
+}
+
+func (b *PsWriter) EmptyLine() {
+	b.Line("echo \"\"")
+}
+
 func (b *PowerShell) GetName() string {
 	return "powershell"
 }
 
-func (b *PowerShell) writeCommand(w io.Writer, format string, args ...interface{}) {
-	io.WriteString(w, fmt.Sprintf(format, args...)+"\r\n")
-}
-
-func (b *PowerShell) writeCommandChecked(w io.Writer, format string, args ...interface{}) {
-	b.writeCommand(w, format, args...)
-	b.writeCommand(w, "%s", "if (!$?) { Exit $LASTEXITCODE }")
-}
-
-func (b *PowerShell) writeCloneCmd(w io.Writer, build *common.Build, dir string) {
-	b.writeCommand(w, "echo \"Cloning repository...\"")
-	b.writeCommand(w, "Import-Module -Name NTFSSecurity -ErrorAction SilentlyContinue")
-	b.writeCommand(w, "if( (Get-Command -Name Remove-Item2 -Module NTFSSecurity -ErrorAction SilentlyContinue) -and (Test-Path \"%s\") ) {", dir)
-	b.writeCommandChecked(w, "Remove-Item2 -Force -Recurse \"%s\"", dir)
-	b.writeCommand(w, "} elseif(Test-Path \"%s\") {", dir)
-	b.writeCommandChecked(w, "Remove-Item -Force -Recurse \"%s\"", dir)
-	b.writeCommand(w, "}")
-	b.writeCommandChecked(w, "(Test-Path \"%s\") -or (New-Item \"%s\" -ItemType \"directory\" )", dir, dir)
-	b.writeCommandChecked(w, "git clone \"%s\" \"%s\"", build.RepoURL, dir)
-	b.writeCommandChecked(w, "cd \"%s\"", dir)
-}
-
-func (b *PowerShell) writeFetchCmd(w io.Writer, build *common.Build, dir string) {
-	b.writeCommand(w, "if(Test-Path \"%s\\.git\") {", dir)
-	b.writeCommand(w, "echo \"Fetching changes...\"")
-	b.writeCommandChecked(w, "cd \"%s\"", dir)
-	b.writeCommandChecked(w, "git clean -ffdx")
-	b.writeCommandChecked(w, "git reset --hard > $null")
-	b.writeCommandChecked(w, "git remote set-url origin \"%s\"", build.RepoURL)
-	b.writeCommandChecked(w, "git fetch origin")
-	b.writeCommand(w, "} else {")
-	b.writeCloneCmd(w, build, dir)
-	b.writeCommand(w, "}")
-}
-
-func (b *PowerShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
-	b.writeCommand(w, "echo \"Checking out %s as %s...\"", build.Sha[0:8], build.RefName)
-	b.writeCommandChecked(w, "git checkout -qf \"%s\"", build.Sha)
-}
-
 func (b *PowerShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
-	var buffer bytes.Buffer
-	w := bufio.NewWriter(&buffer)
+	w := &PsWriter{}
+	w.Line("$ErrorActionPreference = \"Stop\"")
+	w.EmptyLine()
 
-	build := info.Build
-	projectDir := build.FullProjectDir()
-	projectDir = helpers.ToBackslash(projectDir)
-
-	b.writeCommand(w, "$ErrorActionPreference = \"Stop\"")
-
-	if len(build.Hostname) != 0 {
-		b.writeCommand(w, "echo \"Running on $env:computername via %s...\"", helpers.ShellEscape(build.Hostname))
+	if len(info.Build.Hostname) != 0 {
+		w.Line("echo Running on $env:computername via " + psQuoteVariable(info.Build.Hostname) + "...")
 	} else {
-		b.writeCommand(w, "echo \"Running on $env:computername...\"")
-	}
-	b.writeCommand(w, "")
-
-	if build.AllowGitFetch {
-		b.writeFetchCmd(w, build, projectDir)
-	} else {
-		b.writeCloneCmd(w, build, projectDir)
+		w.Line("echo Running on  $env:computername...")
 	}
 
-	b.writeCheckoutCmd(w, build)
-	b.writeCommand(w, "")
+	w.Line("& {")
+	b.GeneratePreBuild(w, info)
+	w.Line("}")
+	w.checkErrorLevel()
 
-	for _, command := range strings.Split(build.Commands, "\n") {
-		command = strings.TrimRight(command, " \t\r\n")
-		if strings.TrimSpace(command) == "" {
-			b.writeCommand(w, "echo \"\"")
-			continue
-		}
+	w.Line("& {")
+	b.GenerateCommands(w, info)
+	w.Line("}")
+	w.checkErrorLevel()
 
-		if !helpers.BoolOrDefault(build.Runner.DisableVerbose, false) {
-			b.writeCommand(w, "echo \"%s\"", strings.Replace(command, "\"", "`\"", -1))
-		}
-		b.writeCommandChecked(w, "%s", command)
-	}
-
-	w.Flush()
+	w.Line("& {")
+	b.GeneratePostBuild(w, info)
+	w.Line("}")
+	w.checkErrorLevel()
 
 	script := common.ShellScript{
-		Environment: b.GetVariables(info),
-		BuildScript: buffer.String(),
+		BuildScript: w.String(),
 		Command:     "powershell",
 		Arguments:   []string{"-noprofile", "-noninteractive", "-executionpolicy", "Bypass", "-command"},
 		PassFile:    true,
