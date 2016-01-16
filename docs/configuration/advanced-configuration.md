@@ -249,7 +249,10 @@ Example:
 
 ## The [runners.virtualbox] section
 
-This defines the VirtualBox parameters.
+This defines the VirtualBox parameters. This executor relies on
+`vboxmanage` as executable to control VirtualBox machines so you have to adjust
+your `PATH` environment variable on Windows hosts:
+`PATH=%PATH%;C:\Program Files\Oracle\VirtualBox`.
 
 | Parameter | Explanation |
 | --------- | ----------- |

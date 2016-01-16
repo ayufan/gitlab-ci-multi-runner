@@ -7,7 +7,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"os/exec"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -24,14 +23,6 @@ const (
 	Saved                = "saved"
 	// TODO: more statuses
 )
-
-func GetVboxPath() string {
-	// TODO: Don't rely on path here, use os.Getenv if necessary
-	if runtime.GOOS == "windows" {
-		return `c:\Program Files\Oracle\VirtualBox\VBoxManage.exe`
-	}
-	return `vboxmanage`
-}
 
 func VboxManageOutput(exe string, args ...string) (string, error) {
 	var stdout, stderr bytes.Buffer
@@ -51,8 +42,7 @@ func VboxManageOutput(exe string, args ...string) (string, error) {
 }
 
 func VBoxManage(args ...string) (string, error) {
-	vboxPath := GetVboxPath()
-	return VboxManageOutput(vboxPath, args...)
+	return VboxManageOutput("vboxmanage", args...)
 }
 
 func Version() (string, error) {
