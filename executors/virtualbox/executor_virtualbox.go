@@ -13,7 +13,6 @@ import (
 
 type VirtualBoxExecutor struct {
 	executors.AbstractExecutor
-	// cmd             *exec.Cmd
 	vmName          string
 	sshCommand      ssh.Command
 	sshPort         string
