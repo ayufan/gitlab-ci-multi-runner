@@ -32,6 +32,7 @@ help:
 	# make fmt - check source formatting
 	# make test - run project tests
 	# make lint - check project code style
+	# make vet - examine code and report suspicious constructs
 	# make verify - run fmt, test and lint
 	# make toolchain - install crossplatform toolchain
 	# make build - build project for all supported OSes
@@ -46,7 +47,7 @@ version: FORCE
 	@echo DEB platforms: $(DEB_PLATFORMS)
 	@echo RPM platforms: $(RPM_PLATFORMS)
 
-verify: fmt test lint
+verify: fmt vet lint test
 
 deps:
 	# Installing dependencies...
@@ -74,6 +75,10 @@ build:
 fmt:
 	# Checking project code formatting...
 	@go fmt ./... | awk '{ print "Please run go fmt"; exit 1 }'
+
+vet:
+	# Checking for suspicious constructs...
+	@go vet ./...
 
 lint:
 	# Checking project code style...

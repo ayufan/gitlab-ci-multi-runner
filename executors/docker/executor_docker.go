@@ -741,9 +741,8 @@ func (s *DockerExecutor) runServiceHealthCheckContainer(container *docker.Contai
 	case err := <-waitResult:
 		return err
 	case <-time.After(timeout):
-		return fmt.Errorf("didn't respond in timely maner: %v (consider modifying wait_for_services_timeout).", container.Name, timeout)
+		return fmt.Errorf("didn't respond in timely maner: %v (consider modifying wait_for_services_timeout: %v).", container.Name, timeout)
 	}
-	return nil
 }
 
 func (s *DockerExecutor) waitForServiceContainer(container *docker.Container, timeout time.Duration) error {
