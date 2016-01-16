@@ -13,9 +13,14 @@ PACKAGE_CLOUD ?= ayufan/gitlab-ci-multi-runner
 PACKAGE_CLOUD_URL ?= https://packagecloud.io/
 BUILD_PLATFORMS ?= -os="linux" -os="darwin" -os="windows" -os="freebsd"
 S3_UPLOAD_PATH ?= master
-DEB_PLATFORMS ?= debian/wheezy debian/jessie ubuntu/precise ubuntu/trusty ubuntu/utopic ubuntu/vivid
+DEB_PLATFORMS ?= debian/wheezy debian/jessie debian/stretch debian/buster \
+    ubuntu/precise ubuntu/trusty ubuntu/utopic ubuntu/vivid ubuntu/wily ubuntu/xenial \
+    raspbian/wheezy raspbian/jessie raspbian/stretch raspbian/buster \
+    linuxmint/petra linuxmint/qiana linuxmint/rebecca linuxmint/rafaela linuxmint/rosa
 DEB_ARCHS ?= amd64 i386 arm armhf
-RPM_PLATFORMS ?= el/6 el/7 ol/6 ol/7
+RPM_PLATFORMS ?= el/6 el/7 \
+    ol/6 ol/7 \
+    fedora/20 fedora/21 fedora/22 fedora/23
 RPM_ARCHS ?= x86_64 i686 arm armhf
 
 all: deps fmt test lint toolchain build
@@ -38,6 +43,8 @@ version: FORCE
 	@echo Current version: $(VERSION)
 	@echo Current iteration: $(ITTERATION)
 	@echo Current revision: $(REVISION)
+	@echo DEB platforms: $(DEB_PLATFORMS)
+	@echo RPM platforms: $(RPM_PLATFORMS)
 
 verify: fmt test lint
 
