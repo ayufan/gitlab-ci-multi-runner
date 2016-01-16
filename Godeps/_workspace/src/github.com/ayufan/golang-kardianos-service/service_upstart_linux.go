@@ -138,20 +138,6 @@ func (s *upstart) Status() error {
 	return checkStatus("initctl", []string{"status", s.Name}, "start/running", "Unknown job")
 }
 
-func (s *darwinLaunchdService) Status() error {
-	cmd := exec.Command("launchctl", "list", s.Name)
-	out, err := cmd.Output()
-	if err != nil {
-		return err
-	}
-
-	if strings.Contains(string(out), "\"PID\"") {
-		return nil
-	}
-
-	return errors.New("process is not running")
-}
-
 func (s *upstart) Restart() error {
 	err := s.Stop()
 	if err != nil {

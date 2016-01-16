@@ -146,19 +146,6 @@ func (s *systemd) Stop() error {
 func (s *systemd) Status() error {
 	return checkStatus("systemctl", []string{"status", s.Name + ".service"}, "active (running)", "not-found")
 }
-func (s *darwinLaunchdService) Status() error {
-	cmd := exec.Command("launchctl", "list", s.Name)
-	out, err := cmd.Output()
-	if err != nil {
-		return err
-	}
-
-	if strings.Contains(string(out), "\"PID\"") {
-		return nil
-	}
-
-	return errors.New("process is not running")
-}
 
 func (s *systemd) Restart() error {
 	return run("systemctl", "restart", s.Name+".service")
