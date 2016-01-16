@@ -1,5 +1,4 @@
 v 0.7.2
-- Added support for VirtualBox executor
 - Adjust `umask` for build image
 - Use absolute path when executing archive command
 - Fix regression when variables were not passed to service container
