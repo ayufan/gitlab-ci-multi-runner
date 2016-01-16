@@ -34,7 +34,6 @@ func GetVboxPath() string {
 }
 
 func VboxManageOutput(exe string, args ...string) (string, error) {
-
 	var stdout, stderr bytes.Buffer
 	log.Debugf("Executing VBoxManageOutput: %#v", args)
 	cmd := exec.Command(exe, args...)
