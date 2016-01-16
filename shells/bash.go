@@ -120,7 +120,7 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	b.GenerateCommands(buildScript, info)
 
 	postScript := &BashWriter{}
-	b.GeneratePostBuild(buildScript, info)
+	b.GeneratePostBuild(postScript, info)
 
 	script := common.ShellScript{
 		PreScript:   preScript.Finish(b.Shell),
