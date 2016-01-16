@@ -1,8 +1,9 @@
 package commands
 
 import (
-	log "github.com/Sirupsen/logrus"
-	service "github.com/ayufan/golang-kardianos-service"
+	"fmt"
+	"github.com/Sirupsen/logrus"
+	"github.com/ayufan/golang-kardianos-service"
 	"github.com/codegangsta/cli"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
@@ -21,23 +22,23 @@ type ServiceLogHook struct {
 	service.Logger
 }
 
-func (s *ServiceLogHook) Levels() []log.Level {
-	return []log.Level{
-		log.PanicLevel,
-		log.FatalLevel,
-		log.ErrorLevel,
-		log.WarnLevel,
-		log.InfoLevel,
+func (s *ServiceLogHook) Levels() []logrus.Level {
+	return []logrus.Level{
+		logrus.PanicLevel,
+		logrus.FatalLevel,
+		logrus.ErrorLevel,
+		logrus.WarnLevel,
+		logrus.InfoLevel,
 	}
 }
 
-func (s *ServiceLogHook) Fire(e *log.Entry) error {
+func (s *ServiceLogHook) Fire(e *logrus.Entry) error {
 	switch e.Level {
-	case log.PanicLevel, log.FatalLevel, log.ErrorLevel:
+	case logrus.PanicLevel, logrus.FatalLevel, logrus.ErrorLevel:
 		s.Error(e.Message)
-	case log.WarnLevel:
+	case logrus.WarnLevel:
 		s.Warning(e.Message)
-	case log.InfoLevel:
+	case logrus.InfoLevel:
 		s.Info(e.Message)
 	}
 	return nil
@@ -56,7 +57,7 @@ func (n *NullService) Stop(s service.Service) error {
 
 func runServiceInstall(s service.Service, c *cli.Context) error {
 	if user := c.String("user"); user == "" && os.Getuid() == 0 {
-		log.Fatal("Please specify user that will run gitlab-runner service")
+		logrus.Fatal("Please specify user that will run gitlab-runner service")
 	}
 
 	if configFile := c.String("config"); configFile != "" {
@@ -78,6 +79,17 @@ func runServiceInstall(s service.Service, c *cli.Context) error {
 	return service.Control(s, "install")
 }
 
+func runServiceStatus(displayName string, s service.Service, c *cli.Context) error {
+	err := s.Status()
+	if err == nil {
+		fmt.Println(displayName+":", "Service is running!")
+	} else {
+		fmt.Fprintln(os.Stderr, displayName+":", err)
+		os.Exit(1)
+	}
+	return nil
+}
+
 func RunServiceControl(c *cli.Context) {
 	// detect whether we want to install as user service or system service
 	isUserService := os.Getuid() != 0
@@ -92,7 +104,7 @@ func RunServiceControl(c *cli.Context) {
 	}
 
 	if isUserService && runtime.GOOS == "linux" {
-		log.Fatal("Please run the commands as root")
+		logrus.Fatal("Please run the commands as root")
 	}
 
 	svcConfig := &service.Config{
@@ -138,18 +150,20 @@ func RunServiceControl(c *cli.Context) {
 
 	s, err := service_helpers.New(&NullService{}, svcConfig)
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 
 	switch c.Command.Name {
 	case "install":
 		err = runServiceInstall(s, c)
+	case "status":
+		err = runServiceStatus(svcConfig.DisplayName, s, c)
 	default:
 		err = service.Control(s, c.Command.Name)
 	}
 
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 }
 
@@ -220,6 +234,12 @@ func init() {
 	common.RegisterCommand(cli.Command{
 		Name:   "restart",
 		Usage:  "restart service",
+		Action: RunServiceControl,
+		Flags:  flags,
+	})
+	common.RegisterCommand(cli.Command{
+		Name:   "status",
+		Usage:  "get status of a service",
 		Action: RunServiceControl,
 		Flags:  flags,
 	})

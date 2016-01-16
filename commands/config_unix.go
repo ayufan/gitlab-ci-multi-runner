@@ -3,10 +3,10 @@
 package commands
 
 import (
+	"github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"os"
 	"path/filepath"
-	"github.com/Sirupsen/logrus"
 )
 
 func getDefaultConfigDirectory() string {
