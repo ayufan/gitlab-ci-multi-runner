@@ -85,12 +85,6 @@ func (b *PsWriter) Cd(path string) {
 	b.checkErrorLevel()
 }
 
-func (b *PsWriter) MkDirAll(path string) {
-	path = psQuote(helpers.ToBackslash(path))
-	b.Line("(Test-Path " + path + ") -or (New-Item " + path + " -ItemType \"directory\")")
-	b.checkErrorLevel()
-}
-
 func (b *PsWriter) RmDir(path string) {
 	path = psQuote(helpers.ToBackslash(path))
 	b.Line("if( (Get-Command -Name Remove-Item2 -Module NTFSSecurity -ErrorAction SilentlyContinue) -and (Test-Path " + path + ") ) {")
@@ -98,7 +92,6 @@ func (b *PsWriter) RmDir(path string) {
 	b.Line("} elseif(Test-Path " + path + ") {")
 	b.Line("Remove-Item -Force -Recurse " + path)
 	b.Line("}")
-	b.checkErrorLevel()
 }
 
 func (b *PsWriter) RmFile(path string) {
@@ -108,7 +101,6 @@ func (b *PsWriter) RmFile(path string) {
 	b.Line("} elseif(Test-Path " + path + ") {")
 	b.Line("Remove-Item -Force " + path)
 	b.Line("}")
-	b.checkErrorLevel()
 }
 
 func (b *PsWriter) Print(format string, arguments ...interface{}) {

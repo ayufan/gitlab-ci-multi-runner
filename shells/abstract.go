@@ -21,7 +21,6 @@ type ShellWriter interface {
 	EndIf()
 
 	Cd(path string)
-	MkDirAll(path string)
 	RmDir(path string)
 	RmFile(path string)
 
@@ -54,7 +53,6 @@ func (b *AbstractShell) writeExports(w ShellWriter, info common.ShellScriptInfo)
 func (b *AbstractShell) writeCloneCmd(w ShellWriter, build *common.Build, projectDir string) {
 	w.Notice("Cloning repository...")
 	w.RmDir(projectDir)
-	w.MkDirAll(projectDir)
 	w.Command("git", "clone", build.RepoURL, projectDir)
 	w.Cd(projectDir)
 }

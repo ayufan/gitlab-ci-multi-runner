@@ -90,19 +90,12 @@ func (b *CmdWriter) Cd(path string) {
 	b.checkErrorLevel()
 }
 
-func (b *CmdWriter) MkDirAll(path string) {
-	b.Line("md " + helpers.ToBackslash(path))
-	b.checkErrorLevel()
-}
-
 func (b *CmdWriter) RmDir(path string) {
 	b.Line("rd /s /q " + batchQuote(helpers.ToBackslash(path)) + " 2>NUL 1>NUL")
-	b.checkErrorLevel()
 }
 
 func (b *CmdWriter) RmFile(path string) {
 	b.Line("rd /s /q " + batchQuote(helpers.ToBackslash(path)) + " 2>NUL 1>NUL")
-	b.checkErrorLevel()
 }
 
 func (b *CmdWriter) Print(format string, arguments ...interface{}) {

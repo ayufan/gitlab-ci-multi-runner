@@ -61,12 +61,8 @@ func (b *BashWriter) Cd(path string) {
 	b.Command("cd", path)
 }
 
-func (b *BashWriter) MkDirAll(path string) {
-	b.Command("mkdir", "-p", path)
-}
-
 func (b *BashWriter) RmDir(path string) {
-	b.Command("rm", "-r", path)
+	b.Command("rm", "-r", "-f", path)
 }
 
 func (b *BashWriter) RmFile(path string) {
