@@ -132,8 +132,8 @@ func (s *RegisterCommand) askParallels() {
 	s.Parallels.BaseName = s.ask("parallels-vm", "Please enter the Parallels VM (eg. my-vm):")
 }
 
-func (s *RegisterCommand) askVbox() {
-	s.Vbox.BaseName = s.ask("vbox-vm", "Please enter the Vbox VM (eg. my-vm):")
+func (s *RegisterCommand) askVirtualBox() {
+	s.VirtualBox.BaseName = s.ask("virtualbox-vm", "Please enter the VirtualBox VM (eg. my-vm):")
 }
 
 func (s *RegisterCommand) askSSHServer() {
@@ -229,25 +229,25 @@ func (c *RegisterCommand) Execute(context *cli.Context) {
 		c.askDocker()
 		c.SSH = nil
 		c.Parallels = nil
-		c.Vbox = nil
+		c.VirtualBox = nil
 	case "docker-ssh":
 		c.askDocker()
 		c.askSSHLogin()
 		c.Parallels = nil
-		c.Vbox = nil
+		c.VirtualBox = nil
 	case "ssh":
 		c.askSSHServer()
 		c.askSSHLogin()
 		c.Docker = nil
 		c.Parallels = nil
-		c.Vbox = nil
+		c.VirtualBox = nil
 	case "parallels":
 		c.askParallels()
 		c.askSSHServer()
 		c.Docker = nil
-		c.Vbox = nil
-	case "Vbox":
-		c.askVbox()
+		c.VirtualBox = nil
+	case "VirtualBox":
+		c.askVirtualBox()
 		c.askSSHLogin()
 		c.Docker = nil
 		c.Parallels = nil
@@ -269,10 +269,10 @@ func init() {
 		RunnerConfig: common.RunnerConfig{
 			Name: getHostname(),
 			RunnerSettings: common.RunnerSettings{
-				Parallels: &common.ParallelsConfig{},
-				SSH:       &ssh.Config{},
-				Docker:    &common.DockerConfig{},
-				Vbox:      &common.VboxConfig{},
+				Parallels:  &common.ParallelsConfig{},
+				SSH:        &ssh.Config{},
+				Docker:     &common.DockerConfig{},
+				VirtualBox: &common.VirtualBoxConfig{},
 			},
 		},
 		network: &network.GitLabClient{},

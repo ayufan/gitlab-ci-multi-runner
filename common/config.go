@@ -39,9 +39,9 @@ type ParallelsConfig struct {
 	DisableSnapshots *bool   `toml:"disable_snapshots" json:"disable_snapshots" long:"disable-snapshots" env:"PARALLELS_DISABLE_SNAPSHOTS" description:"Disable snapshoting to speedup VM creation"`
 }
 
-type VboxConfig struct {
-	BaseName         string  `toml:"base_name" json:"base_name" long:"base-name" env:"VBOX_BASE_NAME" description:"VM name to be used"`
-	DisableSnapshots *bool   `toml:"disable_snapshots" json:"disable_snapshots" long:"disable-snapshots" env:"VBOX_DISABLE_SNAPSHOTS" description:"Disable snapshoting to speedup VM creation"`
+type VirtualBoxConfig struct {
+	BaseName         string `toml:"base_name" json:"base_name" long:"base-name" env:"VIRTUALBOX_BASE_NAME" description:"VM name to be used"`
+	DisableSnapshots *bool  `toml:"disable_snapshots" json:"disable_snapshots" long:"disable-snapshots" env:"VIRTUALBOX_DISABLE_SNAPSHOTS" description:"Disable snapshoting to speedup VM creation"`
 }
 
 type RunnerCredentials struct {
@@ -59,10 +59,10 @@ type RunnerSettings struct {
 
 	Shell *string `toml:"shell" json:"shell" long:"shell" env:"RUNNER_SHELL" description:"Select bash, cmd or powershell"`
 
-	SSH       *ssh.Config      `toml:"ssh" json:"ssh" group:"ssh executor" namespace:"ssh"`
-	Docker    *DockerConfig    `toml:"docker" json:"docker" group:"docker executor" namespace:"docker"`
-	Parallels *ParallelsConfig `toml:"parallels" json:"parallels" group:"parallels executor" namespace:"parallels"`
-	Vbox      *VboxConfig      `toml:"vbox" json:"vbox" group:"vbox executor" namespace:"vbox"`
+	SSH        *ssh.Config       `toml:"ssh" json:"ssh" group:"ssh executor" namespace:"ssh"`
+	Docker     *DockerConfig     `toml:"docker" json:"docker" group:"docker executor" namespace:"docker"`
+	Parallels  *ParallelsConfig  `toml:"parallels" json:"parallels" group:"parallels executor" namespace:"parallels"`
+	VirtualBox *VirtualBoxConfig `toml:"virtualbox" json:"virtualbox" group:"virtualbox executor" namespace:"virtualbox"`
 }
 
 type RunnerConfig struct {

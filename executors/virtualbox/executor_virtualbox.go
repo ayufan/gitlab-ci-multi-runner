@@ -1,17 +1,17 @@
-package vbox
+package virtualbox
 
 import (
 	"errors"
 	"fmt"
-	"time"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/ssh"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/vbox"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/ssh"
+	vbox "gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/virtualbox"
+	"time"
 )
 
-type VboxExecutor struct {
+type VirtualBoxExecutor struct {
 	executors.AbstractExecutor
 	// cmd             *exec.Cmd
 	vmName          string
@@ -21,7 +21,7 @@ type VboxExecutor struct {
 	machineVerified bool
 }
 
-func (s *VboxExecutor) verifyMachine(vmName string, sshPort string) error {
+func (s *VirtualBoxExecutor) verifyMachine(vmName string, sshPort string) error {
 	if s.machineVerified {
 		return nil
 	}
@@ -52,7 +52,7 @@ func (s *VboxExecutor) verifyMachine(vmName string, sshPort string) error {
 	return nil
 }
 
-func (s *VboxExecutor) restoreFromSnapshot() error {
+func (s *VirtualBoxExecutor) restoreFromSnapshot() error {
 	s.Debugln("Reverting VM to current snapshot...")
 	err := vbox.RevertToSnapshot(s.vmName)
 	if err != nil {
@@ -62,11 +62,11 @@ func (s *VboxExecutor) restoreFromSnapshot() error {
 	return nil
 }
 
-// Vbox doesn't support templates
-func (s *VboxExecutor) createVM(vmName string) error {
-	baseImage := s.Config.Vbox.BaseName
+// virtualbox doesn't support templates
+func (s *VirtualBoxExecutor) createVM(vmName string) error {
+	baseImage := s.Config.VirtualBox.BaseName
 	if baseImage == "" {
-		return errors.New("Missing Image setting from Vbox config")
+		return errors.New("Missing Image setting from VirtualBox configuration")
 	}
 
 	vmStatus, _ := vbox.Status(vmName)
@@ -96,7 +96,7 @@ func (s *VboxExecutor) createVM(vmName string) error {
 	}
 
 	s.Debugln("Identify SSH Port...")
-	sshPort, err := vbox.FindSshPort(s.vmName)
+	sshPort, err := vbox.FindSSHPort(s.vmName)
 	s.sshPort = sshPort
 	if err != nil {
 		return err
@@ -112,26 +112,26 @@ func (s *VboxExecutor) createVM(vmName string) error {
 	return nil
 }
 
-func (s *VboxExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
-	err:= s.AbstractExecutor.Prepare(globalConfig, config, build)
+func (s *VirtualBoxExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
+	err := s.AbstractExecutor.Prepare(globalConfig, config, build)
 	if err != nil {
 		return err
 	}
 
 	if s.BuildScript.PassFile {
-		return errors.New("Vbox doesn't support shells that require script file")
+		return errors.New("virtualbox doesn't support shells that require script file")
 	}
 
 	if s.Config.SSH == nil {
 		return errors.New("Missing SSH config")
 	}
 
-	if s.Config.Vbox == nil {
-		return errors.New("Missing Vbox configuration")
+	if s.Config.VirtualBox == nil {
+		return errors.New("Missing VirtualBox configuration")
 	}
 
-	if s.Config.Vbox.BaseName == "" {
-		return errors.New("Missing BaseName setting from Vbox config")
+	if s.Config.VirtualBox.BaseName == "" {
+		return errors.New("Missing BaseName setting from VirtualBox configuration")
 	}
 
 	version, err := vbox.Version()
@@ -146,8 +146,8 @@ func (s *VboxExecutor) Prepare(globalConfig *common.Config, config *common.Runne
 		vbox.Unregister(s.vmName)
 	}
 
-	if helpers.BoolOrDefault(s.Config.Vbox.DisableSnapshots, false) {
-		s.vmName =s.Config.Vbox.BaseName + "-" + s.Build.ProjectUniqueName()
+	if helpers.BoolOrDefault(s.Config.VirtualBox.DisableSnapshots, false) {
+		s.vmName = s.Config.VirtualBox.BaseName + "-" + s.Build.ProjectUniqueName()
 		if vbox.Exist(s.vmName) {
 			s.Debugln("Deleting old VM...")
 			vbox.Stop(s.vmName)
@@ -156,9 +156,9 @@ func (s *VboxExecutor) Prepare(globalConfig *common.Config, config *common.Runne
 		}
 	} else {
 		s.vmName = fmt.Sprintf("%s-runner-%s-concurrent-%d",
-		s.Config.Vbox.BaseName,
-		s.Build.Runner.ShortDescription(),
-		s.Build.RunnerID)
+			s.Config.VirtualBox.BaseName,
+			s.Build.Runner.ShortDescription(),
+			s.Build.RunnerID)
 	}
 
 	if vbox.Exist(s.vmName) {
@@ -179,7 +179,7 @@ func (s *VboxExecutor) Prepare(globalConfig *common.Config, config *common.Runne
 			return err
 		}
 
-		if !helpers.BoolOrDefault(s.Config.Vbox.DisableSnapshots, false) {
+		if !helpers.BoolOrDefault(s.Config.VirtualBox.DisableSnapshots, false) {
 			s.Println("Creating default snapshot...")
 			err = vbox.CreateSnapshot(s.vmName, "Started")
 			if err != nil {
@@ -211,7 +211,7 @@ func (s *VboxExecutor) Prepare(globalConfig *common.Config, config *common.Runne
 	}
 
 	s.Debugln("Identify SSH Port...")
-	sshPort, err := vbox.FindSshPort(s.vmName)
+	sshPort, err := vbox.FindSSHPort(s.vmName)
 	s.sshPort = sshPort
 	if err != nil {
 		return err
@@ -228,7 +228,7 @@ func (s *VboxExecutor) Prepare(globalConfig *common.Config, config *common.Runne
 	return nil
 }
 
-func (s *VboxExecutor) Start() error {
+func (s *VirtualBoxExecutor) Start() error {
 	s.Println("Starting SSH command...")
 	s.sshCommand = ssh.Command{
 		Config:      *s.Config.SSH,
@@ -258,13 +258,13 @@ func (s *VboxExecutor) Start() error {
 	return nil
 }
 
-func (s *VboxExecutor) Cleanup() {
+func (s *VirtualBoxExecutor) Cleanup() {
 	s.sshCommand.Cleanup()
 
 	if s.vmName != "" {
 		vbox.Kill(s.vmName)
 
-		if helpers.BoolOrDefault(s.Config.Vbox.DisableSnapshots, false) || !s.provisioned {
+		if helpers.BoolOrDefault(s.Config.VirtualBox.DisableSnapshots, false) || !s.provisioned {
 			vbox.Delete(s.vmName)
 		}
 	}
@@ -282,7 +282,7 @@ func init() {
 	}
 
 	creator := func() common.Executor {
-		return &VboxExecutor{
+		return &VirtualBoxExecutor{
 			AbstractExecutor: executors.AbstractExecutor{
 				ExecutorOptions: options,
 			},
@@ -293,7 +293,7 @@ func init() {
 		features.Variables = true
 	}
 
-	common.RegisterExecutor("vbox", executors.DefaultExecutorProvider{
+	common.RegisterExecutor("virtualbox", executors.DefaultExecutorProvider{
 		Creator: creator,
 		FeaturesUpdater: featuresUpdater,
 	})

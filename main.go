@@ -15,9 +15,9 @@ import (
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/parallels"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/shell"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/ssh"
+	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/virtualbox"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/shells"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/vbox"
 )
 
 var NAME = "gitlab-ci-multi-runner"

@@ -1,17 +1,16 @@
-package vbox
+package virtualbox
 
 import (
 	"bytes"
-	"os/exec"
-	"strings"
-	"fmt"
-	"regexp"
-	"time"
 	"errors"
-	"strconv"
-	"runtime"
+	"fmt"
 	log "github.com/Sirupsen/logrus"
-
+	"os/exec"
+	"regexp"
+	"runtime"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type StatusType string
@@ -27,11 +26,11 @@ const (
 )
 
 func GetVboxPath() string {
+	// TODO: Don't rely on path here, use os.Getenv if necessary
 	if runtime.GOOS == "windows" {
 		return `c:\Program Files\Oracle\VirtualBox\VBoxManage.exe`
-	} else {
-		return `vboxmanage`
 	}
+	return `vboxmanage`
 }
 
 func VboxManageOutput(exe string, args ...string) (string, error) {
@@ -65,7 +64,7 @@ func Version() (string, error) {
 	return strings.TrimSpace(version), nil
 }
 
-func FindSshPort(vmName string) (string, error) {
+func FindSSHPort(vmName string) (string, error) {
 	info, err := VBoxManage("showvminfo", vmName)
 	portRe := regexp.MustCompile(`guestssh.*host port = (\d+)`)
 	sshPort := portRe.FindStringSubmatch(info)
@@ -74,7 +73,7 @@ func FindSshPort(vmName string) (string, error) {
 
 func Exist(vmName string) bool {
 	_, err := VBoxManage("showvminfo", vmName)
-	if err != nil{
+	if err != nil {
 		return false
 	}
 	return true
@@ -89,7 +88,7 @@ func FindNextPort(highport string, usedPorts [][]string) string {
 	for _, port := range usedPorts {
 		if highport == port[1] {
 			var temp int
-			temp,_ = strconv.Atoi(highport)
+			temp, _ = strconv.Atoi(highport)
 			temp = temp + 1
 			highport = strconv.Itoa(temp)
 			highport = FindNextPort(highport, usedPorts)
@@ -156,10 +155,10 @@ func Status(vmName string) (StatusType, error) {
 	return StatusType(status[1]), nil
 }
 
-func WaitForStatus(vmName string,  vmStatus StatusType, seconds int) error {
+func WaitForStatus(vmName string, vmStatus StatusType, seconds int) error {
 	var status StatusType
 	var err error
-	for i :=0; i < seconds; i++ {
+	for i := 0; i < seconds; i++ {
 		status, err = Status(vmName)
 		if err != nil {
 			return err
