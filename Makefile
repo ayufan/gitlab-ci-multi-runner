@@ -22,8 +22,9 @@ RPM_PLATFORMS ?= el/6 el/7 \
     ol/6 ol/7 \
     fedora/20 fedora/21 fedora/22 fedora/23
 RPM_ARCHS ?= x86_64 i686 arm armhf
+GO_LDFLAGS ?= -X main.NAME $(PACKAGE_NAME) -X main.VERSION $(VERSION) -X main.REVISION $(REVISION)
 
-all: deps fmt test lint toolchain build
+all: deps fmt test lint toolchain docker build
 
 help:
 	# make all => deps test lint toolchain build
@@ -35,6 +36,7 @@ help:
 	# make vet - examine code and report suspicious constructs
 	# make verify - run fmt, test and lint
 	# make toolchain - install crossplatform toolchain
+	# make docker - build docker dependencies
 	# make build - build project for all supported OSes
 	# make package - package project using FPM
 	# make packagecloud - send all packages to packagecloud
@@ -56,6 +58,7 @@ deps:
 	go get github.com/mitchellh/gox
 	go get golang.org/x/tools/cmd/cover
 	-go get golang.org/x/sys/windows/svc
+	go get -u github.com/jteeuwen/go-bindata/...
 	godep restore
 
 	# Fix broken BSD builds
@@ -66,10 +69,54 @@ toolchain:
 	# Building toolchain...
 	gox -build-toolchain $(BUILD_PLATFORMS)
 
-build:
+docker:
+ifneq (, $(shell which docker))
+	# Building gitlab-runner-helper
+	gox -osarch=linux/amd64 \
+		-ldflags "$(GO_LDFLAGS)" \
+		-output="dockerfiles/build/gitlab-runner-helper" \
+		./apps/gitlab-runner-helper
+
+	# Create directory
+	mkdir -p out/docker
+
+	# Build docker images
+	docker build -t gitlab-runner-build:$(REVISION) dockerfiles/build
+	docker build -t gitlab-runner-cache:$(REVISION) dockerfiles/cache
+	docker build -t gitlab-runner-service:$(REVISION) dockerfiles/service
+	docker save -o out/docker/prebuilt.tar \
+		gitlab-runner-build:$(REVISION) \
+		gitlab-runner-service:$(REVISION) \
+		gitlab-runner-cache:$(REVISION)
+	gzip -f -9 out/docker/prebuilt.tar
+else
+	$(warning =============================================)
+	$(warning WARNING: downloading prebuilt docker images that will be embedded in gitlab-runner)
+	$(warning WARNING: to use images compiled from your code install Docker Engine)
+	$(warning WARNING: and remove out/docker/prebuilt.tar.gz)
+	$(warning =============================================)
+	curl -o out/docker/prebuilt.tar.gz \
+		https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/docker/prebuilt.tar.gz
+endif
+
+	# Generating embedded data
+	go-bindata \
+		-pkg docker \
+		-nocompress \
+		-nomemcopy \
+		-nometadata \
+		-prefix out/docker/ \
+		-o executors/docker/bindata.go \
+		out/docker/prebuilt.tar.gz
+
+out/docker/images.tar.gz: docker
+
+executors/docker/bindata.go: out/docker/images.tar.gz
+
+build: executors/docker/bindata.go
 	# Building gitlab-ci-multi-runner for $(BUILD_PLATFORMS)
 	gox $(BUILD_PLATFORMS) \
-		-ldflags "-X main.NAME $(PACKAGE_NAME) -X main.VERSION $(VERSION) -X main.REVISION $(REVISION)" \
+		-ldflags "$(GO_LDFLAGS)" \
 		-output="out/binaries/$(NAME)-{{.OS}}-{{.Arch}}"
 
 fmt:
@@ -87,6 +134,9 @@ lint:
 test:
 	# Running tests...
 	@go test ./... -cover
+
+install:
+	go install --ldflags="$(GO_LDFLAGS)"
 
 dockerfiles:
 	make -C dockerfiles all

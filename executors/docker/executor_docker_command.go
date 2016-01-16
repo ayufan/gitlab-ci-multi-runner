@@ -23,14 +23,19 @@ func (s *DockerCommandExecutor) Start() error {
 		return err
 	}
 
+	buildImage, err := s.getPrebuiltImage("build")
+	if err != nil {
+		return err
+	}
+
 	// Start pre-build container which will git clone changes
-	preContainer, err := s.createContainer("pre", PreBuildImage, nil, *options)
+	preContainer, err := s.createContainer("pre", buildImage.ID, nil, *options)
 	if err != nil {
 		return err
 	}
 
 	// Start post-build container which will upload artifacts
-	postContainer, err := s.createContainer("post", PostBuildImage, nil, *options)
+	postContainer, err := s.createContainer("post", buildImage.ID, nil, *options)
 	if err != nil {
 		return err
 	}
@@ -79,8 +84,9 @@ func init() {
 		DefaultCacheDir:  "/cache",
 		SharedBuildsDir:  false,
 		Shell: common.ShellScriptInfo{
-			Shell: "bash",
-			Type:  common.NormalShell,
+			Shell:         "bash",
+			Type:          common.NormalShell,
+			RunnerCommand: "/usr/bin/gitlab-runner-helper",
 		},
 		ShowHostname:     true,
 		SupportedOptions: []string{"image", "services"},

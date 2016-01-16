@@ -15,17 +15,13 @@ import (
 	"github.com/fsouza/go-dockerclient"
 
 	"bytes"
+	"compress/gzip"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	docker_helpers "gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/docker"
 	"io"
 )
-
-const CacheImage = "gitlab/gitlab-runner:cache"
-const ServiceImage = "gitlab/gitlab-runner:service"
-const PreBuildImage = "gitlab/gitlab-runner:build"
-const PostBuildImage = "gitlab/gitlab-runner:build"
 
 type DockerExecutor struct {
 	executors.AbstractExecutor
@@ -69,10 +65,6 @@ func (s *DockerExecutor) getAuthConfig(imageName string) (docker.AuthConfigurati
 }
 
 func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error) {
-	if !strings.Contains(imageName, ":") {
-		imageName = imageName + ":latest"
-	}
-
 	s.Debugln("Looking for image", imageName, "...")
 	image, err := s.client.InspectImage(imageName)
 	if err == nil {
@@ -119,6 +111,36 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 	return image, nil
 }
 
+func (s *DockerExecutor) getPrebuiltImage(imageType string) (image *docker.Image, err error) {
+	imageName := "gitlab-runner-" + imageType + ":" + common.REVISION
+	s.Debugln("Looking for prebuilt image", imageName, "...")
+	image, err = s.client.InspectImage(imageName)
+	if err == nil {
+		return
+	}
+
+	data, err := Asset("prebuilt.tar.gz")
+	if err != nil {
+		return
+	}
+
+	gz, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return
+	}
+	defer gz.Close()
+
+	s.Debugln("Loading prebuilt image...")
+	err = s.client.LoadImage(docker.LoadImageOptions{
+		InputStream: gz,
+	})
+	if err != nil {
+		return
+	}
+
+	return s.client.InspectImage(imageName)
+}
+
 func (s *DockerExecutor) getAbsoluteContainerPath(path string) string {
 	if filepath.IsAbs(path) {
 		return path
@@ -156,7 +178,7 @@ func (s *DockerExecutor) getLabels(containerType string, otherLabels ...string) 
 
 func (s *DockerExecutor) createCacheVolume(containerName, containerPath string) (*docker.Container, error) {
 	// get busybox image
-	cacheImage, err := s.getDockerImage(CacheImage)
+	cacheImage, err := s.getPrebuiltImage("cache")
 	if err != nil {
 		return nil, err
 	}
@@ -700,7 +722,7 @@ func (s *DockerExecutor) Cleanup() {
 }
 
 func (s *DockerExecutor) runServiceHealthCheckContainer(container *docker.Container, timeout time.Duration) error {
-	waitImage, err := s.getDockerImage(ServiceImage)
+	waitImage, err := s.getPrebuiltImage("service")
 	if err != nil {
 		return err
 	}
