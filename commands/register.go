@@ -183,6 +183,8 @@ func (s *RegisterCommand) askRunner() {
 }
 
 func (c *RegisterCommand) Execute(context *cli.Context) {
+	userModeWarning(true)
+
 	c.context = context
 	err := c.loadConfig()
 	if err != nil {

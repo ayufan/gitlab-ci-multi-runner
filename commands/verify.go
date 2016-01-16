@@ -16,6 +16,8 @@ type VerifyCommand struct {
 }
 
 func (c *VerifyCommand) Execute(context *cli.Context) {
+	userModeWarning(true)
+
 	err := c.loadConfig()
 	if err != nil {
 		log.Fatalln(err)
