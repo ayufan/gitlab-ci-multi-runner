@@ -1,11 +1,10 @@
 package virtualbox
 
 import (
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"github.com/stretchr/testify/assert"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"testing"
 )
-
 
 func TestVirtualBoxExecutorRegistered(t *testing.T) {
 	executors := common.GetExecutors()

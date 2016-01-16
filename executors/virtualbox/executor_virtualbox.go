@@ -273,7 +273,7 @@ func (s *VirtualBoxExecutor) Cleanup() {
 func init() {
 	options := executors.ExecutorOptions{
 		DefaultBuildsDir: "builds",
-		SharedBuildsDir: false,
+		SharedBuildsDir:  false,
 		Shell: common.ShellScriptInfo{
 			Shell: "bash",
 			Type:  common.LoginShell,
@@ -294,7 +294,7 @@ func init() {
 	}
 
 	common.RegisterExecutor("virtualbox", executors.DefaultExecutorProvider{
-		Creator: creator,
+		Creator:         creator,
 		FeaturesUpdater: featuresUpdater,
 	})
 }
