@@ -1,17 +1,13 @@
 package commands_helpers
 
 import (
-	"bufio"
-	"bytes"
 	"github.com/stretchr/testify/assert"
-	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
+	"archive/zip"
 )
 
 const UntrackedFileName = "some_fancy_untracked_file"
@@ -44,24 +40,12 @@ func filesInFolder(path string) []string {
 func readArchiveContent(t *testing.T, c *ArchiveCommand) (resultMap map[string]bool) {
 	resultMap = make(map[string]bool)
 
-	cmd := exec.Command("tar", "-ztf", c.File)
-	cmd.Env = os.Environ()
-	cmd.Stderr = os.Stderr
-	result, err := cmd.Output()
+	archive, err := zip.OpenReader(c.File)
 	assert.NoError(t, err)
-
-	reader := bufio.NewReader(bytes.NewReader(result))
-	for {
-		line, prefix, err := reader.ReadLine()
-		if err == io.EOF {
-			break
-		}
-		assert.NoError(t, err, "ReadLine")
-		assert.False(t, prefix, "ReadLine")
-		file := strings.TrimSpace(string(line))
-		resultMap[file] = true
+	defer archive.Close()
+	for _, file := range archive.File {
+		resultMap[file.Name] = true
 	}
-
 	return
 }
 
