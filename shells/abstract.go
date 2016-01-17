@@ -141,6 +141,11 @@ func (b *AbstractShell) archiveFiles(w ShellWriter, list interface{}, runnerComm
 		return
 	}
 
+	if runnerCommand == "" {
+		w.Warning("The %s is not supported in this executor.", archiveType)
+		return
+	}
+
 	args := []string{
 		"archive",
 		"--silent",
@@ -169,13 +174,15 @@ func (b *AbstractShell) archiveFiles(w ShellWriter, list interface{}, runnerComm
 
 	// Execute archive command
 	w.Notice("Archiving %s...", archiveType)
-	if runnerCommand == "" {
-		runnerCommand = "gitlab-runner"
-	}
 	w.Command(runnerCommand, args...)
 }
 
 func (b *AbstractShell) uploadArtifacts(w ShellWriter, build *common.Build, runnerCommand, archivePath string) {
+	if runnerCommand == "" {
+		w.Warning("The artifacts uploading is not supported in this executor.")
+		return
+	}
+
 	args := []string{
 		"artifacts",
 		"--silent",
@@ -190,9 +197,6 @@ func (b *AbstractShell) uploadArtifacts(w ShellWriter, build *common.Build, runn
 	}
 
 	w.Notice("Uploading artifacts...")
-	if runnerCommand == "" {
-		runnerCommand = "gitlab-runner"
-	}
 	w.Command(runnerCommand, args...)
 }
 

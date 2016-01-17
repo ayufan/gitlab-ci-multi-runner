@@ -79,8 +79,9 @@ func init() {
 		DefaultCacheDir:  "/cache",
 		SharedBuildsDir:  false,
 		Shell: common.ShellScriptInfo{
-			Shell: "bash",
-			Type:  common.NormalShell,
+			Shell:         "bash",
+			Type:          common.NormalShell,
+			RunnerCommand: "gitlab-runner",
 		},
 		ShowHostname:     true,
 		SupportedOptions: []string{"image", "services"},
