@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/network"
 	"os"
@@ -47,6 +48,20 @@ func (c *configOptions) touchConfig() error {
 		return c.saveConfig()
 	}
 	return nil
+}
+
+func (c *configOptions) RunnerByName(name string) (*common.RunnerConfig, error) {
+	if c.config == nil {
+		return nil, fmt.Errorf("Config has not been loaded")
+	}
+
+	for _, runner := range c.config.Runners {
+		if runner.Name == name {
+			return runner, nil
+		}
+	}
+
+	return nil, fmt.Errorf("Could not find a runner with the name '%s'", name)
 }
 
 func init() {
