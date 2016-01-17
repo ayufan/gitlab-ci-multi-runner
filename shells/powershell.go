@@ -137,9 +137,9 @@ func (b *PowerShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellS
 	w.EmptyLine()
 
 	if len(info.Build.Hostname) != 0 {
-		w.Line("echo Running on $env:computername via " + psQuoteVariable(info.Build.Hostname) + "...")
+		w.Line("echo \"Running on $env:computername via " + psQuoteVariable(info.Build.Hostname) + "...\"")
 	} else {
-		w.Line("echo Running on  $env:computername...")
+		w.Line("echo \"Running on $env:computername...\"")
 	}
 
 	w.Line("& {")
