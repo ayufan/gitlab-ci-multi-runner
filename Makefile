@@ -100,6 +100,7 @@ else
 		https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/docker/prebuilt.tar.gz
 endif
 
+executors/docker/bindata.go: out/docker/prebuilt.tar.gz
 	# Generating embedded data
 	go-bindata \
 		-pkg docker \
@@ -109,8 +110,6 @@ endif
 		-prefix out/docker/ \
 		-o executors/docker/bindata.go \
 		out/docker/prebuilt.tar.gz
-
-executors/docker/bindata.go: out/docker/prebuilt.tar.gz
 
 docker: executors/docker/bindata.go
 

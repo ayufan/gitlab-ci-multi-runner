@@ -62,7 +62,6 @@ cd $GOPATH/src/gitlab.com/gitlab-org/gitlab-ci-multi-runner/
 ## 5. Install runner dependencies
 
 This will download and restore all dependencies required to build runner:
-
 ```
 make deps
 ```
@@ -94,3 +93,14 @@ go install
 
 You can start hacking GitLab-Runner code. If you are interested you can use Intellij IDEA Community Edition with [go-lang-idea-plugin](https://github.com/go-lang-plugin-org/go-lang-idea-plugin) to edit and debug code.
 
+## Troubleshooting
+
+### executor_docker.go missing Asset symbol
+
+This error happens due to missing executors/docker/bindata.go file that is generated from docker prebuilts.
+Which is especially tricky on Windows.
+
+Try to execute: `make deps docker`, if it doesn't help you can do that in steps:
+1. Execute `go get -u github.com/jteeuwen/go-bindata/...`
+2. Download https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/docker/prebuilt.tar.gz and save to out/docker/prebuilt.tar.gz
+3. Execute `make docker` or check the Makefile how this command looks like
