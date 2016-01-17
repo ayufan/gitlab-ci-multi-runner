@@ -31,7 +31,13 @@ open go*-*.pkg
 pkg install go-1.4.2 gmake git mercurial
 ```
 
-## 2. Configure Go
+## 2. Install Docker Engine
+
+The Docker Engine is required to create pre-built image that is embedded into runner and loaded when using docker executor.
+
+[Install Docker Engine](https://docs.docker.com/engine/installation/)
+
+## 3. Configure Go
 
 Add to `.profile` or `.bash_profile`:
 
@@ -46,14 +52,14 @@ Create new terminal session and create $GOPATH directory:
 mkdir -p $GOPATH
 ```
 
-## 3. Download runner sources
+## 4. Download runner sources
 
 ```
 go get gitlab.com/gitlab-org/gitlab-ci-multi-runner
 cd $GOPATH/src/gitlab.com/gitlab-org/gitlab-ci-multi-runner/
 ```
 
-## 4. Install runner dependencies
+## 5. Install runner dependencies
 
 This will download and restore all dependencies required to build runner:
 
@@ -63,7 +69,7 @@ make deps
 
 **For FreeBSD use `gmake deps`**
 
-## 5. Run runner
+## 6. Run runner
 
 Normally you would use `gitlab-runner`, in order to compile and run Go source use go toolchain:
 
@@ -77,14 +83,14 @@ You can run runner in debug-mode:
 go run main.go --debug run
 ```
 
-## 6. Compile and install runner binary
+## 7. Compile and install runner binary
 
 ```
 go build
 go install
 ```
 
-## 7. Congratulations!
+## 8. Congratulations!
 
 You can start hacking GitLab-Runner code. If you are interested you can use Intellij IDEA Community Edition with [go-lang-idea-plugin](https://github.com/go-lang-plugin-org/go-lang-idea-plugin) to edit and debug code.
 
