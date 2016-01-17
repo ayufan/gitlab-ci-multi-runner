@@ -1,13 +1,13 @@
 package commands_helpers
 
 import (
+	"archive/zip"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
-	"archive/zip"
 )
 
 const UntrackedFileName = "some_fancy_untracked_file"
