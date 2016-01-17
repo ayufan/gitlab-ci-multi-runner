@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Sirupsen/logrus"
 	. "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -237,7 +238,7 @@ func (n *GitLabClient) createArtifactsForm(mpw *multipart.Writer, artifactsFile 
 	return nil
 }
 
-func (n *GitLabClient) UploadArtifacts(config RunnerCredentials, id int, artifactsFile string) UploadState {
+func (n *GitLabClient) UploadArtifacts(config BuildCredentials, artifactsFile string) UploadState {
 	pr, pw := io.Pipe()
 	defer pr.Close()
 
@@ -252,25 +253,37 @@ func (n *GitLabClient) UploadArtifacts(config RunnerCredentials, id int, artifac
 		}
 	}()
 
+	// TODO: Create proper interface for `doRaw` that can use other types than RunnerCredentials
+	mappedConfig := RunnerCredentials{
+		URL:       config.URL,
+		Token:     config.Token,
+		TLSCAFile: config.TLSCAFile,
+	}
+
 	headers := make(http.Header)
 	headers.Set("BUILD-TOKEN", config.Token)
-	result, statusText, _ := n.doRaw(config, "POST", fmt.Sprintf("builds/%d/artifacts", id), 200, pr, mpw.FormDataContentType(), nil, headers)
+	result, statusText, _ := n.doRaw(mappedConfig, "POST", fmt.Sprintf("builds/%d/artifacts", config.ID), 201, pr, mpw.FormDataContentType(), nil, headers)
+
+	log := logrus.WithFields(logrus.Fields{
+		"id":    config.ID,
+		"token": helpers.ShortenToken(config.Token),
+	})
 
 	switch result {
-	case 200:
-		logrus.Println(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "ok")
+	case 201:
+		log.Println("Uploading artifacts to coordinator...", "ok")
 		return UploadSucceeded
 	case 403:
-		logrus.Errorln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "forbidden")
+		log.Errorln("Uploading artifacts to coordinator...", "forbidden")
 		return UploadForbidden
 	case 413:
-		logrus.Errorln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "too large archive")
+		log.Errorln("Uploading artifacts to coordinator...", "too large archive")
 		return UploadTooLarge
 	case clientError:
-		logrus.Errorln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "error", statusText)
+		log.Errorln("Uploading artifacts to coordinator...", "error", statusText)
 		return UploadFailed
 	default:
-		logrus.Warningln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "failed", statusText)
+		log.Warningln("Uploading artifacts to coordinator...", "failed", statusText)
 		return UploadFailed
 	}
 }

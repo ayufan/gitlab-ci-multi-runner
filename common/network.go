@@ -86,11 +86,18 @@ type UpdateBuildRequest struct {
 	Trace string      `json:"trace,omitempty"`
 }
 
+type BuildCredentials struct {
+	ID        int    `long:"id" env:"CI_BUILD_ID" description:"The build ID to upload artifacts for"`
+	Token     string `long:"token" env:"CI_BUILD_TOKEN" required:"true" description:"Build token"`
+	URL       string `long:"url" env:"CI_SERVER_URL" required:"true" description:"GitLab CI URL"`
+	TLSCAFile string `long:"tls-ca-file" env:"CI_SERVER_TLS_CA_FILE" description:"File containing the certificates to verify the peer when using HTTPS"`
+}
+
 type Network interface {
 	GetBuild(config RunnerConfig) (*GetBuildResponse, bool)
 	RegisterRunner(config RunnerCredentials, description, tags string) *RegisterRunnerResponse
 	DeleteRunner(config RunnerCredentials) bool
 	VerifyRunner(config RunnerCredentials) bool
 	UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) UpdateState
-	UploadArtifacts(config RunnerCredentials, id int, artifactsFile string) UploadState
+	UploadArtifacts(config BuildCredentials, artifactsFile string) UploadState
 }

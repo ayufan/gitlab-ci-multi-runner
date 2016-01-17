@@ -444,18 +444,20 @@ func TestArtifactsUpload(t *testing.T) {
 		if string(body) != "content" {
 			w.WriteHeader(413)
 		} else {
-			w.WriteHeader(200)
+			w.WriteHeader(201)
 		}
 	}
 
 	s := httptest.NewServer(http.HandlerFunc(handler))
 	defer s.Close()
 
-	config := RunnerCredentials{
+	config := BuildCredentials{
+		ID:    10,
 		URL:   s.URL,
 		Token: "token",
 	}
-	invalidToken := RunnerCredentials{
+	invalidToken := BuildCredentials{
+		ID:    10,
 		URL:   s.URL,
 		Token: "invalid-token",
 	}
@@ -468,16 +470,16 @@ func TestArtifactsUpload(t *testing.T) {
 	c := GitLabClient{}
 
 	fmt.Fprint(tempFile, "content")
-	state := c.UploadArtifacts(config, 10, tempFile.Name())
+	state := c.UploadArtifacts(config, tempFile.Name())
 	assert.Equal(t, UploadSucceeded, state, "Artifacts should be uploaded")
 
 	fmt.Fprint(tempFile, "too large")
-	state = c.UploadArtifacts(config, 10, tempFile.Name())
+	state = c.UploadArtifacts(config, tempFile.Name())
 	assert.Equal(t, UploadTooLarge, state, "Artifacts should be not uploaded, because of too large archive")
 
-	state = c.UploadArtifacts(config, 10, "not/existing/file")
+	state = c.UploadArtifacts(config, "not/existing/file")
 	assert.Equal(t, UploadFailed, state, "Artifacts should fail to be uploaded")
 
-	state = c.UploadArtifacts(invalidToken, 10, tempFile.Name())
+	state = c.UploadArtifacts(invalidToken, tempFile.Name())
 	assert.Equal(t, UploadForbidden, state, "Artifacts should be rejected if invalid token")
 }

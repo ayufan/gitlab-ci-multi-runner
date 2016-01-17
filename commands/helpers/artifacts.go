@@ -10,9 +10,8 @@ import (
 )
 
 type ArtifactCommand struct {
-	common.RunnerCredentials
-	File  string `long:"file" description:"The file containing your build artifacts"`
-	Build int    `long:"build-id" description:"The build ID to upload artifacts for"`
+	common.BuildCredentials
+	File string `long:"file" description:"The file containing your build artifacts"`
 }
 
 func (c *ArtifactCommand) Execute(context *cli.Context) {
@@ -22,7 +21,7 @@ func (c *ArtifactCommand) Execute(context *cli.Context) {
 	if len(c.URL) == 0 || len(c.Token) == 0 {
 		logrus.Fatalln("Missing runner credentials")
 	}
-	if c.Build <= 0 {
+	if c.ID <= 0 {
 		logrus.Fatalln("Missing build ID")
 	}
 
@@ -31,7 +30,7 @@ func (c *ArtifactCommand) Execute(context *cli.Context) {
 	// If the upload fails, exit with a non-zero exit code to indicate an issue?
 retry:
 	for i := 0; i < 3; i++ {
-		switch gl.UploadArtifacts(c.RunnerCredentials, c.Build, c.File) {
+		switch gl.UploadArtifacts(c.BuildCredentials, c.File) {
 		case common.UploadSucceeded:
 			os.Exit(0)
 		case common.UploadForbidden:
