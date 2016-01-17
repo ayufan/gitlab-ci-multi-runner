@@ -87,7 +87,7 @@ func (b *PsWriter) Cd(path string) {
 
 func (b *PsWriter) RmDir(path string) {
 	path = psQuote(helpers.ToBackslash(path))
-	b.Line("if( (Get-Command -Name Remove-Item2 -Module NTFSSecurity -ErrorAction SilentlyContinue) -and (Test-Path " + path + ") ) {")
+	b.Line("if( (Get-Command -Name Remove-Item2 -Module NTFSSecurity -ErrorAction SilentlyContinue) -and (Test-Path " + path + " -PathType Container) ) {")
 	b.Line("Remove-Item2 -Force -Recurse " + path)
 	b.Line("} elseif(Test-Path " + path + ") {")
 	b.Line("Remove-Item -Force -Recurse " + path)
@@ -96,7 +96,7 @@ func (b *PsWriter) RmDir(path string) {
 
 func (b *PsWriter) RmFile(path string) {
 	path = psQuote(helpers.ToBackslash(path))
-	b.Line("if( (Get-Command -Name Remove-Item2 -Module NTFSSecurity -ErrorAction SilentlyContinue) -and (Test-Path " + path + ") ) {")
+	b.Line("if( (Get-Command -Name Remove-Item2 -Module NTFSSecurity -ErrorAction SilentlyContinue) -and (Test-Path " + path + " -PathType Leaf) ) {")
 	b.Line("Remove-Item2 -Force " + path)
 	b.Line("} elseif(Test-Path " + path + ") {")
 	b.Line("Remove-Item -Force " + path)
