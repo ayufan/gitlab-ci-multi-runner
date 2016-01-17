@@ -1,21 +1,22 @@
 package docker
 
 import (
+	"bytes"
+	"compress/gzip"
 	"crypto/md5"
 	"errors"
 	"fmt"
+	"io"
 	"os"
-	u "os/user"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/docker/docker/pkg/homedir"
 	"github.com/fsouza/go-dockerclient"
-
-	"bytes"
-	"compress/gzip"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
@@ -38,18 +39,22 @@ func (s *executor) getServiceVariables() []string {
 	return s.Build.GetAllVariables().PublicOrInternal().StringList()
 }
 
-func (s *executor) getAuthConfig(imageName string) (docker.AuthConfiguration, error) {
-	user, err := u.Current()
-	if s.Shell.User != "" {
-		user, err = u.Lookup(s.Shell.User)
+func (s *DockerExecutor) getAuthConfig(imageName string) (docker.AuthConfiguration, error) {
+	homeDir := homedir.Get()
+	if s.Shell.User != nil {
+		u, err := user.Lookup(s.Shell.User)
+		if err != nil {
+			return docker.AuthConfiguration{}, err
+		}
+		homeDir = u.HomeDir
 	}
-	if err != nil {
-		return docker.AuthConfiguration{}, err
+	if homeDir == "" {
+		return docker.AuthConfiguration{}, fmt.Errorf("Failed to get home directory")
 	}
 
 	indexName, _ := docker_helpers.SplitDockerImageName(imageName)
 
-	authConfigs, err := docker_helpers.ReadDockerAuthConfigs(user.HomeDir)
+	authConfigs, err := docker_helpers.ReadDockerAuthConfigs(homeDir)
 	if err != nil {
 		// ignore doesn't exist errors
 		if os.IsNotExist(err) {

@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"github.com/docker/docker/pkg/homedir"
 	"os"
 	"os/user"
 )
@@ -22,12 +23,5 @@ func GetCurrentWorkingDirectory() string {
 }
 
 func GetHomeDir() string {
-	u, err := user.Current()
-	if err == nil {
-		return u.HomeDir
-	}
-
-	// alternate methods
-	homeDir := os.Getenv("HOME") // *nix
-	return homeDir
+	return homedir.Get()
 }
