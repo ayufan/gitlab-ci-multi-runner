@@ -15,6 +15,7 @@ import (
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/parallels"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/shell"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/ssh"
+	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/virtualbox"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/shells"
 )
