@@ -3,20 +3,16 @@ package commands_helpers
 import (
 	"archive/zip"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 
-	"bytes"
-	"encoding/binary"
-	"errors"
 	"github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"io"
-	"io/ioutil"
-	"time"
 )
 
 type ExtractCommand struct {
@@ -42,80 +38,6 @@ func (c *ExtractCommand) extractTarArchive() error {
 	cmd.Stderr = os.Stderr
 	logrus.Debugln("Executing command:", strings.Join(cmd.Args, " "))
 	return cmd.Run()
-}
-
-func (c *ExtractCommand) processUidGid(data []byte, file *zip.File) error {
-	var ugField ZipUidGidField
-	err := binary.Read(bytes.NewReader(data), binary.LittleEndian, &ugField)
-	if err != nil {
-		return err
-	}
-
-	if !(ugField.Version == 1 && ugField.UIDSize == 4 && ugField.GIDSize == 4) {
-		return errors.New("uid/gid data not supported")
-	}
-
-	return os.Lchown(file.Name, int(ugField.Uid), int(ugField.Gid))
-}
-
-func (c *ExtractCommand) processTimestamp(data []byte, file *zip.File) error {
-	fi := file.FileInfo()
-	if !fi.Mode().IsDir() && !fi.Mode().IsRegular() {
-		return nil
-	}
-
-	var tsField ZipTimestampField
-	err := binary.Read(bytes.NewReader(data), binary.LittleEndian, &tsField)
-	if err != nil {
-		return err
-	}
-
-	if (tsField.Flags & 1) == 1 {
-		modTime := time.Unix(int64(tsField.ModTime), 0)
-		acTime := time.Now()
-		return os.Chtimes(file.Name, acTime, modTime)
-	}
-
-	return nil
-}
-
-func (c *ExtractCommand) processExtra(file *zip.File) error {
-	if len(file.Extra) == 0 {
-		return nil
-	}
-
-	r := bytes.NewReader(file.Extra)
-	for {
-		var field ZipExtraField
-		err := binary.Read(r, binary.LittleEndian, &field)
-		if err != nil {
-			break
-		}
-
-		data := make([]byte, field.Size)
-		_, err = r.Read(data)
-		if err != nil {
-			break
-		}
-
-		switch field.Type {
-		case ZipUidGidFieldType:
-			err := c.processUidGid(data, file)
-			if err != nil {
-				return err
-			}
-
-		case ZipTimestampFieldType:
-			err := c.processTimestamp(data, file)
-			if err != nil {
-				return err
-			}
-
-		default:
-		}
-	}
-
-	return nil
 }
 
 func (c *ExtractCommand) extractFile(file *zip.File) (err error) {
@@ -181,7 +103,7 @@ func (c *ExtractCommand) extractZipArchive() error {
 	}
 
 	for _, file := range archive.File {
-		err := c.processExtra(file)
+		err := processZipExtra(file)
 		if err != nil {
 			logrus.Warningf("%s: %s", file.Name, err)
 		}

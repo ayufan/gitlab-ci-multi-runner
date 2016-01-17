@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,7 +12,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -31,29 +29,6 @@ type ArchiveCommand struct {
 	wd    string
 	files map[string]os.FileInfo
 }
-
-// from https://github.com/LuaDist/zip/blob/master/proginfo/extrafld.txt
-type ZipExtraField struct {
-	Type uint16
-	Size uint16
-}
-
-type ZipUidGidField struct {
-	Version uint8
-	UIDSize uint8
-	Uid     uint32
-	GIDSize uint8
-	Gid     uint32
-}
-
-const ZipUidGidFieldType = 0x7875
-
-type ZipTimestampField struct {
-	Flags   uint8
-	ModTime uint32
-}
-
-const ZipTimestampFieldType = 0x5455
 
 func isTarArchive(fileName string) bool {
 	if strings.HasSuffix(fileName, ".tgz") || strings.HasSuffix(fileName, ".tar.gz") {
@@ -182,47 +157,6 @@ func (c *ArchiveCommand) listFiles() {
 	}
 }
 
-func (c *ArchiveCommand) getExtra(fi os.FileInfo, stat *syscall.Stat_t) []byte {
-	var buffer bytes.Buffer
-
-	ugField := ZipUidGidField{
-		1,
-		4, stat.Uid,
-		4, stat.Gid,
-	}
-	ugFieldType := ZipExtraField{
-		Type: ZipUidGidFieldType,
-		Size: uint16(binary.Size(&ugField)),
-	}
-	err := binary.Write(&buffer, binary.LittleEndian, &ugFieldType)
-	if err != nil {
-		return nil
-	}
-	err = binary.Write(&buffer, binary.LittleEndian, &ugField)
-	if err != nil {
-		return nil
-	}
-
-	tsField := ZipTimestampField{
-		1,
-		uint32(fi.ModTime().Unix()),
-	}
-	tsFieldType := ZipExtraField{
-		Type: ZipTimestampFieldType,
-		Size: uint16(binary.Size(&tsField)),
-	}
-	err = binary.Write(&buffer, binary.LittleEndian, &tsFieldType)
-	if err != nil {
-		return nil
-	}
-	err = binary.Write(&buffer, binary.LittleEndian, &tsField)
-	if err != nil {
-		return nil
-	}
-
-	return buffer.Bytes()
-}
-
 func (c *ArchiveCommand) createZipArchive(w io.Writer, fileNames []string) error {
 	archive := zip.NewWriter(w)
 	defer archive.Close()
@@ -236,9 +170,7 @@ func (c *ArchiveCommand) createZipArchive(w io.Writer, fileNames []string) error
 
 		fh, err := zip.FileInfoHeader(fi)
 		fh.Name = fileName
-		if stat, ok := fi.Sys().(*syscall.Stat_t); ok {
-			fh.Extra = c.getExtra(fi, stat)
-		}
+		fh.Extra = createZipExtra(fi)
 
 		switch fi.Mode() & os.ModeType {
 		case os.ModeDir:
