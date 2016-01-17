@@ -1,4 +1,4 @@
-package commands
+package commands_helpers
 
 import (
 	"os"
@@ -14,8 +14,7 @@ func createExtractCommand(t *testing.T) *ExtractCommand {
 	assert.NoError(t, err)
 
 	return &ExtractCommand{
-		File:  randomTempFile(t),
-		Silent: true,
+		File: randomTempFile(t),
 	}
 }
 

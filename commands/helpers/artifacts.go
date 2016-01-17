@@ -11,8 +11,8 @@ import (
 
 type ArtifactCommand struct {
 	common.RunnerCredentials
-	File   string `long:"file" description:"The file containing your build artifacts"`
-	Build  int    `long:"build-id" description:"The build ID to upload artifacts for"`
+	File  string `long:"file" description:"The file containing your build artifacts"`
+	Build int    `long:"build-id" description:"The build ID to upload artifacts for"`
 }
 
 func (c *ArtifactCommand) Execute(context *cli.Context) {

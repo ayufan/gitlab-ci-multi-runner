@@ -31,7 +31,7 @@ func createArchiveCommand(t *testing.T) *ArchiveCommand {
 	assert.NoError(t, err)
 
 	return &ArchiveCommand{
-		File: randomTempFile(t),
+		File:    randomTempFile(t),
 		Verbose: true,
 	}
 }

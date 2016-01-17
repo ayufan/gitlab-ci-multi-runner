@@ -1,11 +1,11 @@
 package commands_helpers
 
 import (
+	"archive/zip"
 	"bufio"
 	"bytes"
-	"github.com/Sirupsen/logrus"
-	"github.com/codegangsta/cli"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"encoding/binary"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -13,9 +13,12 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
 	"time"
-	"fmt"
-	"archive/zip"
+
+	"github.com/Sirupsen/logrus"
+	"github.com/codegangsta/cli"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 )
 
 type ArchiveCommand struct {
@@ -25,9 +28,24 @@ type ArchiveCommand struct {
 	Verbose   bool     `long:"verbose" description:"Detailed information"`
 	List      bool     `long:"list" description:"List files to archive"`
 
-	wd        string
-	files     map[string]os.FileInfo
+	wd    string
+	files map[string]os.FileInfo
 }
+
+type ZipExtraField struct {
+	Type uint16
+	Size uint16
+}
+
+type ZipUidGidField struct {
+	Version uint8
+	UIDSize uint8
+	Uid     uint32
+	GIDSize uint8
+	Gid     uint32
+}
+
+const ZipUidGidFieldType = 0x7875
 
 func isTarArchive(fileName string) bool {
 	if strings.HasSuffix(fileName, ".tgz") || strings.HasSuffix(fileName, ".tar.gz") {
@@ -90,7 +108,7 @@ func (c *ArchiveCommand) process(match string) error {
 	}
 
 	// store relative path if points to current working directory
-	if strings.HasPrefix(relative, ".." + string(filepath.Separator)) {
+	if strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
 		return c.add(absolute, nil)
 	} else {
 		return c.add(relative, nil)
@@ -156,6 +174,30 @@ func (c *ArchiveCommand) listFiles() {
 	}
 }
 
+func (c *ArchiveCommand) getExtra(stat *syscall.Stat_t) []byte {
+	var buffer bytes.Buffer
+
+	uidGid := ZipUidGidField{
+		1,
+		4, stat.Uid,
+		4, stat.Gid,
+	}
+	uidGidType := ZipExtraField{
+		Type: ZipUidGidFieldType,
+		Size: uint16(binary.Size(&uidGid)),
+	}
+	err := binary.Write(&buffer, binary.LittleEndian, &uidGidType)
+	if err != nil {
+		return nil
+	}
+	err = binary.Write(&buffer, binary.LittleEndian, &uidGid)
+	if err != nil {
+		return nil
+	}
+
+	return buffer.Bytes()
+}
+
 func (c *ArchiveCommand) createZipArchive(w io.Writer, fileNames []string) error {
 	archive := zip.NewWriter(w)
 	defer archive.Close()
@@ -169,6 +211,9 @@ func (c *ArchiveCommand) createZipArchive(w io.Writer, fileNames []string) error
 
 		fh, err := zip.FileInfoHeader(fi)
 		fh.Name = fileName
+		if stat, ok := fi.Sys().(*syscall.Stat_t); ok {
+			fh.Extra = c.getExtra(stat)
+		}
 
 		switch fi.Mode() & os.ModeType {
 		case os.ModeDir:
@@ -273,7 +318,7 @@ func (c *ArchiveCommand) archive() {
 	defer os.Remove(tempFile.Name())
 
 	logrus.Debugln("Temporary file:", tempFile.Name())
-	err = c.createArchive(&tempFile, c.sortedFiles())
+	err = c.createArchive(tempFile, c.sortedFiles())
 	if err != nil {
 		logrus.Fatalln("Failed to create archive:", err)
 	}
