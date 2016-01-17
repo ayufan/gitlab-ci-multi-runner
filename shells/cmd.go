@@ -15,6 +15,7 @@ type CmdShell struct {
 
 type CmdWriter struct {
 	bytes.Buffer
+	indent int
 }
 
 func batchQuote(text string) string {
@@ -45,11 +46,20 @@ func (b *CmdShell) GetName() string {
 }
 
 func (b *CmdWriter) Line(text string) {
-	b.WriteString(text + "\r\n")
+	b.WriteString(strings.Repeat("  ", b.indent) + text + "\r\n")
+}
+
+func (b *CmdWriter) Indent() {
+	b.indent++
+}
+
+func (b *CmdWriter) Unindent() {
+	b.indent--
 }
 
 func (b *CmdWriter) checkErrorLevel() {
 	b.Line("IF %errorlevel% NEQ 0 exit /b %errorlevel%")
+	b.Line("")
 }
 
 func (b *CmdWriter) Command(command string, arguments ...string) {
@@ -71,17 +81,22 @@ func (b *CmdWriter) Variable(variable common.BuildVariable) {
 
 func (b *CmdWriter) IfDirectory(path string) {
 	b.Line("IF EXIST " + batchQuote(helpers.ToBackslash(path)) + " (")
+	b.Indent()
 }
 
 func (b *CmdWriter) IfFile(path string) {
 	b.Line("IF EXIST " + batchQuote(helpers.ToBackslash(path)) + " (")
+	b.Indent()
 }
 
 func (b *CmdWriter) Else() {
+	b.Unindent()
 	b.Line(") ELSE (")
+	b.Indent()
 }
 
 func (b *CmdWriter) EndIf() {
+	b.Unindent()
 	b.Line(")")
 }
 
@@ -125,7 +140,6 @@ func (b *CmdWriter) EmptyLine() {
 func (b *CmdShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
 	w := &CmdWriter{}
 	w.Line("@echo off")
-	w.EmptyLine()
 	w.Line("setlocal enableextensions")
 	w.Line("set nl=^& echo.")
 
@@ -134,6 +148,7 @@ func (b *CmdShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScr
 	} else {
 		w.Line("echo Running on %COMPUTERNAME%...")
 	}
+	w.Line("")
 
 	w.Line("call :prescript")
 	w.checkErrorLevel()

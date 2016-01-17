@@ -19,10 +19,19 @@ type BashShell struct {
 
 type BashWriter struct {
 	bytes.Buffer
+	indent int
 }
 
 func (b *BashWriter) Line(text string) {
-	b.WriteString(text + "\n")
+	b.WriteString(strings.Repeat("  ", b.indent) + text + "\n")
+}
+
+func (b *BashWriter) Indent() {
+	b.indent++
+}
+
+func (b *BashWriter) Unindent() {
+	b.indent--
 }
 
 func (b *BashWriter) Command(command string, arguments ...string) {
@@ -43,17 +52,22 @@ func (b *BashWriter) Variable(variable common.BuildVariable) {
 
 func (b *BashWriter) IfDirectory(path string) {
 	b.Line(fmt.Sprintf("if [[ -d %q ]]; then", path))
+	b.Indent()
 }
 
 func (b *BashWriter) IfFile(path string) {
 	b.Line(fmt.Sprintf("if [[ -e %q ]]; then", path))
+	b.Indent()
 }
 
 func (b *BashWriter) Else() {
+	b.Unindent()
 	b.Line("else")
+	b.Indent()
 }
 
 func (b *BashWriter) EndIf() {
+	b.Unindent()
 	b.Line("fi")
 }
 

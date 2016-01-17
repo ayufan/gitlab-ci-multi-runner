@@ -14,6 +14,7 @@ type PowerShell struct {
 
 type PsWriter struct {
 	bytes.Buffer
+	indent int
 }
 
 func psQuote(text string) string {
@@ -40,11 +41,20 @@ func psQuoteVariable(text string) string {
 }
 
 func (b *PsWriter) Line(text string) {
-	b.WriteString(text + "\r\n")
+	b.WriteString(strings.Repeat("  ", b.indent) + text + "\r\n")
+}
+
+func (b *PsWriter) Indent() {
+	b.indent++
+}
+
+func (b *PsWriter) Unindent() {
+	b.indent--
 }
 
 func (b *PsWriter) checkErrorLevel() {
-	b.Line("if (!$?) { Exit $LASTEXITCODE }")
+	b.Line("if(!$?) { Exit $LASTEXITCODE }")
+	b.Line("")
 }
 
 func (b *PsWriter) Command(command string, arguments ...string) {
@@ -66,17 +76,22 @@ func (b *PsWriter) Variable(variable common.BuildVariable) {
 
 func (b *PsWriter) IfDirectory(path string) {
 	b.Line("if(Test-Path " + psQuote(helpers.ToBackslash(path)) + " -PathType Container) {")
+	b.Indent()
 }
 
 func (b *PsWriter) IfFile(path string) {
 	b.Line("if(Test-Path " + psQuote(helpers.ToBackslash(path)) + " -PathType Leaf) {")
+	b.Indent()
 }
 
 func (b *PsWriter) Else() {
+	b.Unindent()
 	b.Line("} else {")
+	b.Indent()
 }
 
 func (b *PsWriter) EndIf() {
+	b.Unindent()
 	b.Line("}")
 }
 
@@ -88,19 +103,29 @@ func (b *PsWriter) Cd(path string) {
 func (b *PsWriter) RmDir(path string) {
 	path = psQuote(helpers.ToBackslash(path))
 	b.Line("if( (Get-Command -Name Remove-Item2 -Module NTFSSecurity -ErrorAction SilentlyContinue) -and (Test-Path " + path + " -PathType Container) ) {")
+	b.Indent()
 	b.Line("Remove-Item2 -Force -Recurse " + path)
+	b.Unindent()
 	b.Line("} elseif(Test-Path " + path + ") {")
+	b.Indent()
 	b.Line("Remove-Item -Force -Recurse " + path)
+	b.Unindent()
 	b.Line("}")
+	b.Line("")
 }
 
 func (b *PsWriter) RmFile(path string) {
 	path = psQuote(helpers.ToBackslash(path))
 	b.Line("if( (Get-Command -Name Remove-Item2 -Module NTFSSecurity -ErrorAction SilentlyContinue) -and (Test-Path " + path + " -PathType Leaf) ) {")
+	b.Indent()
 	b.Line("Remove-Item2 -Force " + path)
+	b.Unindent()
 	b.Line("} elseif(Test-Path " + path + ") {")
+	b.Indent()
 	b.Line("Remove-Item -Force " + path)
+	b.Unindent()
 	b.Line("}")
+	b.Line("")
 }
 
 func (b *PsWriter) Print(format string, arguments ...interface{}) {
@@ -134,26 +159,33 @@ func (b *PowerShell) GetName() string {
 func (b *PowerShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
 	w := &PsWriter{}
 	w.Line("$ErrorActionPreference = \"Stop\"")
-	w.EmptyLine()
+	w.Line("")
 
 	if len(info.Build.Hostname) != 0 {
 		w.Line("echo \"Running on $env:computername via " + psQuoteVariable(info.Build.Hostname) + "...\"")
 	} else {
 		w.Line("echo \"Running on $env:computername...\"")
 	}
+	w.Line("")
 
 	w.Line("& {")
+	w.Indent()
 	b.GeneratePreBuild(w, info)
+	w.Unindent()
 	w.Line("}")
 	w.checkErrorLevel()
 
 	w.Line("& {")
+	w.Indent()
 	b.GenerateCommands(w, info)
+	w.Unindent()
 	w.Line("}")
 	w.checkErrorLevel()
 
 	w.Line("& {")
+	w.Indent()
 	b.GeneratePostBuild(w, info)
+	w.Unindent()
 	w.Line("}")
 	w.checkErrorLevel()
 
