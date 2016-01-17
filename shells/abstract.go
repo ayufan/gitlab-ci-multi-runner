@@ -102,14 +102,12 @@ func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptI
 	if cacheFile != "" {
 		// If we have cache, restore it
 		w.IfFile(cacheFile)
-		w.Notice("Restoring cache...")
 		b.extractFiles(w, info.RunnerCommand, "cache", cacheFile)
 		if cacheFile2 != "" {
 			w.Else()
 
 			// If we have cache, restore it
 			w.IfFile(cacheFile2)
-			w.Notice("Restoring cache...")
 			b.extractFiles(w, info.RunnerCommand, "cache", cacheFile2)
 			w.EndIf()
 		}
@@ -149,7 +147,6 @@ func (b *AbstractShell) archiveFiles(w ShellWriter, list interface{}, runnerComm
 
 	args := []string{
 		"archive",
-		"--silent",
 		"--file",
 		archivePath,
 	}
@@ -185,14 +182,13 @@ func (b *AbstractShell) extractFiles(w ShellWriter, runnerCommand, archiveType, 
 	}
 
 	args := []string{
-		"archive-extract",
-		"--silent",
+		"extract",
 		"--file",
 		archivePath,
 	}
 
 	// Execute extract command
-	w.Notice("Extracting %s...", archiveType)
+	w.Notice("Restoring %s...", archiveType)
 	w.Command(runnerCommand, args...)
 }
 
@@ -204,7 +200,6 @@ func (b *AbstractShell) uploadArtifacts(w ShellWriter, build *common.Build, runn
 
 	args := []string{
 		"artifacts",
-		"--silent",
 		"--url",
 		build.Runner.URL,
 		"--token",
@@ -233,8 +228,7 @@ func (b *AbstractShell) GeneratePostBuild(w ShellWriter, info common.ShellScript
 		b.archiveFiles(w, info.Build.Options["artifacts"], info.RunnerCommand, "artifacts", "artifacts.zip")
 
 		// If archive is created upload it
-		w.IfFile("artifacts.tgz")
-		w.Notice("Uploading artifacts...")
+		w.IfFile("artifacts.zip")
 		b.uploadArtifacts(w, info.Build, info.RunnerCommand, "artifacts.zip")
 		w.RmFile("aritfacts.zip")
 		w.EndIf()

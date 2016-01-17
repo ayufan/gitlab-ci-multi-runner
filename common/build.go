@@ -156,7 +156,7 @@ func (b *Build) CacheFileForRef(ref string) string {
 			return ""
 		}
 
-		cacheFile := filepath.Join(b.CacheDir, cacheKey, "cache.tgz")
+		cacheFile := filepath.Join(b.CacheDir, cacheKey, "cache.zip")
 		cacheFile, err := filepath.Rel(b.BuildDir, cacheFile)
 		if err != nil {
 			return ""
