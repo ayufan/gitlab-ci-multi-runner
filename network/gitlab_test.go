@@ -417,7 +417,7 @@ func TestUpdateBuild(t *testing.T) {
 
 func TestArtifactsUpload(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/builds/10/artifacts.json" {
+		if r.URL.Path != "/api/v1/builds/10/artifacts" {
 			w.WriteHeader(404)
 			return
 		}

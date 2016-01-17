@@ -254,7 +254,7 @@ func (n *GitLabClient) UploadArtifacts(config RunnerCredentials, id int, artifac
 
 	headers := make(http.Header)
 	headers.Set("BUILD-TOKEN", config.Token)
-	result, statusText, _ := n.doRaw(config, "POST", fmt.Sprintf("builds/%d/artifacts.json", id), 200, pr, mpw.FormDataContentType(), nil, headers)
+	result, statusText, _ := n.doRaw(config, "POST", fmt.Sprintf("builds/%d/artifacts", id), 200, pr, mpw.FormDataContentType(), nil, headers)
 
 	switch result {
 	case 200:
