@@ -16,6 +16,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
 	"io/ioutil"
+	"time"
 )
 
 type ExtractCommand struct {
@@ -44,17 +45,38 @@ func (c *ExtractCommand) extractTarArchive() error {
 }
 
 func (c *ExtractCommand) processUidGid(data []byte, file *zip.File) error {
-	var uidGidField ZipUidGidField
-	err := binary.Read(bytes.NewReader(data), binary.LittleEndian, &uidGidField)
+	var ugField ZipUidGidField
+	err := binary.Read(bytes.NewReader(data), binary.LittleEndian, &ugField)
 	if err != nil {
 		return err
 	}
 
-	if !(uidGidField.Version == 1 && uidGidField.UIDSize == 4 && uidGidField.GIDSize == 4) {
+	if !(ugField.Version == 1 && ugField.UIDSize == 4 && ugField.GIDSize == 4) {
 		return errors.New("uid/gid data not supported")
 	}
 
-	return os.Lchown(file.Name, int(uidGidField.Uid), int(uidGidField.Gid))
+	return os.Lchown(file.Name, int(ugField.Uid), int(ugField.Gid))
+}
+
+func (c *ExtractCommand) processTimestamp(data []byte, file *zip.File) error {
+	fi := file.FileInfo()
+	if !fi.Mode().IsDir() && !fi.Mode().IsRegular() {
+		return nil
+	}
+
+	var tsField ZipTimestampField
+	err := binary.Read(bytes.NewReader(data), binary.LittleEndian, &tsField)
+	if err != nil {
+		return err
+	}
+
+	if (tsField.Flags & 1) == 1 {
+		modTime := time.Unix(int64(tsField.ModTime), 0)
+		acTime := time.Now()
+		return os.Chtimes(file.Name, acTime, modTime)
+	}
+
+	return nil
 }
 
 func (c *ExtractCommand) processExtra(file *zip.File) error {
@@ -79,6 +101,12 @@ func (c *ExtractCommand) processExtra(file *zip.File) error {
 		switch field.Type {
 		case ZipUidGidFieldType:
 			err := c.processUidGid(data, file)
+			if err != nil {
+				return err
+			}
+
+		case ZipTimestampFieldType:
+			err := c.processTimestamp(data, file)
 			if err != nil {
 				return err
 			}
@@ -135,10 +163,6 @@ func (c *ExtractCommand) extractFile(file *zip.File) (err error) {
 		}
 		break
 	}
-
-	if err == nil {
-		err = c.processExtra(file)
-	}
 	return
 }
 
@@ -153,7 +177,13 @@ func (c *ExtractCommand) extractZipArchive() error {
 		err = c.extractFile(file)
 		if err != nil {
 			logrus.Warningf("%s: %s", file.Name, err)
-			continue
+		}
+	}
+
+	for _, file := range archive.File {
+		err := c.processExtra(file)
+		if err != nil {
+			logrus.Warningf("%s: %s", file.Name, err)
 		}
 	}
 	return nil
