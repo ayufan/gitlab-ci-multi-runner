@@ -25,7 +25,7 @@ RPM_ARCHS ?= x86_64 i686 arm armhf
 GO_LDFLAGS ?= -X main.NAME $(PACKAGE_NAME) -X main.VERSION $(VERSION) -X main.REVISION $(REVISION)
 GO_FILES ?= $(shell find . -name '*.go')
 
-all: deps docker fmt test lint toolchain build
+all: deps fmt docker test lint toolchain build
 
 help:
 	# make all => deps test lint toolchain build
