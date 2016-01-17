@@ -29,6 +29,20 @@ type ArchiveCommand struct {
 	files     map[string]os.FileInfo
 }
 
+func isTarArchive(fileName string) bool {
+	if strings.HasSuffix(fileName, ".tgz") || strings.HasSuffix(fileName, ".tar.gz") {
+		return true
+	}
+	return false
+}
+
+func isZipArchive(fileName string) bool {
+	if strings.HasSuffix(fileName, ".zip") {
+		return true
+	}
+	return false
+}
+
 func (c *ArchiveCommand) isChanged(modTime time.Time) bool {
 	for _, info := range c.files {
 		if modTime.Before(info.ModTime()) {
@@ -142,20 +156,15 @@ func (c *ArchiveCommand) listFiles() {
 	}
 }
 
-func (c *ArchiveCommand) createZipArchive(fileName string, fileNames []string) error {
-	archiveFile, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	defer archiveFile.Close()
-
-	w := zip.NewWriter(archiveFile)
-	defer w.Close()
+func (c *ArchiveCommand) createZipArchive(w io.Writer, fileNames []string) error {
+	archive := zip.NewWriter(w)
+	defer archive.Close()
 
 	for _, fileName := range fileNames {
 		fi, err := os.Lstat(fileName)
 		if err != nil {
-			return err
+			logrus.Warningln("File ignored: %q: %v", fileName, err)
+			continue
 		}
 
 		fh, err := zip.FileInfoHeader(fi)
@@ -165,13 +174,13 @@ func (c *ArchiveCommand) createZipArchive(fileName string, fileNames []string) e
 		case os.ModeDir:
 			fh.Name += "/"
 
-			_, err := w.CreateHeader(fh)
+			_, err := archive.CreateHeader(fh)
 			if err != nil {
 				return err
 			}
 
 		case os.ModeSymlink:
-			fw, err := w.CreateHeader(fh)
+			fw, err := archive.CreateHeader(fh)
 			if err != nil {
 				return err
 			}
@@ -186,11 +195,10 @@ func (c *ArchiveCommand) createZipArchive(fileName string, fileNames []string) e
 		case os.ModeNamedPipe, os.ModeSocket, os.ModeDevice:
 			// Ignore the files that of these types
 			logrus.Warningln("File ignored: %q", fileName)
-			continue
 
 		default:
 			fh.Method = zip.Deflate
-			fw, err := w.CreateHeader(fh)
+			fw, err := archive.CreateHeader(fh)
 			if err != nil {
 				return err
 			}
@@ -216,7 +224,7 @@ func (c *ArchiveCommand) createZipArchive(fileName string, fileNames []string) e
 	return nil
 }
 
-func (c *ArchiveCommand) createTarArchive(fileName string, files []string) error {
+func (c *ArchiveCommand) createTarArchive(w io.Writer, files []string) error {
 	var list bytes.Buffer
 	for _, file := range c.sortedFiles() {
 		list.WriteString(string(file) + "\n")
@@ -227,22 +235,22 @@ func (c *ArchiveCommand) createTarArchive(fileName string, files []string) error
 		flags = "-zcP"
 	}
 
-	cmd := exec.Command("tar", flags, "-T", "-", "--no-recursion", "-f", fileName)
+	cmd := exec.Command("tar", flags, "-T", "-", "--no-recursion")
 	cmd.Env = os.Environ()
 	cmd.Stdin = &list
-	cmd.Stdout = os.Stdout
+	cmd.Stdout = w
 	cmd.Stderr = os.Stderr
 	logrus.Debugln("Executing command:", strings.Join(cmd.Args, " "))
 	return cmd.Run()
 }
 
-func (c *ArchiveCommand) createArchive(fileName string, files []string) error {
-	if strings.HasSuffix(c.Output, ".tgz") || strings.HasSuffix(c.Output, ".tar.gz") {
-		return c.createTarArchive(fileName, files)
-	} else if strings.HasSuffix(c.Output, ".zip") || strings.HasSuffix(c.Output, ".zip") {
-		return c.createZipArchive(fileName, files)
+func (c *ArchiveCommand) createArchive(w io.Writer, files []string) error {
+	if isTarArchive(c.Output) {
+		return c.createTarArchive(w, files)
+	} else if isZipArchive(c.Output) {
+		return c.createZipArchive(w, files)
 	} else {
-		return fmt.Errorf("Unsupported archive format: %q", fileName)
+		return fmt.Errorf("Unsupported archive format: %q", c.Output)
 	}
 }
 
@@ -261,14 +269,15 @@ func (c *ArchiveCommand) archive() {
 	if err != nil {
 		logrus.Fatalln("Failed to create temporary archive", err)
 	}
-	tempFile.Close()
+	defer tempFile.Close()
 	defer os.Remove(tempFile.Name())
 
 	logrus.Debugln("Temporary file:", tempFile.Name())
-	err = c.createArchive(tempFile.Name(), c.sortedFiles())
+	err = c.createArchive(&tempFile, c.sortedFiles())
 	if err != nil {
 		logrus.Fatalln("Failed to create archive:", err)
 	}
+	tempFile.Close()
 
 	err = os.Rename(tempFile.Name(), c.Output)
 	if err != nil {
