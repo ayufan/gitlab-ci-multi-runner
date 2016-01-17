@@ -4,6 +4,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -192,7 +193,7 @@ func (b *AbstractShell) uploadArtifacts(w ShellWriter, build *common.Build, runn
 		"--token",
 		build.Runner.Token,
 		"--build-id",
-		string(build.ID),
+		strconv.Itoa(build.ID),
 		"--archive",
 		archivePath,
 	}
