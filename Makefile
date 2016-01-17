@@ -23,8 +23,9 @@ RPM_PLATFORMS ?= el/6 el/7 \
     fedora/20 fedora/21 fedora/22 fedora/23
 RPM_ARCHS ?= x86_64 i686 arm armhf
 GO_LDFLAGS ?= -X main.NAME $(PACKAGE_NAME) -X main.VERSION $(VERSION) -X main.REVISION $(REVISION)
+GO_FILES ?= $(shell find . -name '*.go')
 
-all: deps fmt test lint toolchain docker build
+all: deps docker fmt test lint toolchain build
 
 help:
 	# make all => deps test lint toolchain build
@@ -69,7 +70,7 @@ toolchain:
 	# Building toolchain...
 	gox -build-toolchain $(BUILD_PLATFORMS)
 
-docker:
+out/docker/prebuilt.tar.gz: $(GO_FILES)
 ifneq (, $(shell which docker))
 	# Building gitlab-runner-helper
 	gox -osarch=linux/amd64 \
@@ -109,9 +110,9 @@ endif
 		-o executors/docker/bindata.go \
 		out/docker/prebuilt.tar.gz
 
-out/docker/images.tar.gz: docker
+executors/docker/bindata.go: out/docker/prebuilt.tar.gz
 
-executors/docker/bindata.go: out/docker/images.tar.gz
+docker: executors/docker/bindata.go
 
 build: executors/docker/bindata.go
 	# Building gitlab-ci-multi-runner for $(BUILD_PLATFORMS)
