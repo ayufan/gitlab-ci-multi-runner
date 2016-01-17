@@ -1,23 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/cli"
 
-	"fmt"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/commands"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/docker"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/parallels"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/shell"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/ssh"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/virtualbox"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/shells"
+	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/commands/helpers"
 )
 
 var NAME = "gitlab-ci-multi-runner"
@@ -41,13 +34,9 @@ func main() {
 		}
 	}()
 
-	// Start background reaping of orphaned child processes.
-	// It allows the gitlab-runner to act as `init` process
-	go helpers.Reap()
-
 	app := cli.NewApp()
 	app.Name = path.Base(os.Args[0])
-	app.Usage = "a GitLab Runner"
+	app.Usage = "a GitLab Runner Helper"
 	app.Version = fmt.Sprintf("%s (%s)", common.VERSION, common.REVISION)
 	app.Authors = []cli.Author{
 		cli.Author{
