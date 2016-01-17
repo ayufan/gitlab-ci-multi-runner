@@ -65,11 +65,11 @@ func (b *PsWriter) Variable(variable common.BuildVariable) {
 }
 
 func (b *PsWriter) IfDirectory(path string) {
-	b.Line("if(Test-Path " + psQuote(helpers.ToBackslash(path)) + ") {")
+	b.Line("if(Test-Path " + psQuote(helpers.ToBackslash(path)) + " -PathType Container) {")
 }
 
 func (b *PsWriter) IfFile(path string) {
-	b.Line("if(Test-Path " + psQuote(helpers.ToBackslash(path)) + ") {")
+	b.Line("if(Test-Path " + psQuote(helpers.ToBackslash(path)) + " -PathType Leaf) {")
 }
 
 func (b *PsWriter) Else() {
@@ -87,7 +87,7 @@ func (b *PsWriter) Cd(path string) {
 
 func (b *PsWriter) RmDir(path string) {
 	path = psQuote(helpers.ToBackslash(path))
-	b.Line("if( (Get-Command -Name Remove-Item2 -Module NTFSSecurity -ErrorAction SilentlyContinue) -and (Test-Path " + path + ") ) {")
+	b.Line("if( (Get-Command -Name Remove-Item2 -Module NTFSSecurity -ErrorAction SilentlyContinue) -and (Test-Path " + path + " -PathType Container) ) {")
 	b.Line("Remove-Item2 -Force -Recurse " + path)
 	b.Line("} elseif(Test-Path " + path + ") {")
 	b.Line("Remove-Item -Force -Recurse " + path)
@@ -96,7 +96,7 @@ func (b *PsWriter) RmDir(path string) {
 
 func (b *PsWriter) RmFile(path string) {
 	path = psQuote(helpers.ToBackslash(path))
-	b.Line("if( (Get-Command -Name Remove-Item2 -Module NTFSSecurity -ErrorAction SilentlyContinue) -and (Test-Path " + path + ") ) {")
+	b.Line("if( (Get-Command -Name Remove-Item2 -Module NTFSSecurity -ErrorAction SilentlyContinue) -and (Test-Path " + path + " -PathType Leaf) ) {")
 	b.Line("Remove-Item2 -Force " + path)
 	b.Line("} elseif(Test-Path " + path + ") {")
 	b.Line("Remove-Item -Force " + path)
@@ -137,9 +137,9 @@ func (b *PowerShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellS
 	w.EmptyLine()
 
 	if len(info.Build.Hostname) != 0 {
-		w.Line("echo Running on $env:computername via " + psQuoteVariable(info.Build.Hostname) + "...")
+		w.Line("echo \"Running on $env:computername via " + psQuoteVariable(info.Build.Hostname) + "...\"")
 	} else {
-		w.Line("echo Running on  $env:computername...")
+		w.Line("echo \"Running on $env:computername...\"")
 	}
 
 	w.Line("& {")
