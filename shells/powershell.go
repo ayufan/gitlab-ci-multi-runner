@@ -65,11 +65,11 @@ func (b *PsWriter) Variable(variable common.BuildVariable) {
 }
 
 func (b *PsWriter) IfDirectory(path string) {
-	b.Line("if(Test-Path " + psQuote(helpers.ToBackslash(path)) + " {")
+	b.Line("if(Test-Path " + psQuote(helpers.ToBackslash(path)) + ") {")
 }
 
 func (b *PsWriter) IfFile(path string) {
-	b.Line("if(Test-Path " + psQuote(helpers.ToBackslash(path)) + " {")
+	b.Line("if(Test-Path " + psQuote(helpers.ToBackslash(path)) + ") {")
 }
 
 func (b *PsWriter) Else() {
