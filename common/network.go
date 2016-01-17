@@ -1,11 +1,19 @@
 package common
 
 type UpdateState int
+type UploadState int
 
 const (
 	UpdateSucceeded UpdateState = iota
 	UpdateAbort
 	UpdateFailed
+)
+
+const (
+	UploadSucceeded UploadState = iota
+	UploadTooLarge
+	UploadForbidden
+	UploadFailed
 )
 
 type FeaturesInfo struct {
@@ -84,5 +92,5 @@ type Network interface {
 	DeleteRunner(config RunnerCredentials) bool
 	VerifyRunner(config RunnerCredentials) bool
 	UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) UpdateState
-	GetArtifactsUploadURL(config RunnerCredentials, id int) string
+	UploadArtifacts(config RunnerCredentials, id int, artifactsFile string) UploadState
 }

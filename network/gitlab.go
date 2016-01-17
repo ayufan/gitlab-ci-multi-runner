@@ -1,8 +1,15 @@
 package network
 
 import (
+	"errors"
 	"fmt"
+	"github.com/Sirupsen/logrus"
 	. "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"path/filepath"
 	"runtime"
 )
 
@@ -51,13 +58,22 @@ func (n *GitLabClient) getRunnerVersion(config RunnerConfig) VersionInfo {
 	return info
 }
 
-func (n *GitLabClient) do(runner RunnerCredentials, method, uri string, statusCode int, request interface{}, response interface{}) (int, string, string) {
+func (n *GitLabClient) doRaw(runner RunnerCredentials, method, uri string, statusCode int, request io.Reader, requestType string, response interface{}, headers http.Header) (int, string, string) {
 	c, err := n.getClient(runner)
 	if err != nil {
 		return clientError, err.Error(), ""
 	}
 
-	return c.do(uri, method, statusCode, request, response)
+	return c.do(uri, method, statusCode, request, requestType, response, headers)
+}
+
+func (n *GitLabClient) doJson(runner RunnerCredentials, method, uri string, statusCode int, request interface{}, response interface{}) (int, string, string) {
+	c, err := n.getClient(runner)
+	if err != nil {
+		return clientError, err.Error(), ""
+	}
+
+	return c.doJson(uri, method, statusCode, request, response)
 }
 
 func (n *GitLabClient) GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
@@ -67,7 +83,7 @@ func (n *GitLabClient) GetBuild(config RunnerConfig) (*GetBuildResponse, bool) {
 	}
 
 	var response GetBuildResponse
-	result, statusText, certificates := n.do(config.RunnerCredentials, "POST", "builds/register.json", 201, &request, &response)
+	result, statusText, certificates := n.doJson(config.RunnerCredentials, "POST", "builds/register.json", 201, &request, &response)
 
 	switch result {
 	case 201:
@@ -99,7 +115,7 @@ func (n *GitLabClient) RegisterRunner(runner RunnerCredentials, description, tag
 	}
 
 	var response RegisterRunnerResponse
-	result, statusText, _ := n.do(runner, "POST", "runners/register.json", 201, &request, &response)
+	result, statusText, _ := n.doJson(runner, "POST", "runners/register.json", 201, &request, &response)
 
 	switch result {
 	case 201:
@@ -122,7 +138,7 @@ func (n *GitLabClient) DeleteRunner(runner RunnerCredentials) bool {
 		Token: runner.Token,
 	}
 
-	result, statusText, _ := n.do(runner, "DELETE", "runners/delete", 200, &request, nil)
+	result, statusText, _ := n.doJson(runner, "DELETE", "runners/delete", 200, &request, nil)
 
 	switch result {
 	case 200:
@@ -146,7 +162,7 @@ func (n *GitLabClient) VerifyRunner(runner RunnerCredentials) bool {
 	}
 
 	// HACK: we use non-existing build id to check if receive forbidden or not found
-	result, statusText, _ := n.do(runner, "PUT", fmt.Sprintf("builds/%d", -1), 200, &request, nil)
+	result, statusText, _ := n.doJson(runner, "PUT", fmt.Sprintf("builds/%d", -1), 200, &request, nil)
 
 	switch result {
 	case 404:
@@ -173,7 +189,7 @@ func (n *GitLabClient) UpdateBuild(config RunnerConfig, id int, state BuildState
 		Trace: trace,
 	}
 
-	result, statusText, _ := n.do(config.RunnerCredentials, "PUT", fmt.Sprintf("builds/%d.json", id), 200, &request, nil)
+	result, statusText, _ := n.doJson(config.RunnerCredentials, "PUT", fmt.Sprintf("builds/%d.json", id), 200, &request, nil)
 	switch result {
 	case 200:
 		config.Log().Println(id, "Submitting build to coordinator...", "ok")
@@ -193,10 +209,68 @@ func (n *GitLabClient) UpdateBuild(config RunnerConfig, id int, state BuildState
 	}
 }
 
-func (n *GitLabClient) GetArtifactsUploadURL(config RunnerCredentials, id int) string {
-	c, err := n.getClient(config)
+func (n *GitLabClient) createArtifactsForm(mpw *multipart.Writer, artifactsFile string) error {
+	wr, err := mpw.CreateFormFile("file", filepath.Base(artifactsFile))
 	if err != nil {
-		return ""
+		return err
 	}
-	return c.fullUrl("builds/%d/artifacts", id)
+
+	file, err := os.Open(artifactsFile)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	fi, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	if fi.IsDir() {
+		return errors.New("Failed to upload directories")
+	}
+
+	_, err = io.Copy(wr, file)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (n *GitLabClient) UploadArtifacts(config RunnerCredentials, id int, artifactsFile string) UploadState {
+	pr, pw := io.Pipe()
+	defer pr.Close()
+
+	mpw := multipart.NewWriter(pw)
+
+	go func() {
+		defer pw.Close()
+		defer mpw.Close()
+		err := n.createArtifactsForm(mpw, artifactsFile)
+		if err != nil {
+			pw.CloseWithError(err)
+		}
+	}()
+
+	headers := make(http.Header)
+	headers.Set("BUILD-TOKEN", config.Token)
+	result, statusText, _ := n.doRaw(config, "POST", fmt.Sprintf("builds/%d/artifacts.json", id), 200, pr, mpw.FormDataContentType(), nil, headers)
+
+	switch result {
+	case 200:
+		logrus.Println(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "ok")
+		return UploadSucceeded
+	case 403:
+		logrus.Errorln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "forbidden")
+		return UploadForbidden
+	case 413:
+		logrus.Errorln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "too large archive")
+		return UploadTooLarge
+	case clientError:
+		logrus.Errorln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "error", statusText)
+		return UploadFailed
+	default:
+		logrus.Warningln(config.ShortDescription(), id, "Uploading artifacts to coordinator...", "failed", statusText)
+		return UploadFailed
+	}
 }

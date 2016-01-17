@@ -62,6 +62,12 @@ func (s *SimpleService) Uninstall() error {
 	return ErrNotSupported
 }
 
+// Status returns nil if the given service is running.
+// Will return an error if the service is not running or is not present.
+func (s *SimpleService) Status() error {
+	return ErrNotSupported
+}
+
 // Opens and returns a system logger. If the user program is running
 // interactively rather then as a service, the returned logger will write to
 // os.Stderr. If errs is non-nil errors will be sent on errs as well as

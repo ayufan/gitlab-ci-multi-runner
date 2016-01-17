@@ -142,21 +142,21 @@ func (b *Build) FullProjectDir() string {
 
 func (b *Build) CacheFileForRef(ref string) string {
 	if b.CacheDir != "" {
-		cacheGroup := filepath.Join(b.Name, ref)
+		cacheKey := filepath.Join(b.Name, ref)
 
-		// Get cache:group
+		// Get cache:key
 		if hash, ok := b.Options["cache"].(map[string]interface{}); ok {
-			if group, ok := hash["group"].(string); ok && group != "" {
-				cacheGroup = group
+			if key, ok := hash["key"].(string); ok && key != "" {
+				cacheKey = key
 			}
 		}
 
 		// Ignore groups that are nil
-		if cacheGroup == "" {
+		if cacheKey == "" {
 			return ""
 		}
 
-		cacheFile := filepath.Join(b.CacheDir, cacheGroup, "cache.tgz")
+		cacheFile := filepath.Join(b.CacheDir, cacheKey, "cache.tgz")
 		cacheFile, err := filepath.Rel(b.BuildDir, cacheFile)
 		if err != nil {
 			return ""
@@ -257,20 +257,21 @@ func (b *Build) String() string {
 
 func (b *Build) GetDefaultVariables() BuildVariables {
 	return BuildVariables{
-		{"CI", "true", true, true},
-		{"CI_BUILD_REF", b.Sha, true, true},
-		{"CI_BUILD_BEFORE_SHA", b.BeforeSha, true, true},
-		{"CI_BUILD_REF_NAME", b.RefName, true, true},
-		{"CI_BUILD_ID", strconv.Itoa(b.ID), true, true},
-		{"CI_BUILD_REPO", b.RepoURL, true, true},
-		{"CI_PROJECT_ID", strconv.Itoa(b.ProjectID), true, true},
-		{"CI_PROJECT_DIR", b.FullProjectDir(), true, true},
-		{"CI_SERVER", "yes", true, true},
-		{"CI_SERVER_NAME", "GitLab CI", true, true},
-		{"CI_SERVER_VERSION", "", true, true},
-		{"CI_SERVER_REVISION", "", true, true},
-		{"CI_SERVER_CA_CHAIN", b.TLSCAChain, true, true},
-		{"GITLAB_CI", "true", true, true},
+		{"CI", "true", true, true, false},
+		{"CI_BUILD_REF", b.Sha, true, true, false},
+		{"CI_BUILD_BEFORE_SHA", b.BeforeSha, true, true, false},
+		{"CI_BUILD_REF_NAME", b.RefName, true, true, false},
+		{"CI_BUILD_ID", strconv.Itoa(b.ID), true, true, false},
+		{"CI_BUILD_REPO", b.RepoURL, true, true, false},
+		{"CI_PROJECT_ID", strconv.Itoa(b.ProjectID), true, true, false},
+		{"CI_PROJECT_DIR", b.FullProjectDir(), true, true, false},
+		{"CI_SERVER", "yes", true, true, false},
+		{"CI_SERVER_NAME", "GitLab CI", true, true, false},
+		{"CI_SERVER_VERSION", "", true, true, false},
+		{"CI_SERVER_REVISION", "", true, true, false},
+		{"GITLAB_CI", "true", true, true, false},
+		{"GIT_SSL_CAINFO", b.TLSCAChain, true, true, true},
+		{"CI_SERVER_TLS_CA_FILE", b.TLSCAChain, true, true, true},
 	}
 }
 

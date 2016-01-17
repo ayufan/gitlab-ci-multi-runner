@@ -2,11 +2,13 @@ package network
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	. "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -413,13 +415,69 @@ func TestUpdateBuild(t *testing.T) {
 	assert.Equal(t, UpdateAbort, state)
 }
 
-func TestArtifactsUrl(t *testing.T) {
-	c := GitLabClient{}
-	url := c.GetArtifactsUploadURL(RunnerCredentials{
-		URL: "http://test/",
-	}, 10)
-	assert.Equal(t, "http://test/api/v1/builds/10/artifacts", url)
+func TestArtifactsUpload(t *testing.T) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/builds/10/artifacts.json" {
+			w.WriteHeader(404)
+			return
+		}
 
-	url = c.GetArtifactsUploadURL(brokenCredentials, 10)
-	assert.Empty(t, url)
+		if r.Method != "POST" {
+			w.WriteHeader(406)
+			return
+		}
+
+		if r.Header.Get("BUILD-TOKEN") != "token" {
+			w.WriteHeader(403)
+			return
+		}
+
+		file, _, err := r.FormFile("file")
+		if err != nil {
+			w.WriteHeader(400)
+			return
+		}
+
+		body, err := ioutil.ReadAll(file)
+		assert.NoError(t, err)
+
+		if string(body) != "content" {
+			w.WriteHeader(413)
+		} else {
+			w.WriteHeader(200)
+		}
+	}
+
+	s := httptest.NewServer(http.HandlerFunc(handler))
+	defer s.Close()
+
+	config := RunnerCredentials{
+		URL:   s.URL,
+		Token: "token",
+	}
+	invalidToken := RunnerCredentials{
+		URL:   s.URL,
+		Token: "invalid-token",
+	}
+
+	tempFile, err := ioutil.TempFile("", "artifacts")
+	assert.NoError(t, err)
+	defer tempFile.Close()
+	defer os.Remove(tempFile.Name())
+
+	c := GitLabClient{}
+
+	fmt.Fprint(tempFile, "content")
+	state := c.UploadArtifacts(config, 10, tempFile.Name())
+	assert.Equal(t, UploadSucceeded, state, "Artifacts should be uploaded")
+
+	fmt.Fprint(tempFile, "too large")
+	state = c.UploadArtifacts(config, 10, tempFile.Name())
+	assert.Equal(t, UploadTooLarge, state, "Artifacts should be not uploaded, because of too large archive")
+
+	state = c.UploadArtifacts(config, 10, "not/existing/file")
+	assert.Equal(t, UploadFailed, state, "Artifacts should fail to be uploaded")
+
+	state = c.UploadArtifacts(invalidToken, 10, tempFile.Name())
+	assert.Equal(t, UploadForbidden, state, "Artifacts should be rejected if invalid token")
 }

@@ -1,4 +1,4 @@
-package commands
+package commands_helpers
 
 import (
 	"bufio"
@@ -21,8 +21,8 @@ import (
 type ArchiveCommand struct {
 	Paths     []string `long:"path" description:"Add paths to archive"`
 	Untracked bool     `long:"untracked" description:"Add git untracked files"`
-	Output    string   `long:"output" description:"The filepath to output file"`
-	Silent    bool     `long:"silent" description:"Suppress archiving ouput"`
+	File      string   `long:"file" description:"The path to file"`
+	Verbose   bool     `long:"verbose" description:"Detailed information"`
 	List      bool     `long:"list" description:"List files to archive"`
 
 	wd        string
@@ -216,7 +216,7 @@ func (c *ArchiveCommand) createZipArchive(w io.Writer, fileNames []string) error
 			break
 		}
 
-		if !c.Silent {
+		if c.Verbose {
 			fmt.Printf("%v\t%d\t%s\n", fh.Mode(), fh.UncompressedSize64, fh.Name)
 		}
 	}
@@ -230,9 +230,9 @@ func (c *ArchiveCommand) createTarArchive(w io.Writer, files []string) error {
 		list.WriteString(string(file) + "\n")
 	}
 
-	flags := "-zcPv"
-	if c.Silent {
-		flags = "-zcP"
+	flags := "-zcP"
+	if c.Verbose {
+		flags += "v"
 	}
 
 	cmd := exec.Command("tar", flags, "-T", "-", "--no-recursion")
@@ -245,12 +245,12 @@ func (c *ArchiveCommand) createTarArchive(w io.Writer, files []string) error {
 }
 
 func (c *ArchiveCommand) createArchive(w io.Writer, files []string) error {
-	if isTarArchive(c.Output) {
+	if isTarArchive(c.File) {
 		return c.createTarArchive(w, files)
-	} else if isZipArchive(c.Output) {
+	} else if isZipArchive(c.File) {
 		return c.createZipArchive(w, files)
 	} else {
-		return fmt.Errorf("Unsupported archive format: %q", c.Output)
+		return fmt.Errorf("Unsupported archive format: %q", c.File)
 	}
 }
 
@@ -260,12 +260,12 @@ func (c *ArchiveCommand) archive() {
 		return
 	}
 
-	logrus.Infoln("Creating archive", filepath.Base(c.Output), "...")
+	logrus.Infoln("Creating archive", filepath.Base(c.File), "...")
 
 	// create directories to store archive
-	os.MkdirAll(filepath.Dir(c.Output), 0700)
+	os.MkdirAll(filepath.Dir(c.File), 0700)
 
-	tempFile, err := ioutil.TempFile(filepath.Dir(c.Output), "archive_")
+	tempFile, err := ioutil.TempFile(filepath.Dir(c.File), "archive_")
 	if err != nil {
 		logrus.Fatalln("Failed to create temporary archive", err)
 	}
@@ -279,7 +279,7 @@ func (c *ArchiveCommand) archive() {
 	}
 	tempFile.Close()
 
-	err = os.Rename(tempFile.Name(), c.Output)
+	err = os.Rename(tempFile.Name(), c.File)
 	if err != nil {
 		logrus.Warningln("Failed to rename archive:", err)
 	}
@@ -299,7 +299,7 @@ func (c *ArchiveCommand) Execute(context *cli.Context) {
 	if err != nil {
 		logrus.Fatalln("Failed to get current working directory:", err)
 	}
-	if c.Output == "" && !c.List {
+	if c.File == "" && !c.List {
 		logrus.Fatalln("Missing archive file name!")
 	}
 
@@ -309,9 +309,9 @@ func (c *ArchiveCommand) Execute(context *cli.Context) {
 	c.processPaths()
 	c.processUntracked()
 
-	ai, err := os.Stat(c.Output)
+	ai, err := os.Stat(c.File)
 	if err != nil && !os.IsNotExist(err) {
-		logrus.Fatalln("Failed to verify archive:", c.Output, err)
+		logrus.Fatalln("Failed to verify archive:", c.File, err)
 	}
 	if ai != nil {
 		if !c.isChanged(ai.ModTime()) {

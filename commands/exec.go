@@ -11,6 +11,7 @@ import (
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/parallels"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/shell"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/ssh"
+	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/virtualbox"
 	"gopkg.in/yaml.v1"
 	"io/ioutil"
 	"os"

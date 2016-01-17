@@ -236,6 +236,8 @@ func (mr *RunCommand) Start(s service.Service) error {
 	mr.doneSignal = make(chan int, 1)
 	mr.log().Println("Starting multi-runner from", mr.ConfigFile, "...")
 
+	userModeWarning(false)
+
 	if len(mr.WorkingDirectory) > 0 {
 		err := os.Chdir(mr.WorkingDirectory)
 		if err != nil {

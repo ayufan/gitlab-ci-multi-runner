@@ -1,6 +1,6 @@
 // Copyright 2015 Daniel Theophanes.
 // Use of this source code is governed by a zlib-style
-// license that can be found in the LICENSE file.package service
+// license that can be found in the LICENSE file.
 
 package service
 
@@ -178,6 +178,22 @@ func (s *darwinLaunchdService) Stop() error {
 		return err
 	}
 	return run("launchctl", "unload", confPath)
+}
+func (s *darwinLaunchdService) Status() error {
+	err := checkStatus("launchctl", []string{"list", s.Name}, "\"PID\"", "not find service")
+
+	// Check if this is really not installed
+	if err == ErrServiceIsNotInstalled {
+		confPath, err := s.getServiceFilePath()
+		if err != nil {
+			return err
+		}
+		_, err = os.Stat(confPath)
+		if err == nil {
+			return ErrServiceIsNotRunning
+		}
+	}
+	return err
 }
 func (s *darwinLaunchdService) Restart() error {
 	err := s.Stop()

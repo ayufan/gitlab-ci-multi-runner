@@ -13,12 +13,19 @@ PACKAGE_CLOUD ?= ayufan/gitlab-ci-multi-runner
 PACKAGE_CLOUD_URL ?= https://packagecloud.io/
 BUILD_PLATFORMS ?= -os="linux" -os="darwin" -os="windows" -os="freebsd"
 S3_UPLOAD_PATH ?= master
-DEB_PLATFORMS ?= debian/wheezy debian/jessie ubuntu/precise ubuntu/trusty ubuntu/utopic ubuntu/vivid
+DEB_PLATFORMS ?= debian/wheezy debian/jessie debian/stretch debian/buster \
+    ubuntu/precise ubuntu/trusty ubuntu/utopic ubuntu/vivid ubuntu/wily ubuntu/xenial \
+    raspbian/wheezy raspbian/jessie raspbian/stretch raspbian/buster \
+    linuxmint/petra linuxmint/qiana linuxmint/rebecca linuxmint/rafaela linuxmint/rosa
 DEB_ARCHS ?= amd64 i386 arm armhf
-RPM_PLATFORMS ?= el/6 el/7 ol/6 ol/7
+RPM_PLATFORMS ?= el/6 el/7 \
+    ol/6 ol/7 \
+    fedora/20 fedora/21 fedora/22 fedora/23
 RPM_ARCHS ?= x86_64 i686 arm armhf
+GO_LDFLAGS ?= -X main.NAME $(PACKAGE_NAME) -X main.VERSION $(VERSION) -X main.REVISION $(REVISION)
+GO_FILES ?= $(shell find . -name '*.go')
 
-all: deps fmt test lint toolchain build
+all: deps fmt docker test lint toolchain build
 
 help:
 	# make all => deps test lint toolchain build
@@ -27,8 +34,10 @@ help:
 	# make fmt - check source formatting
 	# make test - run project tests
 	# make lint - check project code style
+	# make vet - examine code and report suspicious constructs
 	# make verify - run fmt, test and lint
 	# make toolchain - install crossplatform toolchain
+	# make docker - build docker dependencies
 	# make build - build project for all supported OSes
 	# make package - package project using FPM
 	# make packagecloud - send all packages to packagecloud
@@ -38,8 +47,10 @@ version: FORCE
 	@echo Current version: $(VERSION)
 	@echo Current iteration: $(ITTERATION)
 	@echo Current revision: $(REVISION)
+	@echo DEB platforms: $(DEB_PLATFORMS)
+	@echo RPM platforms: $(RPM_PLATFORMS)
 
-verify: fmt test lint
+verify: fmt vet lint test
 
 deps:
 	# Installing dependencies...
@@ -48,6 +59,7 @@ deps:
 	go get github.com/mitchellh/gox
 	go get golang.org/x/tools/cmd/cover
 	-go get golang.org/x/sys/windows/svc
+	go get -u github.com/jteeuwen/go-bindata/...
 	godep restore
 
 	# Fix broken BSD builds
@@ -58,15 +70,62 @@ toolchain:
 	# Building toolchain...
 	gox -build-toolchain $(BUILD_PLATFORMS)
 
-build:
+out/docker/prebuilt.tar.gz: $(GO_FILES)
+ifneq (, $(shell which docker))
+	# Building gitlab-runner-helper
+	gox -osarch=linux/amd64 \
+		-ldflags "$(GO_LDFLAGS)" \
+		-output="dockerfiles/build/gitlab-runner-helper" \
+		./apps/gitlab-runner-helper
+
+	# Create directory
+	mkdir -p out/docker
+
+	# Build docker images
+	docker build -t gitlab-runner-build:$(REVISION) dockerfiles/build
+	docker build -t gitlab-runner-cache:$(REVISION) dockerfiles/cache
+	docker build -t gitlab-runner-service:$(REVISION) dockerfiles/service
+	docker save -o out/docker/prebuilt.tar \
+		gitlab-runner-build:$(REVISION) \
+		gitlab-runner-service:$(REVISION) \
+		gitlab-runner-cache:$(REVISION)
+	gzip -f -9 out/docker/prebuilt.tar
+else
+	$(warning =============================================)
+	$(warning WARNING: downloading prebuilt docker images that will be embedded in gitlab-runner)
+	$(warning WARNING: to use images compiled from your code install Docker Engine)
+	$(warning WARNING: and remove out/docker/prebuilt.tar.gz)
+	$(warning =============================================)
+	curl -o out/docker/prebuilt.tar.gz \
+		https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/docker/prebuilt.tar.gz
+endif
+
+executors/docker/bindata.go: out/docker/prebuilt.tar.gz
+	# Generating embedded data
+	go-bindata \
+		-pkg docker \
+		-nocompress \
+		-nomemcopy \
+		-nometadata \
+		-prefix out/docker/ \
+		-o executors/docker/bindata.go \
+		out/docker/prebuilt.tar.gz
+
+docker: executors/docker/bindata.go
+
+build: executors/docker/bindata.go
 	# Building gitlab-ci-multi-runner for $(BUILD_PLATFORMS)
 	gox $(BUILD_PLATFORMS) \
-		-ldflags "-X main.NAME $(PACKAGE_NAME) -X main.VERSION $(VERSION) -X main.REVISION $(REVISION)" \
+		-ldflags "$(GO_LDFLAGS)" \
 		-output="out/binaries/$(NAME)-{{.OS}}-{{.Arch}}"
 
 fmt:
 	# Checking project code formatting...
 	@go fmt ./... | awk '{ print "Please run go fmt"; exit 1 }'
+
+vet:
+	# Checking for suspicious constructs...
+	@go vet ./...
 
 lint:
 	# Checking project code style...
@@ -75,6 +134,9 @@ lint:
 test:
 	# Running tests...
 	@go test ./... -cover
+
+install:
+	go install --ldflags="$(GO_LDFLAGS)"
 
 dockerfiles:
 	make -C dockerfiles all

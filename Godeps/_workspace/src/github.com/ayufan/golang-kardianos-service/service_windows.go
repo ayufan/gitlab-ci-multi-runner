@@ -1,6 +1,6 @@
 // Copyright 2015 Daniel Theophanes.
 // Use of this source code is governed by a zlib-style
-// license that can be found in the LICENSE file.package service
+// license that can be found in the LICENSE file.
 
 package service
 
@@ -325,6 +325,31 @@ func (ws *windowsService) Restart() error {
 	}
 
 	return s.Start()
+}
+
+func (ws *windowsService) Status() error {
+	m, err := mgr.Connect()
+	if err != nil {
+		return err
+	}
+	defer m.Disconnect()
+
+	s, err := m.OpenService(ws.Name)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+
+	status, err := s.Query()
+	if err != nil {
+		return err
+	}
+
+	if status.State != svc.Running {
+		return ErrServiceIsNotRunning
+	}
+
+	return nil
 }
 
 func (ws *windowsService) stopWait(s *mgr.Service) error {

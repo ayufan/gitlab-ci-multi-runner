@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -120,28 +121,23 @@ func (n *client) getCAChain(tls *tls.ConnectionState) (certificates string) {
 	return
 }
 
-func (n *client) do(uri, method string, statusCode int, request interface{}, response interface{}) (int, string, string) {
-	var body []byte
-
+func (n *client) do(uri, method string, statusCode int, request io.Reader, requestType string, response interface{}, headers http.Header) (int, string, string) {
 	url, err := n.url.Parse(uri)
 	if err != nil {
 		return -1, err.Error(), ""
 	}
 
-	if request != nil {
-		body, err = json.Marshal(request)
-		if err != nil {
-			return -1, fmt.Sprintf("failed to marshal project object: %v", err), ""
-		}
-	}
-
-	req, err := http.NewRequest(method, url.String(), bytes.NewReader(body))
+	req, err := http.NewRequest(method, url.String(), request)
 	if err != nil {
 		return -1, fmt.Sprintf("failed to create NewRequest: %v", err), ""
 	}
 
+	if headers != nil {
+		req.Header = headers
+	}
+
 	if request != nil {
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", requestType)
 	}
 
 	if response != nil {
@@ -171,6 +167,20 @@ func (n *client) do(uri, method string, statusCode int, request interface{}, res
 	}
 
 	return res.StatusCode, res.Status, n.getCAChain(res.TLS)
+}
+
+func (n *client) doJson(uri, method string, statusCode int, request interface{}, response interface{}) (int, string, string) {
+	var body io.Reader
+
+	if request != nil {
+		requestBody, err := json.Marshal(request)
+		if err != nil {
+			return -1, fmt.Sprintf("failed to marshal project object: %v", err), ""
+		}
+		body = bytes.NewReader(requestBody)
+	}
+
+	return n.do(uri, method, statusCode, body, "application/json", response, nil)
 }
 
 func (n *client) fullUrl(uri string, a ...interface{}) string {

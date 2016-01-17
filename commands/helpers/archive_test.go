@@ -1,4 +1,4 @@
-package commands
+package commands_helpers
 
 import (
 	"bufio"
@@ -27,12 +27,12 @@ func randomTempFile(t *testing.T) string {
 }
 
 func createArchiveCommand(t *testing.T) *ArchiveCommand {
-	err := os.Chdir(filepath.Join(currentDir, ".."))
+	err := os.Chdir(filepath.Join(currentDir, "..", ".."))
 	assert.NoError(t, err)
 
 	return &ArchiveCommand{
-		Output: randomTempFile(t),
-		Silent: true,
+		File: randomTempFile(t),
+		Verbose: true,
 	}
 }
 
@@ -44,7 +44,7 @@ func filesInFolder(path string) []string {
 func readArchiveContent(t *testing.T, c *ArchiveCommand) (resultMap map[string]bool) {
 	resultMap = make(map[string]bool)
 
-	cmd := exec.Command("tar", "-ztf", c.Output)
+	cmd := exec.Command("tar", "-ztf", c.File)
 	cmd.Env = os.Environ()
 	cmd.Stderr = os.Stderr
 	result, err := cmd.Output()
@@ -76,36 +76,36 @@ func verifyArchiveContent(t *testing.T, c *ArchiveCommand, files ...string) {
 
 func TestArchiveNotCreatingArchive(t *testing.T) {
 	cmd := createArchiveCommand(t)
-	defer os.Remove(cmd.Output)
+	defer os.Remove(cmd.File)
 	cmd.Execute(nil)
-	_, err := os.Stat(cmd.Output)
-	assert.True(t, os.IsNotExist(err), "File should not exist", cmd.Output, err)
+	_, err := os.Stat(cmd.File)
+	assert.True(t, os.IsNotExist(err), "File should not exist", cmd.File, err)
 }
 
 func TestArchiveAddingSomeLocalFiles(t *testing.T) {
 	cmd := createArchiveCommand(t)
-	defer os.Remove(cmd.Output)
+	defer os.Remove(cmd.File)
 	cmd.Paths = []string{
-		"commands/*",
+		"commands/helpers/*",
 	}
 	cmd.Execute(nil)
-	verifyArchiveContent(t, cmd, filesInFolder("commands/*")...)
+	verifyArchiveContent(t, cmd, filesInFolder("commands/helpers/*")...)
 }
 
 func TestArchiveNotAddingDuplicateFiles(t *testing.T) {
 	cmd := createArchiveCommand(t)
-	defer os.Remove(cmd.Output)
+	defer os.Remove(cmd.File)
 	cmd.Paths = []string{
-		"commands/*",
-		"commands/archive.go",
+		"commands/helpers/*",
+		"commands/helpers/archive.go",
 	}
 	cmd.Execute(nil)
-	verifyArchiveContent(t, cmd, filesInFolder("commands/*")...)
+	verifyArchiveContent(t, cmd, filesInFolder("commands/helpers/*")...)
 }
 
 func TestArchiveAddingUntrackedFiles(t *testing.T) {
 	cmd := createArchiveCommand(t)
-	defer os.Remove(cmd.Output)
+	defer os.Remove(cmd.File)
 	err := ioutil.WriteFile(UntrackedFileName, []byte{}, 0700)
 	assert.NoError(t, err)
 	cmd.Untracked = true
@@ -120,27 +120,27 @@ func TestArchiveUpdating(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	cmd := createArchiveCommand(t)
-	defer os.Remove(cmd.Output)
+	defer os.Remove(cmd.File)
 	cmd.Paths = []string{
 		"commands",
 		tempFile,
 	}
 
 	cmd.Execute(nil)
-	archive1, err := os.Stat(cmd.Output)
+	archive1, err := os.Stat(cmd.File)
 	assert.NoError(t, err, "Archive is created")
 
 	cmd.Execute(nil)
-	archive2, err := os.Stat(cmd.Output)
+	archive2, err := os.Stat(cmd.File)
 	assert.NoError(t, err, "Archive is created")
-	assert.Equal(t, archive1.ModTime(), archive2.ModTime(), "Archive should not be modyfied")
+	assert.Equal(t, archive1.ModTime(), archive2.ModTime(), "Archive should not be modified")
 
 	time.Sleep(time.Second)
 	err = ioutil.WriteFile(tempFile, []byte{}, 0700)
 	assert.NoError(t, err, "File is created")
 
 	cmd.Execute(nil)
-	archive3, err := os.Stat(cmd.Output)
+	archive3, err := os.Stat(cmd.File)
 	assert.NoError(t, err, "Archive is created")
 	assert.NotEqual(t, archive2.ModTime(), archive3.ModTime(), "File is added to archive")
 
@@ -149,7 +149,7 @@ func TestArchiveUpdating(t *testing.T) {
 	assert.NoError(t, err, "File is updated")
 
 	cmd.Execute(nil)
-	archive4, err := os.Stat(cmd.Output)
+	archive4, err := os.Stat(cmd.File)
 	assert.NoError(t, err, "Archive is created")
 	assert.NotEqual(t, archive3.ModTime(), archive4.ModTime(), "File is updated in archive")
 }

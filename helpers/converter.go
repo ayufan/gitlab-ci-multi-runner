@@ -40,3 +40,22 @@ func ToTOML(src interface{}) string {
 
 	return data.String()
 }
+
+func ToConfigMap(list interface{}) (map[string]interface{}, bool) {
+	x, ok := list.(map[string]interface{})
+	if ok {
+		return x, ok
+	}
+
+	y, ok := list.(map[interface{}]interface{})
+	if !ok {
+		return nil, false
+	}
+
+	result := make(map[string]interface{})
+	for k, v := range y {
+		result[k.(string)] = v
+	}
+
+	return result, true
+}

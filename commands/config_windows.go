@@ -11,3 +11,6 @@ func getDefaultConfigDirectory() string {
 		panic("Cannot get default config file location")
 	}
 }
+
+func userModeWarning(withRun bool) {
+}

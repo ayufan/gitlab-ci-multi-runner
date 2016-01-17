@@ -11,7 +11,7 @@ Bleeding Edge:
   stage: build
   script:
   - source ci/build
-  - '[[ -n "$AWS_SECRET_ACCESS_KEY" ]] && make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"'
+  - '[[ -z "$AWS_SECRET_ACCESS_KEY" ]] || make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"'
   only:
   - branches
 
@@ -20,9 +20,9 @@ Stable Release:
   script:
   - export RELEASE=true
   - source ci/build
-  - '[[ -n "$AWS_SECRET_ACCESS_KEY" ]] && make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"'
-  - '[[ -n "$AWS_SECRET_ACCESS_KEY" ]] && make s3-upload "S3_UPLOAD_PATH=latest"'
-  - '[[ -n "$PACKAGECLOUD_TOKEN" ]] && make packagecloud'
+  - '[[ -z "$AWS_SECRET_ACCESS_KEY" ]] || make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"'
+  - '[[ -z "$AWS_SECRET_ACCESS_KEY" ]] || make s3-upload "S3_UPLOAD_PATH=latest"'
+  - '[[ -z "$PACKAGECLOUD_TOKEN" ]] || make packagecloud'
   only:
   - tags@gitlab-org/gitlab-ci-multi-runner
 

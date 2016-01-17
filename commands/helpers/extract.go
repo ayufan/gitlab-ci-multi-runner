@@ -1,32 +1,31 @@
-package commands
+package commands_helpers
 
 import (
 	"os"
 	"path/filepath"
 
-	"github.com/EMSSConsulting/Thargo"
 	"github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 )
 
 type ExtractCommand struct {
-	Input  string `long:"input" description:"The filepath to the input archive"`
-	Silent bool   `long:"silent" description:"Suppress archiving output"`
+	File    string `long:"file" description:"The file to extract"`
+	Verbose bool   `long:"verbose" description:"Suppress archiving output"`
 
-	wd string
+	wd      string
 }
 
 func (c *ExtractCommand) extract() {
-	logrus.Infoln("Extracting archive", filepath.Base(c.Input), "...")
+	logrus.Infoln("Extracting archive", filepath.Base(c.File), "...")
 
-	archive, err := thargo.NewArchiveFile(c.Input, nil)
+	archive, err := thargo.NewArchiveFile(c.File, nil)
 	if err != nil {
 		logrus.Fatalln("Failed to open archive", err)
 	}
 
 	err = archive.Extract(func(entry thargo.SaveableEntry) error {
-		if !c.Silent {
+		if !c.Verbose {
 			header, err := entry.Header()
 			if err != nil {
 				return err
@@ -53,15 +52,9 @@ func (c *ExtractCommand) Execute(context *cli.Context) {
 		},
 	)
 
-	wd, err := os.Getwd()
-	if err != nil {
-		logrus.Fatalln("Failed to get current working directory:", err)
-	}
-	if c.Input == "" {
+	if c.File == "" {
 		logrus.Fatalln("Missing archive file name!")
 	}
-
-	c.wd = wd
 
 	c.extract()
 }

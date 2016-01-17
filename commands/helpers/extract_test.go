@@ -14,7 +14,7 @@ func createExtractCommand(t *testing.T) *ExtractCommand {
 	assert.NoError(t, err)
 
 	return &ExtractCommand{
-		Input:  randomTempFile(t),
+		File:  randomTempFile(t),
 		Silent: true,
 	}
 }
@@ -22,7 +22,7 @@ func createExtractCommand(t *testing.T) *ExtractCommand {
 func writeArchive(t *testing.T, c *ExtractCommand, target thargo.Target) {
 	options := *thargo.DefaultOptions
 	options.CreateIfMissing = true
-	archive, err := thargo.NewArchiveFile(c.Input, &options)
+	archive, err := thargo.NewArchiveFile(c.File, &options)
 	assert.NoError(t, err)
 	defer archive.Close()
 	assert.NoError(t, archive.Add(target))
@@ -34,7 +34,7 @@ func TestExtract(t *testing.T) {
 		Name:    "test.txt",
 		Content: "test file",
 	})
-	defer os.Remove(c.Input)
+	defer os.Remove(c.File)
 
 	c.Execute(nil)
 

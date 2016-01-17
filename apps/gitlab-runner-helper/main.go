@@ -8,17 +8,9 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/cli"
 
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/commands"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/commands/helpers"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/docker"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/parallels"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/shell"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/ssh"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/virtualbox"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/shells"
 )
 
 var NAME = "gitlab-ci-multi-runner"
@@ -42,13 +34,9 @@ func main() {
 		}
 	}()
 
-	// Start background reaping of orphaned child processes.
-	// It allows the gitlab-runner to act as `init` process
-	go helpers.Reap()
-
 	app := cli.NewApp()
 	app.Name = path.Base(os.Args[0])
-	app.Usage = "a GitLab Runner"
+	app.Usage = "a GitLab Runner Helper"
 	app.Version = fmt.Sprintf("%s (%s)", common.VERSION, common.REVISION)
 	app.Authors = []cli.Author{
 		cli.Author{

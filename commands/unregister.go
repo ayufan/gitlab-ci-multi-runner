@@ -15,6 +15,8 @@ type UnregisterCommand struct {
 }
 
 func (c *UnregisterCommand) Execute(context *cli.Context) {
+	userModeWarning(false)
+
 	if !c.network.DeleteRunner(c.RunnerCredentials) {
 		log.Fatalln("Failed to delete runner")
 	}
