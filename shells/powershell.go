@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"path/filepath"
 	"strings"
 )
 
@@ -14,7 +15,8 @@ type PowerShell struct {
 
 type PsWriter struct {
 	bytes.Buffer
-	indent int
+	TemporaryPath string
+	indent        int
 }
 
 func psQuote(text string) string {
@@ -35,8 +37,8 @@ func psQuote(text string) string {
 }
 
 func psQuoteVariable(text string) string {
-	text = strings.Replace(text, "$", "`$", -1)
 	text = psQuote(text)
+	text = strings.Replace(text, "$", "`$", -1)
 	return text
 }
 
@@ -71,7 +73,17 @@ func (b *PsWriter) Command(command string, arguments ...string) {
 }
 
 func (b *PsWriter) Variable(variable common.BuildVariable) {
-	b.Line("$env:" + variable.Key + "=" + psQuoteVariable(variable.Value))
+	b.Line("$" + variable.Key + "=" + psQuoteVariable(variable.Value))
+
+	if variable.File {
+		variableFile := b.Absolute(filepath.Join(b.TemporaryPath, variable.Key))
+		variableFile = helpers.ToBackslash(variableFile)
+		b.Line(fmt.Sprintf("md %s -Force | out-null", psQuote(helpers.ToBackslash(b.TemporaryPath))))
+		b.Line(fmt.Sprintf("$%s | Out-File %s", variable.Key, psQuote(variableFile)))
+		b.Line("$" + variable.Key + "=" + psQuote(variableFile))
+	}
+
+	b.Line("$env:" + variable.Key + "=$" + variable.Key)
 }
 
 func (b *PsWriter) IfDirectory(path string) {
@@ -152,12 +164,23 @@ func (b *PsWriter) EmptyLine() {
 	b.Line("echo \"\"")
 }
 
+func (b *PsWriter) Absolute(path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	} else {
+		b.Line("$CurrentDirectory = (Resolve-Path .\\).Path")
+		return filepath.Join("$CurrentDirectory", path)
+	}
+}
+
 func (b *PowerShell) GetName() string {
 	return "powershell"
 }
 
 func (b *PowerShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
-	w := &PsWriter{}
+	w := &PsWriter{
+		TemporaryPath: info.Build.FullProjectDir() + ".tmp",
+	}
 	w.Line("$ErrorActionPreference = \"Stop\"")
 	w.Line("")
 

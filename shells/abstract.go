@@ -23,6 +23,7 @@ type ShellWriter interface {
 	Cd(path string)
 	RmDir(path string)
 	RmFile(path string)
+	Absolute(path string) string
 
 	Print(fmt string, arguments ...interface{})
 	Notice(fmt string, arguments ...interface{})

@@ -7,6 +7,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -19,7 +20,8 @@ type BashShell struct {
 
 type BashWriter struct {
 	bytes.Buffer
-	indent int
+	TemporaryPath string
+	indent        int
 }
 
 func (b *BashWriter) Line(text string) {
@@ -47,7 +49,14 @@ func (b *BashWriter) Command(command string, arguments ...string) {
 }
 
 func (b *BashWriter) Variable(variable common.BuildVariable) {
-	b.Line(fmt.Sprintf("export %s=%s", helpers.ShellEscape(variable.Key), helpers.ShellEscape(variable.Value)))
+	if variable.File {
+		variableFile := helpers.ToSlash(b.Absolute(filepath.Join(b.TemporaryPath, variable.Key)))
+		b.Line(fmt.Sprintf("mkdir -p %q", helpers.ToSlash(b.TemporaryPath)))
+		b.Line(fmt.Sprintf("echo -n %s > %q", helpers.ShellEscape(variable.Value), variableFile))
+		b.Line(fmt.Sprintf("export %s=%q", helpers.ShellEscape(variable.Key), variableFile))
+	} else {
+		b.Line(fmt.Sprintf("export %s=%s", helpers.ShellEscape(variable.Key), helpers.ShellEscape(variable.Value)))
+	}
 }
 
 func (b *BashWriter) IfDirectory(path string) {
@@ -83,6 +92,14 @@ func (b *BashWriter) RmFile(path string) {
 	b.Command("rm", "-f", path)
 }
 
+func (b *BashWriter) Absolute(path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	} else {
+		return filepath.Join("$PWD", path)
+	}
+}
+
 func (b *BashWriter) Print(format string, arguments ...interface{}) {
 	coloredText := helpers.ANSI_RESET + fmt.Sprintf(format, arguments...)
 	b.Line("echo " + helpers.ShellEscape(coloredText))
@@ -112,6 +129,7 @@ func (b *BashWriter) Finish(shell string) string {
 	w := bufio.NewWriter(&buffer)
 	io.WriteString(w, "#!/usr/bin/env "+shell+"\n\n")
 	io.WriteString(w, "set -eo pipefail\n")
+	io.WriteString(w, "set +o noclobber\n")
 	io.WriteString(w, ": | eval "+helpers.ShellEscape(b.String())+"\n")
 	w.Flush()
 	return buffer.String()
@@ -122,7 +140,9 @@ func (b *BashShell) GetName() string {
 }
 
 func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
-	preScript := &BashWriter{}
+	temporaryPath := info.Build.FullProjectDir() + ".tmp"
+
+	preScript := &BashWriter{TemporaryPath: temporaryPath}
 	if len(info.Build.Hostname) != 0 {
 		preScript.Line("echo " + strconv.Quote("Running on $(hostname) via "+info.Build.Hostname+"..."))
 	} else {
@@ -130,10 +150,10 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	}
 	b.GeneratePreBuild(preScript, info)
 
-	buildScript := &BashWriter{}
+	buildScript := &BashWriter{TemporaryPath: temporaryPath}
 	b.GenerateCommands(buildScript, info)
 
-	postScript := &BashWriter{}
+	postScript := &BashWriter{TemporaryPath: temporaryPath}
 	b.GeneratePostBuild(postScript, info)
 
 	script := common.ShellScript{

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"path/filepath"
 	"runtime"
 	"strings"
 )
@@ -15,7 +16,8 @@ type CmdShell struct {
 
 type CmdWriter struct {
 	bytes.Buffer
-	indent int
+	TemporaryPath string
+	indent        int
 }
 
 func batchQuote(text string) string {
@@ -24,14 +26,14 @@ func batchQuote(text string) string {
 
 func batchEscape(text string) string {
 	// taken from: http://www.robvanderwoude.com/escapechars.php
-	text = strings.Replace(text, "\r", "", -1)
-	text = strings.Replace(text, "\n", "%nl%", -1)
 	text = strings.Replace(text, "^", "^^", -1)
 	text = strings.Replace(text, "!", "^^!", -1)
 	text = strings.Replace(text, "&", "^&", -1)
 	text = strings.Replace(text, "<", "^<", -1)
 	text = strings.Replace(text, ">", "^>", -1)
 	text = strings.Replace(text, "|", "^|", -1)
+	text = strings.Replace(text, "\r", "", -1)
+	text = strings.Replace(text, "\n", "!nl!", -1)
 	return text
 }
 
@@ -76,7 +78,15 @@ func (b *CmdWriter) Command(command string, arguments ...string) {
 }
 
 func (b *CmdWriter) Variable(variable common.BuildVariable) {
-	b.Line("SET " + batchEscapeVariable(variable.Key) + "=" + batchEscapeVariable(variable.Value))
+	if variable.File {
+		variableFile := b.Absolute(filepath.Join(b.TemporaryPath, variable.Key))
+		variableFile = helpers.ToBackslash(variableFile)
+		b.Line(fmt.Sprintf("md %q 2>NUL 1>NUL", batchEscape(helpers.ToBackslash(b.TemporaryPath))))
+		b.Line(fmt.Sprintf("echo %s > %s", batchEscapeVariable(variable.Value), batchEscape(variableFile)))
+		b.Line("SET " + batchEscapeVariable(variable.Key) + "=" + batchEscape(variableFile))
+	} else {
+		b.Line("SET " + batchEscapeVariable(variable.Key) + "=" + batchEscapeVariable(variable.Value))
+	}
 }
 
 func (b *CmdWriter) IfDirectory(path string) {
@@ -137,11 +147,22 @@ func (b *CmdWriter) EmptyLine() {
 	b.Line("echo.")
 }
 
+func (b *CmdWriter) Absolute(path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	} else {
+		return filepath.Join("%CD%", path)
+	}
+}
+
 func (b *CmdShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
-	w := &CmdWriter{}
+	w := &CmdWriter{
+		TemporaryPath: info.Build.FullProjectDir() + ".tmp",
+	}
 	w.Line("@echo off")
 	w.Line("setlocal enableextensions")
-	w.Line("set nl=^& echo.")
+	w.Line("setlocal enableDelayedExpansion")
+	w.Line("set nl=^\r\n\r\n")
 
 	if len(info.Build.Hostname) != 0 {
 		w.Line("echo Running on %COMPUTERNAME% via " + batchEscape(info.Build.Hostname) + "...")
