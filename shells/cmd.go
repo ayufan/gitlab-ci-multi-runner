@@ -70,11 +70,11 @@ func (b *CmdWriter) Variable(variable common.BuildVariable) {
 }
 
 func (b *CmdWriter) IfDirectory(path string) {
-	b.Line("IF EXIST " + batchQuote(helpers.ToBackslash(path)) + "(")
+	b.Line("IF EXIST " + batchQuote(helpers.ToBackslash(path)) + " (")
 }
 
 func (b *CmdWriter) IfFile(path string) {
-	b.Line("IF EXIST " + batchQuote(helpers.ToBackslash(path)) + "(")
+	b.Line("IF EXIST " + batchQuote(helpers.ToBackslash(path)) + " (")
 }
 
 func (b *CmdWriter) Else() {
@@ -145,12 +145,18 @@ func (b *CmdShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScr
 
 	w.Line(":prescript")
 	b.GeneratePreBuild(w, info)
+	w.Line("goto :EOF")
+	w.Line("")
 
 	w.Line(":buildscript")
 	b.GenerateCommands(w, info)
+	w.Line("goto :EOF")
+	w.Line("")
 
 	w.Line(":postscript")
 	b.GeneratePostBuild(w, info)
+	w.Line("goto :EOF")
+	w.Line("")
 
 	script := common.ShellScript{
 		BuildScript: w.String(),
