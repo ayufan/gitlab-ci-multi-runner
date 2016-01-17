@@ -18,12 +18,12 @@ const UntrackedFileName = "some_fancy_untracked_file"
 
 var currentDir, _ = os.Getwd()
 
-func randomTempFile(t *testing.T) string {
+func randomTempFile(t *testing.T, format string) string {
 	file, err := ioutil.TempFile("", "archive_")
 	assert.NoError(t, err)
 	defer file.Close()
 	defer os.Remove(file.Name())
-	return file.Name()
+	return file.Name() + format
 }
 
 func createArchiveCommand(t *testing.T) *ArchiveCommand {
@@ -31,7 +31,7 @@ func createArchiveCommand(t *testing.T) *ArchiveCommand {
 	assert.NoError(t, err)
 
 	return &ArchiveCommand{
-		File:    randomTempFile(t),
+		File:    randomTempFile(t, ".zip"),
 		Verbose: true,
 	}
 }
@@ -116,7 +116,7 @@ func TestArchiveAddingUntrackedFiles(t *testing.T) {
 }
 
 func TestArchiveUpdating(t *testing.T) {
-	tempFile := randomTempFile(t)
+	tempFile := randomTempFile(t, ".zip")
 	defer os.Remove(tempFile)
 
 	cmd := createArchiveCommand(t)
