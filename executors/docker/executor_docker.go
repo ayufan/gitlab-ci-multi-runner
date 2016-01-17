@@ -31,6 +31,8 @@ type DockerExecutor struct {
 	caches   []*docker.Container
 }
 
+const PrebuiltArchive = "prebuilt.tar.gz"
+
 func (s *DockerExecutor) getServiceVariables() []string {
 	return s.Build.GetAllVariables().PublicOrInternal().StringList()
 }
@@ -123,7 +125,7 @@ func (s *DockerExecutor) getPrebuiltImage(imageType string) (image *docker.Image
 		return
 	}
 
-	data, err := Asset("prebuilt.tar.gz")
+	data, err := Asset(PrebuiltArchive)
 	if err != nil {
 		return
 	}
