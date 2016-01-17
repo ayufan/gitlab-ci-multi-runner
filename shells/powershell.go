@@ -56,7 +56,7 @@ func (b *PsWriter) Command(command string, arguments ...string) {
 		list = append(list, psQuote(argument))
 	}
 
-	b.Line(strings.Join(list, " "))
+	b.Line("& " + strings.Join(list, " "))
 	b.checkErrorLevel()
 }
 
