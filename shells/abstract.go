@@ -103,15 +103,13 @@ func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptI
 	if cacheFile != "" {
 		// If we have cache, restore it
 		w.IfFile(cacheFile)
-		w.Notice("Restoring cache...")
-		w.Command("tar", "-zxf", cacheFile)
+		b.extractFiles(w, info.RunnerCommand, "cache", cacheFile)
 		if cacheFile2 != "" {
 			w.Else()
 
 			// If we have cache, restore it
 			w.IfFile(cacheFile2)
-			w.Notice("Restoring cache...")
-			w.Command("tar", "-zxf", cacheFile2)
+			b.extractFiles(w, info.RunnerCommand, "cache", cacheFile2)
 			w.EndIf()
 		}
 		w.EndIf()
@@ -150,8 +148,7 @@ func (b *AbstractShell) archiveFiles(w ShellWriter, list interface{}, runnerComm
 
 	args := []string{
 		"archive",
-		"--silent",
-		"--output",
+		"--file",
 		archivePath,
 	}
 
@@ -179,6 +176,23 @@ func (b *AbstractShell) archiveFiles(w ShellWriter, list interface{}, runnerComm
 	w.Command(runnerCommand, args...)
 }
 
+func (b *AbstractShell) extractFiles(w ShellWriter, runnerCommand, archiveType, archivePath string) {
+	if runnerCommand == "" {
+		w.Warning("The %s is not supported in this executor.", archiveType)
+		return
+	}
+
+	args := []string{
+		"extract",
+		"--file",
+		archivePath,
+	}
+
+	// Execute extract command
+	w.Notice("Restoring %s...", archiveType)
+	w.Command(runnerCommand, args...)
+}
+
 func (b *AbstractShell) uploadArtifacts(w ShellWriter, build *common.Build, runnerCommand, archivePath string) {
 	if runnerCommand == "" {
 		w.Warning("The artifacts uploading is not supported in this executor.")
@@ -187,14 +201,13 @@ func (b *AbstractShell) uploadArtifacts(w ShellWriter, build *common.Build, runn
 
 	args := []string{
 		"artifacts",
-		"--silent",
 		"--url",
 		build.Runner.URL,
 		"--token",
-		build.Runner.Token,
-		"--build-id",
+		build.Token,
+		"--id",
 		strconv.Itoa(build.ID),
-		"--archive",
+		"--file",
 		archivePath,
 	}
 
@@ -213,13 +226,12 @@ func (b *AbstractShell) GeneratePostBuild(w ShellWriter, info common.ShellScript
 
 	if info.Build.Network != nil {
 		// Find artifacts
-		b.archiveFiles(w, info.Build.Options["artifacts"], info.RunnerCommand, "artifacts", "artifacts.tgz")
+		b.archiveFiles(w, info.Build.Options["artifacts"], info.RunnerCommand, "artifacts", "artifacts.zip")
 
 		// If archive is created upload it
-		w.IfFile("artifacts.tgz")
-		w.Notice("Uploading artifacts...")
-		b.uploadArtifacts(w, info.Build, info.RunnerCommand, "artifacts.tgz")
-		w.RmFile("aritfacts.tgz")
+		w.IfFile("artifacts.zip")
+		b.uploadArtifacts(w, info.Build, info.RunnerCommand, "artifacts.zip")
+		w.RmFile("aritfacts.zip")
 		w.EndIf()
 	}
 }
