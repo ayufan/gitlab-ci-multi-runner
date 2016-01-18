@@ -15,320 +15,163 @@ import (
 
 type BashShell struct {
 	AbstractShell
+	Shell string
 }
 
-func (b *BashShell) GetName() string {
-	return "bash"
+type BashWriter struct {
+	bytes.Buffer
+	TemporaryPath string
+	indent        int
 }
 
-func (b *BashShell) GetFeatures(features *common.FeaturesInfo) {
-	features.Artifacts = true
-	features.Cache = true
+func (b *BashWriter) Line(text string) {
+	b.WriteString(strings.Repeat("  ", b.indent) + text + "\n")
 }
 
-func (b *BashShell) executeCommand(w io.Writer, cmd string, arguments ...string) {
+func (b *BashWriter) Indent() {
+	b.indent++
+}
+
+func (b *BashWriter) Unindent() {
+	b.indent--
+}
+
+func (b *BashWriter) Command(command string, arguments ...string) {
 	list := []string{
-		helpers.ShellEscape(cmd),
+		helpers.ShellEscape(command),
 	}
 
 	for _, argument := range arguments {
 		list = append(list, strconv.Quote(argument))
 	}
 
-	io.WriteString(w, strings.Join(list, " ")+"\n")
+	b.Line(strings.Join(list, " "))
 }
 
-func (b *BashShell) executeTlsCommand(w io.Writer, caBundle, cmd string, arguments ...string) {
-	var list []string
-
-	list = append(list, caBundle+"=<(echo \"$CI_SERVER_CA_CHAIN\")")
-	list = append(list, helpers.ShellEscape(cmd))
-
-	for _, argument := range arguments {
-		list = append(list, strconv.Quote(argument))
-	}
-
-	io.WriteString(w, strings.Join(list, " ")+"\n")
-}
-
-func (b *BashShell) executeCommandFormat(w io.Writer, format string, arguments ...interface{}) {
-	io.WriteString(w, fmt.Sprintf(format+"\n", arguments...))
-}
-
-func (b *BashShell) echoColored(w io.Writer, text string) {
-	coloredText := helpers.ANSI_BOLD_GREEN + text + helpers.ANSI_RESET
-	b.executeCommandFormat(w, "echo %s", helpers.ShellEscape(coloredText))
-}
-
-func (b *BashShell) echoWarning(w io.Writer, text string) {
-	coloredText := helpers.ANSI_BOLD_YELLOW + text + helpers.ANSI_RESET
-	b.executeCommandFormat(w, "echo %s", helpers.ShellEscape(coloredText))
-}
-
-func (b *BashShell) echoColoredFormat(w io.Writer, format string, a ...interface{}) {
-	b.echoColored(w, fmt.Sprintf(format, a...))
-}
-
-func (b *BashShell) writeIfDirectory(w io.Writer, directory string) {
-	b.executeCommandFormat(w, "if [[ -d %q ]]; then", directory)
-}
-
-func (b *BashShell) writeIfFile(w io.Writer, directory string) {
-	b.executeCommandFormat(w, "if [[ -e %q ]]; then", directory)
-}
-
-func (b *BashShell) writeElse(w io.Writer) {
-	b.executeCommandFormat(w, "else")
-}
-
-func (b *BashShell) writeEndIf(w io.Writer) {
-	b.executeCommandFormat(w, "fi")
-}
-
-func (b *BashShell) writeCloneCmd(w io.Writer, build *common.Build, projectDir string) {
-	b.echoColoredFormat(w, "Cloning repository...")
-	b.executeCommand(w, "rm", "-rf", projectDir)
-	b.executeCommand(w, "mkdir", "-p", projectDir)
-	b.executeTlsCommand(w, "GIT_SSL_CAINFO", "git", "clone", build.RepoURL, projectDir)
-	b.executeCommand(w, "cd", projectDir)
-}
-
-func (b *BashShell) writeFetchCmd(w io.Writer, build *common.Build, projectDir string, gitDir string) {
-	b.writeIfDirectory(w, gitDir)
-	b.echoColoredFormat(w, "Fetching changes...")
-	b.executeCommand(w, "cd", projectDir)
-	b.executeCommand(w, "git", "clean", "-ffdx")
-	b.executeCommand(w, "git", "reset", "--hard")
-	b.executeCommand(w, "git", "remote", "set-url", "origin", build.RepoURL)
-	b.executeTlsCommand(w, "GIT_SSL_CAINFO", "git", "fetch", "origin")
-	b.writeElse(w)
-	b.writeCloneCmd(w, build, projectDir)
-	b.writeEndIf(w)
-}
-
-func (b *BashShell) writeCheckoutCmd(w io.Writer, build *common.Build) {
-	b.echoColoredFormat(w, "Checking out %s as %s...", build.Sha[0:8], build.RefName)
-	b.executeCommand(w, "git", "checkout", build.Sha)
-}
-
-func (b *BashShell) writeCdBuildDir(w io.Writer, info common.ShellScriptInfo) {
-	b.executeCommand(w, "cd", b.fullProjectDir(info))
-}
-
-func (b *BashShell) writeExport(w io.Writer, variable common.BuildVariable) {
-	b.executeCommandFormat(w, "export %s=%s", helpers.ShellEscape(variable.Key), helpers.ShellEscape(variable.Value))
-}
-
-func (b *BashShell) fullProjectDir(info common.ShellScriptInfo) string {
-	projectDir := info.Build.FullProjectDir()
-	return helpers.ToSlash(projectDir)
-}
-
-func (b *BashShell) writeExports(w io.Writer, info common.ShellScriptInfo) {
-	for _, variable := range info.Build.GetAllVariables() {
-		b.writeExport(w, variable)
-	}
-}
-
-func (b *BashShell) generatePreBuildScript(info common.ShellScriptInfo) string {
-	var buffer bytes.Buffer
-	w := bufio.NewWriter(&buffer)
-
-	b.writeExports(w, info)
-
-	if len(info.Build.Hostname) != 0 {
-		b.executeCommandFormat(w, "echo %q", "Running on $(hostname) via "+info.Build.Hostname+"...")
+func (b *BashWriter) Variable(variable common.BuildVariable) {
+	if variable.File {
+		variableFile := helpers.ToSlash(b.Absolute(filepath.Join(b.TemporaryPath, variable.Key)))
+		b.Line(fmt.Sprintf("mkdir -p %q", helpers.ToSlash(b.TemporaryPath)))
+		b.Line(fmt.Sprintf("echo -n %s > %q", helpers.ShellEscape(variable.Value), variableFile))
+		b.Line(fmt.Sprintf("export %s=%q", helpers.ShellEscape(variable.Key), variableFile))
 	} else {
-		b.executeCommandFormat(w, "echo %q", "Running on $(hostname)...")
+		b.Line(fmt.Sprintf("export %s=%s", helpers.ShellEscape(variable.Key), helpers.ShellEscape(variable.Value)))
 	}
+}
 
-	build := info.Build
-	projectDir := b.fullProjectDir(info)
-	gitDir := filepath.Join(projectDir, ".git")
+func (b *BashWriter) IfDirectory(path string) {
+	b.Line(fmt.Sprintf("if [[ -d %q ]]; then", path))
+	b.Indent()
+}
 
-	if build.AllowGitFetch {
-		b.writeFetchCmd(w, build, projectDir, gitDir)
+func (b *BashWriter) IfFile(path string) {
+	b.Line(fmt.Sprintf("if [[ -e %q ]]; then", path))
+	b.Indent()
+}
+
+func (b *BashWriter) Else() {
+	b.Unindent()
+	b.Line("else")
+	b.Indent()
+}
+
+func (b *BashWriter) EndIf() {
+	b.Unindent()
+	b.Line("fi")
+}
+
+func (b *BashWriter) Cd(path string) {
+	b.Command("cd", path)
+}
+
+func (b *BashWriter) RmDir(path string) {
+	b.Command("rm", "-r", "-f", path)
+}
+
+func (b *BashWriter) RmFile(path string) {
+	b.Command("rm", "-f", path)
+}
+
+func (b *BashWriter) Absolute(path string) string {
+	if filepath.IsAbs(path) {
+		return path
 	} else {
-		b.writeCloneCmd(w, build, projectDir)
+		return filepath.Join("$PWD", path)
 	}
-
-	b.writeCheckoutCmd(w, build)
-
-	cacheFile := info.Build.CacheFile()
-	cacheFile2 := info.Build.CacheFileForRef("master")
-	if cacheFile == "" {
-		cacheFile = cacheFile2
-		cacheFile2 = ""
-	}
-
-	// Try to restore from main cache, if not found cache for master
-	if cacheFile != "" {
-		// If we have cache, restore it
-		b.writeIfFile(w, cacheFile)
-		b.echoColored(w, "Restoring cache...")
-		b.executeCommand(w, "tar", "-zxf", cacheFile)
-		if cacheFile2 != "" {
-			b.writeElse(w)
-
-			// If we have cache, restore it
-			b.writeIfFile(w, cacheFile2)
-			b.echoColored(w, "Restoring cache...")
-			b.executeCommand(w, "tar", "-zxf", cacheFile2)
-			b.writeEndIf(w)
-		}
-		b.writeEndIf(w)
-	}
-
-	w.Flush()
-
-	return b.finalize(buffer.String())
 }
 
-func (b *BashShell) generateCommands(info common.ShellScriptInfo) string {
+func (b *BashWriter) Print(format string, arguments ...interface{}) {
+	coloredText := helpers.ANSI_RESET + fmt.Sprintf(format, arguments...)
+	b.Line("echo " + helpers.ShellEscape(coloredText))
+}
+
+func (b *BashWriter) Notice(format string, arguments ...interface{}) {
+	coloredText := helpers.ANSI_BOLD_GREEN + fmt.Sprintf(format, arguments...) + helpers.ANSI_RESET
+	b.Line("echo " + helpers.ShellEscape(coloredText))
+}
+
+func (b *BashWriter) Warning(format string, arguments ...interface{}) {
+	coloredText := helpers.ANSI_BOLD_YELLOW + fmt.Sprintf(format, arguments...) + helpers.ANSI_RESET
+	b.Line("echo " + helpers.ShellEscape(coloredText))
+}
+
+func (b *BashWriter) Error(format string, arguments ...interface{}) {
+	coloredText := helpers.ANSI_BOLD_RED + fmt.Sprintf(format, arguments...) + helpers.ANSI_RESET
+	b.Line("echo " + helpers.ShellEscape(coloredText))
+}
+
+func (b *BashWriter) EmptyLine() {
+	b.Line("echo")
+}
+
+func (b *BashWriter) Finish(shell string) string {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
-
-	b.writeExports(w, info)
-	b.writeCdBuildDir(w, info)
-
-	commands := info.Build.Commands
-	commands = strings.TrimSpace(commands)
-	for _, command := range strings.Split(commands, "\n") {
-		command = strings.TrimSpace(command)
-		if !helpers.BoolOrDefault(info.Build.Runner.DisableVerbose, false) {
-			if command != "" {
-				b.echoColored(w, "$ "+command)
-			} else {
-				b.executeCommand(w, "echo")
-			}
-		}
-		io.WriteString(w, command+"\n")
-	}
-
-	w.Flush()
-
-	return b.finalize(buffer.String())
-}
-
-func (b *BashShell) archiveFiles(w io.Writer, list interface{}, runnerCommand, archiveType, archivePath string) {
-	hash, ok := helpers.ToConfigMap(list)
-	if !ok {
-		return
-	}
-
-	args := []string{
-		"archive",
-		"--silent",
-		"--output",
-		archivePath,
-	}
-
-	// Collect paths
-	if paths, ok := hash["paths"].([]interface{}); ok {
-		for _, artifactPath := range paths {
-			if file, ok := artifactPath.(string); ok {
-				args = append(args, "--path", file)
-			}
-		}
-	}
-
-	// Archive also untracked files
-	if untracked, ok := hash["untracked"].(bool); ok && untracked {
-		args = append(args, "--untracked")
-	}
-
-	// Skip creating archive
-	if len(args) <= 3 {
-		return
-	}
-
-	// Execute archive command
-	b.echoColoredFormat(w, "Archiving %s...", archiveType)
-	if runnerCommand == "" {
-		runnerCommand = "gitlab-runner"
-	}
-	b.executeCommand(w, runnerCommand, args...)
-}
-
-func (b *BashShell) uploadArtifacts(w io.Writer, build *common.Build, runnerCommand, archivePath string) {
-	args := []string{
-		"artifacts",
-		"--silent",
-		"--url",
-		build.Runner.URL,
-		"--token",
-		build.Runner.Token,
-		"--build-id",
-		string(build.ID),
-		"--archive",
-		archivePath,
-	}
-
-	b.echoColoredFormat(w, "Uploading artifacts...")
-	if runnerCommand == "" {
-		runnerCommand = "gitlab-runner"
-	}
-	b.executeCommand(w, runnerCommand, args...)
-}
-
-func (b *BashShell) generatePostBuildScript(info common.ShellScriptInfo) string {
-	var buffer bytes.Buffer
-	w := bufio.NewWriter(&buffer)
-
-	b.writeExports(w, info)
-	b.writeCdBuildDir(w, info)
-
-	// Find cached files and archive them
-	if cacheFile := info.Build.CacheFile(); cacheFile != "" {
-		b.archiveFiles(w, info.Build.Options["cache"], info.RunnerCommand, "cache", cacheFile)
-	}
-
-	if info.Build.Network != nil {
-		// Find artifacts
-		b.archiveFiles(w, info.Build.Options["artifacts"], info.RunnerCommand, "artifacts", "artifacts.tgz")
-
-		// If archive is created upload it
-		b.writeIfFile(w, "artifacts.tgz")
-		b.echoColored(w, "Uploading artifacts...")
-		b.executeCommand(w, "du", "-h", "artifacts.tgz")
-		b.uploadArtifacts(w, info.Build, info.RunnerCommand, "artifacts.tgz")
-		b.executeCommand(w, "rm", "-f", "artifacts.tgz")
-		b.writeEndIf(w)
-	}
-
-	w.Flush()
-
-	return b.finalize(buffer.String())
-}
-
-func (b *BashShell) finalize(script string) string {
-	var buffer bytes.Buffer
-	w := bufio.NewWriter(&buffer)
-	io.WriteString(w, "#!/usr/bin/env bash\n\n")
+	io.WriteString(w, "#!/usr/bin/env "+shell+"\n\n")
 	io.WriteString(w, "set -eo pipefail\n")
-	io.WriteString(w, ": | eval "+helpers.ShellEscape(script)+"\n")
+	io.WriteString(w, "set +o noclobber\n")
+	io.WriteString(w, ": | eval "+helpers.ShellEscape(b.String())+"\n")
 	w.Flush()
 	return buffer.String()
 }
 
+func (b *BashShell) GetName() string {
+	return b.Shell
+}
+
 func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
+	temporaryPath := info.Build.FullProjectDir() + ".tmp"
+
+	preScript := &BashWriter{TemporaryPath: temporaryPath}
+	if len(info.Build.Hostname) != 0 {
+		preScript.Line("echo " + strconv.Quote("Running on $(hostname) via "+info.Build.Hostname+"..."))
+	} else {
+		preScript.Line("echo " + strconv.Quote("Running on $(hostname)..."))
+	}
+	b.GeneratePreBuild(preScript, info)
+
+	buildScript := &BashWriter{TemporaryPath: temporaryPath}
+	b.GenerateCommands(buildScript, info)
+
+	postScript := &BashWriter{TemporaryPath: temporaryPath}
+	b.GeneratePostBuild(postScript, info)
+
 	script := common.ShellScript{
-		PreScript:   b.generatePreBuildScript(info),
-		BuildScript: b.generateCommands(info),
-		PostScript:  b.generatePostBuildScript(info),
-		Environment: b.GetVariables(info),
+		PreScript:   preScript.Finish(b.Shell),
+		BuildScript: buildScript.Finish(b.Shell),
+		PostScript:  postScript.Finish(b.Shell),
 	}
 
 	// su
 	if info.User != nil {
 		script.Command = "su"
 		if info.Type == common.LoginShell {
-			script.Arguments = []string{"--shell", "/bin/bash", "--login", *info.User}
+			script.Arguments = []string{"--shell", "/bin/" + b.Shell, "--login", *info.User}
 		} else {
-			script.Arguments = []string{"--shell", "/bin/bash", *info.User}
+			script.Arguments = []string{"--shell", "/bin/" + b.Shell, *info.User}
 		}
 	} else {
-		script.Command = "bash"
+		script.Command = b.Shell
 		if info.Type == common.LoginShell {
 			script.Arguments = []string{"--login"}
 		}
@@ -338,13 +181,10 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 }
 
 func (b *BashShell) IsDefault() bool {
-	return runtime.GOOS != "windows"
+	return runtime.GOOS != "windows" && b.Shell == "bash"
 }
 
 func init() {
-	common.RegisterShell(&BashShell{
-		AbstractShell: AbstractShell{
-			SupportedOptions: []string{"artifacts", "cache"},
-		},
-	})
+	common.RegisterShell(&BashShell{Shell: "sh"})
+	common.RegisterShell(&BashShell{Shell: "bash"})
 }
