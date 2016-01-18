@@ -17,17 +17,20 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 )
 
 type ArchiveCommand struct {
-	Paths     []string `long:"path" description:"Add paths to archive"`
-	Untracked bool     `long:"untracked" description:"Add git untracked files"`
-	File      string   `long:"file" description:"The path to file"`
-	Verbose   bool     `long:"verbose" description:"Detailed information"`
-	List      bool     `long:"list" description:"List files to archive"`
+	Paths      []string `long:"path" description:"Add paths to archive"`
+	Untracked  bool     `long:"untracked" description:"Add git untracked files"`
+	File       string   `long:"file" description:"The path to file"`
+	Verbose    bool     `long:"verbose" description:"Detailed information"`
+	List       bool     `long:"list" description:"List files to archive"`
+	NoProgress bool     `long:"no-progress" description:"Disable progress bar"`
 
-	wd    string
-	files map[string]os.FileInfo
+	wd         string
+	files      map[string]os.FileInfo
+	totalSize  int64
 }
 
 func isTarArchive(fileName string) bool {
@@ -72,6 +75,9 @@ func (c *ArchiveCommand) add(path string, info os.FileInfo) (err error) {
 	}
 	if err == nil {
 		c.files[path] = info
+		if info.Mode().IsRegular() {
+			c.totalSize += info.Size()
+		}
 	} else if os.IsNotExist(err) {
 		logrus.Warningln("File", path, "doesn't exist")
 		err = nil
@@ -91,7 +97,7 @@ func (c *ArchiveCommand) process(match string) error {
 	}
 
 	// store relative path if points to current working directory
-	if strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+	if strings.HasPrefix(relative, ".." + string(filepath.Separator)) {
 		return c.add(absolute, nil)
 	} else {
 		return c.add(relative, nil)
@@ -161,6 +167,12 @@ func (c *ArchiveCommand) createZipArchive(w io.Writer, fileNames []string) error
 	archive := zip.NewWriter(w)
 	defer archive.Close()
 
+	bar := helpers.NewPbForBytes(c.totalSize)
+	if !c.NoProgress {
+		bar.Start()
+		defer bar.Finish()
+	}
+
 	for _, fileName := range fileNames {
 		fi, err := os.Lstat(fileName)
 		if err != nil {
@@ -210,7 +222,12 @@ func (c *ArchiveCommand) createZipArchive(w io.Writer, fileNames []string) error
 				return err
 			}
 
-			_, err = io.Copy(fw, file)
+			if !c.NoProgress {
+				barReader := bar.NewProxyReader(file)
+				_, err = io.Copy(fw, barReader)
+			} else {
+				_, err = io.Copy(fw, file)
+			}
 			file.Close()
 			if err != nil {
 				return err
@@ -262,7 +279,9 @@ func (c *ArchiveCommand) archive() {
 		return
 	}
 
-	logrus.Infoln("Creating archive", filepath.Base(c.File), "...")
+	if c.NoProgress {
+		logrus.Infoln("Creating archive", filepath.Base(c.File), "...")
+	}
 
 	// create directories to store archive
 	os.MkdirAll(filepath.Dir(c.File), 0700)
@@ -286,7 +305,9 @@ func (c *ArchiveCommand) archive() {
 		logrus.Warningln("Failed to rename archive:", err)
 	}
 
-	logrus.Infoln("Done!")
+	if c.NoProgress {
+		logrus.Infoln("Done!")
+	}
 }
 
 func (c *ArchiveCommand) Execute(context *cli.Context) {
@@ -296,6 +317,14 @@ func (c *ArchiveCommand) Execute(context *cli.Context) {
 			DisableTimestamp: false,
 		},
 	)
+
+	if c.Verbose {
+		c.List = false
+		c.NoProgress = true
+	}
+	if c.List {
+		c.NoProgress = true
+	}
 
 	wd, err := os.Getwd()
 	if err != nil {

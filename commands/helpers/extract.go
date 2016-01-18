@@ -13,12 +13,14 @@ import (
 	"github.com/codegangsta/cli"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"github.com/cheggaaa/pb"
 )
 
 type ExtractCommand struct {
-	File    string `long:"file" description:"The file to extract"`
-	List    bool   `long:"list" description:"List files in archive"`
-	Verbose bool   `long:"verbose" description:"Suppress archiving output"`
+	File       string `long:"file" description:"The file to extract"`
+	List       bool   `long:"list" description:"List files in archive"`
+	Verbose    bool   `long:"verbose" description:"Suppress archiving output"`
+	NoProgress bool     `long:"no-progress" description:"Disable progress bar"`
 }
 
 func (c *ExtractCommand) extractTarArchive() error {
@@ -40,7 +42,7 @@ func (c *ExtractCommand) extractTarArchive() error {
 	return cmd.Run()
 }
 
-func (c *ExtractCommand) extractFile(file *zip.File) (err error) {
+func (c *ExtractCommand) extractFile(file *zip.File, bar *pb.ProgressBar) (err error) {
 	if c.Verbose && c.List {
 		fmt.Println(helpers.ToJson(*file))
 	} else if c.Verbose || c.List {
@@ -76,11 +78,16 @@ func (c *ExtractCommand) extractFile(file *zip.File) (err error) {
 		in, err := file.Open()
 		if err == nil {
 			defer in.Close()
-			out, err = os.OpenFile(file.Name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fi.Mode().Perm())
+			out, err = os.OpenFile(file.Name, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, fi.Mode().Perm())
 		}
 		if err == nil {
 			defer out.Close()
-			_, err = io.Copy(out, in)
+			if !c.NoProgress {
+				barReader := bar.NewProxyReader(in)
+				_, err = io.Copy(out, barReader)
+			} else {
+				_, err = io.Copy(out, in)
+			}
 			out.Close()
 		}
 		break
@@ -95,8 +102,24 @@ func (c *ExtractCommand) extractZipArchive() error {
 	}
 	defer archive.Close()
 
+	var totalSize int64
 	for _, file := range archive.File {
-		err = c.extractFile(file)
+		if file.Mode().IsRegular() {
+			if file.UncompressedSize64 > 0 {
+				totalSize += int64(file.UncompressedSize64)
+			} else {
+				totalSize += int64(file.UncompressedSize)
+			}
+		}
+	}
+	bar := helpers.NewPbForBytes(totalSize)
+	if !c.NoProgress {
+		bar.Start()
+		defer bar.Finish()
+	}
+
+	for _, file := range archive.File {
+		err = c.extractFile(file, bar)
 		if err != nil {
 			logrus.Warningf("%s: %s", file.Name, err)
 		}
@@ -131,12 +154,21 @@ func (c *ExtractCommand) Execute(context *cli.Context) {
 	if c.File == "" {
 		logrus.Fatalln("Missing archive file name!")
 	}
+	if c.Verbose {
+		c.List = false
+		c.NoProgress = true
+	}
+	if c.List {
+		c.NoProgress = true
+	}
 
 	err := c.extractArchive()
 	if err != nil {
 		logrus.Fatalln("Failed to create archive:", err)
 	}
-	logrus.Infoln("Done!")
+	if c.NoProgress {
+		logrus.Infoln("Done!")
+	}
 }
 
 func init() {

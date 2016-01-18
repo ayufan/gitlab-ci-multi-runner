@@ -1,7 +1,6 @@
 package network
 
 import (
-	"errors"
 	"fmt"
 	"github.com/Sirupsen/logrus"
 	. "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
@@ -9,8 +8,6 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"os"
-	"path/filepath"
 	"runtime"
 )
 
@@ -210,35 +207,20 @@ func (n *GitLabClient) UpdateBuild(config RunnerConfig, id int, state BuildState
 	}
 }
 
-func (n *GitLabClient) createArtifactsForm(mpw *multipart.Writer, artifactsFile string) error {
-	wr, err := mpw.CreateFormFile("file", filepath.Base(artifactsFile))
+func (n *GitLabClient) createArtifactsForm(mpw *multipart.Writer, content io.Reader, name string) error {
+	wr, err := mpw.CreateFormFile("file", name)
 	if err != nil {
 		return err
 	}
 
-	file, err := os.Open(artifactsFile)
+	_, err = io.Copy(wr, content)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-
-	fi, err := file.Stat()
-	if err != nil {
-		return err
-	}
-	if fi.IsDir() {
-		return errors.New("Failed to upload directories")
-	}
-
-	_, err = io.Copy(wr, file)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func (n *GitLabClient) UploadArtifacts(config BuildCredentials, artifactsFile string) UploadState {
+func (n *GitLabClient) UploadArtifacts(config BuildCredentials, content io.ReadCloser, name string) UploadState {
 	pr, pw := io.Pipe()
 	defer pr.Close()
 
@@ -247,7 +229,8 @@ func (n *GitLabClient) UploadArtifacts(config BuildCredentials, artifactsFile st
 	go func() {
 		defer pw.Close()
 		defer mpw.Close()
-		err := n.createArtifactsForm(mpw, artifactsFile)
+		defer content.Close()
+		err := n.createArtifactsForm(mpw, content, name)
 		if err != nil {
 			pw.CloseWithError(err)
 		}

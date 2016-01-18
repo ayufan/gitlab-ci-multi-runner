@@ -470,16 +470,13 @@ func TestArtifactsUpload(t *testing.T) {
 	c := GitLabClient{}
 
 	fmt.Fprint(tempFile, "content")
-	state := c.UploadArtifacts(config, tempFile.Name())
+	state := c.UploadArtifacts(config, tempFile, "artifacts.tgz")
 	assert.Equal(t, UploadSucceeded, state, "Artifacts should be uploaded")
 
 	fmt.Fprint(tempFile, "too large")
-	state = c.UploadArtifacts(config, tempFile.Name())
+	state = c.UploadArtifacts(config, tempFile, "artifacts.tgz")
 	assert.Equal(t, UploadTooLarge, state, "Artifacts should be not uploaded, because of too large archive")
 
-	state = c.UploadArtifacts(config, "not/existing/file")
-	assert.Equal(t, UploadFailed, state, "Artifacts should fail to be uploaded")
-
-	state = c.UploadArtifacts(invalidToken, tempFile.Name())
+	state = c.UploadArtifacts(invalidToken, tempFile, "artifacts.tgz")
 	assert.Equal(t, UploadForbidden, state, "Artifacts should be rejected if invalid token")
 }

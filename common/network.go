@@ -1,4 +1,5 @@
 package common
+import "io"
 
 type UpdateState int
 type UploadState int
@@ -99,5 +100,5 @@ type Network interface {
 	DeleteRunner(config RunnerCredentials) bool
 	VerifyRunner(config RunnerCredentials) bool
 	UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) UpdateState
-	UploadArtifacts(config BuildCredentials, artifactsFile string) UploadState
+	UploadArtifacts(config BuildCredentials, content io.ReadCloser, name string) UploadState
 }
