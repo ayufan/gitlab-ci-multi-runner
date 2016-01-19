@@ -71,15 +71,15 @@ toolchain:
 	gox -build-toolchain $(BUILD_PLATFORMS)
 
 out/docker/prebuilt.tar.gz: $(GO_FILES)
+	# Create directory
+	mkdir -p out/docker
+
 ifneq (, $(shell which docker))
 	# Building gitlab-runner-helper
 	gox -osarch=linux/amd64 \
 		-ldflags "$(GO_LDFLAGS)" \
 		-output="dockerfiles/build/gitlab-runner-helper" \
 		./apps/gitlab-runner-helper
-
-	# Create directory
-	mkdir -p out/docker
 
 	# Build docker images
 	docker build -t gitlab-runner-build:$(REVISION) dockerfiles/build
