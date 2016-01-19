@@ -508,6 +508,8 @@ func (s *executor) prepareBuildContainer() (options *docker.CreateContainerOptio
 		},
 		HostConfig: &docker.HostConfig{
 			Privileged:    s.Config.Docker.Privileged,
+			CapAdd:        s.Config.Docker.CapAdd,
+			CapDrop:       s.Config.Docker.CapDrop,
 			RestartPolicy: docker.NeverRestart(),
 			ExtraHosts:    s.Config.Docker.ExtraHosts,
 			Links:         s.Config.Docker.Links,
