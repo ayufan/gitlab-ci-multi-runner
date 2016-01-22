@@ -55,11 +55,11 @@ func (b *AbstractShell) writeExports(w ShellWriter, info common.ShellScriptInfo)
 func (b *AbstractShell) writeTLSCAInfo(w ShellWriter, build *common.Build, key string) {
 	if build.TLSCAChain != "" {
 		w.Variable(common.BuildVariable{
-			Key: key,
-			Value: build.TLSCAChain,
-			Public: true,
+			Key:      key,
+			Value:    build.TLSCAChain,
+			Public:   true,
 			Internal: true,
-			File: true,
+			File:     true,
 		})
 	}
 }
