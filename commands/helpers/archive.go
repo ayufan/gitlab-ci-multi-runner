@@ -111,9 +111,10 @@ func (c *ArchiveCommand) process(match string) error {
 		return err
 	}
 
+	// If we can't make the path relative, always save an absolute
 	relative, err := filepath.Rel(c.wd, absolute)
 	if err != nil {
-		return err
+		return c.add(absolute, nil)
 	}
 
 	// store relative path if points to current working directory
