@@ -25,20 +25,28 @@ RPM_ARCHS ?= x86_64 i686 arm armhf
 GO_LDFLAGS ?= -X main.NAME $(PACKAGE_NAME) -X main.VERSION $(VERSION) -X main.REVISION $(REVISION)
 GO_FILES ?= $(shell find . -name '*.go')
 
-all: deps fmt docker test lint toolchain build
+all: deps verify toolchain build
 
 help:
-	# make all => deps test lint toolchain build
+	# Commands:
+	# make all => deps verify toolchain build
 	# make version - show information about current version
-	# make deps - install all dependencies
+	#
+	# Development commands:
+	# make install - install the version suitable for your OS as gitlab-ci-multi-runner
+	# make docker - build docker dependencies
+	#
+	# Testing commands:
+	# make verify - run fmt, test and lint
 	# make fmt - check source formatting
 	# make test - run project tests
 	# make lint - check project code style
 	# make vet - examine code and report suspicious constructs
-	# make verify - run fmt, test and lint
-	# make toolchain - install crossplatform toolchain
-	# make docker - build docker dependencies
+	#
+	# Deployment commands:
+	# make deps - install all dependencies
 	# make build - build project for all supported OSes
+	# make toolchain - install crossplatform toolchain
 	# make package - package project using FPM
 	# make packagecloud - send all packages to packagecloud
 	# make packagecloud-yank - remove specific version from packagecloud
@@ -135,7 +143,7 @@ test:
 	# Running tests...
 	@go test ./... -cover
 
-install:
+install: executors/docker/bindata.go
 	go install --ldflags="$(GO_LDFLAGS)"
 
 dockerfiles:

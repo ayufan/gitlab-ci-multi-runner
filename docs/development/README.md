@@ -73,20 +73,21 @@ make deps
 Normally you would use `gitlab-runner`, in order to compile and run Go source use go toolchain:
 
 ```
-go run main.go
+make install
+gitlab-ci-multi-runner run
 ```
 
 You can run runner in debug-mode:
 
 ```
-go run main.go --debug run
+make install
+gitlab-ci-multi-runner --debug run
 ```
 
-## 7. Compile and install runner binary
+## 7. Compile and install runner binary as `gitlab-ci-multi-runner`
 
 ```
-go build
-go install
+make install
 ```
 
 ## 8. Congratulations!
