@@ -52,6 +52,18 @@ func (b *AbstractShell) writeExports(w ShellWriter, info common.ShellScriptInfo)
 	}
 }
 
+func (b *AbstractShell) writeTLSCAInfo(w ShellWriter, build *common.Build, key string) {
+	if build.TLSCAChain != "" {
+		w.Variable(common.BuildVariable{
+			Key: key,
+			Value: build.TLSCAChain,
+			Public: true,
+			Internal: true,
+			File: true,
+		})
+	}
+}
+
 func (b *AbstractShell) writeCloneCmd(w ShellWriter, build *common.Build, projectDir string) {
 	w.Notice("Cloning repository...")
 	w.RmDir(projectDir)
@@ -83,6 +95,8 @@ func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptI
 	build := info.Build
 	projectDir := build.FullProjectDir()
 	gitDir := filepath.Join(build.FullProjectDir(), ".git")
+
+	b.writeTLSCAInfo(w, info.Build, "GIT_SSL_CAINFO")
 
 	if build.AllowGitFetch {
 		b.writeFetchCmd(w, build, projectDir, gitDir)
@@ -212,6 +226,7 @@ func (b *AbstractShell) uploadArtifacts(w ShellWriter, build *common.Build, runn
 	}
 
 	w.Notice("Uploading artifacts...")
+	b.writeTLSCAInfo(w, build, "CI_SERVER_TLS_CA_FILE")
 	w.Command(runnerCommand, args...)
 }
 

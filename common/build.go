@@ -270,8 +270,6 @@ func (b *Build) GetDefaultVariables() BuildVariables {
 		{"CI_SERVER_VERSION", "", true, true, false},
 		{"CI_SERVER_REVISION", "", true, true, false},
 		{"GITLAB_CI", "true", true, true, false},
-		{"GIT_SSL_CAINFO", b.TLSCAChain, true, true, true},
-		{"CI_SERVER_TLS_CA_FILE", b.TLSCAChain, true, true, true},
 	}
 }
 
