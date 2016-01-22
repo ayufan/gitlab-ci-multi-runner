@@ -140,7 +140,7 @@ lint:
 	# Checking project code style...
 	@golint ./... | grep -v "be unexported"
 
-test:
+test: executors/docker/bindata.go
 	# Running tests...
 	@go test ./... -cover
 
