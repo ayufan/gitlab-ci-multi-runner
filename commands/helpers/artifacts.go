@@ -4,6 +4,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/formatter"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/network"
 	"os"
 	"time"
@@ -15,6 +16,8 @@ type ArtifactCommand struct {
 }
 
 func (c *ArtifactCommand) Execute(context *cli.Context) {
+	formatter.SetRunnerFormatter()
+
 	if len(c.File) == 0 {
 		logrus.Fatalln("Missing archive file")
 	}

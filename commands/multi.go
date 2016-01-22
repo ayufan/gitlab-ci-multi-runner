@@ -383,6 +383,7 @@ func (c *RunCommand) Execute(context *cli.Context) {
 	}
 
 	if c.Syslog {
+		log.SetFormatter(new(log.TextFormatter))
 		logger, err := service.SystemLogger(nil)
 		if err == nil {
 			log.AddHook(&ServiceLogHook{logger})

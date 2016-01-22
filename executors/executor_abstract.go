@@ -187,11 +187,12 @@ func (e *AbstractExecutor) Finish(err error) {
 		e.Debugln("Build log: ", e.Build.BuildLog())
 		e.Build.SendBuildLog()
 	}
-	e.Println("Build finished.")
+	e.Debugln("Build finished")
 }
 
 func (e *AbstractExecutor) Cleanup() {
 	if e.BuildLog != nil {
 		e.BuildLog.Close()
 	}
+	e.Debugln("Cleanup finished")
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/codegangsta/cli"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/cli"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/formatter"
 
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/commands/helpers"
 )
@@ -34,6 +35,8 @@ func main() {
 		}
 	}()
 
+	formatter.SetRunnerFormatter()
+
 	app := cli.NewApp()
 	app.Name = path.Base(os.Args[0])
 	app.Usage = "a GitLab Runner Helper"
@@ -47,7 +50,7 @@ func main() {
 	cli_helpers.SetupLogLevelOptions(app)
 	app.Commands = common.GetCommands()
 	app.CommandNotFound = func(context *cli.Context, command string) {
-		logrus.Fatalln("Command", command, "not found.")
+		logrus.Fatalln("Command", command, "not found")
 	}
 
 	if err := app.Run(os.Args); err != nil {

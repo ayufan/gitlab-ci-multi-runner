@@ -10,6 +10,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/cli"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/formatter"
 
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/commands"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/commands/helpers"
@@ -41,6 +42,8 @@ func main() {
 			panic(r)
 		}
 	}()
+
+	formatter.SetRunnerFormatter()
 
 	// Start background reaping of orphaned child processes.
 	// It allows the gitlab-runner to act as `init` process

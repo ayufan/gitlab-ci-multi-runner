@@ -96,7 +96,11 @@ func (c *RunnerCredentials) UniqueID() string {
 }
 
 func (c *RunnerCredentials) Log() *log.Entry {
-	return log.WithField("runner", c.ShortDescription())
+	if c.ShortDescription() != "" {
+		return log.WithField("runner", c.ShortDescription())
+	} else {
+		return log.WithFields(log.Fields{})
+	}
 }
 
 func (c *RunnerConfig) String() string {

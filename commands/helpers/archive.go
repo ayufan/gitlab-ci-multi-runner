@@ -334,13 +334,6 @@ func (c *ArchiveCommand) archive() {
 }
 
 func (c *ArchiveCommand) Execute(context *cli.Context) {
-	logrus.SetFormatter(
-		&logrus.TextFormatter{
-			ForceColors:      true,
-			DisableTimestamp: false,
-		},
-	)
-
 	wd, err := os.Getwd()
 	if err != nil {
 		logrus.Fatalln("Failed to get current working directory:", err)
