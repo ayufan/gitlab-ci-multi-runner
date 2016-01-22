@@ -32,5 +32,6 @@ func userModeWarning(withRun bool) {
 		}
 		logrus.Warningln("Use sudo for system-mode:")
 		logrus.Warningln("$ sudo gitlab-runner...")
+		logrus.Warningln("")
 	}
 }

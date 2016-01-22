@@ -78,6 +78,10 @@ The config file is automatically migrated when GitLab Runner was installed from 
 * [See security considerations](docs/security/index.md)
 * [Example configuration running the GitLab CE integration tests](docs/examples/gitlab.md)
 
+### Cleaning docker images automatically
+
+* [GitLab Runner Docker Cleanup tool](https://gitlab.com/gitlab-org/gitlab-runner-docker-cleanup)
+
 ### Extra projects?
 
 If you want to add another project, token or image simply RE-RUN SETUP.
