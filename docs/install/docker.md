@@ -115,3 +115,25 @@ gitlab/gitlab-runner    alpine              7c431ac8f30f        13 hours ago    
 **Alpine Linux image is designed to use only Docker as the method of spawning runners.** 
 
 The original `gitlab/gitlab-runner:latest` is based on Ubuntu 14.04 LTS.
+
+### SELinux
+
+Some distributions (CentOS, RedHat, Fedora) use SELinux by default to enhance the security of the underlying system.
+
+The special care must be taken when dealing with such configuration.
+
+1. If you want to use Docker executor to run builds in containers you need to access the `/var/run/docker.sock`.
+However, if you have a SELinux in enforcing mode, you will see the `Permission denied` when accessing the `/var/run/docker.sock`.
+Install the `selinux-dockersock` and to resolve the issue: https://github.com/dpw/selinux-dockersock.
+
+1. Make sure that persistent directory is created on host: `mkdir -p /srv/gitlab-runner/config`.
+
+1. Run docker with `:Z` on volumes:
+
+    docker run -d --name gitlab-runner --restart always \
+      -v /var/run/docker.sock:/var/run/docker.sock \
+      -v /srv/gitlab-runner/config:/etc/gitlab-runner:Z \
+      gitlab/gitlab-runner:latest
+      
+More information about the cause and resolution can be found here:
+http://www.projectatomic.io/blog/2015/06/using-volumes-with-docker-can-cause-problems-with-selinux/

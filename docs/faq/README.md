@@ -34,3 +34,11 @@ detect it if it is available and automatically make use of it.
 ## 4. I'm seeing `x509: certificate signed by unknown authority`
 
 Please [See the self-signed certificates](../configuration/tls-self-signed.md)
+
+## 5. I get `Permission Denied` when accessing the `/var/run/docker.sock`
+
+If you want to use Docker executor,
+and you are connecting to Docker Engine installed on server.
+You can see the `Permission Denied` error.
+The most likely cause is that your system uses SELinux (enabled by default on CentOS, Fedora and RHEL).
+Check your SELinux policy on your system for possible denials.
