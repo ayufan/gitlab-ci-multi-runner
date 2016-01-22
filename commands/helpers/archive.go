@@ -53,6 +53,32 @@ func (c *ArchiveCommand) isChanged(modTime time.Time) bool {
 	return false
 }
 
+func (c *ArchiveCommand) zipArchiveChanged() bool {
+	archive, err := zip.OpenReader(c.File)
+	if err != nil {
+		logrus.Warningf("%s: %v", c.File, err)
+		return true
+	}
+	defer archive.Close()
+	for _, file := range archive.File {
+		_, err := os.Lstat(file.Name)
+		if os.IsNotExist(err) {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *ArchiveCommand) isFileListChanged() bool {
+	if isZipArchive(c.File) {
+		return c.zipArchiveChanged()
+	} else {
+		logrus.Warningln("The archive can't be verified if file list changed: operation not supported")
+		// TODO: this is not supported
+		return false
+	}
+}
+
 func (c *ArchiveCommand) sortedFiles() []string {
 	files := make([]string, len(c.files))
 
@@ -102,17 +128,26 @@ func (c *ArchiveCommand) processPaths() {
 	for _, path := range c.Paths {
 		matches, err := filepath.Glob(path)
 		if err != nil {
-			logrus.Warningln(err)
+			logrus.Warningf("%s: %v", path, err)
 			continue
 		}
 
+		found := 0
+
 		for _, match := range matches {
 			err := filepath.Walk(match, func(path string, info os.FileInfo, err error) error {
+				found++
 				return c.process(path)
 			})
 			if err != nil {
 				logrus.Warningln("Walking", match, err)
 			}
+		}
+
+		if found == 0 {
+			logrus.Warningf("%s: no matching files", path)
+		} else {
+			logrus.Infof("%s: found %d matching files", path, found)
 		}
 	}
 }
@@ -121,6 +156,8 @@ func (c *ArchiveCommand) processUntracked() {
 	if !c.Untracked {
 		return
 	}
+
+	found := 0
 
 	var output bytes.Buffer
 	cmd := exec.Command("git", "ls-files", "-o")
@@ -141,8 +178,14 @@ func (c *ArchiveCommand) processUntracked() {
 			}
 			c.process(string(line))
 		}
+
+		if found == 0 {
+			logrus.Warningf("untracked: no files")
+		} else {
+			logrus.Infof("untracked: found %d files", found)
+		}
 	} else {
-		logrus.Warningln(err)
+		logrus.Warningf("untracked: %v", err)
 	}
 }
 
@@ -316,7 +359,7 @@ func (c *ArchiveCommand) Execute(context *cli.Context) {
 		logrus.Fatalln("Failed to verify archive:", c.File, err)
 	}
 	if ai != nil {
-		if !c.isChanged(ai.ModTime()) {
+		if !c.isChanged(ai.ModTime()) && !c.zipArchiveChanged() {
 			logrus.Infoln("Archive is up to date!")
 			return
 		}
