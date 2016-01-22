@@ -66,6 +66,7 @@ deps:
 	go get -u github.com/golang/lint/golint
 	go get github.com/mitchellh/gox
 	go get golang.org/x/tools/cmd/cover
+	go get golang.org/x/tools/cmd/vet
 	-go get golang.org/x/sys/windows/svc
 	go get -u github.com/jteeuwen/go-bindata/...
 	godep restore
