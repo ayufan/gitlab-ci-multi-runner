@@ -24,6 +24,7 @@ func getDefaultConfigDirectory() string {
 func userModeWarning(withRun bool) {
 	if os.Getuid() == 0 {
 		logrus.Infoln("Running in system-mode.")
+		logrus.Infoln("")
 	} else {
 		logrus.Warningln("Running in user-mode.")
 		if withRun {
@@ -32,6 +33,6 @@ func userModeWarning(withRun bool) {
 		}
 		logrus.Warningln("Use sudo for system-mode:")
 		logrus.Warningln("$ sudo gitlab-runner...")
-		logrus.Warningln("")
+		logrus.Infoln("")
 	}
 }
