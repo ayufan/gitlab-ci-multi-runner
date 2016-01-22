@@ -1,3 +1,25 @@
+v 1.0.0
+- Add `gitlab-runner exec` command to easy running builds
+- Add `gitlab-runner status` command to easy check the status of the service
+- Add `gitlab-runner list` command to list all runners from config file
+- Allow to specify `ImageTTL` for configuration the frequency of docker image re-pulling (see advanced-configuration)
+- Inject TLS certificate chain for `git clone` in build container, the gitlab-runner SSL certificates are used
+- Remove TLSSkipVerify since this is unsafe option
+- Add go-reaper to make gitlab-runner to act as init 1 process fixing zombie issue when running docker container
+- Create and send artifacts as zip files
+- Add internal commands for creating and extracting archives without the system dependencies
+- Add internal command for uploading artifacts without the system dependencies
+- Use umask in docker build containers to fix running jobs as specific user
+- Fix problem with `cache` paths never being archived
+- Add support for [`cache:key`](http://doc.gitlab.com/ce/ci/yaml/README.html#cachekey)
+- Add warnings about using runner in `user-mode`
+- Push packages to all upcoming distributions (Debian/Ubuntu/Fedora)
+- Rewrite the shell support adding all features to all shells (makes possible to use artifacts and caching on Windows)
+- Complain about missing caching and artifacts on some executors
+- Added VirtualBox executor
+- Embed prebuilt docker build images in runner binary and load them if needed
+- Make possible to cache absolute paths (unsafe on shell executor)
+
 v 0.7.2
 - Adjust `umask` for build image
 - Use absolute path when executing archive command
