@@ -122,12 +122,6 @@ func (c *ExtractCommand) extractArchive() error {
 }
 
 func (c *ExtractCommand) Execute(context *cli.Context) {
-	logrus.SetFormatter(
-		&logrus.TextFormatter{
-			ForceColors:      true,
-			DisableTimestamp: false,
-		},
-	)
 	if c.File == "" {
 		logrus.Fatalln("Missing archive file name!")
 	}
