@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -29,10 +28,6 @@ type RegisterCommand struct {
 	RegistrationToken string `short:"r" long:"registration-token" env:"REGISTRATION_TOKEN" description:"Runner's registration token"`
 
 	common.RunnerConfig
-	DockerMySQL      string `long:"docker-mysql" env:"DOCKER_MYSQL" description:"MySQL version (or specify latest) to link as service Docker service"`
-	DockerPostgreSQL string `long:"docker-postgres" env:"DOCKER_POSTGRES" description:"PostgreSQL version (or specify latest) to link as service Docker service"`
-	DockerMongoDB    string `long:"docker-mongo" env:"DOCKER_MONGO" description:"MongoDB version (or specify latest) to link as service Docker service"`
-	DockerRedis      string `long:"docker-redis" env:"DOCKER_REDIS" description:"Redis version (or specify latest) to link as service Docker service"`
 }
 
 func (s *RegisterCommand) ask(key, prompt string, allowEmptyOptional ...bool) string {
@@ -93,38 +88,11 @@ func (s *RegisterCommand) askExecutor() {
 	}
 }
 
-func (s *RegisterCommand) askForDockerService(service string) bool {
-	for {
-		result := s.ask("docker-"+service, "If you want to enable "+service+" please enter version (X.Y) or enter latest?", true)
-		if len(result) == 0 {
-			return false
-		}
-		if result != "latest" {
-			_, err := strconv.ParseFloat(result, 32)
-			if err != nil {
-				println("Invalid version specified", err)
-				continue
-			}
-		}
-		s.Docker.Services = append(s.Docker.Services, service+":"+result)
-		return true
-	}
-}
-
 func (s *RegisterCommand) askDocker() {
 	if s.Docker == nil {
 		s.Docker = &common.DockerConfig{}
 	}
-	s.Docker.Image = s.ask("docker-image", "Please enter the Docker image (eg. ruby:2.1):")
-
-	if s.askForDockerService("mysql") {
-		s.Environment = append(s.Environment, "MYSQL_ALLOW_EMPTY_PASSWORD=1")
-	}
-
-	s.askForDockerService("postgres")
-	s.askForDockerService("redis")
-	s.askForDockerService("mongo")
-
+	s.Docker.Image = s.ask("docker-image", "Please enter the default Docker image (eg. ruby:2.1):")
 	s.Docker.Volumes = append(s.Docker.Volumes, "/cache")
 }
 
