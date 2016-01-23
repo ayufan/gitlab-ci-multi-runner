@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/Sirupsen/logrus"
@@ -76,6 +77,7 @@ func (c *ExtractCommand) extractFile(file *zip.File) (err error) {
 		in, err := file.Open()
 		if err == nil {
 			defer in.Close()
+			os.MkdirAll(filepath.Dir(file.Name), 0777)
 			out, err = os.OpenFile(file.Name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fi.Mode().Perm())
 		}
 		if err == nil {
