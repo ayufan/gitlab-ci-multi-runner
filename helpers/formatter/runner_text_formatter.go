@@ -64,7 +64,7 @@ func (f *RunnerTextFormatter) printColored(b *bytes.Buffer, entry *logrus.Entry,
 
 	indentLength := 50 - len(levelText)
 
-	fmt.Fprintf(b, "%s%s%-*s ", levelColor, levelText, indentLength, entry.Message)
+	fmt.Fprintf(b, "%s%s%-*s%s ", levelColor, levelText, indentLength, entry.Message, resetColor)
 	for _, k := range keys {
 		v := entry.Data[k]
 		fmt.Fprintf(b, " %s%s%s=%v", levelColor, k, resetColor, v)
