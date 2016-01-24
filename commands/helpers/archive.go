@@ -177,7 +177,10 @@ func (c *ArchiveCommand) processUntracked() {
 				logrus.Warningln(err)
 				break
 			}
-			c.process(string(line))
+			err = c.process(string(line))
+			if err == nil {
+				found++
+			}
 		}
 
 		if found == 0 {
