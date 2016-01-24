@@ -1,3 +1,8 @@
+v 1.0.1
+- Use nice log formatting for command line tools
+- Don't ask for services during registration (we prefer the .gitlab-ci.yml)
+- Create all directories when extracting the file
+
 v 1.0.0
 - Add `gitlab-runner exec` command to easy running builds
 - Add `gitlab-runner status` command to easy check the status of the service

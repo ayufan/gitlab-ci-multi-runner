@@ -53,9 +53,12 @@ func (c *ExtractCommand) extractFile(file *zip.File) (err error) {
 
 	fi := file.FileInfo()
 
+	// Create all parents to extract the file
+	os.MkdirAll(filepath.Dir(file.Name), 0777)
+
 	switch file.Mode() & os.ModeType {
 	case os.ModeDir:
-		err = os.MkdirAll(file.Name, fi.Mode().Perm())
+		err = os.Mkdir(file.Name, fi.Mode().Perm())
 
 	case os.ModeSymlink:
 		var data []byte
@@ -77,7 +80,6 @@ func (c *ExtractCommand) extractFile(file *zip.File) (err error) {
 		in, err := file.Open()
 		if err == nil {
 			defer in.Close()
-			os.MkdirAll(filepath.Dir(file.Name), 0777)
 			out, err = os.OpenFile(file.Name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fi.Mode().Perm())
 		}
 		if err == nil {
