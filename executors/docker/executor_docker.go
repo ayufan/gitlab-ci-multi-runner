@@ -92,6 +92,11 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 		Repository: imageName,
 	}
 
+	// Add :latest to limit the download results
+	if !strings.ContainsAny(pullImageOptions.Repository, ":@") {
+		pullImageOptions.Repository += ":latest"
+	}
+
 	err = s.client.PullImage(pullImageOptions, authConfig)
 	if err != nil {
 		if image != nil {
