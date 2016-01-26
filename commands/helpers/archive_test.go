@@ -103,11 +103,14 @@ func TestArchiveUpdating(t *testing.T) {
 	tempFile := randomTempFile(t, ".zip")
 	defer os.Remove(tempFile)
 
+	err := ioutil.WriteFile(UntrackedFileName, []byte{}, 0700)
+	assert.NoError(t, err)
+
 	cmd := createArchiveCommand(t)
 	defer os.Remove(cmd.File)
 	cmd.Paths = []string{
 		"commands",
-		tempFile,
+		UntrackedFileName,
 	}
 
 	cmd.Execute(nil)
@@ -120,7 +123,7 @@ func TestArchiveUpdating(t *testing.T) {
 	assert.Equal(t, archive1.ModTime(), archive2.ModTime(), "Archive should not be modified")
 
 	time.Sleep(time.Second)
-	err = ioutil.WriteFile(tempFile, []byte{}, 0700)
+	err = ioutil.WriteFile(UntrackedFileName, []byte{}, 0700)
 	assert.NoError(t, err, "File is created")
 
 	cmd.Execute(nil)
@@ -129,7 +132,7 @@ func TestArchiveUpdating(t *testing.T) {
 	assert.NotEqual(t, archive2.ModTime(), archive3.ModTime(), "File is added to archive")
 
 	time.Sleep(time.Second)
-	err = ioutil.WriteFile(tempFile, []byte{}, 0700)
+	err = ioutil.WriteFile(UntrackedFileName, []byte{}, 0700)
 	assert.NoError(t, err, "File is updated")
 
 	cmd.Execute(nil)

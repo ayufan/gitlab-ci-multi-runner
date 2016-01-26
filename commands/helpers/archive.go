@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -92,37 +93,44 @@ func (c *ArchiveCommand) sortedFiles() []string {
 	return files
 }
 
-func (c *ArchiveCommand) add(path string, info os.FileInfo) (err error) {
-	if info == nil {
-		info, err = os.Lstat(path)
-	}
+func (c *ArchiveCommand) add(path string) (err error) {
+	// Always use slashes
+	path = filepath.ToSlash(path)
+
+	// Check if file exist
+	info, err := os.Lstat(path)
 	if err == nil {
 		c.files[path] = info
-	} else if os.IsNotExist(err) {
-		logrus.Warningln("File", path, "doesn't exist")
-		err = nil
 	}
 	return
 }
 
-func (c *ArchiveCommand) process(match string) error {
-	absolute, err := filepath.Abs(match)
-	if err != nil {
-		return err
+func (c *ArchiveCommand) process(match string) bool {
+	var absolute, relative string
+	var err error
+
+	absolute, err = filepath.Abs(match)
+	if err == nil {
+		// Let's try to find a real relative path to an absolute from working directory
+		relative, err = filepath.Rel(c.wd, absolute)
+	}
+	if err == nil {
+		// Process path only if it lives in our build directory
+		if !strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+			err = c.add(relative)
+		} else {
+			err = errors.New("not supported: outside build directory")
+		}
+	}
+	if err == nil {
+		return true
+	} else if os.IsNotExist(err) {
+		// We hide the error that file doesn't exist
+		return false
 	}
 
-	// If we can't make the path relative, always save an absolute
-	relative, err := filepath.Rel(c.wd, absolute)
-	if err != nil {
-		return c.add(absolute, nil)
-	}
-
-	// store relative path if points to current working directory
-	if strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
-		return c.add(absolute, nil)
-	} else {
-		return c.add(relative, nil)
-	}
+	logrus.Warningf("%s: %v", match, err)
+	return false
 }
 
 func (c *ArchiveCommand) processPaths() {
@@ -137,8 +145,10 @@ func (c *ArchiveCommand) processPaths() {
 
 		for _, match := range matches {
 			err := filepath.Walk(match, func(path string, info os.FileInfo, err error) error {
-				found++
-				return c.process(path)
+				if c.process(path) {
+					found++
+				}
+				return nil
 			})
 			if err != nil {
 				logrus.Warningln("Walking", match, err)
@@ -177,8 +187,7 @@ func (c *ArchiveCommand) processUntracked() {
 				logrus.Warningln(err)
 				break
 			}
-			err = c.process(string(line))
-			if err == nil {
+			if c.process(string(line)) {
 				found++
 			}
 		}
