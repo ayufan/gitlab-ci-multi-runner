@@ -116,7 +116,7 @@ func (c *ExtractCommand) extractZipArchive() error {
 
 	for _, file := range archive.File {
 		// Update file permissions
-		if err := os.Chmod(file.Name, fi.Mode().Perm()); err != nil {
+		if err := os.Chmod(file.Name, file.Mode().Perm()); err != nil {
 			logrus.Warningf("%s: %s", file.Name, err)
 		}
 
