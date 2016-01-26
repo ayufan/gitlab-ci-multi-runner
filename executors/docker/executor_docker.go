@@ -21,6 +21,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	docker_helpers "gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/docker"
 	"io"
+	"path"
 )
 
 type DockerExecutor struct {
@@ -152,11 +153,11 @@ func (s *DockerExecutor) getPrebuiltImage(imageType string) (image *docker.Image
 	return s.client.InspectImage(imageName)
 }
 
-func (s *DockerExecutor) getAbsoluteContainerPath(path string) string {
-	if filepath.IsAbs(path) {
-		return path
+func (s *DockerExecutor) getAbsoluteContainerPath(dir string) string {
+	if path.IsAbs(dir) {
+		return dir
 	} else {
-		return filepath.Join(s.Build.FullProjectDir(), path)
+		return path.Join(s.Build.FullProjectDir(), dir)
 	}
 }
 
@@ -259,7 +260,7 @@ func (s *DockerExecutor) addCacheVolume(binds, volumesFrom *[]string, containerP
 			return err
 		}
 		s.Debugln("Using path", hostPath, "as cache for", containerPath, "...")
-		*binds = append(*binds, fmt.Sprintf("%v:%v", hostPath, containerPath))
+		*binds = append(*binds, fmt.Sprintf("%v:%v", filepath.ToSlash(hostPath), containerPath))
 		return nil
 	}
 
@@ -314,10 +315,10 @@ func (s *DockerExecutor) createVolumes() ([]string, []string, error) {
 	// Cache Git sources:
 	// take path of the projects directory,
 	// because we use `rm -rf` which could remove the mounted volume
-	parentDir := filepath.Dir(s.Build.FullProjectDir())
+	parentDir := path.Dir(s.Build.FullProjectDir())
 
 	// Caching is supported only for absolute and non-root paths
-	if filepath.IsAbs(parentDir) && parentDir != "/" {
+	if path.IsAbs(parentDir) && parentDir != "/" {
 		if s.Build.AllowGitFetch && !helpers.BoolOrDefault(s.Config.Docker.DisableCache, false) {
 			// create persistent cache container
 			s.addVolume(&binds, &volumesFrom, parentDir)
