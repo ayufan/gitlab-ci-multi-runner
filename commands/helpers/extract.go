@@ -60,6 +60,11 @@ func (c *ExtractCommand) extractFile(file *zip.File) (err error) {
 	case os.ModeDir:
 		err = os.Mkdir(file.Name, fi.Mode().Perm())
 
+		// The error that directory does exists is not a error for us
+		if os.IsExist(err) {
+			err = nil
+		}
+
 	case os.ModeSymlink:
 		var data []byte
 		in, err := file.Open()
@@ -68,6 +73,8 @@ func (c *ExtractCommand) extractFile(file *zip.File) (err error) {
 			data, err = ioutil.ReadAll(in)
 		}
 		if err == nil {
+			// Remove symlink before creating a new one, otherwise we can error that file does exist
+			os.Remove(file.Name)
 			err = os.Symlink(string(data), file.Name)
 		}
 
@@ -80,6 +87,8 @@ func (c *ExtractCommand) extractFile(file *zip.File) (err error) {
 		in, err := file.Open()
 		if err == nil {
 			defer in.Close()
+			// Remove file before creating a new one, otherwise we can error that file does exist
+			os.Remove(file.Name)
 			out, err = os.OpenFile(file.Name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fi.Mode().Perm())
 		}
 		if err == nil {
@@ -100,15 +109,19 @@ func (c *ExtractCommand) extractZipArchive() error {
 	defer archive.Close()
 
 	for _, file := range archive.File {
-		err = c.extractFile(file)
-		if err != nil {
+		if err := c.extractFile(file); err != nil {
 			logrus.Warningf("%s: %s", file.Name, err)
 		}
 	}
 
 	for _, file := range archive.File {
-		err := processZipExtra(file)
-		if err != nil {
+		// Update file permissions
+		if err := os.Chmod(file.Name, fi.Mode().Perm()); err != nil {
+			logrus.Warningf("%s: %s", file.Name, err)
+		}
+
+		// Process zip metadata
+		if err := processZipExtra(file); err != nil {
 			logrus.Warningf("%s: %s", file.Name, err)
 		}
 	}
