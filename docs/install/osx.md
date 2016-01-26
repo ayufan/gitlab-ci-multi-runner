@@ -56,7 +56,7 @@ gitlab-ci-multi-runner stop
 Download binary to replace runner's executable:
 
 ```bash
-curl -O /usr/local/bin/gitlab-ci-multi-runner https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-ci-multi-runner-darwin-amd64
+curl -o /usr/local/bin/gitlab-ci-multi-runner https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-ci-multi-runner-darwin-amd64
 ```
 
 Give it permissions to execute:
