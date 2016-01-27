@@ -62,3 +62,19 @@ func TestVariablesExpansion(t *testing.T) {
 	assert.Equal(t, expanded.Get("private"), "value_of_value_of_$undefined")
 	assert.Equal(t, expanded.ExpandValue("${public} ${private}"), "value_of_ value_of_value_of_$undefined")
 }
+
+func TestSpecialVariablesExpansion(t *testing.T) {
+	all := BuildVariables{
+		{"key", "$$", false, false, false},
+		{"key2", "$/dsa", true, false, false},
+		{"key3", "aa$@bb", false, false, false},
+		{"key4", "aa${@}bb", false, false, false},
+	}
+
+	expanded := all.Expand()
+	assert.Len(t, expanded, 4)
+	assert.Equal(t, expanded.Get("key"), "$")
+	assert.Equal(t, expanded.Get("key2"), "/dsa")
+	assert.Equal(t, expanded.Get("key3"), "aabb")
+	assert.Equal(t, expanded.Get("key4"), "aabb")
+}

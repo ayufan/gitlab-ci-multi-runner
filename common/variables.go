@@ -38,6 +38,12 @@ func (b BuildVariables) StringList() (variables []string) {
 }
 
 func (b BuildVariables) Get(key string) string {
+	switch key {
+	case "$":
+		return key
+	case "*", "#", "@", "!", "?", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
+		return ""
+	}
 	for i := len(b) - 1; i >= 0; i-- {
 		if b[i].Key == key {
 			return b[i].Value
