@@ -42,3 +42,13 @@ and you are connecting to Docker Engine installed on server.
 You can see the `Permission Denied` error.
 The most likely cause is that your system uses SELinux (enabled by default on CentOS, Fedora and RHEL).
 Check your SELinux policy on your system for possible denials.
+
+## 6. The Docker executor gets timeout when building Java project.
+
+This most likely happens, because of the broken AUFS storage driver:
+[Java process hangs on inside container](https://github.com/docker/docker/issues/18502).
+The best solution is to change the [storage driver](https://docs.docker.com/engine/userguide/storagedriver/selectadriver/)
+to either OverlayFS (faster) or DeviceMapper (slower).
+
+Check this article about [configuring and running Docker](https://docs.docker.com/engine/articles/configuring/)
+or this article about [control and configure with systemd](https://docs.docker.com/engine/articles/systemd/).
