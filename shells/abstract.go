@@ -3,7 +3,7 @@ package shells
 import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"path/filepath"
+	"path"
 	"strconv"
 	"strings"
 )
@@ -94,7 +94,7 @@ func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptI
 
 	build := info.Build
 	projectDir := build.FullProjectDir()
-	gitDir := filepath.Join(build.FullProjectDir(), ".git")
+	gitDir := path.Join(build.FullProjectDir(), ".git")
 
 	b.writeTLSCAInfo(w, info.Build, "GIT_SSL_CAINFO")
 

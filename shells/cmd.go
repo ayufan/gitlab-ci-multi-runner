@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"path/filepath"
+	"path"
 	"runtime"
 	"strings"
 )
@@ -79,7 +79,7 @@ func (b *CmdWriter) Command(command string, arguments ...string) {
 
 func (b *CmdWriter) Variable(variable common.BuildVariable) {
 	if variable.File {
-		variableFile := b.Absolute(filepath.Join(b.TemporaryPath, variable.Key))
+		variableFile := b.Absolute(path.Join(b.TemporaryPath, variable.Key))
 		variableFile = helpers.ToBackslash(variableFile)
 		b.Line(fmt.Sprintf("md %q 2>NUL 1>NUL", batchEscape(helpers.ToBackslash(b.TemporaryPath))))
 		b.Line(fmt.Sprintf("echo %s > %s", batchEscapeVariable(variable.Value), batchEscape(variableFile)))
@@ -147,11 +147,11 @@ func (b *CmdWriter) EmptyLine() {
 	b.Line("echo.")
 }
 
-func (b *CmdWriter) Absolute(path string) string {
-	if filepath.IsAbs(path) {
-		return path
+func (b *CmdWriter) Absolute(dir string) string {
+	if path.IsAbs(dir) {
+		return dir
 	} else {
-		return filepath.Join("%CD%", path)
+		return path.Join("%CD%", dir)
 	}
 }
 

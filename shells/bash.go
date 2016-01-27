@@ -7,6 +7,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -50,7 +51,7 @@ func (b *BashWriter) Command(command string, arguments ...string) {
 
 func (b *BashWriter) Variable(variable common.BuildVariable) {
 	if variable.File {
-		variableFile := helpers.ToSlash(b.Absolute(filepath.Join(b.TemporaryPath, variable.Key)))
+		variableFile := b.Absolute(path.Join(b.TemporaryPath, variable.Key))
 		b.Line(fmt.Sprintf("mkdir -p %q", helpers.ToSlash(b.TemporaryPath)))
 		b.Line(fmt.Sprintf("echo -n %s > %q", helpers.ShellEscape(variable.Value), variableFile))
 		b.Line(fmt.Sprintf("export %s=%q", helpers.ShellEscape(variable.Key), variableFile))
@@ -92,11 +93,11 @@ func (b *BashWriter) RmFile(path string) {
 	b.Command("rm", "-f", path)
 }
 
-func (b *BashWriter) Absolute(path string) string {
-	if filepath.IsAbs(path) {
-		return path
+func (b *BashWriter) Absolute(dir string) string {
+	if filepath.IsAbs(dir) {
+		return dir
 	} else {
-		return filepath.Join("$PWD", path)
+		return path.Join("$PWD", dir)
 	}
 }
 

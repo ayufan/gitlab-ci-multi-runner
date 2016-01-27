@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -76,7 +77,7 @@ func (b *PsWriter) Variable(variable common.BuildVariable) {
 	b.Line("$" + variable.Key + "=" + psQuoteVariable(variable.Value))
 
 	if variable.File {
-		variableFile := b.Absolute(filepath.Join(b.TemporaryPath, variable.Key))
+		variableFile := b.Absolute(path.Join(b.TemporaryPath, variable.Key))
 		variableFile = helpers.ToBackslash(variableFile)
 		b.Line(fmt.Sprintf("md %s -Force | out-null", psQuote(helpers.ToBackslash(b.TemporaryPath))))
 		b.Line(fmt.Sprintf("$%s | Out-File %s", variable.Key, psQuote(variableFile)))
@@ -164,12 +165,12 @@ func (b *PsWriter) EmptyLine() {
 	b.Line("echo \"\"")
 }
 
-func (b *PsWriter) Absolute(path string) string {
-	if filepath.IsAbs(path) {
-		return path
+func (b *PsWriter) Absolute(dir string) string {
+	if filepath.IsAbs(dir) {
+		return dir
 	} else {
 		b.Line("$CurrentDirectory = (Resolve-Path .\\).Path")
-		return filepath.Join("$CurrentDirectory", path)
+		return path.Join("$CurrentDirectory", dir)
 	}
 }
 

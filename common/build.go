@@ -7,6 +7,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -107,7 +108,7 @@ func (b *Build) ProjectSlug() (string, error) {
 
 	slug := url.Path
 	slug = strings.TrimSuffix(slug, ".git")
-	slug = filepath.Clean(slug)
+	slug = path.Clean(slug)
 	if slug == "." {
 		return "", errors.New("invalid path")
 	}
@@ -127,7 +128,7 @@ func (b *Build) ProjectUniqueDir(sharedDir bool) string {
 	// <some-path>/runner-short-id/concurrent-id/group-name/project-name/
 	// ex.<some-path>/01234567/0/group/repo/
 	if sharedDir {
-		dir = filepath.Join(
+		dir = path.Join(
 			fmt.Sprintf("%s", b.Runner.ShortDescription()),
 			fmt.Sprintf("%d", b.ProjectRunnerID),
 			dir,
@@ -142,7 +143,7 @@ func (b *Build) FullProjectDir() string {
 
 func (b *Build) CacheFileForRef(ref string) string {
 	if b.CacheDir != "" {
-		cacheKey := filepath.Join(b.Name, ref)
+		cacheKey := path.Join(b.Name, ref)
 
 		// Get cache:key
 		if hash, ok := b.Options["cache"].(map[string]interface{}); ok {
@@ -156,12 +157,12 @@ func (b *Build) CacheFileForRef(ref string) string {
 			return ""
 		}
 
-		cacheFile := filepath.Join(b.CacheDir, cacheKey, "cache.zip")
+		cacheFile := path.Join(b.CacheDir, cacheKey, "cache.zip")
 		cacheFile, err := filepath.Rel(b.BuildDir, cacheFile)
 		if err != nil {
 			return ""
 		}
-		return cacheFile
+		return filepath.ToSlash(cacheFile)
 	}
 	return ""
 }
@@ -178,8 +179,8 @@ func (b *Build) StartBuild(rootDir, cacheDir string, sharedDir bool) {
 	b.BuildStarted = time.Now()
 	b.BuildState = Pending
 	b.RootDir = rootDir
-	b.BuildDir = filepath.Join(rootDir, b.ProjectUniqueDir(sharedDir))
-	b.CacheDir = filepath.Join(cacheDir, b.ProjectUniqueDir(false))
+	b.BuildDir = path.Join(rootDir, b.ProjectUniqueDir(sharedDir))
+	b.CacheDir = path.Join(cacheDir, b.ProjectUniqueDir(false))
 }
 
 func (b *Build) FinishBuild(buildState BuildState) {
