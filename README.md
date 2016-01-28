@@ -45,6 +45,30 @@ If you want to use **Docker** make sure that you have **1.5.0** at least install
 * Enables caching of Docker containers
 * Easy installation as service for Linux, OSX and Windows
 
+### Compatibility chart
+
+Supported features by different executors:
+
+| Executor                              | Shell   | Docker | Docker-SSH | VirtualBox | Parallels | SSH  |
+|---------------------------------------|---------|--------|------------|------------|-----------|------|
+| Secure Variables                      | ✓       | ✓      | ✓          | ✓          | ✓         | ✓    |
+| GitLab Runner Exec command            | ✓       | ✓      | ✓          | no         | no        | no   |
+| gitlab-ci.yml: image                  | no      | ✓      | ✓          | no         | no        | no   |
+| gitlab-ci.yml: services               | no      | ✓      | ✓          | no         | no        | no   |
+| gitlab-ci.yml: cache                  | ✓       | ✓      | no         | no         | no        | no   |
+| gitlab-ci.yml: artifacts              | ✓       | ✓      | no         | no         | no        | no   |
+| Absolute paths: caching, artifacts    | no      | no     | no         | no         | no        | no   |
+| Passing artifacts between stages      | no      | no     | no         | no         | no        | no   |
+
+Supported systems by different shells:
+
+| Shells                                | Bash        | Windows Batch  | PowerShell |
+|---------------------------------------|-------------|----------------|------------|
+| Windows                               | ✓           | ✓ (default)    | ✓          |
+| Linux                                 | ✓ (default) | no             | no         |
+| OSX                                   | ✓ (default) | no             | no         |
+| FreeBSD                               | ✓ (default) | no             | no         |
+
 ### Install GitLab Runner
 
 * [Install using GitLab's repository for Debian/Ubuntu/CentOS/RedHat (preferred)](docs/install/linux-repository.md)
@@ -53,11 +77,20 @@ If you want to use **Docker** make sure that you have **1.5.0** at least install
 * [Install as Docker Service](docs/install/docker.md)
 * [Use on FreeBSD](docs/install/freebsd.md)
 
-### Using GitLab Runner
+### Use GitLab Runner
 
 * [See the **commands** documentation](docs/commands/README.md)
 * [Use self-signed certificates](docs/configuration/tls-self-signed.md)
 * [Cleanup the docker images automatically](https://gitlab.com/gitlab-org/gitlab-runner-docker-cleanup)
+
+### Select executor
+
+* [Help me select executor](docs/executors/README.md#imnotsure)
+* [Shell](docs/executors/shell.md)
+* [Docker and Docker-SSH](docs/executors/docker.md)
+* [Parallels](docs/executors/parallels.md)
+* [VirtualBox](docs/executors/virtualbox.md)
+* [SSH](docs/executors/ssh.md)
 
 ### Troubleshooting
 
@@ -67,6 +100,7 @@ If you want to use **Docker** make sure that you have **1.5.0** at least install
 
 * [Install Bleeding Edge (development)](docs/install/bleeding-edge.md)
 * [Manual installation (advanced)](docs/install/linux-manually.md)
+* [See details about the shells](docs/shells/README.md)
 * [See advanced configuration options](docs/configuration/advanced-configuration.md)
 * [See autoscale configuration](docs/configuration/autoscale.md)
 * [See example configuration file](config.toml.example)

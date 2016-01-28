@@ -81,6 +81,7 @@ There are a couple of available shells that can be run on different platforms.
 | Shell | Description |
 | ----- | ----------- |
 | `bash`        | generate Bash (Bourne-shell) script. All commands executed in Bash context (default for all Unix systems) |
+| `sh`          | generate Sh (Bourne-shell) script. All commands executed in Sh context (default for all Unix systems) |
 | `cmd`         | generate Windows Batch script. All commands are executed in Batch context (default for Windows) |
 | `powershell`  | generate Windows PowerShell script. All commands are executed in PowerShell context |
 
