@@ -14,6 +14,7 @@ The official repository for this project is on [GitLab.com](https://gitlab.com/g
 * [Development](docs/development/README.md)
 * [Issues](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues)
 * [Merge Requests](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/merge_requests)
+* [Prepare development environment](docs/development/README.md)
 
 ### Requirements
 
@@ -44,7 +45,44 @@ If you want to use **Docker** make sure that you have **1.5.0** at least install
 * Enables caching of Docker containers
 * Easy installation as service for Linux, OSX and Windows
 
-### Version 0.5.0
+### Install GitLab Runner
+
+* [Install using GitLab's repository for Debian/Ubuntu/CentOS/RedHat (preferred)](docs/install/linux-repository.md)
+* [Install on OSX (preferred)](docs/install/osx.md)
+* [Install on Windows (preferred)](docs/install/windows.md)
+* [Install as Docker Service](docs/install/docker.md)
+* [Use on FreeBSD](docs/install/freebsd.md)
+
+### Using GitLab Runner
+
+* [See the **commands** documentation](docs/commands/README.md)
+* [Use self-signed certificates](docs/configuration/tls-self-signed.md)
+* [Cleanup the docker images automatically](https://gitlab.com/gitlab-org/gitlab-runner-docker-cleanup)
+
+### Troubleshooting
+
+* [FAQ](docs/faq/README.md)
+
+### Advanced Configuration
+
+* [Install Bleeding Edge (development)](docs/install/bleeding-edge.md)
+* [Manual installation (advanced)](docs/install/linux-manually.md)
+* [See advanced configuration options](docs/configuration/advanced-configuration.md)
+* [See autoscale configuration](docs/configuration/autoscale.md)
+* [See example configuration file](config.toml.example)
+* [See security considerations](docs/security/index.md)
+* [Example configuration running the GitLab CE integration tests](docs/examples/gitlab.md)
+
+### Extra projects?
+
+If you want to add another project, token or image simply RE-RUN SETUP.
+*You don't have to re-run the runner. It will automatically reload configuration once it changes.*
+
+### Changelog
+
+Visit [Changelog](CHANGELOG.md) to view recent changes.
+
+#### Version 0.5.0
 
 Version 0.5.0 introduces many security related changes.
 One of such changes is the different location of `config.toml`.
@@ -56,80 +94,7 @@ However, this doesn't apply to Windows where config is still read from current w
 The config file is automatically migrated when GitLab Runner was installed from GitLab's repository.
 **For manual installations the config needs to be moved by hand.**
 
-### Installation
-
-* [Install using GitLab's repository for Debian/Ubuntu/CentOS/RedHat (preferred)](docs/install/linux-repository.md)
-* [Install on OSX (preferred)](docs/install/osx.md)
-* [Install on Windows (preferred)](docs/install/windows.md)
-* [Install as Docker Service](docs/install/docker.md)
-* [Use on FreeBSD](docs/install/freebsd.md)
-* [Manual installation (advanced)](docs/install/linux-manually.md)
-* [Bleeding edge (development)](docs/install/bleeding-edge.md)
-* [Install development environment](docs/development/README.md)
-
-### Troubleshoting
-
-* [FAQ](docs/faq/README.md)
-
-### Advanced Configuration
-
-* [See the self-signed certificates](docs/configuration/tls-self-signed.md)
-* [See advanced configuration options](docs/configuration/advanced-configuration.md)
-* [See autoscale configuration](docs/configuration/autoscale.md)
-* [See example configuration file](config.toml.example)
-* [See security considerations](docs/security/index.md)
-* [Example configuration running the GitLab CE integration tests](docs/examples/gitlab.md)
-
-### Cleaning docker images automatically
-
-* [GitLab Runner Docker Cleanup tool](https://gitlab.com/gitlab-org/gitlab-runner-docker-cleanup)
-
-### Extra projects?
-
-If you want to add another project, token or image simply RE-RUN SETUP.
-*You don't have to re-run the runner. It will automatically reload configuration once it changes.*
-
-### Changelog
-
-Visit [Changelog](CHANGELOG.md) to view recent changes.
-
-### Help
-
-```bash
-$ gitlab-ci-multi-runner --help
-NAME:
-   gitlab-ci-multi-runner - a GitLab Runner
-
-USAGE:
-   gitlab-ci-multi-runner [global options] command [command options] [arguments...]
-
-VERSION:
-   dev
-
-AUTHOR:
-  Kamil Trzciński - <ayufan@ayufan.eu>
-
-COMMANDS:
-   delete	delete specific runner
-   run, r	run multi runner service
-   install	install service
-   uninstall	uninstall service
-   start	start service
-   stop		stop service
-   restart	restart service
-   setup, s	setup a new runner
-   run-single	start single runner
-   verify	verify all registered runners
-   help, h	Shows a list of commands or help for one command
-
-GLOBAL OPTIONS:
-   --debug			debug mode [$DEBUG]
-   --log-level, -l 'info'	Log level (options: debug, info, warn, error, fatal, panic)
-   --help, -h			show help
-   --version, -v		print the version
-```
-
-### Future
+### The future
 
 * Please see the [GitLab Direction page](https://about.gitlab.com/direction/).
 * Feel free submit issues with feature proposals on the issue tracker.
