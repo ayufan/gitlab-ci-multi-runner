@@ -61,7 +61,7 @@ type BuildInfo struct {
 	Name      string          `json:"name"`
 	Stage     string          `json:"stage"`
 	Tag       bool            `json:"tag"`
-	Artifacts *BuildArtifacts `json:"artifacts"`
+	Artifacts *BuildArtifacts `json:"artifacts_file"`
 }
 
 type GetBuildResponse struct {
