@@ -97,6 +97,7 @@ func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptI
 	gitDir := path.Join(build.FullProjectDir(), ".git")
 
 	b.writeTLSCAInfo(w, info.Build, "GIT_SSL_CAINFO")
+	b.writeTLSCAInfo(w, info.Build, "CI_SERVER_TLS_CA_FILE")
 
 	if build.AllowGitFetch {
 		b.writeFetchCmd(w, build, projectDir, gitDir)
@@ -127,6 +128,17 @@ func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptI
 			w.EndIf()
 		}
 		w.EndIf()
+	}
+
+	// Process all artifacts
+	for _, otherBuild := range info.Build.DependsOnBuilds {
+		if otherBuild.Artifacts == nil || otherBuild.Artifacts.Filename == "" {
+			continue
+		}
+
+		b.downloadArtifacts(w, info.Build.Runner, &otherBuild, info.RunnerCommand, otherBuild.Artifacts.Filename)
+		b.extractFiles(w, info.RunnerCommand, otherBuild.Name, otherBuild.Artifacts.Filename)
+		w.RmFile(otherBuild.Artifacts.Filename)
 	}
 }
 
@@ -207,6 +219,29 @@ func (b *AbstractShell) extractFiles(w ShellWriter, runnerCommand, archiveType, 
 	w.Command(runnerCommand, args...)
 }
 
+func (b *AbstractShell) downloadArtifacts(w ShellWriter, runner *common.RunnerConfig, build *common.BuildInfo, runnerCommand, archivePath string) {
+	if runnerCommand == "" {
+		w.Warning("The artifacts downloading is not supported in this executor.")
+		return
+	}
+
+	args := []string{
+		"artifacts",
+		"--download",
+		"--url",
+		runner.URL,
+		"--token",
+		build.Token,
+		"--id",
+		strconv.Itoa(build.ID),
+		"--file",
+		archivePath,
+	}
+
+	w.Notice("Downloading artifacts for %s (%d)...", build.Name, build.ID)
+	w.Command(runnerCommand, args...)
+}
+
 func (b *AbstractShell) uploadArtifacts(w ShellWriter, build *common.Build, runnerCommand, archivePath string) {
 	if runnerCommand == "" {
 		w.Warning("The artifacts uploading is not supported in this executor.")
@@ -226,13 +261,13 @@ func (b *AbstractShell) uploadArtifacts(w ShellWriter, build *common.Build, runn
 	}
 
 	w.Notice("Uploading artifacts...")
-	b.writeTLSCAInfo(w, build, "CI_SERVER_TLS_CA_FILE")
 	w.Command(runnerCommand, args...)
 }
 
 func (b *AbstractShell) GeneratePostBuild(w ShellWriter, info common.ShellScriptInfo) {
 	b.writeExports(w, info)
 	b.writeCdBuildDir(w, info)
+	b.writeTLSCAInfo(w, info.Build, "CI_SERVER_TLS_CA_FILE")
 
 	// Find cached files and archive them
 	if cacheFile := info.Build.CacheFile(); cacheFile != "" {
