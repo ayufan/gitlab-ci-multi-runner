@@ -1,3 +1,9 @@
+v 1.0.2
+- Fix bad warning about not found untracked files
+- Don't print error about existing file when restoring the cache
+- When creating ZIP archive always use forward-slashes and don't permit encoding absolute paths
+- Prefer to use `path` instead of `filepath` which is platform specific: solves the docker executor on Windows
+
 v 1.0.1
 - Use nice log formatting for command line tools
 - Don't ask for services during registration (we prefer the .gitlab-ci.yml)
