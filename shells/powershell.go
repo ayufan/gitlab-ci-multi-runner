@@ -170,7 +170,7 @@ func (b *PsWriter) Absolute(dir string) string {
 		return dir
 	} else {
 		b.Line("$CurrentDirectory = (Resolve-Path .\\).Path")
-		return path.Join("$CurrentDirectory", dir)
+		return filepath.Join("$CurrentDirectory", dir)
 	}
 }
 
