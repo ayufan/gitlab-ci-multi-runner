@@ -6,6 +6,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 )
@@ -148,10 +149,10 @@ func (b *CmdWriter) EmptyLine() {
 }
 
 func (b *CmdWriter) Absolute(dir string) string {
-	if path.IsAbs(dir) {
+	if filepath.IsAbs(dir) {
 		return dir
 	} else {
-		return path.Join("%CD%", dir)
+		return filepath.Join("%CD%", dir)
 	}
 }
 
