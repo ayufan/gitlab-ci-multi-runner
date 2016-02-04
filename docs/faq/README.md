@@ -52,3 +52,9 @@ to either OverlayFS (faster) or DeviceMapper (slower).
 
 Check this article about [configuring and running Docker](https://docs.docker.com/engine/articles/configuring/)
 or this article about [control and configure with systemd](https://docs.docker.com/engine/articles/systemd/).
+
+## 7. I get 411 when uploading artifacts.
+
+This happens due to fact that runner uses `Transfer-Encoding: chunked` which is broken on early version of Nginx (http://serverfault.com/questions/164220/is-there-a-way-to-avoid-nginx-411-content-length-required-errors).
+
+Upgrade your Nginx to newer version. For more information see this issue: https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues/1031
