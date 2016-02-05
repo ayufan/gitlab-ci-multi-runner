@@ -1,3 +1,7 @@
+v 1.0.3
+- Fix support for Windows Batch
+- Remove git index lock file: this solves problem with git checkout being terminated
+
 v 1.0.2
 - Fix bad warning about not found untracked files
 - Don't print error about existing file when restoring the cache
