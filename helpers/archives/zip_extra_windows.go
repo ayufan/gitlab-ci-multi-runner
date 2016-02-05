@@ -1,4 +1,4 @@
-package commands_helpers
+package archives
 
 import (
 	"archive/zip"
@@ -11,7 +11,7 @@ func createZipUidGidField(w io.Writer, fi os.FileInfo) (err error) {
 	return nil
 }
 
-func processZipUidGidField(data []byte, file *zip.File) error {
+func processZipUidGidField(data []byte, file *zip.FileHeader) error {
 	// TODO: currently not supported
 	return nil
 }

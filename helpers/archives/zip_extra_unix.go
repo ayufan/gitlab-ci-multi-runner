@@ -1,6 +1,6 @@
 // +build linux darwin freebsd
 
-package commands_helpers
+package archives
 
 import (
 	"archive/zip"
@@ -34,7 +34,7 @@ func createZipUidGidField(w io.Writer, fi os.FileInfo) (err error) {
 	return nil
 }
 
-func processZipUidGidField(data []byte, file *zip.File) error {
+func processZipUidGidField(data []byte, file *zip.FileHeader) error {
 	var ugField ZipUidGidField
 	err := binary.Read(bytes.NewReader(data), binary.LittleEndian, &ugField)
 	if err != nil {

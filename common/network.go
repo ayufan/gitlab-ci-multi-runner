@@ -1,5 +1,7 @@
 package common
 
+import "io"
+
 type UpdateState int
 type UploadState int
 type DownloadState int
@@ -21,6 +23,7 @@ const (
 	DownloadSucceeded DownloadState = iota
 	DownloadForbidden
 	DownloadFailed
+	DownloadNotFound
 )
 
 type FeaturesInfo struct {
@@ -124,5 +127,6 @@ type Network interface {
 	VerifyRunner(config RunnerCredentials) bool
 	UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) UpdateState
 	DownloadArtifacts(config BuildCredentials, artifactsFile string) DownloadState
+	UploadRawArtifacts(config BuildCredentials, reader io.Reader, baseName string) UploadState
 	UploadArtifacts(config BuildCredentials, artifactsFile string) UploadState
 }

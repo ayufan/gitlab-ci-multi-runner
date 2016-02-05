@@ -141,7 +141,7 @@ func (b *Build) FullProjectDir() string {
 	return helpers.ToSlash(b.BuildDir)
 }
 
-func (b *Build) CacheFileForRef(ref string) string {
+func (b *Build) CacheKeyForRef(ref string) string {
 	if b.CacheDir != "" {
 		cacheKey := path.Join(b.Name, ref)
 
@@ -156,23 +156,17 @@ func (b *Build) CacheFileForRef(ref string) string {
 		if cacheKey == "" {
 			return ""
 		}
-
-		cacheFile := path.Join(b.CacheDir, cacheKey, "cache.zip")
-		cacheFile, err := filepath.Rel(b.BuildDir, cacheFile)
-		if err != nil {
-			return ""
-		}
-		return filepath.ToSlash(cacheFile)
+		return filepath.ToSlash(path.Join(cacheKey, "cache.zip"))
 	}
 	return ""
 }
 
-func (b *Build) CacheFile() string {
+func (b *Build) CacheKey() string {
 	// For tags we don't create cache
 	if b.Tag {
 		return ""
 	}
-	return b.CacheFileForRef(b.RefName)
+	return b.CacheKeyForRef(b.RefName)
 }
 
 func (b *Build) StartBuild(rootDir, cacheDir string, sharedDir bool) {

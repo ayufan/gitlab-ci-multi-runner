@@ -1,7 +1,6 @@
 package network
 
 import (
-	"errors"
 	"fmt"
 	"github.com/Sirupsen/logrus"
 	. "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
@@ -208,35 +207,20 @@ func (n *GitLabClient) UpdateBuild(config RunnerConfig, id int, state BuildState
 	}
 }
 
-func (n *GitLabClient) createArtifactsForm(mpw *multipart.Writer, artifactsFile string) error {
-	wr, err := mpw.CreateFormFile("file", filepath.Base(artifactsFile))
+func (n *GitLabClient) createArtifactsForm(mpw *multipart.Writer, reader io.Reader, baseName string) error {
+	wr, err := mpw.CreateFormFile("file", baseName)
 	if err != nil {
 		return err
 	}
 
-	file, err := os.Open(artifactsFile)
+	_, err = io.Copy(wr, reader)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-
-	fi, err := file.Stat()
-	if err != nil {
-		return err
-	}
-	if fi.IsDir() {
-		return errors.New("Failed to upload directories")
-	}
-
-	_, err = io.Copy(wr, file)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func (n *GitLabClient) UploadArtifacts(config BuildCredentials, artifactsFile string) UploadState {
+func (n *GitLabClient) UploadRawArtifacts(config BuildCredentials, reader io.Reader, baseName string) UploadState {
 	pr, pw := io.Pipe()
 	defer pr.Close()
 
@@ -245,7 +229,7 @@ func (n *GitLabClient) UploadArtifacts(config BuildCredentials, artifactsFile st
 	go func() {
 		defer pw.Close()
 		defer mpw.Close()
-		err := n.createArtifactsForm(mpw, artifactsFile)
+		err := n.createArtifactsForm(mpw, reader, baseName)
 		if err != nil {
 			pw.CloseWithError(err)
 		}
@@ -289,6 +273,33 @@ func (n *GitLabClient) UploadArtifacts(config BuildCredentials, artifactsFile st
 	}
 }
 
+func (n *GitLabClient) UploadArtifacts(config BuildCredentials, artifactsFile string) UploadState {
+	log := logrus.WithFields(logrus.Fields{
+		"id":    config.ID,
+		"token": helpers.ShortenToken(config.Token),
+	})
+
+	file, err := os.Open(artifactsFile)
+	if err != nil {
+		log.Errorln("Uploading artifacts to coordinator...", "error", err.Error())
+		return UploadFailed
+	}
+	defer file.Close()
+
+	fi, err := file.Stat()
+	if err != nil {
+		log.Errorln("Uploading artifacts to coordinator...", "error", err.Error())
+		return UploadFailed
+	}
+	if fi.IsDir() {
+		log.Errorln("Uploading artifacts to coordinator...", "error", "cannot upload directories")
+		return UploadFailed
+	}
+
+	baseName := filepath.Base(artifactsFile)
+	return n.UploadRawArtifacts(config, file, baseName)
+}
+
 func (n *GitLabClient) DownloadArtifacts(config BuildCredentials, artifactsFile string) DownloadState {
 	// TODO: Create proper interface for `doRaw` that can use other types than RunnerCredentials
 	mappedConfig := RunnerCredentials{
@@ -330,6 +341,9 @@ func (n *GitLabClient) DownloadArtifacts(config BuildCredentials, artifactsFile 
 	case 403:
 		log.Errorln("Downloading artifacts from coordinator...", "forbidden")
 		return DownloadForbidden
+	case 404:
+		log.Errorln("Downloading artifacts from coordinator...", "not found")
+		return DownloadNotFound
 	default:
 		log.Warningln("Downloading artifacts from coordinator...", "failed", res.Status)
 		return DownloadFailed
