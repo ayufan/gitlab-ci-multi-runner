@@ -1,4 +1,4 @@
-package commands_helpers
+package archives
 
 import (
 	"archive/zip"
@@ -47,9 +47,8 @@ func createZipTimestampField(w io.Writer, fi os.FileInfo) (err error) {
 	return
 }
 
-func processZipTimestampField(data []byte, file *zip.File) error {
-	fi := file.FileInfo()
-	if !fi.Mode().IsDir() && !fi.Mode().IsRegular() {
+func processZipTimestampField(data []byte, file *zip.FileHeader) error {
+	if !file.Mode().IsDir() && !file.Mode().IsRegular() {
 		return nil
 	}
 
@@ -80,7 +79,7 @@ func createZipExtra(fi os.FileInfo) []byte {
 	return nil
 }
 
-func processZipExtra(file *zip.File) error {
+func processZipExtra(file *zip.FileHeader) error {
 	if len(file.Extra) == 0 {
 		return nil
 	}
