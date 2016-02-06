@@ -64,7 +64,10 @@ func (e *AbstractExecutor) readTrace(pipe *io.PipeReader) {
 	defer e.Debugln("ReadTrace finished")
 
 	traceStopped := false
-	traceOutputLimit := helpers.NonZeroOrDefault(e.Config.OutputLimit, common.DefaultOutputLimit)
+	traceOutputLimit := e.Config.OutputLimit
+	if traceOutputLimit == 0 {
+		traceOutputLimit = common.DefaultOutputLimit
+	}
 	traceOutputLimit *= 1024
 
 	reader := bufio.NewReader(pipe)

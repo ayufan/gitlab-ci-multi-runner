@@ -37,13 +37,10 @@ func (s *Command) getSSHKey(identityFile string) (key ssh.Signer, err error) {
 
 func (s *Command) getSSHAuthMethods() ([]ssh.AuthMethod, error) {
 	var methods []ssh.AuthMethod
+	methods = append(methods, ssh.Password(s.Password))
 
-	if s.Password != nil {
-		methods = append(methods, ssh.Password(*s.Password))
-	}
-
-	if s.IdentityFile != nil {
-		key, err := s.getSSHKey(*s.IdentityFile)
+	if s.IdentityFile != "" {
+		key, err := s.getSSHKey(s.IdentityFile)
 		if err != nil {
 			return nil, err
 		}
@@ -54,9 +51,15 @@ func (s *Command) getSSHAuthMethods() ([]ssh.AuthMethod, error) {
 }
 
 func (s *Command) Connect() error {
-	host := helpers.StringOrDefault(s.Host, "localhost")
-	user := helpers.StringOrDefault(s.User, "root")
-	port := helpers.StringOrDefault(s.Port, "22")
+	if s.Host == "" {
+		s.Host = "localhost"
+	}
+	if s.User == "" {
+		s.User = "root"
+	}
+	if s.Port == "" {
+		s.Port = "22"
+	}
 
 	methods, err := s.getSSHAuthMethods()
 	if err != nil {
@@ -64,7 +67,7 @@ func (s *Command) Connect() error {
 	}
 
 	config := &ssh.ClientConfig{
-		User: user,
+		User: s.User,
 		Auth: methods,
 	}
 
@@ -76,7 +79,7 @@ func (s *Command) Connect() error {
 	var finalError error
 
 	for i := 0; i < connectRetries; i++ {
-		client, err := ssh.Dial("tcp", host+":"+port, config)
+		client, err := ssh.Dial("tcp", s.Host+":"+s.Port, config)
 		if err == nil {
 			s.client = client
 			return nil

@@ -164,12 +164,12 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	}
 
 	// su
-	if info.User != nil {
+	if info.User != "" {
 		script.Command = "su"
 		if info.Type == common.LoginShell {
-			script.Arguments = []string{"--shell", "/bin/" + b.Shell, "--login", *info.User}
+			script.Arguments = []string{"--shell", "/bin/" + b.Shell, "--login", info.User}
 		} else {
-			script.Arguments = []string{"--shell", "/bin/" + b.Shell, *info.User}
+			script.Arguments = []string{"--shell", "/bin/" + b.Shell, info.User}
 		}
 	} else {
 		script.Command = b.Shell

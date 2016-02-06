@@ -53,7 +53,7 @@ type ShellScriptInfo struct {
 	Shell         string
 	Build         *Build
 	Type          ShellType
-	User          *string
+	User          string
 	RunnerCommand string
 }
 

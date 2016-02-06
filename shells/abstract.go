@@ -140,12 +140,10 @@ func (b *AbstractShell) GenerateCommands(w ShellWriter, info common.ShellScriptI
 	commands = strings.TrimSpace(commands)
 	for _, command := range strings.Split(commands, "\n") {
 		command = strings.TrimSpace(command)
-		if !helpers.BoolOrDefault(info.Build.Runner.DisableVerbose, false) {
-			if command != "" {
-				w.Notice("$ %s", command)
-			} else {
-				w.EmptyLine()
-			}
+		if command != "" {
+			w.Notice("$ %s", command)
+		} else {
+			w.EmptyLine()
 		}
 		w.Line(command)
 	}

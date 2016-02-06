@@ -1,11 +1,11 @@
 package docker_helpers
 
 import (
-	"github.com/fsouza/go-dockerclient"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/fsouza/go-dockerclient"
 )
 
 func Connect(c DockerCredentials, apiVersion string) (*docker.Client, error) {
@@ -13,12 +13,12 @@ func Connect(c DockerCredentials, apiVersion string) (*docker.Client, error) {
 	tlsVerify := false
 	tlsCertPath := ""
 
-	if host := helpers.StringOrDefault(c.Host, ""); host != "" {
+	if c.Host != "" {
 		// read docker config from config
-		endpoint = host
-		if c.CertPath != nil {
+		endpoint = c.Host
+		if c.CertPath != "" {
 			tlsVerify = true
-			tlsCertPath = *c.CertPath
+			tlsCertPath = c.CertPath
 		}
 	} else if host := os.Getenv("DOCKER_HOST"); host != "" {
 		// read docker config from environment

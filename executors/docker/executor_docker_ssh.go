@@ -56,7 +56,7 @@ func (s *DockerSSHExecutor) Start() error {
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,
 	}
-	s.sshCommand.Host = &containerData.NetworkSettings.IPAddress
+	s.sshCommand.Host = containerData.NetworkSettings.IPAddress
 
 	s.Debugln("Connecting to SSH server...")
 	err = s.sshCommand.Connect()
