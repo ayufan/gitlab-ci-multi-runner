@@ -144,7 +144,11 @@ lint:
 
 complexity:
 	# Checking code complexity
-	-@gocyclo -over 9 $(shell find . -name '*.go' | grep -v "/Godeps")
+	-@gocyclo -over 9 $(shell find . -name '*.go' | grep -v \
+	    -e "/Godeps" \
+	    -e "/helpers/shell_escape.go" \
+	    -e "/executors/parallels/" \
+	    -e "/executors/virtualbox/")
 
 test: executors/docker/bindata.go
 	# Running tests...

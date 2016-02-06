@@ -99,6 +99,26 @@ func (e *AbstractExecutor) readTrace(pipe *io.PipeReader) {
 	pipe.Close()
 }
 
+func (e *AbstractExecutor) uploadTrace(config *common.RunnerConfig, lastSentTrace *int, lastSentTime *time.Time) bool {
+	// check if build log changed
+	buildTraceLen := e.Build.BuildLogLen()
+	if buildTraceLen == *lastSentTrace && time.Since(*lastSentTime) < common.ForceTraceSentInterval {
+		e.Debugln("updateBuildLog", "Nothing to send.")
+		return true
+	}
+
+	buildTrace := e.Build.BuildLog()
+	switch e.Build.Network.UpdateBuild(*config, e.Build.ID, common.Running, buildTrace) {
+	case common.UpdateSucceeded:
+		*lastSentTrace = buildTraceLen
+		*lastSentTime = time.Now()
+
+	case common.UpdateAbort:
+		return false
+	}
+	return true
+}
+
 func (e *AbstractExecutor) updateTrace(config common.RunnerConfig, canceled chan bool, finished chan bool) {
 	defer e.Debugln("PushTrace finished")
 
@@ -114,27 +134,14 @@ func (e *AbstractExecutor) updateTrace(config common.RunnerConfig, canceled chan
 	for {
 		select {
 		case <-time.After(common.UpdateInterval):
-			// check if build log changed
-			buildTraceLen := e.Build.BuildLogLen()
-			if buildTraceLen == lastSentTrace && time.Since(lastSentTime) < common.ForceTraceSentInterval {
-				e.Debugln("updateBuildLog", "Nothing to send.")
-				continue
-			}
-
-			buildTrace := e.Build.BuildLog()
-			switch e.Build.Network.UpdateBuild(config, e.Build.ID, common.Running, buildTrace) {
-			case common.UpdateSucceeded:
-				lastSentTrace = buildTraceLen
-				lastSentTime = time.Now()
-
-			case common.UpdateAbort:
+			aborted := e.uploadTrace(&config, &lastSentTrace, &lastSentTime)
+			if aborted {
 				e.Debugln("updateBuildLog", "Sending abort request...")
 				canceled <- true
 				e.Debugln("updateBuildLog", "Waiting for finished flag...")
 				<-finished
 				e.Debugln("updateBuildLog", "Thread finished.")
 				return
-			case common.UpdateFailed:
 			}
 
 		case <-finished:

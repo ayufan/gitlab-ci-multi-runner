@@ -4,10 +4,39 @@ import (
 	"bytes"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
+"github.com/fsouza/go-dockerclient"
 )
 
 type DockerCommandExecutor struct {
 	DockerExecutor
+}
+
+func (s *DockerCommandExecutor) watchContainers(preContainer, buildContainer, postContainer *docker.Container) {
+	s.Println()
+
+	err := s.watchContainer(preContainer, bytes.NewBufferString(s.BuildScript.PreScript))
+	if err != nil {
+		s.BuildFinish <- err
+		return
+	}
+
+	s.Println()
+
+	err = s.watchContainer(buildContainer, bytes.NewBufferString(s.BuildScript.BuildScript))
+	if err != nil {
+		s.BuildFinish <- err
+		return
+	}
+
+	s.Println()
+
+	err = s.watchContainer(postContainer, bytes.NewBufferString(s.BuildScript.PostScript))
+	if err != nil {
+		s.BuildFinish <- err
+		return
+	}
+
+	s.BuildFinish <- nil
 }
 
 func (s *DockerCommandExecutor) Start() error {
@@ -47,34 +76,7 @@ func (s *DockerCommandExecutor) Start() error {
 	}
 
 	// Wait for process to exit
-	go func() {
-		s.Println()
-
-		err = s.watchContainer(preContainer, bytes.NewBufferString(s.BuildScript.PreScript))
-		if err != nil {
-			s.BuildFinish <- err
-			return
-		}
-
-		s.Println()
-
-		err = s.watchContainer(buildContainer, bytes.NewBufferString(s.BuildScript.BuildScript))
-		if err != nil {
-			s.BuildFinish <- err
-			return
-		}
-
-		s.Println()
-
-		err = s.watchContainer(postContainer, bytes.NewBufferString(s.BuildScript.PostScript))
-		if err != nil {
-			s.BuildFinish <- err
-			return
-		}
-
-		s.BuildFinish <- nil
-	}()
-
+	go s.watchContainers(preContainer, buildContainer, postContainer)
 	return nil
 }
 

@@ -67,22 +67,7 @@ func (s *DockerExecutor) getAuthConfig(imageName string) (docker.AuthConfigurati
 	return docker.AuthConfiguration{}, fmt.Errorf("No credentials found for %v", indexName)
 }
 
-func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error) {
-	s.Debugln("Looking for image", imageName, "...")
-	image, err := s.client.InspectImage(imageName)
-	if err == nil {
-		// Don't pull image that is passed by ID
-		if image.ID == imageName {
-			return image, nil
-		}
-		if s.Config.Docker.ImageTTL == 0 {
-			return image, nil
-		}
-		if !pulledImageCache.isExpired(imageName) {
-			return image, nil
-		}
-	}
-
+func (s *DockerExecutor) pullDockerImage(imageName string) (*docker.Image, error) {
 	s.Println("Pulling docker image", imageName, "...")
 	authConfig, err := s.getAuthConfig(imageName)
 	if err != nil {
@@ -100,18 +85,36 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 
 	err = s.client.PullImage(pullImageOptions, authConfig)
 	if err != nil {
+		return nil, err
+	}
+
+	image, err := s.client.InspectImage(imageName)
+	return image, err
+}
+
+func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error) {
+	s.Debugln("Looking for image", imageName, "...")
+	image, err := s.client.InspectImage(imageName)
+	if err == nil {
+		// Don't pull image that is passed by ID
+		if image.ID == imageName {
+			return image, nil
+		}
+		if s.Config.Docker.ImageTTL == 0 {
+			return image, nil
+		}
+		if !pulledImageCache.isExpired(imageName) {
+			return image, nil
+		}
+	}
+
+	newImage, err := s.pullDockerImage(imageName)
+	if err != nil {
 		if image != nil {
 			s.Warningln("Cannot pull the latest version of image", imageName, ":", err)
 			s.Warningln("Locally found image will be used instead.")
 			return image, nil
-		} else {
-			return nil, err
 		}
-	}
-
-	image, err = s.client.InspectImage(imageName)
-	if err != nil {
-		return nil, err
 	}
 
 	imageTTL := s.Config.Docker.ImageTTL
@@ -119,8 +122,8 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 		imageTTL = dockerImageTTL
 	}
 
-	pulledImageCache.mark(imageName, image.ID, imageTTL)
-	return image, nil
+	pulledImageCache.mark(imageName, newImage.ID, imageTTL)
+	return newImage, nil
 }
 
 func (s *DockerExecutor) getPrebuiltImage(imageType string) (image *docker.Image, err error) {
@@ -422,6 +425,40 @@ func (s *DockerExecutor) getServiceNames() ([]string, error) {
 	return services, nil
 }
 
+func (s *DockerExecutor) waitForServices() {
+	waitForServicesTimeout := s.Config.Docker.WaitForServicesTimeout
+	if waitForServicesTimeout == 0 {
+		waitForServicesTimeout = common.DefaultWaitForServicesTimeout
+	}
+
+	// wait for all services to came up
+	if waitForServicesTimeout > 0 && len(s.services) > 0 {
+		s.Println("Waiting for services to be up and running...")
+		wg := sync.WaitGroup{}
+		for _, service := range s.services {
+			wg.Add(1)
+			go func(service *docker.Container) {
+				s.waitForServiceContainer(service, time.Duration(waitForServicesTimeout)*time.Second)
+				wg.Done()
+			}(service)
+		}
+		wg.Wait()
+	}
+}
+
+func (s *DockerExecutor) buildServiceLinks(linksMap map[string]*docker.Container) (links[]string) {
+	for linkName, container := range linksMap {
+		newContainer, err := s.client.InspectContainer(container.ID)
+		if err != nil {
+			continue
+		}
+		if newContainer.State.Running {
+			links = append(links, container.ID+":"+linkName)
+		}
+	}
+	return
+}
+
 func (s *DockerExecutor) createServices() ([]string, error) {
 	serviceNames, err := s.getServiceNames()
 	if err != nil {
@@ -447,36 +484,9 @@ func (s *DockerExecutor) createServices() ([]string, error) {
 		s.services = append(s.services, container)
 	}
 
-	waitForServicesTimeout := s.Config.Docker.WaitForServicesTimeout
-	if waitForServicesTimeout == 0 {
-		waitForServicesTimeout = common.DefaultWaitForServicesTimeout
-	}
+	s.waitForServices()
 
-	// wait for all services to came up
-	if waitForServicesTimeout > 0 && len(s.services) > 0 {
-		s.Println("Waiting for services to be up and running...")
-		wg := sync.WaitGroup{}
-		for _, service := range s.services {
-			wg.Add(1)
-			go func(service *docker.Container) {
-				s.waitForServiceContainer(service, time.Duration(waitForServicesTimeout)*time.Second)
-				wg.Done()
-			}(service)
-		}
-		wg.Wait()
-	}
-
-	var links []string
-	for linkName, container := range linksMap {
-		newContainer, err := s.client.InspectContainer(container.ID)
-		if err != nil {
-			continue
-		}
-		if newContainer.State.Running {
-			links = append(links, container.ID+":"+linkName)
-		}
-	}
-
+	links := s.buildServiceLinks(linksMap)
 	return links, nil
 }
 
