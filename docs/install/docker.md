@@ -130,10 +130,12 @@ Install the `selinux-dockersock` and to resolve the issue: https://github.com/dp
 
 1. Run docker with `:Z` on volumes:
 
+```bash
     docker run -d --name gitlab-runner --restart always \
       -v /var/run/docker.sock:/var/run/docker.sock \
       -v /srv/gitlab-runner/config:/etc/gitlab-runner:Z \
       gitlab/gitlab-runner:latest
+```
       
 More information about the cause and resolution can be found here:
 http://www.projectatomic.io/blog/2015/06/using-volumes-with-docker-can-cause-problems-with-selinux/
