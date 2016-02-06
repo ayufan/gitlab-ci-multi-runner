@@ -144,7 +144,7 @@ lint:
 
 complexity:
 	# Checking code complexity
-	-@gocyclo -over 9 $(shell find . -name '*.go' | grep -v \
+	@gocyclo -over 9 $(shell find . -name '*.go' | grep -v \
 	    -e "/Godeps" \
 	    -e "/helpers/shell_escape.go" \
 	    -e "/executors/parallels/" \
