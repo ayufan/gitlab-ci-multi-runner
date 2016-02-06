@@ -60,6 +60,7 @@ func main() {
 		},
 	}
 	cli_helpers.SetupLogLevelOptions(app)
+	cli_helpers.SetupCpuProfile(app)
 	app.Commands = common.GetCommands()
 	app.CommandNotFound = func(context *cli.Context, command string) {
 		logrus.Fatalln("Command", command, "not found.")
