@@ -40,8 +40,8 @@ func (s *DockerExecutor) getServiceVariables() []string {
 
 func (s *DockerExecutor) getAuthConfig(imageName string) (docker.AuthConfiguration, error) {
 	user, err := u.Current()
-	if s.Shell.User != nil {
-		user, err = u.Lookup(*s.Shell.User)
+	if s.Shell.User != "" {
+		user, err = u.Lookup(s.Shell.User)
 	}
 	if err != nil {
 		return docker.AuthConfiguration{}, err
@@ -75,7 +75,7 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 		if image.ID == imageName {
 			return image, nil
 		}
-		if imageTTL := s.Config.Docker.ImageTTL; imageTTL != nil && *imageTTL == 0 {
+		if s.Config.Docker.ImageTTL == 0 {
 			return image, nil
 		}
 		if !pulledImageCache.isExpired(imageName) {
@@ -114,9 +114,9 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 		return nil, err
 	}
 
-	imageTTL := dockerImageTTL
-	if s.Config.Docker.ImageTTL != nil {
-		imageTTL = *s.Config.Docker.ImageTTL
+	imageTTL := s.Config.Docker.ImageTTL
+	if imageTTL == 0 {
+		imageTTL = dockerImageTTL
 	}
 
 	pulledImageCache.mark(imageName, image.ID, imageTTL)
@@ -245,7 +245,7 @@ func (s *DockerExecutor) addCacheVolume(binds, volumesFrom *[]string, containerP
 	containerPath = s.getAbsoluteContainerPath(containerPath)
 
 	// disable cache for automatic container cache, but leave it for host volumes (they are shared on purpose)
-	if helpers.BoolOrDefault(s.Config.Docker.DisableCache, false) {
+	if s.Config.Docker.DisableCache {
 		s.Debugln("Container cache for", containerPath, " is disabled.")
 		return nil
 	}
@@ -253,7 +253,7 @@ func (s *DockerExecutor) addCacheVolume(binds, volumesFrom *[]string, containerP
 	hash := md5.Sum([]byte(containerPath))
 
 	// use host-based cache
-	if cacheDir := helpers.StringOrDefault(s.Config.Docker.CacheDir, ""); cacheDir != "" {
+	if cacheDir := s.Config.Docker.CacheDir; cacheDir != "" {
 		hostPath := fmt.Sprintf("%s/%s/%x", cacheDir, s.Build.ProjectUniqueName(), hash)
 		hostPath, err := filepath.Abs(hostPath)
 		if err != nil {
@@ -319,7 +319,7 @@ func (s *DockerExecutor) createVolumes() ([]string, []string, error) {
 
 	// Caching is supported only for absolute and non-root paths
 	if path.IsAbs(parentDir) && parentDir != "/" {
-		if s.Build.AllowGitFetch && !helpers.BoolOrDefault(s.Config.Docker.DisableCache, false) {
+		if s.Build.AllowGitFetch && !s.Config.Docker.DisableCache {
 			// create persistent cache container
 			s.addVolume(&binds, &volumesFrom, parentDir)
 		} else {
@@ -448,9 +448,9 @@ func (s *DockerExecutor) createServices() ([]string, error) {
 		s.services = append(s.services, container)
 	}
 
-	waitForServicesTimeout := common.DefaultWaitForServicesTimeout
-	if s.Config.Docker.WaitForServicesTimeout != nil {
-		waitForServicesTimeout = *s.Config.Docker.WaitForServicesTimeout
+	waitForServicesTimeout := s.Config.Docker.WaitForServicesTimeout
+	if waitForServicesTimeout == 0 {
+		waitForServicesTimeout = common.DefaultWaitForServicesTimeout
 	}
 
 	// wait for all services to came up
@@ -479,48 +479,6 @@ func (s *DockerExecutor) createServices() ([]string, error) {
 	}
 
 	return links, nil
-}
-
-func (s *DockerExecutor) connect() (*docker.Client, error) {
-	endpoint := "unix:///var/run/docker.sock"
-	tlsVerify := false
-	tlsCertPath := ""
-
-	if host := helpers.StringOrDefault(s.Config.Docker.Host, ""); host != "" {
-		// read docker config from config
-		endpoint = host
-		if s.Config.Docker.CertPath != nil {
-			tlsVerify = true
-			tlsCertPath = *s.Config.Docker.CertPath
-		}
-	} else if host := os.Getenv("DOCKER_HOST"); host != "" {
-		// read docker config from environment
-		endpoint = host
-		tlsVerify, _ = strconv.ParseBool(os.Getenv("DOCKER_TLS_VERIFY"))
-		tlsCertPath = os.Getenv("DOCKER_CERT_PATH")
-	}
-
-	if tlsVerify {
-		client, err := docker.NewVersionnedTLSClient(
-			endpoint,
-			filepath.Join(tlsCertPath, "cert.pem"),
-			filepath.Join(tlsCertPath, "key.pem"),
-			filepath.Join(tlsCertPath, "ca.pem"),
-			dockerAPIVersion,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		return client, nil
-	} else {
-		client, err := docker.NewVersionedClient(endpoint, dockerAPIVersion)
-		if err != nil {
-			return nil, err
-		}
-
-		return client, nil
-	}
 }
 
 func (s *DockerExecutor) prepareBuildContainer() (options *docker.CreateContainerOptions, err error) {
@@ -560,14 +518,18 @@ func (s *DockerExecutor) prepareBuildContainer() (options *docker.CreateContaine
 }
 
 func (s *DockerExecutor) createContainer(containerType, imageName string, cmd []string, options docker.CreateContainerOptions) (container *docker.Container, err error) {
-	hostname := helpers.StringOrDefault(s.Config.Docker.Hostname, s.Build.ProjectUniqueName())
-	containerName := s.Build.ProjectUniqueName() + "-" + containerType
-
 	// Fetch image
 	image, err := s.getDockerImage(imageName)
 	if err != nil {
 		return nil, err
 	}
+
+	hostname := s.Config.Docker.Hostname
+	if hostname == "" {
+		hostname = s.Build.ProjectUniqueName()
+	}
+
+	containerName := s.Build.ProjectUniqueName() + "-" + containerType
 
 	// Fill container options
 	options.Name = containerName

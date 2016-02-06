@@ -261,38 +261,52 @@ func lexArrayTableEnd(lx *lexer) stateFn {
 }
 
 func lexTableNameStart(lx *lexer) stateFn {
-	switch lx.next() {
-	case tableEnd, eof:
-		return lx.errorf("Unexpected end of table. (Tables cannot " +
+	switch r := lx.peek(); {
+	case r == tableEnd || r == eof:
+		return lx.errorf("Unexpected end of table name. (Table names cannot " +
 			"be empty.)")
-	case tableSep:
-		return lx.errorf("Unexpected table separator. (Tables cannot " +
+	case r == tableSep:
+		return lx.errorf("Unexpected table separator. (Table names cannot " +
 			"be empty.)")
+	case r == stringStart || r == rawStringStart:
+		lx.ignore()
+		lx.push(lexTableNameEnd)
+		return lexValue // reuse string lexing
+	default:
+		return lexBareTableName
 	}
-	return lexTableName
 }
 
 // lexTableName lexes the name of a table. It assumes that at least one
 // valid character for the table has already been read.
-func lexTableName(lx *lexer) stateFn {
-	switch lx.peek() {
-	case eof:
-		return lx.errorf("Unexpected end of table name %q.", lx.current())
-	case tableStart:
-		return lx.errorf("Table names cannot contain %q or %q.",
-			tableStart, tableEnd)
-	case tableEnd:
-		lx.emit(itemText)
-		lx.next()
-		return lx.pop()
-	case tableSep:
-		lx.emit(itemText)
-		lx.next()
+func lexBareTableName(lx *lexer) stateFn {
+	switch r := lx.next(); {
+	case isBareKeyChar(r):
+		return lexBareTableName
+	case r == tableSep || r == tableEnd:
+		lx.backup()
+		lx.emitTrim(itemText)
+		return lexTableNameEnd
+	default:
+		return lx.errorf("Bare keys cannot contain %q.", r)
+	}
+}
+
+// lexTableNameEnd reads the end of a piece of a table name, optionally
+// consuming whitespace.
+func lexTableNameEnd(lx *lexer) stateFn {
+	switch r := lx.next(); {
+	case isWhitespace(r):
+		return lexTableNameEnd
+	case r == tableSep:
 		lx.ignore()
 		return lexTableNameStart
+	case r == tableEnd:
+		return lx.pop()
+	default:
+		return lx.errorf("Expected '.' or ']' to end table name, but got %q "+
+			"instead.", r)
 	}
-	lx.next()
-	return lexTableName
 }
 
 // lexKeyStart consumes a key name up until the first non-whitespace character.
@@ -305,53 +319,48 @@ func lexKeyStart(lx *lexer) stateFn {
 	case isWhitespace(r) || isNL(r):
 		lx.next()
 		return lexSkip(lx, lexKeyStart)
+	case r == stringStart || r == rawStringStart:
+		lx.ignore()
+		lx.emit(itemKeyStart)
+		lx.push(lexKeyEnd)
+		return lexValue // reuse string lexing
+	default:
+		lx.ignore()
+		lx.emit(itemKeyStart)
+		return lexBareKey
 	}
-
-	lx.ignore()
-	lx.emit(itemKeyStart)
-	lx.next()
-	return lexKey
 }
 
-// lexKey consumes the text of a key. Assumes that the first character (which
-// is not whitespace) has already been consumed.
-func lexKey(lx *lexer) stateFn {
-	r := lx.peek()
-
-	// Keys cannot contain a '#' character.
-	if r == commentStart {
-		return lx.errorf("Key cannot contain a '#' character.")
-	}
-
-	// XXX: Possible divergence from spec?
-	// "Keys start with the first non-whitespace character and end with the
-	// last non-whitespace character before the equals sign."
-	// Note here that whitespace is either a tab or a space.
-	// But we'll call it quits if we see a new line too.
-	if isNL(r) {
+// lexBareKey consumes the text of a bare key. Assumes that the first character
+// (which is not whitespace) has not yet been consumed.
+func lexBareKey(lx *lexer) stateFn {
+	switch r := lx.next(); {
+	case isBareKeyChar(r):
+		return lexBareKey
+	case isWhitespace(r):
 		lx.emitTrim(itemText)
 		return lexKeyEnd
-	}
-
-	// Let's also call it quits if we see an equals sign.
-	if r == keySep {
+	case r == keySep:
+		lx.backup()
 		lx.emitTrim(itemText)
 		return lexKeyEnd
+	default:
+		return lx.errorf("Bare keys cannot contain %q.", r)
 	}
-
-	lx.next()
-	return lexKey
 }
 
-// lexKeyEnd consumes the end of a key (up to the key separator).
-// Assumes that any whitespace after a key has been consumed.
+// lexKeyEnd consumes the end of a key and trims whitespace (up to the key
+// separator).
 func lexKeyEnd(lx *lexer) stateFn {
-	r := lx.next()
-	if r == keySep {
+	switch r := lx.next(); {
+	case r == keySep:
 		return lexSkip(lx, lexValue)
+	case isWhitespace(r):
+		return lexSkip(lx, lexKeyEnd)
+	default:
+		return lx.errorf("Expected key separator %q, but got %q instead.",
+			keySep, r)
 	}
-	return lx.errorf("Expected key separator %q, but got %q instead.",
-		keySep, r)
 }
 
 // lexValue starts the consumption of a value anywhere a value is expected.
@@ -359,7 +368,8 @@ func lexKeyEnd(lx *lexer) stateFn {
 // After a value is lexed, the last state on the next is popped and returned.
 func lexValue(lx *lexer) stateFn {
 	// We allow whitespace to precede a value, but NOT new lines.
-	// In array syntax, the array states are responsible for ignoring new lines.
+	// In array syntax, the array states are responsible for ignoring new
+	// lines.
 	r := lx.next()
 	if isWhitespace(r) {
 		return lexSkip(lx, lexValue)
@@ -376,10 +386,8 @@ func lexValue(lx *lexer) stateFn {
 				lx.ignore() // Ignore """
 				return lexMultilineString
 			}
-
 			lx.backup()
 		}
-
 		lx.ignore() // ignore the '"'
 		return lexString
 	case r == rawStringStart:
@@ -388,10 +396,8 @@ func lexValue(lx *lexer) stateFn {
 				lx.ignore() // Ignore """
 				return lexMultilineRawString
 			}
-
 			lx.backup()
 		}
-
 		lx.ignore() // ignore the "'"
 		return lexRawString
 	case r == 't':
@@ -467,6 +473,7 @@ func lexString(lx *lexer) stateFn {
 	case isNL(r):
 		return lx.errorf("Strings cannot contain new lines.")
 	case r == '\\':
+		lx.push(lexString)
 		return lexStringEscape
 	case r == stringEnd:
 		lx.backup()
@@ -476,77 +483,6 @@ func lexString(lx *lexer) stateFn {
 		return lx.pop()
 	}
 	return lexString
-}
-
-// lexStringEscape consumes an escaped character. It assumes that the preceding
-// '\\' has already been consumed.
-func lexStringEscape(lx *lexer) stateFn {
-	return lexStringEscapeHandler(lx, lexString, lexStringUnicode)
-}
-
-// lexMultilineStringEscape consumes an escaped character. It assumes that the
-// preceding '\\' has already been consumed.
-func lexMultilineStringEscape(lx *lexer) stateFn {
-	// Handle the special case first:
-	if isNL(lx.next()) {
-		lx.next()
-		return lexMultilineString
-	} else {
-		lx.backup()
-		return lexStringEscapeHandler(lx, lexMultilineString, lexMultilineStringUnicode)
-	}
-}
-
-func lexStringEscapeHandler(lx *lexer, stringFn stateFn, unicodeFn stateFn) stateFn {
-	r := lx.next()
-	switch r {
-	case 'b':
-		fallthrough
-	case 't':
-		fallthrough
-	case 'n':
-		fallthrough
-	case 'f':
-		fallthrough
-	case 'r':
-		fallthrough
-	case '"':
-		fallthrough
-	case '/':
-		fallthrough
-	case '\\':
-		return stringFn
-	case 'u':
-		return unicodeFn
-	}
-	return lx.errorf("Invalid escape character %q. Only the following "+
-		"escape characters are allowed: "+
-		"\\b, \\t, \\n, \\f, \\r, \\\", \\/, \\\\, and \\uXXXX.", r)
-}
-
-// lexStringUnicode consumes four hexadecimal digits following '\u'. It assumes
-// that the '\u' has already been consumed.
-func lexStringUnicode(lx *lexer) stateFn {
-	return lexStringUnicodeHandler(lx, lexString)
-}
-
-// lexMultilineStringUnicode consumes four hexadecimal digits following '\u'.
-// It assumes that the '\u' has already been consumed.
-func lexMultilineStringUnicode(lx *lexer) stateFn {
-	return lexStringUnicodeHandler(lx, lexMultilineString)
-}
-
-func lexStringUnicodeHandler(lx *lexer, nextFunc stateFn) stateFn {
-	var r rune
-
-	for i := 0; i < 4; i++ {
-		r = lx.next()
-		if !isHexadecimal(r) {
-			return lx.errorf("Expected four hexadecimal digits after '\\x', "+
-				"but got '%s' instead.", lx.current())
-		}
-	}
-	return nextFunc
 }
 
 // lexMultilineString consumes the inner contents of a string. It assumes that
@@ -569,7 +505,6 @@ func lexMultilineString(lx *lexer) stateFn {
 				lx.ignore()
 				return lx.pop()
 			}
-
 			lx.backup()
 		}
 	}
@@ -612,15 +547,80 @@ func lexMultilineRawString(lx *lexer) stateFn {
 				lx.ignore()
 				return lx.pop()
 			}
-
 			lx.backup()
 		}
 	}
 	return lexMultilineRawString
 }
 
-// lexNumberOrDateStart consumes either a (positive) integer, float or datetime.
-// It assumes that NO negative sign has been consumed.
+// lexMultilineStringEscape consumes an escaped character. It assumes that the
+// preceding '\\' has already been consumed.
+func lexMultilineStringEscape(lx *lexer) stateFn {
+	// Handle the special case first:
+	if isNL(lx.next()) {
+		lx.next()
+		return lexMultilineString
+	} else {
+		lx.backup()
+		lx.push(lexMultilineString)
+		return lexStringEscape(lx)
+	}
+}
+
+func lexStringEscape(lx *lexer) stateFn {
+	r := lx.next()
+	switch r {
+	case 'b':
+		fallthrough
+	case 't':
+		fallthrough
+	case 'n':
+		fallthrough
+	case 'f':
+		fallthrough
+	case 'r':
+		fallthrough
+	case '"':
+		fallthrough
+	case '\\':
+		return lx.pop()
+	case 'u':
+		return lexShortUnicodeEscape
+	case 'U':
+		return lexLongUnicodeEscape
+	}
+	return lx.errorf("Invalid escape character %q. Only the following "+
+		"escape characters are allowed: "+
+		"\\b, \\t, \\n, \\f, \\r, \\\", \\/, \\\\, "+
+		"\\uXXXX and \\UXXXXXXXX.", r)
+}
+
+func lexShortUnicodeEscape(lx *lexer) stateFn {
+	var r rune
+	for i := 0; i < 4; i++ {
+		r = lx.next()
+		if !isHexadecimal(r) {
+			return lx.errorf("Expected four hexadecimal digits after '\\u', "+
+				"but got '%s' instead.", lx.current())
+		}
+	}
+	return lx.pop()
+}
+
+func lexLongUnicodeEscape(lx *lexer) stateFn {
+	var r rune
+	for i := 0; i < 8; i++ {
+		r = lx.next()
+		if !isHexadecimal(r) {
+			return lx.errorf("Expected eight hexadecimal digits after '\\U', "+
+				"but got '%s' instead.", lx.current())
+		}
+	}
+	return lx.pop()
+}
+
+// lexNumberOrDateStart consumes either a (positive) integer, float or
+// datetime. It assumes that NO negative sign has been consumed.
 func lexNumberOrDateStart(lx *lexer) stateFn {
 	r := lx.next()
 	if !isDigit(r) {
@@ -680,9 +680,10 @@ func lexDateAfterYear(lx *lexer) stateFn {
 	return lx.pop()
 }
 
-// lexNumberStart consumes either an integer or a float. It assumes that a
-// negative sign has already been read, but that *no* digits have been consumed.
-// lexNumberStart will move to the appropriate integer or float states.
+// lexNumberStart consumes either an integer or a float. It assumes that
+// a negative sign has already been read, but that *no* digits have been
+// consumed. lexNumberStart will move to the appropriate integer or float
+// states.
 func lexNumberStart(lx *lexer) stateFn {
 	// we MUST see a digit. Even floats have to start with a digit.
 	r := lx.next()
@@ -814,6 +815,14 @@ func isHexadecimal(r rune) bool {
 	return (r >= '0' && r <= '9') ||
 		(r >= 'a' && r <= 'f') ||
 		(r >= 'A' && r <= 'F')
+}
+
+func isBareKeyChar(r rune) bool {
+	return (r >= 'A' && r <= 'Z') ||
+		(r >= 'a' && r <= 'z') ||
+		(r >= '0' && r <= '9') ||
+		r == '_' ||
+		r == '-'
 }
 
 func (itype itemType) String() string {

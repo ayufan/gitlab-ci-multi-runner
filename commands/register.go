@@ -10,7 +10,6 @@ import (
 	"github.com/codegangsta/cli"
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/ssh"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/network"
 )
@@ -105,24 +104,14 @@ func (s *RegisterCommand) askVirtualBox() {
 }
 
 func (s *RegisterCommand) askSSHServer() {
-	if host := s.ask("ssh-host", "Please enter the SSH server address (eg. my.server.com):"); host != "" {
-		s.SSH.Host = &host
-	}
-	if port := s.ask("ssh-port", "Please enter the SSH server port (eg. 22):", true); port != "" {
-		s.SSH.Port = &port
-	}
+	s.SSH.Host = s.ask("ssh-host", "Please enter the SSH server address (eg. my.server.com):")
+	s.SSH.Port = s.ask("ssh-port", "Please enter the SSH server port (eg. 22):", true)
 }
 
 func (s *RegisterCommand) askSSHLogin() {
-	if user := s.ask("ssh-user", "Please enter the SSH user (eg. root):"); user != "" {
-		s.SSH.User = &user
-	}
-	if password := s.ask("ssh-password", "Please enter the SSH password (eg. docker.io):", true); password != "" {
-		s.SSH.Password = &password
-	}
-	if identityFile := s.ask("ssh-identity-file", "Please enter path to SSH identity file (eg. /home/user/.ssh/id_rsa):", true); identityFile != "" {
-		s.SSH.IdentityFile = &identityFile
-	}
+	s.SSH.User = s.ask("ssh-user", "Please enter the SSH user (eg. root):")
+	s.SSH.Password = s.ask("ssh-password", "Please enter the SSH password (eg. docker.io):", true)
+	s.SSH.IdentityFile = s.ask("ssh-identity-file", "Please enter path to SSH identity file (eg. /home/user/.ssh/id_rsa):", true)
 }
 
 func (s *RegisterCommand) addRunner(runner *common.RunnerConfig) {
@@ -188,8 +177,8 @@ func (c *RegisterCommand) Execute(context *cli.Context) {
 
 	c.askExecutor()
 
-	if limit := helpers.NonZeroOrDefault(c.Limit, 0); c.config.Concurrent < limit {
-		log.Warningf("Specified limit (%d) larger then current concurrent limit (%d). Concurrent limit will not be enlarged.", limit, c.config.Concurrent)
+	if c.config.Concurrent < c.Limit {
+		log.Warningf("Specified limit (%d) larger then current concurrent limit (%d). Concurrent limit will not be enlarged.", c.Limit, c.config.Concurrent)
 	}
 
 	switch c.Executor {

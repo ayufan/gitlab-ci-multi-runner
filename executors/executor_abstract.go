@@ -7,7 +7,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
 )
 
@@ -35,7 +34,9 @@ type AbstractExecutor struct {
 func (e *AbstractExecutor) updateShell() error {
 	script := &e.Shell
 	script.Build = e.Build
-	script.Shell = helpers.StringOrDefault(e.Config.Shell, script.Shell)
+	if e.Config.Shell != "" {
+		script.Shell = e.Config.Shell
+	}
 	return nil
 }
 
@@ -67,8 +68,14 @@ func (e *AbstractExecutor) startBuild() error {
 	}
 
 	// Start actual build
-	rootDir := helpers.StringOrDefault(e.Config.BuildsDir, e.DefaultBuildsDir)
-	cacheDir := helpers.StringOrDefault(e.Config.CacheDir, e.DefaultCacheDir)
+	rootDir := e.Config.BuildsDir
+	if rootDir == "" {
+		rootDir = e.DefaultBuildsDir
+	}
+	cacheDir := e.Config.CacheDir
+	if cacheDir == "" {
+		cacheDir = e.DefaultCacheDir
+	}
 	e.Build.StartBuild(rootDir, cacheDir, e.SharedBuildsDir)
 	return nil
 }

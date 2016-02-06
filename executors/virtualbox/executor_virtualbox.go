@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/ssh"
 	vbox "gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/virtualbox"
 	"time"
@@ -33,9 +32,8 @@ func (s *VirtualBoxExecutor) verifyMachine(vmName string, sshPort string) error 
 		Stderr:         s.BuildLog,
 		ConnectRetries: 30,
 	}
-	host := `localhost`
-	sshCommand.Port = &sshPort
-	sshCommand.Host = &host
+	sshCommand.Port = sshPort
+	sshCommand.Host = "localhost"
 
 	s.Debugln("Connecting to SSH...")
 	err := sshCommand.Connect()
@@ -82,7 +80,10 @@ func (s *VirtualBoxExecutor) createVM(vmName string) error {
 	}
 
 	s.Debugln("Creating localhost ssh forwarding...")
-	vmSSHPort := helpers.StringOrDefault(s.Config.SSH.Port, "22")
+	vmSSHPort := s.Config.SSH.Port
+	if vmSSHPort == "" {
+		vmSSHPort = "22"
+	}
 	err := vbox.ConfigureSSH(vmName, vmSSHPort)
 	if err != nil {
 		return err
@@ -145,7 +146,7 @@ func (s *VirtualBoxExecutor) Prepare(globalConfig *common.Config, config *common
 		vbox.Unregister(s.vmName)
 	}
 
-	if helpers.BoolOrDefault(s.Config.VirtualBox.DisableSnapshots, false) {
+	if s.Config.VirtualBox.DisableSnapshots {
 		s.vmName = s.Config.VirtualBox.BaseName + "-" + s.Build.ProjectUniqueName()
 		if vbox.Exist(s.vmName) {
 			s.Debugln("Deleting old VM...")
@@ -178,7 +179,7 @@ func (s *VirtualBoxExecutor) Prepare(globalConfig *common.Config, config *common
 			return err
 		}
 
-		if !helpers.BoolOrDefault(s.Config.VirtualBox.DisableSnapshots, false) {
+		if !s.Config.VirtualBox.DisableSnapshots {
 			s.Println("Creating default snapshot...")
 			err = vbox.CreateSnapshot(s.vmName, "Started")
 			if err != nil {
@@ -237,9 +238,8 @@ func (s *VirtualBoxExecutor) Start() error {
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,
 	}
-	host := `localhost`
-	s.sshCommand.Port = &s.sshPort
-	s.sshCommand.Host = &host
+	s.sshCommand.Port = s.sshPort
+	s.sshCommand.Host = "localhost"
 
 	s.Debugln("Connecting to SSH server...")
 	err := s.sshCommand.Connect()
@@ -263,7 +263,7 @@ func (s *VirtualBoxExecutor) Cleanup() {
 	if s.vmName != "" {
 		vbox.Kill(s.vmName)
 
-		if helpers.BoolOrDefault(s.Config.VirtualBox.DisableSnapshots, false) || !s.provisioned {
+		if s.Config.VirtualBox.DisableSnapshots || !s.provisioned {
 			vbox.Delete(s.vmName)
 		}
 	}

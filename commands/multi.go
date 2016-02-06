@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"os/signal"
 	"runtime"
@@ -13,13 +15,9 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"errors"
-	"fmt"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/service"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/network"
-	"math"
 )
 
 type RunnerHealth struct {
@@ -142,8 +140,7 @@ func (mr *RunCommand) requestBuild(runner *common.RunnerConfig) *common.Build {
 	}
 
 	count := mr.buildsForRunner(runner)
-	limit := helpers.NonZeroOrDefault(runner.Limit, math.MaxInt32)
-	if count >= limit {
+	if runner.Limit > 0 && count >= runner.Limit {
 		return nil
 	}
 
@@ -221,7 +218,7 @@ func (mr *RunCommand) loadConfig() error {
 
 	// pass user to execute scripts as specific user
 	if mr.User != "" {
-		mr.config.User = &mr.User
+		mr.config.User = mr.User
 	}
 
 	mr.healthy = nil
