@@ -2,9 +2,9 @@ package docker
 
 import (
 	"bytes"
+	"github.com/fsouza/go-dockerclient"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
-"github.com/fsouza/go-dockerclient"
 )
 
 type DockerCommandExecutor struct {

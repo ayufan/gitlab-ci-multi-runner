@@ -446,7 +446,7 @@ func (s *DockerExecutor) waitForServices() {
 	}
 }
 
-func (s *DockerExecutor) buildServiceLinks(linksMap map[string]*docker.Container) (links[]string) {
+func (s *DockerExecutor) buildServiceLinks(linksMap map[string]*docker.Container) (links []string) {
 	for linkName, container := range linksMap {
 		newContainer, err := s.client.InspectContainer(container.ID)
 		if err != nil {

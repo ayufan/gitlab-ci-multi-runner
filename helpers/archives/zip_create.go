@@ -80,7 +80,6 @@ func createZipEntry(archive *zip.Writer, fileName string) error {
 	default:
 		return createZipFileEntry(archive, fh)
 	}
-	return nil
 }
 
 func CreateZipArchive(w io.Writer, fileNames []string) error {
