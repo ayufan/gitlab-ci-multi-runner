@@ -7,16 +7,18 @@ import (
 	"github.com/codegangsta/cli"
 	"gitlab.com/ayufan/golang-cli-helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/docker"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/parallels"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/shell"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/ssh"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/virtualbox"
 	"gopkg.in/yaml.v1"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
+
+	// Force to load all executors, executes init() on them
+	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/docker"
+	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/parallels"
+	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/shell"
+	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/ssh"
+	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/virtualbox"
 )
 
 type ExecCommand struct {
@@ -47,9 +49,8 @@ func (c *ExecCommand) getCommands(commands interface{}) (string, error) {
 		return text + "\n", nil
 	} else if commands != nil {
 		return "", errors.New("unsupported script")
-	} else {
-		return "", nil
 	}
+	return "", nil
 }
 
 func (c *ExecCommand) supportedOption(key string, _ interface{}) bool {

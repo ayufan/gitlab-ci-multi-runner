@@ -22,7 +22,7 @@ func TestCreateZipExtra(t *testing.T) {
 	data := createZipExtra(fi)
 	assert.NotEmpty(t, data)
 	assert.Len(t, data, binary.Size(&ZipExtraField{})*2+
-		binary.Size(&ZipUidGidField{})+
+		binary.Size(&ZipUIDGidField{})+
 		binary.Size(&ZipTimestampField{}))
 }
 

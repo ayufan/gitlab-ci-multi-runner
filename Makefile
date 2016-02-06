@@ -140,7 +140,7 @@ vet:
 
 lint:
 	# Checking project code style...
-	@golint ./... | grep -v "be unexported"
+	@golint ./... | ( ! grep -v -e "be unexported" -e "don't use an underscore in package name" -e "ALL_CAPS" )
 
 complexity:
 	# Checking code complexity

@@ -9,19 +9,19 @@ import (
 	"time"
 )
 
-const ZipUidGidFieldType = 0x7875
+const ZipUIDGidFieldType = 0x7875
 const ZipTimestampFieldType = 0x5455
 
-// from https://github.com/LuaDist/zip/blob/master/proginfo/extrafld.txt
+// ZipExtraField is taken from https://github.com/LuaDist/zip/blob/master/proginfo/extrafld.txt
 type ZipExtraField struct {
 	Type uint16
 	Size uint16
 }
 
-type ZipUidGidField struct {
+type ZipUIDGidField struct {
 	Version uint8
 	UIDSize uint8
-	Uid     uint32
+	UID     uint32
 	GIDSize uint8
 	Gid     uint32
 }
@@ -69,7 +69,7 @@ func processZipTimestampField(data []byte, file *zip.FileHeader) error {
 
 func createZipExtra(fi os.FileInfo) []byte {
 	var buffer bytes.Buffer
-	err := createZipUidGidField(&buffer, fi)
+	err := createZipUIDGidField(&buffer, fi)
 	if err == nil {
 		err = createZipTimestampField(&buffer, fi)
 	}
@@ -108,8 +108,8 @@ func processZipExtra(file *zip.FileHeader) error {
 		}
 
 		switch field.Type {
-		case ZipUidGidFieldType:
-			err = processZipUidGidField(data, file)
+		case ZipUIDGidFieldType:
+			err = processZipUIDGidField(data, file)
 		case ZipTimestampFieldType:
 			err = processZipTimestampField(data, file)
 		}

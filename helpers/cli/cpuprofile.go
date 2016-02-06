@@ -7,7 +7,7 @@ import (
 	"github.com/codegangsta/cli"
 )
 
-func SetupCpuProfile(app *cli.App) {
+func SetupCPUProfile(app *cli.App) {
 	app.Flags = append(app.Flags, cli.StringFlag{
 		Name:   "cpuprofile",
 		Usage:  "write cpu profile to file",
@@ -28,9 +28,8 @@ func SetupCpuProfile(app *cli.App) {
 
 		if appBefore != nil {
 			return appBefore(c)
-		} else {
-			return nil
 		}
+		return nil
 	}
 
 	app.After = func(c *cli.Context) error {
@@ -38,8 +37,7 @@ func SetupCpuProfile(app *cli.App) {
 
 		if appAfter != nil {
 			return appAfter(c)
-		} else {
-			return nil
 		}
+		return nil
 	}
 }

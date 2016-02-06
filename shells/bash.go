@@ -96,9 +96,8 @@ func (b *BashWriter) RmFile(path string) {
 func (b *BashWriter) Absolute(dir string) string {
 	if filepath.IsAbs(dir) {
 		return dir
-	} else {
-		return path.Join("$PWD", dir)
 	}
+	return path.Join("$PWD", dir)
 }
 
 func (b *BashWriter) Print(format string, arguments ...interface{}) {

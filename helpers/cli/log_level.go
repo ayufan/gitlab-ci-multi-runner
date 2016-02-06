@@ -39,8 +39,7 @@ func SetupLogLevelOptions(app *cli.App) {
 
 		if appBefore != nil {
 			return appBefore(c)
-		} else {
-			return nil
 		}
+		return nil
 	}
 }

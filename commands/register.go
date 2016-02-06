@@ -86,13 +86,13 @@ func (s *RegisterCommand) askExecutor() {
 		s.Executor = s.ask("executor", "Please enter the executor: "+executors+":", true)
 		if common.NewExecutor(s.Executor) != nil {
 			return
+		}
+
+		message := "Invalid executor specified"
+		if s.NonInteractive {
+			log.Panicln(message)
 		} else {
-			message := "Invalid executor specified"
-			if s.NonInteractive {
-				log.Panicln(message)
-			} else {
-				log.Errorln(message)
-			}
+			log.Errorln(message)
 		}
 	}
 }
@@ -153,53 +153,53 @@ func (s *RegisterCommand) askRunner() {
 	}
 }
 
-func (c *RegisterCommand) askExecutorOptions() {
-	switch c.Executor {
+func (s *RegisterCommand) askExecutorOptions() {
+	switch s.Executor {
 	case "docker":
-		c.askDocker()
-		c.SSH = nil
-		c.Parallels = nil
-		c.VirtualBox = nil
+		s.askDocker()
+		s.SSH = nil
+		s.Parallels = nil
+		s.VirtualBox = nil
 	case "docker-ssh":
-		c.askDocker()
-		c.askSSHLogin()
-		c.Parallels = nil
-		c.VirtualBox = nil
+		s.askDocker()
+		s.askSSHLogin()
+		s.Parallels = nil
+		s.VirtualBox = nil
 	case "ssh":
-		c.askSSHServer()
-		c.askSSHLogin()
-		c.Docker = nil
-		c.Parallels = nil
-		c.VirtualBox = nil
+		s.askSSHServer()
+		s.askSSHLogin()
+		s.Docker = nil
+		s.Parallels = nil
+		s.VirtualBox = nil
 	case "parallels":
-		c.askParallels()
-		c.askSSHServer()
-		c.Docker = nil
-		c.VirtualBox = nil
+		s.askParallels()
+		s.askSSHServer()
+		s.Docker = nil
+		s.VirtualBox = nil
 	case "VirtualBox":
-		c.askVirtualBox()
-		c.askSSHLogin()
-		c.Docker = nil
-		c.Parallels = nil
+		s.askVirtualBox()
+		s.askSSHLogin()
+		s.Docker = nil
+		s.Parallels = nil
 	}
 }
 
-func (c *RegisterCommand) Execute(context *cli.Context) {
+func (s *RegisterCommand) Execute(context *cli.Context) {
 	userModeWarning(true)
 
-	c.context = context
-	err := c.loadConfig()
+	s.context = context
+	err := s.loadConfig()
 	if err != nil {
 		log.Panicln(err)
 	}
-	c.askRunner()
+	s.askRunner()
 
-	if !c.LeaveRunner {
+	if !s.LeaveRunner {
 		defer func() {
 			// De-register runner on panic
 			if r := recover(); r != nil {
-				if c.registered {
-					c.network.DeleteRunner(c.RunnerCredentials)
+				if s.registered {
+					s.network.DeleteRunner(s.RunnerCredentials)
 				}
 
 				// pass panic to next defer
@@ -211,21 +211,21 @@ func (c *RegisterCommand) Execute(context *cli.Context) {
 		signal.Notify(signals, os.Interrupt)
 
 		go func() {
-			s := <-signals
-			c.network.DeleteRunner(c.RunnerCredentials)
-			log.Fatalf("RECEIVED SIGNAL: %v", s)
+			signal := <-signals
+			s.network.DeleteRunner(s.RunnerCredentials)
+			log.Fatalf("RECEIVED SIGNAL: %v", signal)
 		}()
 	}
 
-	c.askExecutor()
+	s.askExecutor()
 
-	if c.config.Concurrent < c.Limit {
-		log.Warningf("Specified limit (%d) larger then current concurrent limit (%d). Concurrent limit will not be enlarged.", c.Limit, c.config.Concurrent)
+	if s.config.Concurrent < s.Limit {
+		log.Warningf("Specified limit (%d) larger then current concurrent limit (%d). Concurrent limit will not be enlarged.", s.Limit, s.config.Concurrent)
 	}
 
-	c.askExecutorOptions()
-	c.addRunner(&c.RunnerConfig)
-	c.saveConfig()
+	s.askExecutorOptions()
+	s.addRunner(&s.RunnerConfig)
+	s.saveConfig()
 
 	log.Printf("Runner registered successfully. Feel free to start it, but if it's running already the config should be automatically reloaded!")
 }

@@ -1,4 +1,4 @@
-package commands_helpers
+package helpers
 
 import (
 	"archive/zip"

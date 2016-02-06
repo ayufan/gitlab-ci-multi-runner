@@ -384,20 +384,20 @@ func (mr *RunCommand) Stop(s service.Service) error {
 	}
 }
 
-func (c *RunCommand) Execute(context *cli.Context) {
+func (mr *RunCommand) Execute(context *cli.Context) {
 	svcConfig := &service.Config{
-		Name:        c.ServiceName,
-		DisplayName: c.ServiceName,
+		Name:        mr.ServiceName,
+		DisplayName: mr.ServiceName,
 		Description: defaultDescription,
 		Arguments:   []string{"run"},
 	}
 
-	service, err := service_helpers.New(c, svcConfig)
+	service, err := service_helpers.New(mr, svcConfig)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	if c.Syslog {
+	if mr.Syslog {
 		log.SetFormatter(new(log.TextFormatter))
 		logger, err := service.SystemLogger(nil)
 		if err == nil {

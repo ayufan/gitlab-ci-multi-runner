@@ -68,7 +68,7 @@ func (s *SimpleService) Status() error {
 	return ErrNotSupported
 }
 
-// Opens and returns a system logger. If the user program is running
+// Logger opens and returns a system logger. If the user program is running
 // interactively rather then as a service, the returned logger will write to
 // os.Stderr. If errs is non-nil errors will be sent on errs as well as
 // returned from Logger's functions.

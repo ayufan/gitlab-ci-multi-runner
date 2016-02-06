@@ -12,11 +12,11 @@ import (
 	"testing"
 )
 
-var brokenCredentials RunnerCredentials = RunnerCredentials{
+var brokenCredentials = RunnerCredentials{
 	URL: "broken",
 }
 
-var brokenConfig RunnerConfig = RunnerConfig{
+var brokenConfig = RunnerConfig{
 	RunnerCredentials: brokenCredentials,
 }
 

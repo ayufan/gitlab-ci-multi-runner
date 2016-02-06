@@ -40,12 +40,12 @@ func Connect(c DockerCredentials, apiVersion string) (*docker.Client, error) {
 		}
 
 		return client, nil
-	} else {
-		client, err := docker.NewVersionedClient(endpoint, apiVersion)
-		if err != nil {
-			return nil, err
-		}
-
-		return client, nil
 	}
+
+	client, err := docker.NewVersionedClient(endpoint, apiVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }

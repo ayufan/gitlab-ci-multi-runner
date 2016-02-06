@@ -7,11 +7,11 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 )
 
-type DockerCommandExecutor struct {
-	DockerExecutor
+type commandExecutor struct {
+	executor
 }
 
-func (s *DockerCommandExecutor) watchContainers(preContainer, buildContainer, postContainer *docker.Container) {
+func (s *commandExecutor) watchContainers(preContainer, buildContainer, postContainer *docker.Container) {
 	s.Println()
 
 	err := s.watchContainer(preContainer, bytes.NewBufferString(s.BuildScript.PreScript))
@@ -39,7 +39,7 @@ func (s *DockerCommandExecutor) watchContainers(preContainer, buildContainer, po
 	s.BuildFinish <- nil
 }
 
-func (s *DockerCommandExecutor) Start() error {
+func (s *commandExecutor) Start() error {
 	s.Debugln("Starting Docker command...")
 
 	imageName, err := s.getImageName()
@@ -95,8 +95,8 @@ func init() {
 	}
 
 	creator := func() common.Executor {
-		return &DockerCommandExecutor{
-			DockerExecutor: DockerExecutor{
+		return &commandExecutor{
+			executor: executor{
 				AbstractExecutor: executors.AbstractExecutor{
 					ExecutorOptions: options,
 				},

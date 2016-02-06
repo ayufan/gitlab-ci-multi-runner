@@ -168,10 +168,10 @@ func (b *PsWriter) EmptyLine() {
 func (b *PsWriter) Absolute(dir string) string {
 	if filepath.IsAbs(dir) {
 		return dir
-	} else {
-		b.Line("$CurrentDirectory = (Resolve-Path .\\).Path")
-		return filepath.Join("$CurrentDirectory", dir)
 	}
+
+	b.Line("$CurrentDirectory = (Resolve-Path .\\).Path")
+	return filepath.Join("$CurrentDirectory", dir)
 }
 
 func (b *PowerShell) GetName() string {

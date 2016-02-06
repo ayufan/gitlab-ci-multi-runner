@@ -11,19 +11,6 @@ type TestObj struct {
 	Number int
 }
 
-func TestSimpleJsonMarshalling(t *testing.T) {
-
-	jsonString := ToJson(TestObj{
-		Text:   "example",
-		Number: 25,
-	})
-	expectedJson := "{\"TextJson\":\"example\",\"Number\":25}"
-
-	if jsonString != expectedJson {
-		t.Error("Expected ", expectedJson, ", got ", jsonString)
-	}
-}
-
 func TestSimpleYamlMarshalling(t *testing.T) {
 
 	ymlString := ToYAML(TestObj{

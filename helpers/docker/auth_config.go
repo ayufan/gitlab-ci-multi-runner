@@ -11,7 +11,7 @@ import (
 // IndexName is the name of the index
 const DefaultDockerRegistry = "docker.io"
 
-// splitReposName breaks a reposName into an index name and remote name
+// SplitDockerImageName breaks a reposName into an index name and remote name
 func SplitDockerImageName(reposName string) (string, string) {
 	nameParts := strings.SplitN(reposName, "/", 2)
 	var indexName, remoteName string
@@ -47,7 +47,7 @@ func ReadDockerAuthConfigs(homeDir string) (*docker.AuthConfigurations, error) {
 	return docker.NewAuthConfigurations(r)
 }
 
-// Taken from: https://github.com/docker/docker/blob/master/registry/auth.go
+// ResolveDockerAuthConfig taken from: https://github.com/docker/docker/blob/master/registry/auth.go
 func ResolveDockerAuthConfig(indexName string, configs *docker.AuthConfigurations) *docker.AuthConfiguration {
 	if configs == nil {
 		return nil

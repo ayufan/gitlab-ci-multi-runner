@@ -16,13 +16,13 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 )
 
-type ShellExecutor struct {
+type executor struct {
 	executors.AbstractExecutor
 	cmd       *exec.Cmd
 	scriptDir string
 }
 
-func (s *ShellExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
+func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
 	if globalConfig != nil {
 		s.Shell.User = globalConfig.User
 	}
@@ -55,7 +55,7 @@ func (s *ShellExecutor) Prepare(globalConfig *common.Config, config *common.Runn
 	return nil
 }
 
-func (s *ShellExecutor) Start() error {
+func (s *executor) Start() error {
 	s.Debugln("Starting shell command...")
 
 	// Create execution command
@@ -102,7 +102,7 @@ func (s *ShellExecutor) Start() error {
 	return nil
 }
 
-func (s *ShellExecutor) Cleanup() {
+func (s *executor) Cleanup() {
 	helpers.KillProcessGroup(s.cmd)
 
 	if s.scriptDir != "" {
@@ -132,7 +132,7 @@ func init() {
 	}
 
 	creator := func() common.Executor {
-		return &ShellExecutor{
+		return &executor{
 			AbstractExecutor: executors.AbstractExecutor{
 				ExecutorOptions: options,
 			},

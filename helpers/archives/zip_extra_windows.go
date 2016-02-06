@@ -6,12 +6,12 @@ import (
 	"os"
 )
 
-func createZipUidGidField(w io.Writer, fi os.FileInfo) (err error) {
+func createZipUIDGidField(w io.Writer, fi os.FileInfo) (err error) {
 	// TODO: currently not supported
 	return nil
 }
 
-func processZipUidGidField(data []byte, file *zip.FileHeader) error {
+func processZipUIDGidField(data []byte, file *zip.FileHeader) error {
 	// TODO: currently not supported
 	return nil
 }

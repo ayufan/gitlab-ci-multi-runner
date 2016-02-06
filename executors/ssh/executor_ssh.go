@@ -8,12 +8,12 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/ssh"
 )
 
-type SSHExecutor struct {
+type executor struct {
 	executors.AbstractExecutor
 	sshCommand ssh.Command
 }
 
-func (s *SSHExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
+func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
 	err := s.AbstractExecutor.Prepare(globalConfig, config, build)
 	if err != nil {
 		return err
@@ -26,7 +26,7 @@ func (s *SSHExecutor) Prepare(globalConfig *common.Config, config *common.Runner
 	return nil
 }
 
-func (s *SSHExecutor) Start() error {
+func (s *executor) Start() error {
 	if s.Config.SSH == nil {
 		return errors.New("Missing SSH configuration")
 	}
@@ -59,7 +59,7 @@ func (s *SSHExecutor) Start() error {
 	return nil
 }
 
-func (s *SSHExecutor) Cleanup() {
+func (s *executor) Cleanup() {
 	s.sshCommand.Cleanup()
 	s.AbstractExecutor.Cleanup()
 }
@@ -76,7 +76,7 @@ func init() {
 	}
 
 	creator := func() common.Executor {
-		return &SSHExecutor{
+		return &executor{
 			AbstractExecutor: executors.AbstractExecutor{
 				ExecutorOptions: options,
 			},

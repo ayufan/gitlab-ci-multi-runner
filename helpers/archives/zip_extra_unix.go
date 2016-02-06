@@ -12,19 +12,19 @@ import (
 	"syscall"
 )
 
-func createZipUidGidField(w io.Writer, fi os.FileInfo) (err error) {
+func createZipUIDGidField(w io.Writer, fi os.FileInfo) (err error) {
 	stat, ok := fi.Sys().(*syscall.Stat_t)
 	if !ok {
 		return
 	}
 
-	ugField := ZipUidGidField{
+	ugField := ZipUIDGidField{
 		1,
 		4, stat.Uid,
 		4, stat.Gid,
 	}
 	ugFieldType := ZipExtraField{
-		Type: ZipUidGidFieldType,
+		Type: ZipUIDGidFieldType,
 		Size: uint16(binary.Size(&ugField)),
 	}
 	err = binary.Write(w, binary.LittleEndian, &ugFieldType)
@@ -34,8 +34,8 @@ func createZipUidGidField(w io.Writer, fi os.FileInfo) (err error) {
 	return nil
 }
 
-func processZipUidGidField(data []byte, file *zip.FileHeader) error {
-	var ugField ZipUidGidField
+func processZipUIDGidField(data []byte, file *zip.FileHeader) error {
+	var ugField ZipUIDGidField
 	err := binary.Read(bytes.NewReader(data), binary.LittleEndian, &ugField)
 	if err != nil {
 		return err
@@ -45,5 +45,5 @@ func processZipUidGidField(data []byte, file *zip.FileHeader) error {
 		return errors.New("uid/gid data not supported")
 	}
 
-	return os.Lchown(file.Name, int(ugField.Uid), int(ugField.Gid))
+	return os.Lchown(file.Name, int(ugField.UID), int(ugField.Gid))
 }
