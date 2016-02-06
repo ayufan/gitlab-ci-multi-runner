@@ -90,7 +90,28 @@ func runServiceStatus(displayName string, s service.Service, c *cli.Context) err
 	return nil
 }
 
-func RunServiceControl(c *cli.Context) {
+func getServiceArguments(c *cli.Context, isUserService bool) (arguments []string) {
+	if wd := c.String("working-directory"); wd != "" {
+		arguments = append(arguments, "--working-directory", wd)
+	}
+
+	if config := c.String("config"); config != "" {
+		arguments = append(arguments, "--config", config)
+	}
+
+	if sn := c.String("service"); sn != "" {
+		arguments = append(arguments, "--service", sn)
+	}
+
+	if user := c.String("user"); !isUserService && user != "" {
+		arguments = append(arguments, "--user", user)
+	}
+
+	arguments = append(arguments, "--syslog")
+	return
+}
+
+func createServiceConfig(c *cli.Context) (svcConfig *service.Config) {
 	// detect whether we want to install as user service or system service
 	isUserService := os.Getuid() != 0
 	if runtime.GOOS == "windows" {
@@ -107,13 +128,14 @@ func RunServiceControl(c *cli.Context) {
 		logrus.Fatal("Please run the commands as root")
 	}
 
-	svcConfig := &service.Config{
+	svcConfig = &service.Config{
 		Name:        c.String("service"),
 		DisplayName: c.String("service"),
 		Description: defaultDescription,
 		Arguments:   []string{"run"},
 		UserName:    serviceUserName,
 	}
+	svcConfig.Arguments = append(svcConfig.Arguments, getServiceArguments(c, isUserService)...)
 
 	switch runtime.GOOS {
 	case "darwin":
@@ -129,24 +151,11 @@ func RunServiceControl(c *cli.Context) {
 			"Password": c.String("password"),
 		}
 	}
+	return
+}
 
-	if wd := c.String("working-directory"); wd != "" {
-		svcConfig.Arguments = append(svcConfig.Arguments, "--working-directory", wd)
-	}
-
-	if config := c.String("config"); config != "" {
-		svcConfig.Arguments = append(svcConfig.Arguments, "--config", config)
-	}
-
-	if sn := c.String("service"); sn != "" {
-		svcConfig.Arguments = append(svcConfig.Arguments, "--service", sn)
-	}
-
-	if user := c.String("user"); !isUserService && user != "" {
-		svcConfig.Arguments = append(svcConfig.Arguments, "--user", user)
-	}
-
-	svcConfig.Arguments = append(svcConfig.Arguments, "--syslog")
+func RunServiceControl(c *cli.Context) {
+	svcConfig := createServiceConfig(c)
 
 	s, err := service_helpers.New(&NullService{}, svcConfig)
 	if err != nil {

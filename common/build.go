@@ -38,9 +38,6 @@ type Build struct {
 	Hostname         string         `json:"-" yaml:"-"`
 	Runner           *RunnerConfig  `json:"runner"`
 
-	// Unique ID for all running builds (globally)
-	GlobalID int `json:"global_id"`
-
 	// Unique ID for all running builds on this runner
 	RunnerID int `json:"runner_id"`
 
@@ -52,13 +49,10 @@ type Build struct {
 }
 
 func (b *Build) AssignID(otherBuilds ...*Build) {
-	globals := make(map[int]bool)
 	runners := make(map[int]bool)
 	projectRunners := make(map[int]bool)
 
 	for _, otherBuild := range otherBuilds {
-		globals[otherBuild.GlobalID] = true
-
 		if otherBuild.Runner.ShortDescription() != b.Runner.ShortDescription() {
 			continue
 		}
@@ -70,25 +64,18 @@ func (b *Build) AssignID(otherBuilds ...*Build) {
 		projectRunners[otherBuild.ProjectRunnerID] = true
 	}
 
-	for i := 0; ; i++ {
-		if !globals[i] {
-			b.GlobalID = i
+	for {
+		if !runners[b.RunnerID] {
 			break
 		}
+		b.RunnerID++
 	}
 
-	for i := 0; ; i++ {
-		if !runners[i] {
-			b.RunnerID = i
+	for {
+		if !projectRunners[b.ProjectRunnerID] {
 			break
 		}
-	}
-
-	for i := 0; ; i++ {
-		if !projectRunners[i] {
-			b.ProjectRunnerID = i
-			break
-		}
+		b.ProjectRunnerID++
 	}
 }
 

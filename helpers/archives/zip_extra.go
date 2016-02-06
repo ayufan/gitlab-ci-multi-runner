@@ -79,6 +79,20 @@ func createZipExtra(fi os.FileInfo) []byte {
 	return nil
 }
 
+func readZipExtraField(r io.Reader) (field ZipExtraField, data []byte, err error) {
+	err = binary.Read(r, binary.LittleEndian, &field)
+	if err != nil {
+		return
+	}
+
+	data = make([]byte, field.Size)
+	_, err = r.Read(data)
+	if err != nil {
+		return
+	}
+	return
+}
+
 func processZipExtra(file *zip.FileHeader) error {
 	if len(file.Extra) == 0 {
 		return nil
@@ -86,32 +100,21 @@ func processZipExtra(file *zip.FileHeader) error {
 
 	r := bytes.NewReader(file.Extra)
 	for {
-		var field ZipExtraField
-		err := binary.Read(r, binary.LittleEndian, &field)
-		if err != nil {
+		field, data, err := readZipExtraField(r)
+		if err == io.EOF {
 			break
-		}
-
-		data := make([]byte, field.Size)
-		_, err = r.Read(data)
-		if err != nil {
-			break
+		} else if err != nil {
+			return err
 		}
 
 		switch field.Type {
 		case ZipUidGidFieldType:
-			err := processZipUidGidField(data, file)
-			if err != nil {
-				return err
-			}
-
+			err = processZipUidGidField(data, file)
 		case ZipTimestampFieldType:
-			err := processZipTimestampField(data, file)
-			if err != nil {
-				return err
-			}
-
-		default:
+			err = processZipTimestampField(data, file)
+		}
+		if err != nil {
+			return err
 		}
 	}
 

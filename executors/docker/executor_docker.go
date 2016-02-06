@@ -176,7 +176,6 @@ func (s *DockerExecutor) getLabels(containerType string, otherLabels ...string) 
 	labels[dockerLabelPrefix+".build.ref_name"] = s.Build.RefName
 	labels[dockerLabelPrefix+".project.id"] = strconv.Itoa(s.Build.ProjectID)
 	labels[dockerLabelPrefix+".runner.id"] = s.Build.Runner.ShortDescription()
-	labels[dockerLabelPrefix+".runner.global_id"] = strconv.Itoa(s.Build.GlobalID)
 	labels[dockerLabelPrefix+".runner.local_id"] = strconv.Itoa(s.Build.RunnerID)
 	labels[dockerLabelPrefix+".type"] = containerType
 	for _, label := range otherLabels {

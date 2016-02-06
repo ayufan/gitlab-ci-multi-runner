@@ -16,10 +16,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"os/signal"
 	"strings"
-	"syscall"
-	"time"
 )
 
 type ExecCommand struct {
@@ -64,11 +61,73 @@ func (c *ExecCommand) supportedOption(key string, _ interface{}) bool {
 	}
 }
 
+func (c *ExecCommand) buildCommands(configBeforeScript, jobScript interface{}) (commands string, err error) {
+	// get before_script
+	beforeScript, err := c.getCommands(configBeforeScript)
+	if err != nil {
+		return
+	}
+	commands += beforeScript
+
+	// get script
+	script, err := c.getCommands(jobScript)
+	if err != nil {
+		return
+	} else if jobScript == nil {
+		err = fmt.Errorf("missing 'script' for job")
+		return
+	}
+	commands += script
+	return
+}
+
+func (c *ExecCommand) buildVariables(configVariables interface{}) (buildVariables common.BuildVariables, err error) {
+	if variables, ok := configVariables.(map[interface{}]interface{}); ok {
+		for key, value := range variables {
+			if valueText, ok := value.(string); ok {
+				buildVariables = append(buildVariables, common.BuildVariable{
+					Key:    key.(string),
+					Value:  valueText,
+					Public: true,
+				})
+			} else {
+				err = fmt.Errorf("invalid value for variable %q", key)
+			}
+		}
+	} else if configVariables != nil {
+		err = errors.New("unsupported variables")
+	}
+	return
+}
+
+func (c *ExecCommand) buildOptions(config map[string]interface{},
+	jobConfig map[interface{}]interface{}) (options common.BuildOptions, err error) {
+
+	options = make(common.BuildOptions)
+
+	// parse global options
+	for key, value := range config {
+		if c.supportedOption(key, value) {
+			options[key] = value
+		}
+	}
+
+	// parse job options
+	for key, value := range jobConfig {
+		if c.supportedOption(key.(string), value) {
+			options[key.(string)] = value
+		}
+	}
+	return
+}
+
 func (c *ExecCommand) parseYaml(job string, build *common.GetBuildResponse) error {
 	data, err := ioutil.ReadFile(".gitlab-ci.yml")
 	if err != nil {
 		return err
 	}
+
+	build.Name = job
 
 	// parse gitlab-ci.yml
 	config := make(map[string]interface{})
@@ -83,56 +142,20 @@ func (c *ExecCommand) parseYaml(job string, build *common.GetBuildResponse) erro
 		return fmt.Errorf("no job named %q", job)
 	}
 
-	// get before_script
-	beforeScript, err := c.getCommands(config["before_script"])
+	build.Commands, err = c.buildCommands(config["before_script"], jobConfig["script"])
 	if err != nil {
 		return err
 	}
-	build.Commands = beforeScript
 
-	// get script
-	script, err := c.getCommands(jobConfig["script"])
+	build.Variables, err = c.buildVariables(config["variables"])
 	if err != nil {
 		return err
-	} else if jobConfig["script"] == nil {
-		return fmt.Errorf("missing 'script' for %q", job)
-	}
-	build.Commands += script
-
-	// parse variables
-	if variables, ok := config["variables"].(map[interface{}]interface{}); ok {
-		for key, value := range variables {
-			if valueText, ok := value.(string); ok {
-				build.Variables = append(build.Variables, common.BuildVariable{
-					Key:    key.(string),
-					Value:  valueText,
-					Public: true,
-				})
-			} else {
-				return fmt.Errorf("invalid value for variable %q", key)
-			}
-		}
-	} else if config["variables"] != nil {
-		return errors.New("unsupported variables")
 	}
 
-	build.Options = make(common.BuildOptions)
-
-	// parse global options
-	for key, value := range config {
-		if c.supportedOption(key, value) {
-			build.Options[key] = value
-		}
+	build.Options, err = c.buildOptions(config, jobConfig)
+	if err != nil {
+		return err
 	}
-
-	// parse job options
-	for key, value := range jobConfig {
-		if c.supportedOption(key.(string), value) {
-			build.Options[key.(string)] = value
-		}
-	}
-
-	build.Name = job
 
 	if stage, ok := jobConfig["stage"].(string); ok {
 		build.Stage = stage
@@ -140,6 +163,55 @@ func (c *ExecCommand) parseYaml(job string, build *common.GetBuildResponse) erro
 		build.Stage = "test"
 	}
 	return nil
+}
+
+func (c *ExecCommand) createBuild(repoURL string, abortSignal chan os.Signal) (build *common.Build, err error) {
+	// Check if we have uncommitted changes
+	_, err = c.runCommand("git", "diff", "--quiet", "HEAD")
+	if err != nil {
+		logrus.Warningln("You most probably have uncommitted changes.")
+		logrus.Warningln("These changes will not be tested.")
+	}
+
+	// Parse Git settings
+	sha, err := c.runCommand("git", "rev-parse", "HEAD")
+	if err != nil {
+		return
+	}
+
+	beforeSha, err := c.runCommand("git", "rev-parse", "HEAD~1")
+	if err != nil {
+		beforeSha = "0000000000000000000000000000000000000000"
+	}
+
+	refName, err := c.runCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
+	if err != nil {
+		return
+	}
+
+	build = &common.Build{
+		GetBuildResponse: common.GetBuildResponse{
+			ID:            1,
+			ProjectID:     1,
+			RepoURL:       repoURL,
+			Commands:      "",
+			Sha:           strings.TrimSpace(sha),
+			RefName:       strings.TrimSpace(refName),
+			BeforeSha:     strings.TrimSpace(beforeSha),
+			AllowGitFetch: false,
+			Timeout:       30 * 60,
+			Token:         "",
+			Name:          "",
+			Stage:         "",
+			Tag:           false,
+		},
+		Runner: &common.RunnerConfig{
+			RunnerSettings: c.RunnerSettings,
+		},
+		BuildAbort: abortSignal,
+		Network:    nil,
+	}
+	return
 }
 
 func (c *ExecCommand) Execute(context *cli.Context) {
@@ -159,36 +231,10 @@ func (c *ExecCommand) Execute(context *cli.Context) {
 
 	c.Executor = context.Command.Name
 
-	signals := make(chan os.Signal)
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 	abortSignal := make(chan os.Signal)
 	doneSignal := make(chan int, 1)
 
-	go func() {
-		interrupt := <-signals
-
-		// request stop, but wait for force exit
-		for interrupt == syscall.SIGQUIT {
-			logrus.Warningln("Requested quit, waiting for builds to finish")
-			interrupt = <-signals
-		}
-
-		logrus.Warningln("Requested exit:", interrupt)
-
-		go func() {
-			for {
-				abortSignal <- interrupt
-			}
-		}()
-
-		select {
-		case newSignal := <-signals:
-			logrus.Fatalln("forced exit:", newSignal)
-		case <-time.After(common.ShutdownTimeout * time.Second):
-			logrus.Fatalln("shutdown timedout")
-		case <-doneSignal:
-		}
-	}()
+	go waitForInterrupts(nil, abortSignal, doneSignal)
 
 	// Add self-volume to docker
 	if c.RunnerSettings.Docker == nil {
@@ -196,60 +242,20 @@ func (c *ExecCommand) Execute(context *cli.Context) {
 	}
 	c.RunnerSettings.Docker.Volumes = append(c.RunnerSettings.Docker.Volumes, wd+":"+wd+":ro")
 
-	// Check if we have uncomitted changes
-	_, err = c.runCommand("git", "diff", "--quiet", "HEAD")
-	if err != nil {
-		logrus.Warningln("You most probably have uncommitted changes.")
-		logrus.Warningln("These changes will not be tested.")
-	}
-
-	// Parse Git settings
-	sha, err := c.runCommand("git", "rev-parse", "HEAD")
+	// Create build
+	build, err := c.createBuild(wd, abortSignal)
 	if err != nil {
 		logrus.Fatalln(err)
 	}
 
-	beforeSha, err := c.runCommand("git", "rev-parse", "HEAD~1")
-	if err != nil {
-		beforeSha = "0000000000000000000000000000000000000000"
-	}
-
-	refName, err := c.runCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
+	err = c.parseYaml(c.Job, &build.GetBuildResponse)
 	if err != nil {
 		logrus.Fatalln(err)
 	}
 
-	newBuild := common.Build{
-		GetBuildResponse: common.GetBuildResponse{
-			ID:            1,
-			ProjectID:     1,
-			RepoURL:       wd,
-			Commands:      "",
-			Sha:           strings.TrimSpace(sha),
-			RefName:       strings.TrimSpace(refName),
-			BeforeSha:     strings.TrimSpace(beforeSha),
-			AllowGitFetch: false,
-			Timeout:       30 * 60,
-			Token:         "",
-			Name:          "",
-			Stage:         "",
-			Tag:           false,
-		},
-		Runner: &common.RunnerConfig{
-			RunnerSettings: c.RunnerSettings,
-		},
-		BuildAbort: abortSignal,
-		Network:    nil,
-	}
+	build.AssignID()
 
-	err = c.parseYaml(c.Job, &newBuild.GetBuildResponse)
-	if err != nil {
-		logrus.Fatalln(err)
-	}
-
-	newBuild.AssignID()
-
-	err = newBuild.Run(&common.Config{})
+	err = build.Run(&common.Config{})
 	if err != nil {
 		logrus.Fatalln(err)
 	}

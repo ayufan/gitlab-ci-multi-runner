@@ -29,6 +29,34 @@ type RegisterCommand struct {
 	common.RunnerConfig
 }
 
+func (s *RegisterCommand) askOnce(prompt string, result *string, allowEmpty bool) bool {
+	println(prompt)
+	if *result != "" {
+		print("["+*result, "]: ")
+	}
+
+	if s.reader == nil {
+		s.reader = bufio.NewReader(os.Stdin)
+	}
+
+	data, _, err := s.reader.ReadLine()
+	if err != nil {
+		panic(err)
+	}
+	newResult := string(data)
+	newResult = strings.TrimSpace(newResult)
+
+	if newResult != "" {
+		*result = newResult
+		return true
+	}
+
+	if allowEmpty || *result != "" {
+		return true
+	}
+	return false
+}
+
 func (s *RegisterCommand) ask(key, prompt string, allowEmptyOptional ...bool) string {
 	allowEmpty := len(allowEmptyOptional) > 0 && allowEmptyOptional[0]
 
@@ -43,30 +71,12 @@ func (s *RegisterCommand) ask(key, prompt string, allowEmptyOptional ...bool) st
 	}
 
 	for {
-		println(prompt)
-		if result != "" {
-			print("["+result, "]: ")
-		}
-
-		if s.reader == nil {
-			s.reader = bufio.NewReader(os.Stdin)
-		}
-
-		data, _, err := s.reader.ReadLine()
-		if err != nil {
-			panic(err)
-		}
-		newResult := string(data)
-		newResult = strings.TrimSpace(newResult)
-
-		if newResult != "" {
-			return newResult
-		}
-
-		if allowEmpty || result != "" {
-			return result
+		if !s.askOnce(prompt, &result, allowEmpty) {
+			break
 		}
 	}
+
+	return result
 }
 
 func (s *RegisterCommand) askExecutor() {
@@ -143,44 +153,7 @@ func (s *RegisterCommand) askRunner() {
 	}
 }
 
-func (c *RegisterCommand) Execute(context *cli.Context) {
-	userModeWarning(true)
-
-	c.context = context
-	err := c.loadConfig()
-	if err != nil {
-		log.Panicln(err)
-	}
-	c.askRunner()
-
-	if !c.LeaveRunner {
-		defer func() {
-			if r := recover(); r != nil {
-				if c.registered {
-					c.network.DeleteRunner(c.RunnerCredentials)
-				}
-
-				// pass panic to next defer
-				panic(r)
-			}
-		}()
-
-		signals := make(chan os.Signal, 1)
-		signal.Notify(signals, os.Interrupt)
-
-		go func() {
-			s := <-signals
-			c.network.DeleteRunner(c.RunnerCredentials)
-			log.Fatalf("RECEIVED SIGNAL: %v", s)
-		}()
-	}
-
-	c.askExecutor()
-
-	if c.config.Concurrent < c.Limit {
-		log.Warningf("Specified limit (%d) larger then current concurrent limit (%d). Concurrent limit will not be enlarged.", c.Limit, c.config.Concurrent)
-	}
-
+func (c *RegisterCommand) askExecutorOptions() {
 	switch c.Executor {
 	case "docker":
 		c.askDocker()
@@ -209,7 +182,48 @@ func (c *RegisterCommand) Execute(context *cli.Context) {
 		c.Docker = nil
 		c.Parallels = nil
 	}
+}
 
+func (c *RegisterCommand) Execute(context *cli.Context) {
+	userModeWarning(true)
+
+	c.context = context
+	err := c.loadConfig()
+	if err != nil {
+		log.Panicln(err)
+	}
+	c.askRunner()
+
+	if !c.LeaveRunner {
+		defer func() {
+			// De-register runner on panic
+			if r := recover(); r != nil {
+				if c.registered {
+					c.network.DeleteRunner(c.RunnerCredentials)
+				}
+
+				// pass panic to next defer
+				panic(r)
+			}
+		}()
+
+		signals := make(chan os.Signal, 1)
+		signal.Notify(signals, os.Interrupt)
+
+		go func() {
+			s := <-signals
+			c.network.DeleteRunner(c.RunnerCredentials)
+			log.Fatalf("RECEIVED SIGNAL: %v", s)
+		}()
+	}
+
+	c.askExecutor()
+
+	if c.config.Concurrent < c.Limit {
+		log.Warningf("Specified limit (%d) larger then current concurrent limit (%d). Concurrent limit will not be enlarged.", c.Limit, c.config.Concurrent)
+	}
+
+	c.askExecutorOptions()
 	c.addRunner(&c.RunnerConfig)
 	c.saveConfig()
 
