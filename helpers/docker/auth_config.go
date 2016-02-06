@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// IndexName is the name of the index
+// DefaultDockerRegistry is the name of the index
 const DefaultDockerRegistry = "docker.io"
 
 // SplitDockerImageName breaks a reposName into an index name and remote name
