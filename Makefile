@@ -37,11 +37,12 @@ help:
 	# make docker - build docker dependencies
 	#
 	# Testing commands:
-	# make verify - run fmt, test and lint
+	# make verify - run fmt, complexity, test and lint
 	# make fmt - check source formatting
 	# make test - run project tests
 	# make lint - check project code style
 	# make vet - examine code and report suspicious constructs
+	# make complexity - check code complexity
 	#
 	# Deployment commands:
 	# make deps - install all dependencies
@@ -58,7 +59,7 @@ version: FORCE
 	@echo DEB platforms: $(DEB_PLATFORMS)
 	@echo RPM platforms: $(RPM_PLATFORMS)
 
-verify: fmt vet lint test
+verify: fmt vet lint complexity test
 
 deps:
 	# Installing dependencies...
@@ -67,6 +68,7 @@ deps:
 	go get github.com/mitchellh/gox
 	go get golang.org/x/tools/cmd/cover
 	go get golang.org/x/tools/cmd/vet
+	go get github.com/fzipp/gocyclo
 	-go get golang.org/x/sys/windows/svc
 	go get -u github.com/jteeuwen/go-bindata/...
 	godep restore
@@ -139,6 +141,10 @@ vet:
 lint:
 	# Checking project code style...
 	@golint ./... | grep -v "be unexported"
+
+complexity:
+	# Checking code complexity
+	-@gocyclo -over 9 $(shell find . -name '*.go' | grep -v "/Godeps")
 
 test: executors/docker/bindata.go
 	# Running tests...
