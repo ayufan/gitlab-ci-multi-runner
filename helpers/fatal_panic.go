@@ -13,7 +13,6 @@ func (s *fatalLogHook) Levels() []logrus.Level {
 
 func (s *fatalLogHook) Fire(e *logrus.Entry) error {
 	panic(e)
-	return nil
 }
 
 func MakeFatalToPanic() {
