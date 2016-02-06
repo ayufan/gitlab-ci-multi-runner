@@ -6,7 +6,7 @@ import (
 )
 
 type PulledImage struct {
-	Id         string
+	ID         string
 	LastPulled time.Time
 	TTL        time.Duration
 }
@@ -47,7 +47,7 @@ func (c *PulledImageCache) mark(imageName string, id string, ttl time.Duration) 
 	}
 	c.images[imageName] = PulledImage{
 		LastPulled: time.Now(),
-		Id:         id,
+		ID:         id,
 		TTL:        ttl,
 	}
 }

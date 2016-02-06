@@ -13,7 +13,7 @@ import (
 	prl "gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/parallels"
 )
 
-type ParallelsExecutor struct {
+type executor struct {
 	executors.AbstractExecutor
 	cmd             *exec.Cmd
 	vmName          string
@@ -23,7 +23,7 @@ type ParallelsExecutor struct {
 	machineVerified bool
 }
 
-func (s *ParallelsExecutor) waitForIPAddress(vmName string, seconds int) (string, error) {
+func (s *executor) waitForIPAddress(vmName string, seconds int) (string, error) {
 	var lastError error
 
 	if s.ipAddress != "" {
@@ -50,7 +50,7 @@ func (s *ParallelsExecutor) waitForIPAddress(vmName string, seconds int) (string
 	return "", lastError
 }
 
-func (s *ParallelsExecutor) verifyMachine(vmName string) error {
+func (s *executor) verifyMachine(vmName string) error {
 	if s.machineVerified {
 		return nil
 	}
@@ -84,7 +84,7 @@ func (s *ParallelsExecutor) verifyMachine(vmName string) error {
 	return nil
 }
 
-func (s *ParallelsExecutor) restoreFromSnapshot() error {
+func (s *executor) restoreFromSnapshot() error {
 	s.Debugln("Requesting default snapshot for VM...")
 	snapshot, err := prl.GetDefaultSnapshot(s.vmName)
 	if err != nil {
@@ -100,7 +100,7 @@ func (s *ParallelsExecutor) restoreFromSnapshot() error {
 	return nil
 }
 
-func (s *ParallelsExecutor) createVM() error {
+func (s *executor) createVM() error {
 	baseImage := s.Config.Parallels.BaseName
 	if baseImage == "" {
 		return errors.New("Missing Image setting from Parallels config")
@@ -151,7 +151,7 @@ func (s *ParallelsExecutor) createVM() error {
 	return nil
 }
 
-func (s *ParallelsExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
+func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
 	err := s.AbstractExecutor.Prepare(globalConfig, config, build)
 	if err != nil {
 		return err
@@ -267,7 +267,7 @@ func (s *ParallelsExecutor) Prepare(globalConfig *common.Config, config *common.
 	return nil
 }
 
-func (s *ParallelsExecutor) Start() error {
+func (s *executor) Start() error {
 	ipAddr, err := s.waitForIPAddress(s.vmName, 60)
 	if err != nil {
 		return err
@@ -300,7 +300,7 @@ func (s *ParallelsExecutor) Start() error {
 	return nil
 }
 
-func (s *ParallelsExecutor) Cleanup() {
+func (s *executor) Cleanup() {
 	s.sshCommand.Cleanup()
 
 	if s.vmName != "" {
@@ -326,7 +326,7 @@ func init() {
 	}
 
 	creator := func() common.Executor {
-		return &ParallelsExecutor{
+		return &executor{
 			AbstractExecutor: executors.AbstractExecutor{
 				ExecutorOptions: options,
 			},

@@ -151,9 +151,8 @@ func (b *CmdWriter) EmptyLine() {
 func (b *CmdWriter) Absolute(dir string) string {
 	if filepath.IsAbs(dir) {
 		return dir
-	} else {
-		return filepath.Join("%CD%", dir)
 	}
+	return filepath.Join("%CD%", dir)
 }
 
 func (b *CmdShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {

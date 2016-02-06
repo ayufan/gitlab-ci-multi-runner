@@ -222,6 +222,27 @@ func (mr *RunCommand) loadConfig() error {
 	}
 
 	mr.healthy = nil
+	mr.log().Println("Config loaded.")
+	return nil
+}
+
+func (mr *RunCommand) checkConfig() (err error) {
+	info, err := os.Stat(mr.ConfigFile)
+	if err != nil {
+		return err
+	}
+
+	if !mr.config.ModTime.Before(info.ModTime()) {
+		return nil
+	}
+
+	err = mr.loadConfig()
+	if err != nil {
+		mr.log().Errorln("Failed to load config", err)
+		// don't reload the same file
+		mr.config.ModTime = info.ModTime()
+		return
+	}
 	return nil
 }
 
@@ -253,6 +274,51 @@ func (mr *RunCommand) Start(s service.Service) error {
 	return nil
 }
 
+func (mr *RunCommand) updateWorkers(currentWorkers, workerIndex *int, startWorker chan int, stopWorker chan bool) os.Signal {
+	buildLimit := mr.config.Concurrent
+
+	for *currentWorkers > buildLimit {
+		select {
+		case stopWorker <- true:
+		case signaled := <-mr.interruptSignal:
+			return signaled
+		}
+		*currentWorkers--
+	}
+
+	for *currentWorkers < buildLimit {
+		select {
+		case startWorker <- *workerIndex:
+		case signaled := <-mr.interruptSignal:
+			return signaled
+		}
+		*currentWorkers++
+		*workerIndex++
+	}
+
+	return nil
+}
+
+func (mr *RunCommand) updateConfig() os.Signal {
+	select {
+	case <-time.After(common.ReloadConfigInterval * time.Second):
+		err := mr.checkConfig()
+		if err != nil {
+			mr.log().Errorln("Failed to load config", err)
+		}
+
+	case <-mr.reloadSignal:
+		err := mr.loadConfig()
+		if err != nil {
+			mr.log().Errorln("Failed to load config", err)
+		}
+
+	case signaled := <-mr.interruptSignal:
+		return signaled
+	}
+	return nil
+}
+
 func (mr *RunCommand) Run() {
 	runners := make(chan *common.RunnerConfig)
 	go mr.feedRunners(runners)
@@ -268,63 +334,15 @@ func (mr *RunCommand) Run() {
 	workerIndex := 0
 
 	var signaled os.Signal
-
-finish_worker:
 	for {
-		buildLimit := mr.config.Concurrent
-
-		for currentWorkers > buildLimit {
-			select {
-			case stopWorker <- true:
-			case signaled = <-mr.interruptSignal:
-				break finish_worker
-			}
-			currentWorkers--
+		signaled = mr.updateWorkers(&currentWorkers, &workerIndex, startWorker, stopWorker)
+		if signaled != nil {
+			break
 		}
 
-		for currentWorkers < buildLimit {
-			select {
-			case startWorker <- workerIndex:
-			case signaled = <-mr.interruptSignal:
-				break finish_worker
-			}
-			currentWorkers++
-			workerIndex++
-		}
-
-		select {
-		case <-time.After(common.ReloadConfigInterval * time.Second):
-			info, err := os.Stat(mr.ConfigFile)
-			if err != nil {
-				mr.log().Errorln("Failed to stat config", err)
-				break
-			}
-
-			if !mr.config.ModTime.Before(info.ModTime()) {
-				break
-			}
-
-			err = mr.loadConfig()
-			if err != nil {
-				mr.log().Errorln("Failed to load config", err)
-				// don't reload the same file
-				mr.config.ModTime = info.ModTime()
-				break
-			}
-
-			mr.log().Println("Config reloaded.")
-
-		case <-mr.reloadSignal:
-			err := mr.loadConfig()
-			if err != nil {
-				mr.log().Errorln("Failed to load config", err)
-				break
-			}
-
-			mr.log().Println("Config reloaded.")
-
-		case signaled = <-mr.interruptSignal:
-			break finish_worker
+		signaled = mr.updateConfig()
+		if signaled != nil {
+			break
 		}
 	}
 	mr.finished = true
@@ -366,20 +384,20 @@ func (mr *RunCommand) Stop(s service.Service) error {
 	}
 }
 
-func (c *RunCommand) Execute(context *cli.Context) {
+func (mr *RunCommand) Execute(context *cli.Context) {
 	svcConfig := &service.Config{
-		Name:        c.ServiceName,
-		DisplayName: c.ServiceName,
+		Name:        mr.ServiceName,
+		DisplayName: mr.ServiceName,
 		Description: defaultDescription,
 		Arguments:   []string{"run"},
 	}
 
-	service, err := service_helpers.New(c, svcConfig)
+	service, err := service_helpers.New(mr, svcConfig)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	if c.Syslog {
+	if mr.Syslog {
 		log.SetFormatter(new(log.TextFormatter))
 		logger, err := service.SystemLogger(nil)
 		if err == nil {

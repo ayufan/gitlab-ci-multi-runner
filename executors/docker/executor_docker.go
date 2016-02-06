@@ -24,7 +24,7 @@ import (
 	"path"
 )
 
-type DockerExecutor struct {
+type executor struct {
 	executors.AbstractExecutor
 	client   *docker.Client
 	builds   []*docker.Container
@@ -34,11 +34,11 @@ type DockerExecutor struct {
 
 const PrebuiltArchive = "prebuilt.tar.gz"
 
-func (s *DockerExecutor) getServiceVariables() []string {
+func (s *executor) getServiceVariables() []string {
 	return s.Build.GetAllVariables().PublicOrInternal().StringList()
 }
 
-func (s *DockerExecutor) getAuthConfig(imageName string) (docker.AuthConfiguration, error) {
+func (s *executor) getAuthConfig(imageName string) (docker.AuthConfiguration, error) {
 	user, err := u.Current()
 	if s.Shell.User != "" {
 		user, err = u.Lookup(s.Shell.User)
@@ -67,22 +67,7 @@ func (s *DockerExecutor) getAuthConfig(imageName string) (docker.AuthConfigurati
 	return docker.AuthConfiguration{}, fmt.Errorf("No credentials found for %v", indexName)
 }
 
-func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error) {
-	s.Debugln("Looking for image", imageName, "...")
-	image, err := s.client.InspectImage(imageName)
-	if err == nil {
-		// Don't pull image that is passed by ID
-		if image.ID == imageName {
-			return image, nil
-		}
-		if s.Config.Docker.ImageTTL == 0 {
-			return image, nil
-		}
-		if !pulledImageCache.isExpired(imageName) {
-			return image, nil
-		}
-	}
-
+func (s *executor) pullDockerImage(imageName string) (*docker.Image, error) {
 	s.Println("Pulling docker image", imageName, "...")
 	authConfig, err := s.getAuthConfig(imageName)
 	if err != nil {
@@ -100,18 +85,36 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 
 	err = s.client.PullImage(pullImageOptions, authConfig)
 	if err != nil {
+		return nil, err
+	}
+
+	image, err := s.client.InspectImage(imageName)
+	return image, err
+}
+
+func (s *executor) getDockerImage(imageName string) (*docker.Image, error) {
+	s.Debugln("Looking for image", imageName, "...")
+	image, err := s.client.InspectImage(imageName)
+	if err == nil {
+		// Don't pull image that is passed by ID
+		if image.ID == imageName {
+			return image, nil
+		}
+		if s.Config.Docker.ImageTTL == 0 {
+			return image, nil
+		}
+		if !pulledImageCache.isExpired(imageName) {
+			return image, nil
+		}
+	}
+
+	newImage, err := s.pullDockerImage(imageName)
+	if err != nil {
 		if image != nil {
 			s.Warningln("Cannot pull the latest version of image", imageName, ":", err)
 			s.Warningln("Locally found image will be used instead.")
 			return image, nil
-		} else {
-			return nil, err
 		}
-	}
-
-	image, err = s.client.InspectImage(imageName)
-	if err != nil {
-		return nil, err
 	}
 
 	imageTTL := s.Config.Docker.ImageTTL
@@ -119,11 +122,11 @@ func (s *DockerExecutor) getDockerImage(imageName string) (*docker.Image, error)
 		imageTTL = dockerImageTTL
 	}
 
-	pulledImageCache.mark(imageName, image.ID, imageTTL)
-	return image, nil
+	pulledImageCache.mark(imageName, newImage.ID, imageTTL)
+	return newImage, nil
 }
 
-func (s *DockerExecutor) getPrebuiltImage(imageType string) (image *docker.Image, err error) {
+func (s *executor) getPrebuiltImage(imageType string) (image *docker.Image, err error) {
 	imageName := "gitlab-runner-" + imageType + ":" + common.REVISION
 	s.Debugln("Looking for prebuilt image", imageName, "...")
 	image, err = s.client.InspectImage(imageName)
@@ -153,22 +156,21 @@ func (s *DockerExecutor) getPrebuiltImage(imageType string) (image *docker.Image
 	return s.client.InspectImage(imageName)
 }
 
-func (s *DockerExecutor) getAbsoluteContainerPath(dir string) string {
+func (s *executor) getAbsoluteContainerPath(dir string) string {
 	if path.IsAbs(dir) {
 		return dir
-	} else {
-		return path.Join(s.Build.FullProjectDir(), dir)
 	}
+	return path.Join(s.Build.FullProjectDir(), dir)
 }
 
-func (s *DockerExecutor) addHostVolume(binds *[]string, hostPath, containerPath string) error {
+func (s *executor) addHostVolume(binds *[]string, hostPath, containerPath string) error {
 	containerPath = s.getAbsoluteContainerPath(containerPath)
 	s.Debugln("Using host-based", hostPath, "for", containerPath, "...")
 	*binds = append(*binds, fmt.Sprintf("%v:%v", hostPath, containerPath))
 	return nil
 }
 
-func (s *DockerExecutor) getLabels(containerType string, otherLabels ...string) map[string]string {
+func (s *executor) getLabels(containerType string, otherLabels ...string) map[string]string {
 	labels := make(map[string]string)
 	labels[dockerLabelPrefix+".build.id"] = strconv.Itoa(s.Build.ID)
 	labels[dockerLabelPrefix+".build.sha"] = s.Build.Sha
@@ -176,7 +178,6 @@ func (s *DockerExecutor) getLabels(containerType string, otherLabels ...string) 
 	labels[dockerLabelPrefix+".build.ref_name"] = s.Build.RefName
 	labels[dockerLabelPrefix+".project.id"] = strconv.Itoa(s.Build.ProjectID)
 	labels[dockerLabelPrefix+".runner.id"] = s.Build.Runner.ShortDescription()
-	labels[dockerLabelPrefix+".runner.global_id"] = strconv.Itoa(s.Build.GlobalID)
 	labels[dockerLabelPrefix+".runner.local_id"] = strconv.Itoa(s.Build.RunnerID)
 	labels[dockerLabelPrefix+".type"] = containerType
 	for _, label := range otherLabels {
@@ -188,7 +189,7 @@ func (s *DockerExecutor) getLabels(containerType string, otherLabels ...string) 
 	return labels
 }
 
-func (s *DockerExecutor) createCacheVolume(containerName, containerPath string) (*docker.Container, error) {
+func (s *executor) createCacheVolume(containerName, containerPath string) (*docker.Container, error) {
 	// get busybox image
 	cacheImage, err := s.getPrebuiltImage("cache")
 	if err != nil {
@@ -240,7 +241,7 @@ func (s *DockerExecutor) createCacheVolume(containerName, containerPath string) 
 	return container, nil
 }
 
-func (s *DockerExecutor) addCacheVolume(binds, volumesFrom *[]string, containerPath string) error {
+func (s *executor) addCacheVolume(binds, volumesFrom *[]string, containerPath string) error {
 	var err error
 	containerPath = s.getAbsoluteContainerPath(containerPath)
 
@@ -287,7 +288,7 @@ func (s *DockerExecutor) addCacheVolume(binds, volumesFrom *[]string, containerP
 	return nil
 }
 
-func (s *DockerExecutor) addVolume(binds, volumesFrom *[]string, volume string) error {
+func (s *executor) addVolume(binds, volumesFrom *[]string, volume string) error {
 	var err error
 	hostVolume := strings.SplitN(volume, ":", 2)
 	switch len(hostVolume) {
@@ -305,7 +306,7 @@ func (s *DockerExecutor) addVolume(binds, volumesFrom *[]string, volume string) 
 	return err
 }
 
-func (s *DockerExecutor) createVolumes() ([]string, []string, error) {
+func (s *executor) createVolumes() ([]string, []string, error) {
 	var binds, volumesFrom []string
 
 	for _, volume := range s.Config.Docker.Volumes {
@@ -335,7 +336,7 @@ func (s *DockerExecutor) createVolumes() ([]string, []string, error) {
 	return binds, volumesFrom, nil
 }
 
-func (s *DockerExecutor) splitServiceAndVersion(serviceDescription string) (string, string, string) {
+func (s *executor) splitServiceAndVersion(serviceDescription string) (string, string, string) {
 	splits := strings.SplitN(serviceDescription, ":", 2)
 	service := ""
 	version := "latest"
@@ -355,7 +356,7 @@ func (s *DockerExecutor) splitServiceAndVersion(serviceDescription string) (stri
 	return service, version, linkName
 }
 
-func (s *DockerExecutor) createService(service, version string) (*docker.Container, error) {
+func (s *executor) createService(service, version string) (*docker.Container, error) {
 	if len(service) == 0 {
 		return nil, errors.New("invalid service name")
 	}
@@ -399,7 +400,7 @@ func (s *DockerExecutor) createService(service, version string) (*docker.Contain
 	return container, nil
 }
 
-func (s *DockerExecutor) getServiceNames() ([]string, error) {
+func (s *executor) getServiceNames() ([]string, error) {
 	services := s.Config.Docker.Services
 
 	if servicesOption, ok := s.Build.Options["services"].([]interface{}); ok {
@@ -423,7 +424,41 @@ func (s *DockerExecutor) getServiceNames() ([]string, error) {
 	return services, nil
 }
 
-func (s *DockerExecutor) createServices() ([]string, error) {
+func (s *executor) waitForServices() {
+	waitForServicesTimeout := s.Config.Docker.WaitForServicesTimeout
+	if waitForServicesTimeout == 0 {
+		waitForServicesTimeout = common.DefaultWaitForServicesTimeout
+	}
+
+	// wait for all services to came up
+	if waitForServicesTimeout > 0 && len(s.services) > 0 {
+		s.Println("Waiting for services to be up and running...")
+		wg := sync.WaitGroup{}
+		for _, service := range s.services {
+			wg.Add(1)
+			go func(service *docker.Container) {
+				s.waitForServiceContainer(service, time.Duration(waitForServicesTimeout)*time.Second)
+				wg.Done()
+			}(service)
+		}
+		wg.Wait()
+	}
+}
+
+func (s *executor) buildServiceLinks(linksMap map[string]*docker.Container) (links []string) {
+	for linkName, container := range linksMap {
+		newContainer, err := s.client.InspectContainer(container.ID)
+		if err != nil {
+			continue
+		}
+		if newContainer.State.Running {
+			links = append(links, container.ID+":"+linkName)
+		}
+	}
+	return
+}
+
+func (s *executor) createServices() ([]string, error) {
 	serviceNames, err := s.getServiceNames()
 	if err != nil {
 		return nil, err
@@ -448,40 +483,13 @@ func (s *DockerExecutor) createServices() ([]string, error) {
 		s.services = append(s.services, container)
 	}
 
-	waitForServicesTimeout := s.Config.Docker.WaitForServicesTimeout
-	if waitForServicesTimeout == 0 {
-		waitForServicesTimeout = common.DefaultWaitForServicesTimeout
-	}
+	s.waitForServices()
 
-	// wait for all services to came up
-	if waitForServicesTimeout > 0 && len(s.services) > 0 {
-		s.Println("Waiting for services to be up and running...")
-		wg := sync.WaitGroup{}
-		for _, service := range s.services {
-			wg.Add(1)
-			go func(service *docker.Container) {
-				s.waitForServiceContainer(service, time.Duration(waitForServicesTimeout)*time.Second)
-				wg.Done()
-			}(service)
-		}
-		wg.Wait()
-	}
-
-	var links []string
-	for linkName, container := range linksMap {
-		newContainer, err := s.client.InspectContainer(container.ID)
-		if err != nil {
-			continue
-		}
-		if newContainer.State.Running {
-			links = append(links, container.ID+":"+linkName)
-		}
-	}
-
+	links := s.buildServiceLinks(linksMap)
 	return links, nil
 }
 
-func (s *DockerExecutor) prepareBuildContainer() (options *docker.CreateContainerOptions, err error) {
+func (s *executor) prepareBuildContainer() (options *docker.CreateContainerOptions, err error) {
 	options = &docker.CreateContainerOptions{
 		Config: &docker.Config{
 			Tty:          false,
@@ -517,7 +525,7 @@ func (s *DockerExecutor) prepareBuildContainer() (options *docker.CreateContaine
 	return
 }
 
-func (s *DockerExecutor) createContainer(containerType, imageName string, cmd []string, options docker.CreateContainerOptions) (container *docker.Container, err error) {
+func (s *executor) createContainer(containerType, imageName string, cmd []string, options docker.CreateContainerOptions) (container *docker.Container, err error) {
 	// Fetch image
 	image, err := s.getDockerImage(imageName)
 	if err != nil {
@@ -554,7 +562,7 @@ func (s *DockerExecutor) createContainer(containerType, imageName string, cmd []
 	return
 }
 
-func (s *DockerExecutor) watchContainer(container *docker.Container, input io.Reader) (err error) {
+func (s *executor) watchContainer(container *docker.Container, input io.Reader) (err error) {
 	s.Debugln("Starting container", container.ID, "...")
 	err = s.client.StartContainer(container.ID, nil)
 	if err != nil {
@@ -592,7 +600,7 @@ func (s *DockerExecutor) watchContainer(container *docker.Container, input io.Re
 	return
 }
 
-func (s *DockerExecutor) removeContainer(id string) error {
+func (s *executor) removeContainer(id string) error {
 	removeContainerOptions := docker.RemoveContainerOptions{
 		ID:            id,
 		RemoveVolumes: true,
@@ -603,7 +611,7 @@ func (s *DockerExecutor) removeContainer(id string) error {
 	return err
 }
 
-func (s *DockerExecutor) verifyAllowedImage(image, optionName string, allowedImages []string, internalImages []string) error {
+func (s *executor) verifyAllowedImage(image, optionName string, allowedImages []string, internalImages []string) error {
 	for _, allowedImage := range allowedImages {
 		ok, _ := filepath.Match(allowedImage, image)
 		if ok {
@@ -633,7 +641,7 @@ func (s *DockerExecutor) verifyAllowedImage(image, optionName string, allowedIma
 	return errors.New("invalid image")
 }
 
-func (s *DockerExecutor) getImageName() (string, error) {
+func (s *executor) getImageName() (string, error) {
 	if image, ok := s.Build.Options["image"].(string); ok && image != "" {
 		image = s.Build.GetAllVariables().ExpandValue(image)
 		err := s.verifyAllowedImage(image, "images", s.Config.Docker.AllowedImages, []string{s.Config.Docker.Image})
@@ -650,7 +658,7 @@ func (s *DockerExecutor) getImageName() (string, error) {
 	return s.Config.Docker.Image, nil
 }
 
-func (s *DockerExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
+func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
 	err := s.AbstractExecutor.Prepare(globalConfig, config, build)
 	if err != nil {
 		return err
@@ -679,7 +687,7 @@ func (s *DockerExecutor) Prepare(globalConfig *common.Config, config *common.Run
 	return nil
 }
 
-func (s *DockerExecutor) Cleanup() {
+func (s *executor) Cleanup() {
 	for _, service := range s.services {
 		s.removeContainer(service.ID)
 	}
@@ -695,7 +703,7 @@ func (s *DockerExecutor) Cleanup() {
 	s.AbstractExecutor.Cleanup()
 }
 
-func (s *DockerExecutor) runServiceHealthCheckContainer(container *docker.Container, timeout time.Duration) error {
+func (s *executor) runServiceHealthCheckContainer(container *docker.Container, timeout time.Duration) error {
 	waitImage, err := s.getPrebuiltImage("service")
 	if err != nil {
 		return err
@@ -737,11 +745,11 @@ func (s *DockerExecutor) runServiceHealthCheckContainer(container *docker.Contai
 	case err := <-waitResult:
 		return err
 	case <-time.After(timeout):
-		return fmt.Errorf("didn't respond in timely maner: %v (consider modifying wait_for_services_timeout: %v).", container.Name, timeout)
+		return fmt.Errorf("service %v did timeout", container.Name)
 	}
 }
 
-func (s *DockerExecutor) waitForServiceContainer(container *docker.Container, timeout time.Duration) error {
+func (s *executor) waitForServiceContainer(container *docker.Container, timeout time.Duration) error {
 	err := s.runServiceHealthCheckContainer(container, timeout)
 	if err == nil {
 		return nil

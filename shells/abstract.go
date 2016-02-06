@@ -18,7 +18,7 @@ func (b *AbstractShell) GetFeatures(features *common.FeaturesInfo) {
 	features.Cache = true
 }
 
-func (s *AbstractShell) GetSupportedOptions() []string {
+func (b *AbstractShell) GetSupportedOptions() []string {
 	return []string{"artifacts", "cache"}
 }
 

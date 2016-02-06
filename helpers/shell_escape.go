@@ -33,7 +33,7 @@ const (
 	DEL           = 127
 )
 
-// https://github.com/solidsnack/shell-escape/blob/master/Text/ShellEscape/Bash.hs
+// ShellEscape is taken from https://github.com/solidsnack/shell-escape/blob/master/Text/ShellEscape/Bash.hs
 /*
 A Bash escaped string. The strings are wrapped in @$\'...\'@ if any
 bytes within them must be escaped; otherwise, they are left as is.

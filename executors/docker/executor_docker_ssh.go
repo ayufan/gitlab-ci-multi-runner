@@ -8,12 +8,12 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/ssh"
 )
 
-type DockerSSHExecutor struct {
-	DockerExecutor
+type sshExecutor struct {
+	executor
 	sshCommand ssh.Command
 }
 
-func (s *DockerSSHExecutor) Start() error {
+func (s *sshExecutor) Start() error {
 	if s.Config.SSH == nil {
 		return errors.New("Missing SSH configuration")
 	}
@@ -74,9 +74,9 @@ func (s *DockerSSHExecutor) Start() error {
 	return nil
 }
 
-func (s *DockerSSHExecutor) Cleanup() {
+func (s *sshExecutor) Cleanup() {
 	s.sshCommand.Cleanup()
-	s.DockerExecutor.Cleanup()
+	s.executor.Cleanup()
 }
 
 func init() {
@@ -92,8 +92,8 @@ func init() {
 	}
 
 	creator := func() common.Executor {
-		return &DockerSSHExecutor{
-			DockerExecutor: DockerExecutor{
+		return &sshExecutor{
+			executor: executor{
 				AbstractExecutor: executors.AbstractExecutor{
 					ExecutorOptions: options,
 				},

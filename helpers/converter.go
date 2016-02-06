@@ -3,27 +3,16 @@ package helpers
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"github.com/BurntSushi/toml"
 	"gopkg.in/yaml.v1"
 )
-
-func ToJson(src interface{}) string {
-	data, err := json.Marshal(src)
-	if err == nil {
-		return string(data)
-	} else {
-		return ""
-	}
-}
 
 func ToYAML(src interface{}) string {
 	data, err := yaml.Marshal(src)
 	if err == nil {
 		return string(data)
-	} else {
-		return ""
 	}
+	return ""
 }
 
 func ToTOML(src interface{}) string {

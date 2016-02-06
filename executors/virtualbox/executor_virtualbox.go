@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type VirtualBoxExecutor struct {
+type executor struct {
 	executors.AbstractExecutor
 	vmName          string
 	sshCommand      ssh.Command
@@ -19,7 +19,7 @@ type VirtualBoxExecutor struct {
 	machineVerified bool
 }
 
-func (s *VirtualBoxExecutor) verifyMachine(vmName string, sshPort string) error {
+func (s *executor) verifyMachine(vmName string, sshPort string) error {
 	if s.machineVerified {
 		return nil
 	}
@@ -49,7 +49,7 @@ func (s *VirtualBoxExecutor) verifyMachine(vmName string, sshPort string) error 
 	return nil
 }
 
-func (s *VirtualBoxExecutor) restoreFromSnapshot() error {
+func (s *executor) restoreFromSnapshot() error {
 	s.Debugln("Reverting VM to current snapshot...")
 	err := vbox.RevertToSnapshot(s.vmName)
 	if err != nil {
@@ -60,7 +60,7 @@ func (s *VirtualBoxExecutor) restoreFromSnapshot() error {
 }
 
 // virtualbox doesn't support templates
-func (s *VirtualBoxExecutor) createVM(vmName string) error {
+func (s *executor) createVM(vmName string) error {
 	baseImage := s.Config.VirtualBox.BaseName
 	if baseImage == "" {
 		return errors.New("Missing Image setting from VirtualBox configuration")
@@ -112,7 +112,7 @@ func (s *VirtualBoxExecutor) createVM(vmName string) error {
 	return nil
 }
 
-func (s *VirtualBoxExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
+func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
 	err := s.AbstractExecutor.Prepare(globalConfig, config, build)
 	if err != nil {
 		return err
@@ -228,7 +228,7 @@ func (s *VirtualBoxExecutor) Prepare(globalConfig *common.Config, config *common
 	return nil
 }
 
-func (s *VirtualBoxExecutor) Start() error {
+func (s *executor) Start() error {
 	s.Println("Starting SSH command...")
 	s.sshCommand = ssh.Command{
 		Config:      *s.Config.SSH,
@@ -257,7 +257,7 @@ func (s *VirtualBoxExecutor) Start() error {
 	return nil
 }
 
-func (s *VirtualBoxExecutor) Cleanup() {
+func (s *executor) Cleanup() {
 	s.sshCommand.Cleanup()
 
 	if s.vmName != "" {
@@ -281,7 +281,7 @@ func init() {
 	}
 
 	creator := func() common.Executor {
-		return &VirtualBoxExecutor{
+		return &executor{
 			AbstractExecutor: executors.AbstractExecutor{
 				ExecutorOptions: options,
 			},

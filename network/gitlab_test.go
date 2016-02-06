@@ -12,11 +12,11 @@ import (
 	"testing"
 )
 
-var brokenCredentials RunnerCredentials = RunnerCredentials{
+var brokenCredentials = RunnerCredentials{
 	URL: "broken",
 }
 
-var brokenConfig RunnerConfig = RunnerConfig{
+var brokenConfig = RunnerConfig{
 	RunnerCredentials: brokenCredentials,
 }
 
@@ -44,58 +44,60 @@ func TestClients(t *testing.T) {
 	assert.Error(t, c6err)
 }
 
-func TestGetBuild(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/builds/register.json" {
-			w.WriteHeader(404)
-			return
-		}
-
-		if r.Method != "POST" {
-			w.WriteHeader(406)
-			return
-		}
-
-		body, err := ioutil.ReadAll(r.Body)
-		assert.NoError(t, err)
-
-		var req map[string]interface{}
-		err = json.Unmarshal(body, &req)
-		assert.NoError(t, err)
-
-		res := make(map[string]interface{})
-
-		switch req["token"].(string) {
-		case "valid":
-			res["id"] = 10
-		case "no-builds":
-			w.WriteHeader(404)
-			return
-		case "invalid":
-			w.WriteHeader(403)
-			return
-		default:
-			w.WriteHeader(400)
-			return
-		}
-
-		if r.Header.Get("Accept") != "application/json" {
-			w.WriteHeader(400)
-			return
-		}
-
-		output, err := json.Marshal(res)
-		if err != nil {
-			w.WriteHeader(500)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(201)
-		w.Write(output)
+func testGetBuildHandler(w http.ResponseWriter, r *http.Request, t *testing.T) {
+	if r.URL.Path != "/api/v1/builds/register.json" {
+		w.WriteHeader(404)
+		return
 	}
 
-	s := httptest.NewServer(http.HandlerFunc(handler))
+	if r.Method != "POST" {
+		w.WriteHeader(406)
+		return
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	assert.NoError(t, err)
+
+	var req map[string]interface{}
+	err = json.Unmarshal(body, &req)
+	assert.NoError(t, err)
+
+	res := make(map[string]interface{})
+
+	switch req["token"].(string) {
+	case "valid":
+		res["id"] = 10
+	case "no-builds":
+		w.WriteHeader(404)
+		return
+	case "invalid":
+		w.WriteHeader(403)
+		return
+	default:
+		w.WriteHeader(400)
+		return
+	}
+
+	if r.Header.Get("Accept") != "application/json" {
+		w.WriteHeader(400)
+		return
+	}
+
+	output, err := json.Marshal(res)
+	if err != nil {
+		w.WriteHeader(500)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	w.Write(output)
+}
+
+func TestGetBuild(t *testing.T) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		testGetBuildHandler(w, r, t)
+	}))
 	defer s.Close()
 
 	validToken := RunnerConfig{
@@ -140,60 +142,62 @@ func TestGetBuild(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestRegisterRunner(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/runners/register.json" {
-			w.WriteHeader(404)
-			return
-		}
-
-		if r.Method != "POST" {
-			w.WriteHeader(406)
-			return
-		}
-
-		body, err := ioutil.ReadAll(r.Body)
-		assert.NoError(t, err)
-
-		var req map[string]interface{}
-		err = json.Unmarshal(body, &req)
-		assert.NoError(t, err)
-
-		res := make(map[string]interface{})
-
-		switch req["token"].(string) {
-		case "valid":
-			if req["description"].(string) != "test" {
-				w.WriteHeader(400)
-				return
-			}
-
-			res["token"] = req["token"].(string)
-		case "invalid":
-			w.WriteHeader(403)
-			return
-		default:
-			w.WriteHeader(400)
-			return
-		}
-
-		if r.Header.Get("Accept") != "application/json" {
-			w.WriteHeader(400)
-			return
-		}
-
-		output, err := json.Marshal(res)
-		if err != nil {
-			w.WriteHeader(500)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(201)
-		w.Write(output)
+func testRegisterRunnerHandler(w http.ResponseWriter, r *http.Request, t *testing.T) {
+	if r.URL.Path != "/api/v1/runners/register.json" {
+		w.WriteHeader(404)
+		return
 	}
 
-	s := httptest.NewServer(http.HandlerFunc(handler))
+	if r.Method != "POST" {
+		w.WriteHeader(406)
+		return
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	assert.NoError(t, err)
+
+	var req map[string]interface{}
+	err = json.Unmarshal(body, &req)
+	assert.NoError(t, err)
+
+	res := make(map[string]interface{})
+
+	switch req["token"].(string) {
+	case "valid":
+		if req["description"].(string) != "test" {
+			w.WriteHeader(400)
+			return
+		}
+
+		res["token"] = req["token"].(string)
+	case "invalid":
+		w.WriteHeader(403)
+		return
+	default:
+		w.WriteHeader(400)
+		return
+	}
+
+	if r.Header.Get("Accept") != "application/json" {
+		w.WriteHeader(400)
+		return
+	}
+
+	output, err := json.Marshal(res)
+	if err != nil {
+		w.WriteHeader(500)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	w.Write(output)
+}
+
+func TestRegisterRunner(t *testing.T) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		testRegisterRunnerHandler(w, r, t)
+	}))
 	defer s.Close()
 
 	validToken := RunnerCredentials{

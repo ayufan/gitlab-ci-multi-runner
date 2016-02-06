@@ -16,9 +16,8 @@ func getDefaultConfigDirectory() string {
 		return filepath.Join(homeDir, ".gitlab-runner")
 	} else if currentDir := helpers.GetCurrentWorkingDirectory(); currentDir != "" {
 		return currentDir
-	} else {
-		panic("Cannot get default config file location")
 	}
+	panic("Cannot get default config file location")
 }
 
 func userModeWarning(withRun bool) {

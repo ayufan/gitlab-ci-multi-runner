@@ -30,7 +30,7 @@ type client struct {
 	updateTime time.Time
 }
 
-func (n *client) ensureTlsConfig() {
+func (n *client) ensureTLSConfig() {
 	// certificate got modified
 	if stat, err := os.Stat(n.caFile); err == nil && n.updateTime.Before(stat.ModTime()) {
 		n.Transport = nil
@@ -141,7 +141,7 @@ func (n *client) do(uri, method string, request io.Reader, requestType string, h
 		req.Header.Set("Content-Type", requestType)
 	}
 
-	n.ensureTlsConfig()
+	n.ensureTLSConfig()
 
 	res, err = n.Do(req)
 	if err != nil {
@@ -151,7 +151,7 @@ func (n *client) do(uri, method string, request io.Reader, requestType string, h
 	return
 }
 
-func (n *client) doJson(uri, method string, statusCode int, request interface{}, response interface{}) (int, string, string) {
+func (n *client) doJSON(uri, method string, statusCode int, request interface{}, response interface{}) (int, string, string) {
 	var body io.Reader
 
 	if request != nil {
@@ -188,14 +188,6 @@ func (n *client) doJson(uri, method string, statusCode int, request interface{},
 	}
 
 	return res.StatusCode, res.Status, n.getCAChain(res.TLS)
-}
-
-func (n *client) fullUrl(uri string, a ...interface{}) string {
-	url, err := n.url.Parse(fmt.Sprintf(uri, a...))
-	if err != nil {
-		return ""
-	}
-	return url.String()
 }
 
 func newClient(config common.RunnerCredentials) (c *client, err error) {

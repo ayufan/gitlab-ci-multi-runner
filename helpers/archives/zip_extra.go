@@ -9,19 +9,19 @@ import (
 	"time"
 )
 
-const ZipUidGidFieldType = 0x7875
+const ZipUIDGidFieldType = 0x7875
 const ZipTimestampFieldType = 0x5455
 
-// from https://github.com/LuaDist/zip/blob/master/proginfo/extrafld.txt
+// ZipExtraField is taken from https://github.com/LuaDist/zip/blob/master/proginfo/extrafld.txt
 type ZipExtraField struct {
 	Type uint16
 	Size uint16
 }
 
-type ZipUidGidField struct {
+type ZipUIDGidField struct {
 	Version uint8
 	UIDSize uint8
-	Uid     uint32
+	UID     uint32
 	GIDSize uint8
 	Gid     uint32
 }
@@ -69,7 +69,7 @@ func processZipTimestampField(data []byte, file *zip.FileHeader) error {
 
 func createZipExtra(fi os.FileInfo) []byte {
 	var buffer bytes.Buffer
-	err := createZipUidGidField(&buffer, fi)
+	err := createZipUIDGidField(&buffer, fi)
 	if err == nil {
 		err = createZipTimestampField(&buffer, fi)
 	}
@@ -79,6 +79,20 @@ func createZipExtra(fi os.FileInfo) []byte {
 	return nil
 }
 
+func readZipExtraField(r io.Reader) (field ZipExtraField, data []byte, err error) {
+	err = binary.Read(r, binary.LittleEndian, &field)
+	if err != nil {
+		return
+	}
+
+	data = make([]byte, field.Size)
+	_, err = r.Read(data)
+	if err != nil {
+		return
+	}
+	return
+}
+
 func processZipExtra(file *zip.FileHeader) error {
 	if len(file.Extra) == 0 {
 		return nil
@@ -86,32 +100,21 @@ func processZipExtra(file *zip.FileHeader) error {
 
 	r := bytes.NewReader(file.Extra)
 	for {
-		var field ZipExtraField
-		err := binary.Read(r, binary.LittleEndian, &field)
-		if err != nil {
+		field, data, err := readZipExtraField(r)
+		if err == io.EOF {
 			break
-		}
-
-		data := make([]byte, field.Size)
-		_, err = r.Read(data)
-		if err != nil {
-			break
+		} else if err != nil {
+			return err
 		}
 
 		switch field.Type {
-		case ZipUidGidFieldType:
-			err := processZipUidGidField(data, file)
-			if err != nil {
-				return err
-			}
-
+		case ZipUIDGidFieldType:
+			err = processZipUIDGidField(data, file)
 		case ZipTimestampFieldType:
-			err := processZipTimestampField(data, file)
-			if err != nil {
-				return err
-			}
-
-		default:
+			err = processZipTimestampField(data, file)
+		}
+		if err != nil {
+			return err
 		}
 	}
 

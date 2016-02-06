@@ -30,7 +30,7 @@ func TestImagePulledInTheFuture(t *testing.T) {
 	cache := PulledImageCache{}
 	cache.images = make(map[string]PulledImage)
 	cache.images["test"] = PulledImage{
-		Id:         "id",
+		ID:         "id",
 		LastPulled: time.Now().Add(time.Hour),
 		TTL:        time.Second,
 	}
