@@ -2,6 +2,7 @@ package common
 
 type UpdateState int
 type UploadState int
+type DownloadState int
 
 const (
 	UpdateSucceeded UpdateState = iota
@@ -14,6 +15,12 @@ const (
 	UploadTooLarge
 	UploadForbidden
 	UploadFailed
+)
+
+const (
+	DownloadSucceeded DownloadState = iota
+	DownloadForbidden
+	DownloadFailed
 )
 
 type FeaturesInfo struct {
@@ -41,23 +48,40 @@ type GetBuildRequest struct {
 
 type BuildOptions map[string]interface{}
 
+type BuildArtifacts struct {
+	Filename string `json:"filename,omitempty"`
+	Size     int64  `json:"size,omitempty"`
+}
+
+type BuildInfo struct {
+	ID        int             `json:"id,omitempty"`
+	Sha       string          `json:"sha,omitempty"`
+	RefName   string          `json:"ref,omitempty"`
+	Token     string          `json:"token"`
+	Name      string          `json:"name"`
+	Stage     string          `json:"stage"`
+	Tag       bool            `json:"tag"`
+	Artifacts *BuildArtifacts `json:"artifacts_file"`
+}
+
 type GetBuildResponse struct {
-	ID            int            `json:"id,omitempty"`
-	ProjectID     int            `json:"project_id,omitempty"`
-	Commands      string         `json:"commands,omitempty"`
-	RepoURL       string         `json:"repo_url,omitempty"`
-	Sha           string         `json:"sha,omitempty"`
-	RefName       string         `json:"ref,omitempty"`
-	BeforeSha     string         `json:"before_sha,omitempty"`
-	AllowGitFetch bool           `json:"allow_git_fetch,omitempty"`
-	Timeout       int            `json:"timeout,omitempty"`
-	Variables     BuildVariables `json:"variables"`
-	Options       BuildOptions   `json:"options"`
-	Token         string         `json:"token"`
-	Name          string         `json:"name"`
-	Stage         string         `json:"stage"`
-	Tag           bool           `json:"tag"`
-	TLSCAChain    string         `json:"-"`
+	ID              int            `json:"id,omitempty"`
+	ProjectID       int            `json:"project_id,omitempty"`
+	Commands        string         `json:"commands,omitempty"`
+	RepoURL         string         `json:"repo_url,omitempty"`
+	Sha             string         `json:"sha,omitempty"`
+	RefName         string         `json:"ref,omitempty"`
+	BeforeSha       string         `json:"before_sha,omitempty"`
+	AllowGitFetch   bool           `json:"allow_git_fetch,omitempty"`
+	Timeout         int            `json:"timeout,omitempty"`
+	Variables       BuildVariables `json:"variables"`
+	Options         BuildOptions   `json:"options"`
+	Token           string         `json:"token"`
+	Name            string         `json:"name"`
+	Stage           string         `json:"stage"`
+	Tag             bool           `json:"tag"`
+	DependsOnBuilds []BuildInfo    `json:"depends_on_builds"`
+	TLSCAChain      string         `json:"-"`
 }
 
 type RegisterRunnerRequest struct {
@@ -99,5 +123,6 @@ type Network interface {
 	DeleteRunner(config RunnerCredentials) bool
 	VerifyRunner(config RunnerCredentials) bool
 	UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) UpdateState
+	DownloadArtifacts(config BuildCredentials, artifactsFile string) DownloadState
 	UploadArtifacts(config BuildCredentials, artifactsFile string) UploadState
 }

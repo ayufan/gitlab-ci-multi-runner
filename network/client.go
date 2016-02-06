@@ -121,15 +121,16 @@ func (n *client) getCAChain(tls *tls.ConnectionState) (certificates string) {
 	return
 }
 
-func (n *client) do(uri, method string, statusCode int, request io.Reader, requestType string, response interface{}, headers http.Header) (int, string, string) {
+func (n *client) do(uri, method string, request io.Reader, requestType string, headers http.Header) (res *http.Response, err error) {
 	url, err := n.url.Parse(uri)
 	if err != nil {
-		return -1, err.Error(), ""
+		return
 	}
 
 	req, err := http.NewRequest(method, url.String(), request)
 	if err != nil {
-		return -1, fmt.Sprintf("failed to create NewRequest: %v", err), ""
+		err = fmt.Errorf("failed to create NewRequest: %v", err)
+		return
 	}
 
 	if headers != nil {
@@ -140,15 +141,35 @@ func (n *client) do(uri, method string, statusCode int, request io.Reader, reque
 		req.Header.Set("Content-Type", requestType)
 	}
 
-	if response != nil {
-		req.Header.Set("Accept", "application/json")
-	}
-
 	n.ensureTlsConfig()
 
-	res, err := n.Do(req)
+	res, err = n.Do(req)
 	if err != nil {
-		return -1, fmt.Sprintf("couldn't execute %v against %s: %v", req.Method, req.URL, err), ""
+		err = fmt.Errorf("couldn't execute %v against %s: %v", req.Method, req.URL, err)
+		return
+	}
+	return
+}
+
+func (n *client) doJson(uri, method string, statusCode int, request interface{}, response interface{}) (int, string, string) {
+	var body io.Reader
+
+	if request != nil {
+		requestBody, err := json.Marshal(request)
+		if err != nil {
+			return -1, fmt.Sprintf("failed to marshal project object: %v", err), ""
+		}
+		body = bytes.NewReader(requestBody)
+	}
+
+	headers := make(http.Header)
+	if response != nil {
+		headers.Set("Accept", "application/json")
+	}
+
+	res, err := n.do(uri, method, body, "application/json", headers)
+	if err != nil {
+		return -1, err.Error(), ""
 	}
 	defer res.Body.Close()
 
@@ -167,20 +188,6 @@ func (n *client) do(uri, method string, statusCode int, request io.Reader, reque
 	}
 
 	return res.StatusCode, res.Status, n.getCAChain(res.TLS)
-}
-
-func (n *client) doJson(uri, method string, statusCode int, request interface{}, response interface{}) (int, string, string) {
-	var body io.Reader
-
-	if request != nil {
-		requestBody, err := json.Marshal(request)
-		if err != nil {
-			return -1, fmt.Sprintf("failed to marshal project object: %v", err), ""
-		}
-		body = bytes.NewReader(requestBody)
-	}
-
-	return n.do(uri, method, statusCode, body, "application/json", response, nil)
 }
 
 func (n *client) fullUrl(uri string, a ...interface{}) string {

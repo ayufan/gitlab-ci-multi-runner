@@ -57,13 +57,13 @@ func (n *GitLabClient) getRunnerVersion(config RunnerConfig) VersionInfo {
 	return info
 }
 
-func (n *GitLabClient) doRaw(runner RunnerCredentials, method, uri string, statusCode int, request io.Reader, requestType string, response interface{}, headers http.Header) (int, string, string) {
+func (n *GitLabClient) doRaw(runner RunnerCredentials, method, uri string, request io.Reader, requestType string, headers http.Header) (res *http.Response, err error) {
 	c, err := n.getClient(runner)
 	if err != nil {
-		return clientError, err.Error(), ""
+		return nil, err
 	}
 
-	return c.do(uri, method, statusCode, request, requestType, response, headers)
+	return c.do(uri, method, request, requestType, headers)
 }
 
 func (n *GitLabClient) doJson(runner RunnerCredentials, method, uri string, statusCode int, request interface{}, response interface{}) (int, string, string) {
@@ -260,14 +260,20 @@ func (n *GitLabClient) UploadArtifacts(config BuildCredentials, artifactsFile st
 
 	headers := make(http.Header)
 	headers.Set("BUILD-TOKEN", config.Token)
-	result, statusText, _ := n.doRaw(mappedConfig, "POST", fmt.Sprintf("builds/%d/artifacts", config.ID), 201, pr, mpw.FormDataContentType(), nil, headers)
+	res, err := n.doRaw(mappedConfig, "POST", fmt.Sprintf("builds/%d/artifacts", config.ID), pr, mpw.FormDataContentType(), headers)
 
 	log := logrus.WithFields(logrus.Fields{
 		"id":    config.ID,
 		"token": helpers.ShortenToken(config.Token),
 	})
 
-	switch result {
+	if err != nil {
+		log.Errorln("Uploading artifacts to coordinator...", "error", err.Error())
+		return UploadFailed
+	}
+	defer res.Body.Close()
+
+	switch res.StatusCode {
 	case 201:
 		log.Println("Uploading artifacts to coordinator...", "ok")
 		return UploadSucceeded
@@ -277,11 +283,55 @@ func (n *GitLabClient) UploadArtifacts(config BuildCredentials, artifactsFile st
 	case 413:
 		log.Errorln("Uploading artifacts to coordinator...", "too large archive")
 		return UploadTooLarge
-	case clientError:
-		log.Errorln("Uploading artifacts to coordinator...", "error", statusText)
-		return UploadFailed
 	default:
-		log.Warningln("Uploading artifacts to coordinator...", "failed", statusText)
+		log.Warningln("Uploading artifacts to coordinator...", "failed", res.Status)
 		return UploadFailed
+	}
+}
+
+func (n *GitLabClient) DownloadArtifacts(config BuildCredentials, artifactsFile string) DownloadState {
+	// TODO: Create proper interface for `doRaw` that can use other types than RunnerCredentials
+	mappedConfig := RunnerCredentials{
+		URL:       config.URL,
+		Token:     config.Token,
+		TLSCAFile: config.TLSCAFile,
+	}
+
+	headers := make(http.Header)
+	headers.Set("BUILD-TOKEN", config.Token)
+	res, err := n.doRaw(mappedConfig, "GET", fmt.Sprintf("builds/%d/artifacts", config.ID), nil, "", headers)
+
+	log := logrus.WithFields(logrus.Fields{
+		"id":    config.ID,
+		"token": helpers.ShortenToken(config.Token),
+	})
+
+	if err != nil {
+		log.Errorln("Uploading artifacts from coordinator...", "error", err.Error())
+		return DownloadFailed
+	}
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case 200:
+		file, err := os.Create(artifactsFile)
+		if err == nil {
+			defer file.Close()
+			_, err = io.Copy(file, res.Body)
+		}
+		if err != nil {
+			file.Close()
+			os.Remove(file.Name())
+			log.Errorln("Uploading artifacts from coordinator...", "error", err.Error())
+			return DownloadFailed
+		}
+		log.Println("Downloading artifacts from coordinator...", "ok")
+		return DownloadSucceeded
+	case 403:
+		log.Errorln("Downloading artifacts from coordinator...", "forbidden")
+		return DownloadForbidden
+	default:
+		log.Warningln("Downloading artifacts from coordinator...", "failed", res.Status)
+		return DownloadFailed
 	}
 }
