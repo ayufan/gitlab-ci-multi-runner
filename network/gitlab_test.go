@@ -44,7 +44,7 @@ func TestClients(t *testing.T) {
 	assert.Error(t, c6err)
 }
 
-func testGetBuildHandler(w http.ResponseWriter, r *http.Request) {
+func testGetBuildHandler(w http.ResponseWriter, r *http.Request, t *testing.T) {
 	if r.URL.Path != "/api/v1/builds/register.json" {
 		w.WriteHeader(404)
 		return
@@ -95,7 +95,9 @@ func testGetBuildHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestGetBuild(t *testing.T) {
-	s := httptest.NewServer(http.HandlerFunc(testGetBuildHandler))
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		testGetBuildHandler(w, r, t)
+	}))
 	defer s.Close()
 
 	validToken := RunnerConfig{
@@ -140,7 +142,7 @@ func TestGetBuild(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func testRegisterRunnerHandler(w http.ResponseWriter, r *http.Request) {
+func testRegisterRunnerHandler(w http.ResponseWriter, r *http.Request, t *testing.T) {
 	if r.URL.Path != "/api/v1/runners/register.json" {
 		w.WriteHeader(404)
 		return
@@ -193,7 +195,9 @@ func testRegisterRunnerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestRegisterRunner(t *testing.T) {
-	s := httptest.NewServer(http.HandlerFunc(testRegisterRunnerHandler))
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		testRegisterRunnerHandler(w, r, t)
+	}))
 	defer s.Close()
 
 	validToken := RunnerCredentials{
