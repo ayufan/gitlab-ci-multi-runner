@@ -112,11 +112,14 @@ func (e *AbstractExecutor) uploadTrace(config *common.RunnerConfig, lastSentTrac
 	case common.UpdateSucceeded:
 		*lastSentTrace = buildTraceLen
 		*lastSentTime = time.Now()
+		return true
 
 	case common.UpdateAbort:
 		return false
+
+	default:
+		return true
 	}
-	return true
 }
 
 func (e *AbstractExecutor) updateTrace(config common.RunnerConfig, canceled chan bool, finished chan bool) {
@@ -134,8 +137,8 @@ func (e *AbstractExecutor) updateTrace(config common.RunnerConfig, canceled chan
 	for {
 		select {
 		case <-time.After(common.UpdateInterval):
-			aborted := e.uploadTrace(&config, &lastSentTrace, &lastSentTime)
-			if aborted {
+			continueSending := e.uploadTrace(&config, &lastSentTrace, &lastSentTime)
+			if !continueSending {
 				e.Debugln("updateBuildLog", "Sending abort request...")
 				canceled <- true
 				e.Debugln("updateBuildLog", "Waiting for finished flag...")
