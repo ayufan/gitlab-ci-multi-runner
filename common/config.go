@@ -50,6 +50,16 @@ type RunnerCredentials struct {
 	TLSCAFile string `toml:"tls-ca-file,omitempty" json:"tls-ca-file" long:"tls-ca-file" env:"CI_SERVER_TLS_CA_FILE" description:"File containing the certificates to verify the peer when using HTTPS"`
 }
 
+type CacheConfig struct {
+	UseS3          bool
+	ServerAddress  string
+	AccessKey      string
+	SecretKey      string
+	BucketName     string
+	BucketLocation string
+	Insecure       bool
+}
+
 type RunnerSettings struct {
 	Executor  string `toml:"executor" json:"executor" long:"executor" env:"RUNNER_EXECUTOR" required:"true" description:"Select executor, eg. shell, docker, etc."`
 	BuildsDir string `toml:"builds_dir,omitempty" json:"builds_dir" long:"builds-dir" env:"RUNNER_BUILDS_DIR" description:"Directory where builds are stored"`
@@ -63,6 +73,7 @@ type RunnerSettings struct {
 	Docker     *DockerConfig     `toml:"docker" json:"docker" group:"docker executor" namespace:"docker"`
 	Parallels  *ParallelsConfig  `toml:"parallels" json:"parallels" group:"parallels executor" namespace:"parallels"`
 	VirtualBox *VirtualBoxConfig `toml:"virtualbox" json:"virtualbox" group:"virtualbox executor" namespace:"virtualbox"`
+	Cache      *CacheConfig      `toml:"cache" json:"cache" group:"cache configuration" namespace:"cache"`
 }
 
 type RunnerConfig struct {
