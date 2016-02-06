@@ -38,10 +38,13 @@ func (c *CacheExtractorCommand) download() (bool, error) {
 		return true, err
 	}
 	defer resp.Body.Close()
+
 	if resp.StatusCode == 404 {
 		return false, os.ErrNotExist
-	} else if resp.StatusCode != 200 {
-		return false, fmt.Errorf("Received: %s", resp.Status)
+	} else if resp.StatusCode/100 != 2 {
+		// Retry on server errors
+		retry := resp.StatusCode/100 == 5
+		return retry, fmt.Errorf("Received: %s", resp.Status)
 	}
 
 	fi, _ := os.Lstat(c.File)

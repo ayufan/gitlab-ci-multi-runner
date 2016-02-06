@@ -16,27 +16,28 @@ import (
 
 type CacheArchiverCommand struct {
 	fileArchiver
+	retryHelper
 	File string `long:"file" description:"The path to file"`
 	URL  string `long:"url" description:"Download artifacts instead of uploading them"`
 }
 
-func (c *CacheArchiverCommand) upload() error {
+func (c *CacheArchiverCommand) upload() (bool, error) {
 	logrus.Infoln("Uploading", filepath.Base(c.File))
 
 	file, err := os.Open(c.File)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer file.Close()
 
 	fi, err := file.Stat()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	req, err := http.NewRequest("PUT", c.URL, file)
 	if err != nil {
-		return err
+		return true, err
 	}
 	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("Last-Modified", fi.ModTime().Format(http.TimeFormat))
@@ -44,15 +45,17 @@ func (c *CacheArchiverCommand) upload() error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return true, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("Received: %s", resp.Status)
+	if resp.StatusCode/100 != 2 {
+		// Retry on server errors
+		retry := resp.StatusCode/100 == 5
+		return retry, fmt.Errorf("Received: %s", resp.Status)
 	}
 
-	return nil
+	return false, nil
 }
 
 func (c *CacheArchiverCommand) Execute(*cli.Context) {
@@ -80,17 +83,18 @@ func (c *CacheArchiverCommand) Execute(*cli.Context) {
 
 	// Upload archive if needed
 	if c.URL != "" {
-		for i := 0; i < 3; i++ {
-			err := c.upload()
-			if err == nil {
-				break
-			}
+		err := c.doRetry(c.upload)
+		if err != nil {
 			logrus.Warningln(err)
-			time.Sleep(time.Second)
 		}
 	}
 }
 
 func init() {
-	common.RegisterCommand2("cache-archiver", "create and upload cache artifacts (internal)", &CacheArchiverCommand{})
+	common.RegisterCommand2("cache-archiver", "create and upload cache artifacts (internal)", &CacheArchiverCommand{
+		retryHelper: retryHelper{
+			Retry:     2,
+			RetryTime: time.Second,
+		},
+	})
 }
