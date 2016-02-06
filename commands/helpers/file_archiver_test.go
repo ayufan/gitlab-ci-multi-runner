@@ -1,142 +1,92 @@
 package commands_helpers
 
 import (
-	"archive/zip"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 	"time"
 )
 
-const UntrackedFileName = "some_fancy_untracked_file"
+const fileArchiverUntrackedFile = "untracked_test_file.txt"
+const fileArchiverOtherFile = "other_test_file.txt"
+const fileArchiverNotExistingFile = "not_existing_file.txt"
+const fileArchiverAbsoluteFile = "/absolute.txt"
+const fileArchiverRelativeFile = "../../../relative.txt"
 
-var currentDir, _ = os.Getwd()
+func TestCacheArchiverAddingUntrackedFiles(t *testing.T) {
+	ioutil.WriteFile(fileArchiverUntrackedFile, nil, 0600)
+	defer os.Remove(fileArchiverUntrackedFile)
 
-func randomTempFile(t *testing.T, format string) string {
-	file, err := ioutil.TempFile("", "archive_")
+	f := fileArchiver{
+		Untracked: true,
+	}
+	err := f.enumerate()
 	assert.NoError(t, err)
-	defer file.Close()
-	defer os.Remove(file.Name())
-	return file.Name() + format
+	assert.Len(t, f.sortedFiles(), 1)
+	assert.Contains(t, f.sortedFiles(), fileArchiverUntrackedFile)
 }
 
-func createArchiveCommand(t *testing.T) *ArchiveCommand {
-	err := os.Chdir(filepath.Join(currentDir, "..", ".."))
+func TestCacheArchiverAddingFile(t *testing.T) {
+	ioutil.WriteFile(fileArchiverUntrackedFile, nil, 0600)
+	defer os.Remove(fileArchiverUntrackedFile)
+
+	f := fileArchiver{
+		Paths: []string{fileArchiverUntrackedFile},
+	}
+	err := f.enumerate()
 	assert.NoError(t, err)
+	assert.Len(t, f.sortedFiles(), 1)
+	assert.Contains(t, f.sortedFiles(), fileArchiverUntrackedFile)
+}
 
-	return &ArchiveCommand{
-		File:    randomTempFile(t, ".zip"),
-		Verbose: true,
+func TestFileArchiverToFailOnAbsoulteFile(t *testing.T) {
+	f := fileArchiver{
+		Paths: []string{fileArchiverAbsoluteFile},
 	}
-}
-
-func filesInFolder(path string) []string {
-	matches, _ := filepath.Glob(path)
-	return matches
-}
-
-func readArchiveContent(t *testing.T, c *ArchiveCommand) (resultMap map[string]bool) {
-	resultMap = make(map[string]bool)
-
-	archive, err := zip.OpenReader(c.File)
+	err := f.enumerate()
 	assert.NoError(t, err)
-	defer archive.Close()
-	for _, file := range archive.File {
-		resultMap[file.Name] = true
+	assert.Empty(t, f.sortedFiles())
+	assert.NotContains(t, f.sortedFiles(), fileArchiverAbsoluteFile)
+}
+
+func TestFileArchiverToFailOnRelativeFile(t *testing.T) {
+	f := fileArchiver{
+		Paths: []string{fileArchiverRelativeFile},
 	}
-	return
-}
-
-func verifyArchiveContent(t *testing.T, c *ArchiveCommand, files ...string) {
-	resultMap := readArchiveContent(t, c)
-	for _, file := range files {
-		assert.True(t, resultMap[file], "File should exist %q", file)
-		delete(resultMap, file)
-	}
-	assert.Len(t, resultMap, 0, "No extra file should exist")
-}
-
-func TestArchiveNotCreatingArchive(t *testing.T) {
-	cmd := createArchiveCommand(t)
-	defer os.Remove(cmd.File)
-	cmd.Execute(nil)
-	_, err := os.Stat(cmd.File)
-	assert.True(t, os.IsNotExist(err), "File should not exist", cmd.File, err)
-}
-
-func TestArchiveAddingSomeLocalFiles(t *testing.T) {
-	cmd := createArchiveCommand(t)
-	defer os.Remove(cmd.File)
-	cmd.Paths = []string{
-		"commands/helpers/*",
-	}
-	cmd.Execute(nil)
-	verifyArchiveContent(t, cmd, filesInFolder("commands/helpers/*")...)
-}
-
-func TestArchiveNotAddingDuplicateFiles(t *testing.T) {
-	cmd := createArchiveCommand(t)
-	defer os.Remove(cmd.File)
-	cmd.Paths = []string{
-		"commands/helpers/*",
-		"commands/helpers/archive.go",
-	}
-	cmd.Execute(nil)
-	verifyArchiveContent(t, cmd, filesInFolder("commands/helpers/*")...)
-}
-
-func TestArchiveAddingUntrackedFiles(t *testing.T) {
-	cmd := createArchiveCommand(t)
-	defer os.Remove(cmd.File)
-	err := ioutil.WriteFile(UntrackedFileName, []byte{}, 0700)
+	err := f.enumerate()
 	assert.NoError(t, err)
-	cmd.Untracked = true
-	cmd.Execute(nil)
-	files := readArchiveContent(t, cmd)
-	assert.NotEmpty(t, files)
-	assert.True(t, files[UntrackedFileName])
+	assert.Empty(t, f.sortedFiles())
 }
 
-func TestArchiveUpdating(t *testing.T) {
-	tempFile := randomTempFile(t, ".zip")
-	defer os.Remove(tempFile)
-
-	err := ioutil.WriteFile(UntrackedFileName, []byte{}, 0700)
-	assert.NoError(t, err)
-
-	cmd := createArchiveCommand(t)
-	defer os.Remove(cmd.File)
-	cmd.Paths = []string{
-		"commands",
-		UntrackedFileName,
+func TestFileArchiverToAddNotExistingFile(t *testing.T) {
+	f := fileArchiver{
+		Paths: []string{fileArchiverNotExistingFile},
 	}
+	err := f.enumerate()
+	assert.NoError(t, err)
+	assert.Empty(t, f.sortedFiles())
+}
 
-	cmd.Execute(nil)
-	archive1, err := os.Stat(cmd.File)
-	assert.NoError(t, err, "Archive is created")
+func TestFileArchiverChanged(t *testing.T) {
+	ioutil.WriteFile(fileArchiverOtherFile, nil, 0600)
+	defer os.Remove(fileArchiverOtherFile)
 
-	cmd.Execute(nil)
-	archive2, err := os.Stat(cmd.File)
-	assert.NoError(t, err, "Archive is created")
-	assert.Equal(t, archive1.ModTime(), archive2.ModTime(), "Archive should not be modified")
+	ioutil.WriteFile(fileArchiverUntrackedFile, nil, 0600)
+	defer os.Remove(fileArchiverUntrackedFile)
 
-	time.Sleep(time.Second)
-	err = ioutil.WriteFile(UntrackedFileName, []byte{}, 0700)
-	assert.NoError(t, err, "File is created")
+	f := fileArchiver{
+		Paths: []string{fileArchiverUntrackedFile},
+	}
+	err := f.enumerate()
+	assert.NoError(t, err)
+	assert.Len(t, f.sortedFiles(), 1)
+	assert.False(t, f.isChanged(time.Now().Add(time.Minute)))
+	assert.True(t, f.isChanged(time.Now().Add(-time.Minute)))
 
-	cmd.Execute(nil)
-	archive3, err := os.Stat(cmd.File)
-	assert.NoError(t, err, "Archive is created")
-	assert.NotEqual(t, archive2.ModTime(), archive3.ModTime(), "File is added to archive")
-
-	time.Sleep(time.Second)
-	err = ioutil.WriteFile(UntrackedFileName, []byte{}, 0700)
-	assert.NoError(t, err, "File is updated")
-
-	cmd.Execute(nil)
-	archive4, err := os.Stat(cmd.File)
-	assert.NoError(t, err, "Archive is created")
-	assert.NotEqual(t, archive3.ModTime(), archive4.ModTime(), "File is updated in archive")
+	assert.False(t, f.isFileChanged(fileArchiverOtherFile), "should return false if file was modified before the listed file")
+	os.Chtimes(fileArchiverOtherFile, time.Now(), time.Now().Add(-time.Minute))
+	assert.True(t, f.isFileChanged(fileArchiverOtherFile), "should return true if file was modified")
+	assert.True(t, f.isFileChanged(fileArchiverNotExistingFile), "should return true if file doesn't exist")
 }

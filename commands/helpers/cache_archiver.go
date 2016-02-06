@@ -9,7 +9,7 @@ import (
 )
 
 type CacheArchiverCommand struct {
-	FileArchiver
+	fileArchiver
 	File string `long:"file" description:"The path to file"`
 }
 

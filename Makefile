@@ -160,6 +160,7 @@ mocks: FORCE
 	go get github.com/vektra/mockery/.../
 	rm -rf mocks/
 	mockery -dir=$(GOPATH)/src/github.com/ayufan/golang-kardianos-service -name=Interface
+	mockery -dir=./common -name=Network
 
 test-docker:
 	make test-docker-image IMAGE=centos:6 TYPE=rpm

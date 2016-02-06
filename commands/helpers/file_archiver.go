@@ -16,7 +16,7 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
-type FileArchiver struct {
+type fileArchiver struct {
 	Paths     []string `long:"path" description:"Add paths to archive"`
 	Untracked bool     `long:"untracked" description:"Add git untracked files"`
 	Verbose   bool     `long:"verbose" description:"Detailed information"`
@@ -25,7 +25,7 @@ type FileArchiver struct {
 	files map[string]os.FileInfo
 }
 
-func (c *FileArchiver) isChanged(modTime time.Time) bool {
+func (c *fileArchiver) isChanged(modTime time.Time) bool {
 	for _, info := range c.files {
 		if modTime.Before(info.ModTime()) {
 			return true
@@ -34,7 +34,7 @@ func (c *FileArchiver) isChanged(modTime time.Time) bool {
 	return false
 }
 
-func (c *FileArchiver) isFileChanged(fileName string) bool {
+func (c *fileArchiver) isFileChanged(fileName string) bool {
 	ai, err := os.Stat(fileName)
 	if ai != nil {
 		if !c.isChanged(ai.ModTime()) {
@@ -46,7 +46,7 @@ func (c *FileArchiver) isFileChanged(fileName string) bool {
 	return true
 }
 
-func (c *FileArchiver) sortedFiles() []string {
+func (c *fileArchiver) sortedFiles() []string {
 	files := make([]string, len(c.files))
 
 	i := 0
@@ -59,7 +59,7 @@ func (c *FileArchiver) sortedFiles() []string {
 	return files
 }
 
-func (c *FileArchiver) add(path string) (err error) {
+func (c *fileArchiver) add(path string) (err error) {
 	// Always use slashes
 	path = filepath.ToSlash(path)
 
@@ -71,7 +71,7 @@ func (c *FileArchiver) add(path string) (err error) {
 	return
 }
 
-func (c *FileArchiver) process(match string) bool {
+func (c *fileArchiver) process(match string) bool {
 	var absolute, relative string
 	var err error
 
@@ -99,7 +99,7 @@ func (c *FileArchiver) process(match string) bool {
 	return false
 }
 
-func (c *FileArchiver) processPaths() {
+func (c *fileArchiver) processPaths() {
 	for _, path := range c.Paths {
 		matches, err := filepath.Glob(path)
 		if err != nil {
@@ -129,7 +129,7 @@ func (c *FileArchiver) processPaths() {
 	}
 }
 
-func (c *FileArchiver) processUntracked() {
+func (c *fileArchiver) processUntracked() {
 	if !c.Untracked {
 		return
 	}
@@ -168,7 +168,7 @@ func (c *FileArchiver) processUntracked() {
 	}
 }
 
-func (c *FileArchiver) enumerate() error {
+func (c *fileArchiver) enumerate() error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("Failed to get current working directory: %v", err)
