@@ -6,10 +6,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"time"
-"net/http"
-	"net/http/httptest"
 )
 
 const cacheArchiverArchive = "archive.zip"
