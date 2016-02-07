@@ -72,3 +72,10 @@ func (m *Network) UploadArtifacts(config common.BuildCredentials, artifactsFile 
 
 	return r0
 }
+func (m *Network) ProcessBuild(config common.RunnerConfig, id int) common.BuildTrace {
+	ret := m.Called(config, id)
+
+	r0 := ret.Get(0).(common.BuildTrace)
+
+	return r0
+}
