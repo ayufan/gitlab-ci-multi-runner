@@ -16,60 +16,6 @@ import (
 	"os"
 )
 
-type machineState int
-
-const (
-	machineStateIdle machineState = iota
-	machineStateAcquired
-	machineStateCreating
-	machineStateUsed
-	machineStateRemoving
-)
-
-func (t machineState) String() string {
-	switch t {
-	case machineStateIdle:
-		return "Idle"
-	case machineStateAcquired:
-		return "Acquired"
-	case machineStateCreating:
-		return "Creating"
-	case machineStateUsed:
-		return "Used"
-	case machineStateRemoving:
-		return "Removing"
-	default:
-		return "Unknown"
-	}
-}
-
-func (t machineState) MarshalText() ([]byte, error) {
-	return []byte(t.String()), nil
-}
-
-type machineDetails struct {
-	Name      string
-	Created   time.Time `yaml:"-"`
-	Used      time.Time `yaml:"-"`
-	UsedCount int
-	State     machineState
-	Reason    string
-}
-
-func (m *machineDetails) isUsed() bool {
-	return m.State != machineStateIdle
-}
-
-func (m *machineDetails) match(machineFilter string) bool {
-	var query string
-	if n, _ := fmt.Sscanf(m.Name, machineFilter, &query); n != 1 {
-		return false
-	}
-	return true
-}
-
-type machinesDetails map[string]*machineDetails
-
 type machineProvider struct {
 	machine  docker_helpers.Machine
 	details  machinesDetails
@@ -175,23 +121,6 @@ func (m *machineProvider) retryUseMachine(config *common.RunnerConfig) (details 
 	return
 }
 
-func (m *machineDetails) writeDebugInformation() {
-	if logrus.GetLevel() < logrus.DebugLevel {
-		return
-	}
-
-	var details struct {
-		machineDetails
-		Time       string
-		CreatedAgo time.Duration
-	}
-	details.machineDetails = *m
-	details.Time = time.Now().String()
-	details.CreatedAgo = time.Since(m.Created)
-	data := helpers.ToYAML(&details)
-	ioutil.WriteFile("machines/"+details.Name+".yml", []byte(data), 0600)
-}
-
 func (m *machineProvider) remove(machineName string, reason ...interface{}) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -215,64 +144,6 @@ func (m *machineProvider) remove(machineName string, reason ...interface{}) {
 		defer m.lock.Unlock()
 		delete(m.details, machineName)
 	}()
-}
-
-type machinesData struct {
-	Acquired int
-	Creating int
-	Idle     int
-	Used     int
-	Removing int
-}
-
-func (d *machinesData) Available() int {
-	return d.Acquired + d.Creating + d.Idle
-}
-
-func (d *machinesData) Total() int {
-	return d.Acquired + d.Creating + d.Idle + d.Used
-}
-
-func (d *machinesData) Add(state machineState) {
-	switch state {
-	case machineStateIdle:
-		d.Idle++
-
-	case machineStateCreating:
-		d.Creating++
-
-	case machineStateAcquired:
-		d.Acquired++
-
-	case machineStateUsed:
-		d.Used++
-
-	case machineStateRemoving:
-		d.Removing++
-	}
-}
-
-func (d *machinesData) Fields() logrus.Fields {
-	return logrus.Fields{
-		"used":     d.Used,
-		"idle":     d.Idle,
-		"total":    d.Total(),
-		"creating": d.Creating,
-		"removing": d.Removing,
-	}
-}
-
-func (d *machinesData) writeDebugInformation() {
-	if logrus.GetLevel() < logrus.DebugLevel {
-		return
-	}
-
-	file, err := os.OpenFile("machines.csv", os.O_RDWR|os.O_APPEND, 0600)
-	if err != nil {
-		return
-	}
-	defer file.Close()
-	fmt.Fprintln(file, "time", time.Now(), "acquired", d.Acquired, "creating", d.Creating, "idle", d.Idle, "used", d.Used, "removing", d.Removing)
 }
 
 func (m *machineProvider) updateIdleMachine(config *common.RunnerConfig, data *machinesData, details *machineDetails) error {

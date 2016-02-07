@@ -95,6 +95,8 @@ func TestMachineDetailsUsed(t *testing.T) {
 	d := machineDetails{}
 	d.State = machineStateIdle
 	assert.False(t, d.isUsed())
+	d.State = machineStateAcquired
+	assert.True(t, d.isUsed())
 	d.State = machineStateCreating
 	assert.True(t, d.isUsed())
 	d.State = machineStateUsed
