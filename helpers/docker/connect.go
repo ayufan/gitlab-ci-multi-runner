@@ -1,17 +1,46 @@
 package docker_helpers
 
 import (
-	"github.com/fsouza/go-dockerclient"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
+
+	"github.com/Sirupsen/logrus"
+	"github.com/fsouza/go-dockerclient"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 )
 
-func Connect(c DockerCredentials, apiVersion string) (*docker.Client, error) {
+var dockerDialer = &net.Dialer{
+	Timeout:   30 * time.Second,
+	KeepAlive: 30 * time.Second,
+}
+
+func httpTransportFix(host string, client *docker.Client) {
+	logrus.WithField("host", host).Debugln("Applying docker.Client transport fix:", client)
+	client.Dialer = dockerDialer
+	client.HTTPClient = &http.Client{
+		Transport: &http.Transport{
+			Proxy:               http.ProxyFromEnvironment,
+			Dial:                dockerDialer.Dial,
+			TLSHandshakeTimeout: 10 * time.Second,
+			TLSClientConfig:     client.TLSConfig,
+		},
+	}
+}
+
+func New(c DockerCredentials, apiVersion string) (client *docker.Client, err error) {
 	endpoint := "unix:///var/run/docker.sock"
 	tlsVerify := false
 	tlsCertPath := ""
+
+	defer func() {
+		if client != nil {
+			httpTransportFix(endpoint, client)
+		}
+	}()
 
 	if host := helpers.StringOrDefault(c.Host, ""); host != "" {
 		// read docker config from config
@@ -28,24 +57,25 @@ func Connect(c DockerCredentials, apiVersion string) (*docker.Client, error) {
 	}
 
 	if tlsVerify {
-		client, err := docker.NewVersionnedTLSClient(
+		client, err = docker.NewVersionnedTLSClient(
 			endpoint,
 			filepath.Join(tlsCertPath, "cert.pem"),
 			filepath.Join(tlsCertPath, "key.pem"),
 			filepath.Join(tlsCertPath, "ca.pem"),
 			apiVersion,
 		)
-		if err != nil {
-			return nil, err
-		}
+		return
+	}
 
-		return client, nil
-	} else {
-		client, err := docker.NewVersionedClient(endpoint, apiVersion)
-		if err != nil {
-			return nil, err
-		}
+	client, err = docker.NewVersionedClient(endpoint, apiVersion)
+	return
+}
 
-		return client, nil
+func Close(client *docker.Client) {
+	// Nuke all connections
+	if transport, ok := client.HTTPClient.Transport.(*http.Transport); ok && transport != http.DefaultTransport {
+		transport.DisableKeepAlives = true
+		transport.CloseIdleConnections()
+		logrus.Debugln("Closed all idle connections for docker.Client:", client)
 	}
 }
