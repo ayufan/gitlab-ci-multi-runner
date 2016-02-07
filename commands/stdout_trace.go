@@ -17,3 +17,7 @@ func (s *stdoutTrace) Fail(err error) {
 
 func (s *stdoutTrace) Notify(abort func()) {
 }
+
+func (s *stdoutTrace) IsStdout() bool {
+	return true
+}

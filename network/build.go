@@ -11,10 +11,14 @@ import (
 	"time"
 )
 
+var traceUpdateInterval = common.UpdateInterval
+var traceForceSendInterval = common.ForceTraceSentInterval
+var traceFinishRetryInterval = common.UpdateRetryInterval
+
 type clientBuildTrace struct {
 	*io.PipeWriter
 
-	client *GitLabClient
+	client common.Network
 	config common.RunnerConfig
 	id     int
 	limit  int64
@@ -36,9 +40,8 @@ func (c *clientBuildTrace) Success() {
 
 func (c *clientBuildTrace) Fail(err error) {
 	c.lock.Lock()
-	defer c.lock.Unlock()
-
 	if c.state != common.Running {
+		c.lock.Unlock()
 		return
 	}
 	if err == nil {
@@ -46,11 +49,17 @@ func (c *clientBuildTrace) Fail(err error) {
 	} else {
 		c.state = common.Failed
 	}
+	c.lock.Unlock()
+
 	c.finish()
 }
 
 func (c *clientBuildTrace) Notify(abort func()) {
 	c.abort = abort
+}
+
+func (c *clientBuildTrace) IsStdout() bool {
+	return false
 }
 
 func (c *clientBuildTrace) start() {
@@ -63,19 +72,19 @@ func (c *clientBuildTrace) start() {
 }
 
 func (c *clientBuildTrace) finish() {
+	c.Close()
 	c.finished <- true
 
 	// Do final upload of build trace
 	for {
 		if c.update() != common.UpdateFailed {
-			break
-		} else {
-			time.Sleep(common.UpdateRetryInterval * time.Second)
+			return
 		}
+		time.Sleep(traceFinishRetryInterval)
 	}
 }
 
-func (c *clientBuildTrace) writeRune(r rune, limit int64) (n int, err error) {
+func (c *clientBuildTrace) writeRune(r rune, limit int) (n int, err error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -132,7 +141,7 @@ func (c *clientBuildTrace) update() common.UpdateState {
 
 	if c.sentState == state &&
 		c.sentTrace == len(trace) &&
-		time.Since(c.sentTime) < common.ForceTraceSentInterval {
+		time.Since(c.sentTime) < traceForceSendInterval {
 		return common.UpdateSucceeded
 	}
 
@@ -149,7 +158,7 @@ func (c *clientBuildTrace) update() common.UpdateState {
 func (c *clientBuildTrace) watch() {
 	for {
 		select {
-		case <-time.After(common.UpdateInterval):
+		case <-time.After(traceUpdateInterval):
 			state := c.update()
 			if state == common.UpdateAbort && c.abort != nil {
 				c.abort()
@@ -161,5 +170,13 @@ func (c *clientBuildTrace) watch() {
 		case <-c.finished:
 			return
 		}
+	}
+}
+
+func newBuildTrace(client common.Network, config common.RunnerConfig, id int) *clientBuildTrace {
+	return &clientBuildTrace{
+		client: client,
+		config: config,
+		id:     id,
 	}
 }

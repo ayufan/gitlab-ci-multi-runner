@@ -3,7 +3,6 @@ package executors
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"time"
 
@@ -23,7 +22,7 @@ type AbstractExecutor struct {
 	ExecutorOptions
 	Config      common.RunnerConfig
 	Build       *common.Build
-	BuildLog    io.Writer
+	BuildLog    common.BuildTrace
 	BuildFinish chan error
 	BuildScript *common.ShellScript
 }

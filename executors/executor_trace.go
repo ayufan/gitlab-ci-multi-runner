@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"os"
 )
 
 func (e *AbstractExecutor) log() *logrus.Entry {
@@ -16,11 +15,9 @@ func (e *AbstractExecutor) Debugln(args ...interface{}) {
 }
 
 func (e *AbstractExecutor) Println(args ...interface{}) {
-	if e.BuildLog != os.Stdout {
-		fmt.Fprintln(e.BuildLog, args...)
-	}
+	fmt.Fprintln(e.BuildLog, args...)
 
-	if len(args) == 0 {
+	if e.BuildLog.IsStdout() || len(args) == 0 {
 		return
 	}
 
@@ -28,11 +25,9 @@ func (e *AbstractExecutor) Println(args ...interface{}) {
 }
 
 func (e *AbstractExecutor) Infoln(args ...interface{}) {
-	if e.BuildLog != os.Stdout {
-		fmt.Fprint(e.BuildLog, helpers.ANSI_BOLD_GREEN+fmt.Sprintln(args...)+helpers.ANSI_RESET)
-	}
+	fmt.Fprint(e.BuildLog, helpers.ANSI_BOLD_GREEN+fmt.Sprintln(args...)+helpers.ANSI_RESET)
 
-	if len(args) == 0 {
+	if e.BuildLog.IsStdout() || len(args) == 0 {
 		return
 	}
 
@@ -40,18 +35,20 @@ func (e *AbstractExecutor) Infoln(args ...interface{}) {
 }
 
 func (e *AbstractExecutor) Warningln(args ...interface{}) {
-	// write to log file
-	if e.BuildLog != os.Stdout {
-		fmt.Fprint(e.BuildLog, helpers.ANSI_BOLD_YELLOW+"WARNING: "+fmt.Sprintln(args...)+helpers.ANSI_RESET)
+	fmt.Fprint(e.BuildLog, helpers.ANSI_BOLD_YELLOW+"WARNING: "+fmt.Sprintln(args...)+helpers.ANSI_RESET)
+
+	if e.BuildLog.IsStdout() {
+		return
 	}
 
 	e.log().Warningln(args...)
 }
 
 func (e *AbstractExecutor) Errorln(args ...interface{}) {
-	// write to log file
-	if e.BuildLog != os.Stdout {
-		fmt.Fprint(e.BuildLog, helpers.ANSI_BOLD_RED+"ERROR: "+fmt.Sprintln(args...)+helpers.ANSI_RESET)
+	fmt.Fprint(e.BuildLog, helpers.ANSI_BOLD_RED+"ERROR: "+fmt.Sprintln(args...)+helpers.ANSI_RESET)
+
+	if e.BuildLog.IsStdout() {
+		return
 	}
 
 	e.log().Errorln(args...)

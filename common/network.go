@@ -125,6 +125,7 @@ type BuildTrace interface {
 	Success()
 	Fail(err error)
 	Notify(abort func())
+	IsStdout() bool
 }
 
 type Network interface {
