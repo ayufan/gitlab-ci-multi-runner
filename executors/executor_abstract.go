@@ -154,7 +154,7 @@ func (e *AbstractExecutor) Finish(err error) {
 		e.Errorln("Build failed:", err)
 	} else {
 		e.Println()
-		e.Println("Build succeeded")
+		e.Infoln("Build succeeded")
 	}
 }
 
