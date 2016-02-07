@@ -60,7 +60,7 @@ func getCacheDownloadURL(build *common.Build, key string) (url string) {
 		return
 	}
 
-	url, err = scl.PresignedGetObject(cache.BucketName, key, time.Second*time.Duration(build.Timeout))
+	url, err = scl.PresignedGetObject(cache.BucketName, objectName, time.Second*time.Duration(build.Timeout))
 	if err != nil {
 		logrus.Warningln(err)
 		return
@@ -82,7 +82,7 @@ func getCacheUploadURL(build *common.Build, key string) (url string) {
 		return
 	}
 
-	url, err = scl.PresignedPutObject(cache.BucketName, key, time.Second*time.Duration(build.Timeout))
+	url, err = scl.PresignedPutObject(cache.BucketName, objectName, time.Second*time.Duration(build.Timeout))
 	if err != nil {
 		logrus.Warningln(err)
 		return
