@@ -83,22 +83,3 @@ func TestZipCreate(t *testing.T) {
 	assert.NotEmpty(t, archive.File[2].Extra)
 	assert.True(t, archive.File[2].Mode().IsDir())
 }
-
-func TestZipOverwrite(t *testing.T) {
-	td, err := ioutil.TempDir("", "archive")
-	if !assert.NoError(t, err) {
-		return
-	}
-	defer os.RemoveAll(td)
-
-	tempFile := filepath.Join(td, "archive.zip")
-
-	err = CreateZipFile(tempFile, []string{})
-	assert.NoError(t, err)
-
-	err = os.Chmod(td, 0000)
-	assert.NoError(t, err)
-
-	err = CreateZipFile(tempFile, []string{})
-	assert.Error(t, err)
-}

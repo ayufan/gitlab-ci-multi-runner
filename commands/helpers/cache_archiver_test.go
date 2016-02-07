@@ -45,13 +45,3 @@ func TestCacheArchiverForIfNoFileDefined(t *testing.T) {
 		cmd.Execute(nil)
 	})
 }
-
-func TestCacheArchiverForNotExistingFile(t *testing.T) {
-	helpers.MakeFatalToPanic()
-	cmd := CacheArchiverCommand{
-		File: "/../../../test.zip",
-	}
-	assert.Panics(t, func() {
-		cmd.Execute(nil)
-	})
-}
