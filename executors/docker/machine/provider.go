@@ -16,7 +16,7 @@ type machineProvider struct {
 	machine  docker_helpers.Machine
 	details  machinesDetails
 	lock     sync.RWMutex
-	executor string
+	provider common.ExecutorProvider
 }
 
 func (m *machineProvider) machineDetails(name string, acquire bool) *machineDetails {
@@ -292,22 +292,15 @@ func (m *machineProvider) Release(config *common.RunnerConfig, data common.Execu
 }
 
 func (m *machineProvider) CanCreate() bool {
-	factory := common.GetExecutor(m.executor)
-	if factory != nil {
-		return factory.CanCreate()
-	}
-	return false
+	return m.provider.CanCreate()
 }
 
 func (m *machineProvider) GetFeatures(features *common.FeaturesInfo) {
-	factory := common.GetExecutor(m.executor)
-	if factory != nil {
-		factory.GetFeatures(features)
-	}
+	m.provider.GetFeatures(features)
 }
 
 func (m *machineProvider) Create() common.Executor {
-	executor := common.NewExecutor(m.executor)
+	executor := m.provider.Create()
 	if executor == nil {
 		return nil
 	}
@@ -318,9 +311,14 @@ func (m *machineProvider) Create() common.Executor {
 }
 
 func newMachineProvider(executor string) *machineProvider {
+	provider := common.GetExecutor(executor)
+	if provider == nil {
+		logrus.Panicln("Missing", executor)
+	}
+
 	return &machineProvider{
 		details:  make(machinesDetails),
 		machine:  docker_helpers.NewMachineCommand(),
-		executor: executor,
+		provider: provider,
 	}
 }
