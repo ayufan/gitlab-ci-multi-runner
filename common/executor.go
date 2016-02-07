@@ -12,6 +12,7 @@ type Executor interface {
 	Wait() error
 	Finish(err error)
 	Cleanup()
+	Abort()
 }
 
 type ExecutorProvider interface {

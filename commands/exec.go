@@ -256,7 +256,7 @@ func (c *ExecCommand) Execute(context *cli.Context) {
 
 	build.AssignID()
 
-	err = build.Run(&common.Config{})
+	err = build.Run(&common.Config{}, &stdoutTrace{})
 	if err != nil {
 		logrus.Fatalln(err)
 	}
