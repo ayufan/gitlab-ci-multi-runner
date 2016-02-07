@@ -688,17 +688,33 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 }
 
 func (s *executor) Cleanup() {
+	var wg sync.WaitGroup
+
 	for _, service := range s.services {
-		s.removeContainer(service.ID)
+		wg.Add(1)
+		go func() {
+			s.removeContainer(service.ID)
+			wg.Done()
+		}()
 	}
 
 	for _, cache := range s.caches {
-		s.removeContainer(cache.ID)
+		wg.Add(1)
+		go func() {
+			s.removeContainer(cache.ID)
+			wg.Done()
+		}()
 	}
 
 	for _, build := range s.builds {
-		s.removeContainer(build.ID)
+		wg.Add(1)
+		go func() {
+			s.removeContainer(build.ID)
+			wg.Done()
+		}()
 	}
+
+	wg.Wait()
 
 	if s.client != nil {
 		docker_helpers.Close(s.client)

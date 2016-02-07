@@ -228,6 +228,7 @@ func (b *Build) Run(globalConfig *Config) error {
 		b.SendBuildLog()
 		return errors.New("executor not found")
 	}
+	defer executor.Cleanup()
 
 	err := executor.Prepare(globalConfig, b.Runner, b)
 	if err == nil {
@@ -237,9 +238,6 @@ func (b *Build) Run(globalConfig *Config) error {
 		err = executor.Wait()
 	}
 	executor.Finish(err)
-	if executor != nil {
-		executor.Cleanup()
-	}
 	return err
 }
 
