@@ -124,7 +124,7 @@ func (m *machineProvider) create(config *common.RunnerConfig, state machineState
 	name := newMachineName(m.filter(config))
 	details = m.machineDetails(name, true)
 	details.State = machineStateCreating
-	errCh = make(chan error)
+	errCh = make(chan error, 1)
 
 	// Create machine asynchronously
 	go func() {
