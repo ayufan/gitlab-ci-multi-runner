@@ -690,28 +690,24 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 func (s *executor) Cleanup() {
 	var wg sync.WaitGroup
 
-	for _, service := range s.services {
+	remove := func(id string) {
 		wg.Add(1)
 		go func() {
-			s.removeContainer(service.ID)
+			s.removeContainer(id)
 			wg.Done()
 		}()
+	}
+
+	for _, service := range s.services {
+		remove(service.ID)
 	}
 
 	for _, cache := range s.caches {
-		wg.Add(1)
-		go func() {
-			s.removeContainer(cache.ID)
-			wg.Done()
-		}()
+		remove(cache.ID)
 	}
 
 	for _, build := range s.builds {
-		wg.Add(1)
-		go func() {
-			s.removeContainer(build.ID)
-			wg.Done()
-		}()
+		remove(build.ID)
 	}
 
 	wg.Wait()
