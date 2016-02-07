@@ -58,7 +58,7 @@ func (m *machineProvider) create(config *common.RunnerConfig, state machineState
 		for i := 0; i < 3 && err != nil; i++ {
 			logrus.WithField("name", details.Name).
 				Warningln("Machine creation failed, trying to provision", err)
-			time.Sleep(time.Second)
+			time.Sleep(provisionRetryInterval)
 			err = m.machine.Provision(details.Name)
 		}
 
@@ -75,7 +75,7 @@ func (m *machineProvider) create(config *common.RunnerConfig, state machineState
 	return
 }
 
-func (m *machineProvider) findFreeMachine(machines []string) (details *machineDetails) {
+func (m *machineProvider) findFreeMachine(machines... string) (details *machineDetails) {
 	// Enumerate all machines
 	for _, name := range machines {
 		details := m.machineDetails(name, true)
@@ -100,7 +100,7 @@ func (m *machineProvider) useMachine(config *common.RunnerConfig) (details *mach
 	if err != nil {
 		return
 	}
-	details = m.findFreeMachine(machines)
+	details = m.findFreeMachine(machines...)
 	if details == nil {
 		var errCh chan error
 		details, errCh = m.create(config, machineStateAcquired)
@@ -116,7 +116,7 @@ func (m *machineProvider) retryUseMachine(config *common.RunnerConfig) (details 
 		if err == nil {
 			break
 		}
-		time.Sleep(time.Second)
+		time.Sleep(provisionRetryInterval)
 	}
 	return
 }
@@ -170,7 +170,7 @@ func (m *machineProvider) updateMachine(config *common.RunnerConfig, data *machi
 	return nil
 }
 
-func (m *machineProvider) updateMachines(machines []string, config *common.RunnerConfig) (data machinesData, err error) {
+func (m *machineProvider) updateMachines(machines []string, config *common.RunnerConfig) (data machinesData) {
 	for _, name := range machines {
 		details := m.machineDetails(name, false)
 		err := m.updateMachine(config, &data, details)
@@ -216,10 +216,7 @@ func (m *machineProvider) Acquire(config *common.RunnerConfig) (data common.Exec
 	}
 
 	// Update a list of currently configured machines
-	machinesData, err := m.updateMachines(machines, config)
-	if err != nil {
-		return
-	}
+	machinesData := m.updateMachines(machines, config)
 
 	// Pre-create machines
 	m.createMachines(config, &machinesData)
@@ -233,7 +230,7 @@ func (m *machineProvider) Acquire(config *common.RunnerConfig) (data common.Exec
 	machinesData.writeDebugInformation()
 
 	// Try to find a free machine
-	details := m.findFreeMachine(machines)
+	details := m.findFreeMachine(machines...)
 	if details != nil {
 		data = details
 		return
@@ -254,11 +251,17 @@ func (m *machineProvider) Use(config *common.RunnerConfig, data common.ExecutorD
 		if err != nil {
 			return
 		}
+
+		// Return details only if this is a new instance
+		newData = details
 	}
 
 	// Get machine credentials
 	dc, err := m.machine.Credentials(details.Name)
 	if err != nil {
+		if newData != nil {
+			m.Release(config, newData)
+		}
 		return
 	}
 
@@ -273,11 +276,6 @@ func (m *machineProvider) Use(config *common.RunnerConfig, data common.ExecutorD
 	// Mark machine as used
 	details.State = machineStateUsed
 	details.UsedCount++
-
-	// Return details only if this is a new instance
-	if data != details {
-		newData = details
-	}
 	return
 }
 
