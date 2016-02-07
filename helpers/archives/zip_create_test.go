@@ -1,14 +1,13 @@
 package archives
 
 import (
+	"archive/zip"
 	"io/ioutil"
+	"os"
+	"syscall"
 	"testing"
 
-	"archive/zip"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"path/filepath"
-	"syscall"
 )
 
 var testZipFileContent = []byte("test content")
