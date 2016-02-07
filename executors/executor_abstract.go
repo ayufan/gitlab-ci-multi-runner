@@ -94,7 +94,6 @@ func (e *AbstractExecutor) verifyOptions() error {
 func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
 	e.Config = *config
 	e.Build = build
-	e.buildCanceled = make(chan bool, 1)
 	e.BuildFinish = make(chan error, 1)
 	e.BuildLog = build.Trace
 
