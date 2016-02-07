@@ -51,16 +51,7 @@ func waitForInterrupts(finished *bool, abortSignal chan os.Signal, doneSignal ch
 }
 
 func (r *RunSingleCommand) processBuild(abortSignal chan os.Signal) {
-	buildData, healthy := r.network.GetBuild(r.RunnerConfig)
-	if !healthy {
-		log.Println("Runner is not healthy!")
-		select {
-		case <-time.After(common.NotHealthyCheckInterval * time.Second):
-		case <-abortSignal:
-		}
-		return
-	}
-
+	buildData, _ := r.network.GetBuild(r.RunnerConfig)
 	if buildData == nil {
 		select {
 		case <-time.After(common.CheckInterval * time.Second):
