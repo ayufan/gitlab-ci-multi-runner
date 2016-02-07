@@ -7,6 +7,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
+	"sync"
 	"time"
 )
 
@@ -20,6 +21,7 @@ type clientBuildTrace struct {
 	abort  func()
 
 	log      bytes.Buffer
+	lock     sync.RWMutex
 	state    common.BuildState
 	finished chan bool
 
@@ -29,18 +31,21 @@ type clientBuildTrace struct {
 }
 
 func (c *clientBuildTrace) Success() {
-	if c.state != common.Running {
-		return
-	}
-	c.state = common.Success
-	c.finish()
+	c.Fail(nil)
 }
 
 func (c *clientBuildTrace) Fail(err error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	if c.state != common.Running {
 		return
 	}
-	c.state = common.Failed
+	if err == nil {
+		c.state = common.Success
+	} else {
+		c.state = common.Failed
+	}
 	c.finish()
 }
 
@@ -70,6 +75,25 @@ func (c *clientBuildTrace) finish() {
 	}
 }
 
+func (c *clientBuildTrace) writeRune(r rune, limit int64) (n int, err error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	n, err = c.log.WriteRune(r)
+	if c.log.Len() < limit {
+		return
+	}
+
+	output := fmt.Sprintf("\n%sBuild log exceeded limit of %v bytes.%s\n",
+		helpers.ANSI_BOLD_RED,
+		limit,
+		helpers.ANSI_RESET,
+	)
+	c.log.WriteString(output)
+	err = io.EOF
+	return
+}
+
 func (c *clientBuildTrace) process(pipe *io.PipeReader) {
 	defer pipe.Close()
 
@@ -89,27 +113,22 @@ func (c *clientBuildTrace) process(pipe *io.PipeReader) {
 			// ignore symbols if build log exceeded limit
 			continue
 		} else if err == nil {
-			c.log.WriteRune(r)
+			_, err = c.writeRune(r, limit)
+			if err == io.EOF {
+				stopped = true
+			}
 		} else {
 			// ignore invalid characters
 			continue
-		}
-
-		if c.log.Len() > limit {
-			output := fmt.Sprintf("\n%sBuild log exceeded limit of %v bytes.%s\n",
-				helpers.ANSI_BOLD_RED,
-				limit,
-				helpers.ANSI_RESET,
-			)
-			c.log.WriteString(output)
-			stopped = true
 		}
 	}
 }
 
 func (c *clientBuildTrace) update() common.UpdateState {
+	c.lock.RLock()
 	state := c.state
 	trace := c.log.String()
+	c.lock.RUnlock()
 
 	if c.sentState == state &&
 		c.sentTrace == len(trace) &&
@@ -118,6 +137,7 @@ func (c *clientBuildTrace) update() common.UpdateState {
 	}
 
 	upload := c.client.UpdateBuild(c.config, c.id, state, trace)
+
 	if upload == common.UpdateSucceeded {
 		c.sentTrace = len(trace)
 		c.sentState = state
