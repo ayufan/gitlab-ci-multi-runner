@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"net/url"
 	"os"
@@ -37,6 +38,7 @@ type Build struct {
 	CacheDir         string         `json:"-" yaml:"-"`
 	Hostname         string         `json:"-" yaml:"-"`
 	Runner           *RunnerConfig  `json:"runner"`
+	ExecutorData     ExecutorData
 
 	// Unique ID for all running builds on this runner
 	RunnerID int `json:"runner_id"`
@@ -212,9 +214,17 @@ func (b *Build) SendBuildLog() {
 }
 
 func (b *Build) Run(globalConfig *Config) error {
-	executor := NewExecutor(b.Runner.Executor)
-	if executor == nil {
+	logrus.Debugln("Starting a new build:", helpers.ToYAML(b))
+	provider := GetExecutor(b.Runner.Executor)
+	if provider == nil {
 		b.WriteString("Executor not found: " + b.Runner.Executor)
+		b.SendBuildLog()
+		return errors.New("executor not found")
+	}
+
+	executor := provider.Create()
+	if executor == nil {
+		b.WriteString("Failed to create executor: " + b.Runner.Executor)
 		b.SendBuildLog()
 		return errors.New("executor not found")
 	}

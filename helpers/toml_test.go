@@ -1,10 +1,10 @@
 package helpers
 
 import (
-	"testing"
 	"github.com/BurntSushi/toml"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 func TestTOMLOmitEmpty(t *testing.T) {

@@ -4,6 +4,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+type ExecutorData interface{}
+
 type Executor interface {
 	Prepare(globalConfig *Config, config *RunnerConfig, build *Build) error
 	Start() error
@@ -15,6 +17,8 @@ type Executor interface {
 type ExecutorProvider interface {
 	CanCreate() bool
 	Create() Executor
+	Acquire(config *RunnerConfig) (ExecutorData, error)
+	Release(config *RunnerConfig, data ExecutorData) error
 	GetFeatures(features *FeaturesInfo)
 }
 

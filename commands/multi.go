@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"sync"
 	"syscall"
 	"time"
 
@@ -16,28 +15,32 @@ import (
 	log "github.com/Sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/service"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/network"
 )
 
-type RunnerHealth struct {
-	failures  int
-	lastCheck time.Time
+type runnerAcquire struct {
+	common.RunnerConfig
+	provider common.ExecutorProvider
+	data     common.ExecutorData
+}
+
+func (r *runnerAcquire) Release() {
+	r.provider.Release(&r.RunnerConfig, r.data)
 }
 
 type RunCommand struct {
 	configOptions
 	network common.Network
+	healthHelper
+	buildsHelper
 
 	ServiceName      string `short:"n" long:"service" description:"Use different names for different services"`
 	WorkingDirectory string `short:"d" long:"working-directory" description:"Specify custom working directory"`
 	User             string `short:"u" long:"user" description:"Use specific user to execute shell scripts"`
 	Syslog           bool   `long:"syslog" description:"Log to syslog"`
 
-	builds          []*common.Build
-	buildsLock      sync.RWMutex
-	healthy         map[string]*RunnerHealth
-	healthyLock     sync.Mutex
 	finished        bool
 	abortBuilds     chan os.Signal
 	interruptSignal chan os.Signal
@@ -49,148 +52,66 @@ func (mr *RunCommand) log() *log.Entry {
 	return log.WithField("builds", len(mr.builds))
 }
 
-func (mr *RunCommand) getHealth(runner *common.RunnerConfig) *RunnerHealth {
-	mr.healthyLock.Lock()
-	defer mr.healthyLock.Unlock()
+func (mr *RunCommand) feedRunner(runner *common.RunnerConfig, runners chan *runnerAcquire) {
+	if !mr.isHealthy(runner.UniqueID()) {
+		return
+	}
 
-	if mr.healthy == nil {
-		mr.healthy = map[string]*RunnerHealth{}
+	provider := common.GetExecutor(runner.Executor)
+	if provider == nil {
+		return
 	}
-	health := mr.healthy[runner.UniqueID()]
-	if health == nil {
-		health = &RunnerHealth{
-			lastCheck: time.Now(),
-		}
-		mr.healthy[runner.UniqueID()] = health
+
+	data, err := provider.Acquire(runner)
+	if err != nil {
+		log.Warningln("Failed to update executor", runner.Executor, "for", runner.ShortDescription(), err)
+		return
 	}
-	return health
+
+	runners <- &runnerAcquire{*runner, provider, data}
 }
 
-func (mr *RunCommand) isHealthy(runner *common.RunnerConfig) bool {
-	health := mr.getHealth(runner)
-	if health.failures < common.HealthyChecks {
-		return true
-	}
-
-	if time.Since(health.lastCheck) > common.HealthCheckInterval*time.Second {
-		mr.log().Errorln("Runner", runner.ShortDescription(), "is not healthy, but will be checked!")
-		health.failures = 0
-		health.lastCheck = time.Now()
-		return true
-	}
-
-	return false
-}
-
-func (mr *RunCommand) makeHealthy(runner *common.RunnerConfig) {
-	health := mr.getHealth(runner)
-	health.failures = 0
-	health.lastCheck = time.Now()
-}
-
-func (mr *RunCommand) makeUnhealthy(runner *common.RunnerConfig) {
-	health := mr.getHealth(runner)
-	health.failures++
-
-	if health.failures >= common.HealthyChecks {
-		mr.log().Errorln("Runner", runner.ShortDescription(), "is not healthy and will be disabled!")
-	}
-}
-
-func (mr *RunCommand) addBuild(newBuild *common.Build) {
-	mr.buildsLock.Lock()
-	defer mr.buildsLock.Unlock()
-
-	newBuild.AssignID(mr.builds...)
-	mr.builds = append(mr.builds, newBuild)
-	mr.log().Debugln("Added a new build", newBuild)
-}
-
-func (mr *RunCommand) removeBuild(deleteBuild *common.Build) bool {
-	mr.buildsLock.Lock()
-	defer mr.buildsLock.Unlock()
-
-	for idx, build := range mr.builds {
-		if build == deleteBuild {
-			mr.builds = append(mr.builds[0:idx], mr.builds[idx+1:]...)
-			mr.log().Debugln("Build removed", deleteBuild)
-			return true
-		}
-	}
-	return false
-}
-
-func (mr *RunCommand) buildsForRunner(runner *common.RunnerConfig) int {
-	count := 0
-	for _, build := range mr.builds {
-		if build.Runner == runner {
-			count++
-		}
-	}
-	return count
-}
-
-func (mr *RunCommand) requestBuild(runner *common.RunnerConfig) *common.Build {
-	if runner == nil {
-		return nil
-	}
-
-	if !mr.isHealthy(runner) {
-		return nil
-	}
-
-	count := mr.buildsForRunner(runner)
-	if runner.Limit > 0 && count >= runner.Limit {
-		return nil
-	}
-
-	buildData, healthy := mr.network.GetBuild(*runner)
-	if healthy {
-		mr.makeHealthy(runner)
-	} else {
-		mr.makeUnhealthy(runner)
-	}
-
-	if buildData == nil {
-		return nil
-	}
-
-	mr.log().Debugln("Received new build for", runner.ShortDescription(), "build", buildData.ID)
-	newBuild := &common.Build{
-		GetBuildResponse: *buildData,
-		Runner:           runner,
-		BuildAbort:       mr.abortBuilds,
-		Network:          mr.network,
-	}
-	return newBuild
-}
-
-func (mr *RunCommand) feedRunners(runners chan *common.RunnerConfig) {
+func (mr *RunCommand) feedRunners(runners chan *runnerAcquire) {
 	for !mr.finished {
 		mr.log().Debugln("Feeding runners to channel")
 		config := mr.config
 		for _, runner := range config.Runners {
-			runners <- runner
+			mr.feedRunner(runner, runners)
 		}
 		time.Sleep(common.CheckInterval * time.Second)
 	}
 }
 
-func (mr *RunCommand) processRunners(id int, stopWorker chan bool, runners chan *common.RunnerConfig) {
+func (mr *RunCommand) processRunner(id int, runner *runnerAcquire) {
+	defer runner.Release()
+
+	// Acquire build slot
+	build := mr.buildsHelper.acquire(runner)
+	if build == nil {
+		return
+	}
+	defer mr.buildsHelper.release(build)
+
+	// Receive a new build
+	buildData, healthy := mr.network.GetBuild(runner.RunnerConfig)
+	mr.makeHealthy(runner.UniqueID(), healthy)
+	if buildData == nil {
+		return
+	}
+
+	// Process a build
+	build.GetBuildResponse = *buildData
+	build.BuildAbort = mr.abortBuilds
+	build.Network = mr.network
+	build.Run(mr.config)
+}
+
+func (mr *RunCommand) processRunners(id int, stopWorker chan bool, runners chan *runnerAcquire) {
 	mr.log().Debugln("Starting worker", id)
 	for !mr.finished {
 		select {
 		case runner := <-runners:
-			mr.log().Debugln("Checking runner", runner, "on", id)
-			newJob := mr.requestBuild(runner)
-			if newJob == nil {
-				break
-			}
-
-			mr.addBuild(newJob)
-			newJob.Run(mr.config)
-			mr.removeBuild(newJob)
-			newJob = nil
+			mr.processRunner(id, runner)
 
 			// force GC cycle after processing build
 			runtime.GC()
@@ -203,7 +124,7 @@ func (mr *RunCommand) processRunners(id int, stopWorker chan bool, runners chan 
 	<-stopWorker
 }
 
-func (mr *RunCommand) startWorkers(startWorker chan int, stopWorker chan bool, runners chan *common.RunnerConfig) {
+func (mr *RunCommand) startWorkers(startWorker chan int, stopWorker chan bool, runners chan *runnerAcquire) {
 	for !mr.finished {
 		id := <-startWorker
 		go mr.processRunners(id, stopWorker, runners)
@@ -222,7 +143,7 @@ func (mr *RunCommand) loadConfig() error {
 	}
 
 	mr.healthy = nil
-	mr.log().Println("Config loaded.")
+	mr.log().Println("Config loaded:", helpers.ToYAML(mr.config))
 	return nil
 }
 
@@ -320,7 +241,7 @@ func (mr *RunCommand) updateConfig() os.Signal {
 }
 
 func (mr *RunCommand) Run() {
-	runners := make(chan *common.RunnerConfig)
+	runners := make(chan *runnerAcquire)
 	go mr.feedRunners(runners)
 
 	startWorker := make(chan int)
