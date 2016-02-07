@@ -3,17 +3,13 @@ package machine
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/Sirupsen/logrus"
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/docker"
-	"io/ioutil"
-	"os"
 )
 
 type machineProvider struct {
@@ -21,23 +17,6 @@ type machineProvider struct {
 	details  machinesDetails
 	lock     sync.RWMutex
 	executor string
-}
-
-func machineFormat(runner string, template string) string {
-	if runner != "" {
-		return "runner-" + runner + "-" + template
-	}
-	return template
-}
-
-func newMachineName(machineFilter string) string {
-	t := time.Now().Unix()
-	r := rand.Int31()
-	return fmt.Sprintf(machineFilter, fmt.Sprintf("%d-%d", t, r))
-}
-
-func (m *machineProvider) filter(config *common.RunnerConfig) string {
-	return machineFormat(config.ShortDescription(), config.Machine.MachineName)
 }
 
 func (m *machineProvider) machineDetails(name string, acquire bool) *machineDetails {
@@ -67,7 +46,7 @@ func (m *machineProvider) machineDetails(name string, acquire bool) *machineDeta
 }
 
 func (m *machineProvider) create(config *common.RunnerConfig, state machineState) (details *machineDetails, errCh chan error) {
-	name := newMachineName(m.filter(config))
+	name := newMachineName(machineFilter(config))
 	details = m.machineDetails(name, true)
 	details.State = machineStateCreating
 	errCh = make(chan error, 1)
@@ -77,7 +56,8 @@ func (m *machineProvider) create(config *common.RunnerConfig, state machineState
 		started := time.Now()
 		err := m.machine.Create(config.Machine.MachineDriver, details.Name, config.Machine.MachineOptions...)
 		for i := 0; i < 3 && err != nil; i++ {
-			logrus.Warningln("Machine creation failed, trying to provision", err)
+			logrus.WithField("name", details.Name).
+				Warningln("Machine creation failed, trying to provision", err)
 			time.Sleep(time.Second)
 			err = m.machine.Provision(details.Name)
 		}
@@ -93,6 +73,26 @@ func (m *machineProvider) create(config *common.RunnerConfig, state machineState
 		errCh <- err
 	}()
 	return
+}
+
+func (m *machineProvider) findFreeMachine(machines []string) (details *machineDetails) {
+	// Enumerate all machines
+	for _, name := range machines {
+		details := m.machineDetails(name, true)
+		if details == nil {
+			continue
+		}
+
+		// Check if node is running
+		canConnect := m.machine.CanConnect(name)
+		if !canConnect {
+			m.remove(name)
+			continue
+		}
+		return details
+	}
+
+	return nil
 }
 
 func (m *machineProvider) useMachine(config *common.RunnerConfig) (details *machineDetails, err error) {
@@ -146,7 +146,7 @@ func (m *machineProvider) remove(machineName string, reason ...interface{}) {
 	}()
 }
 
-func (m *machineProvider) updateIdleMachine(config *common.RunnerConfig, data *machinesData, details *machineDetails) error {
+func (m *machineProvider) updateMachine(config *common.RunnerConfig, data *machinesData, details *machineDetails) error {
 	if details.State != machineStateIdle {
 		return nil
 	}
@@ -173,7 +173,7 @@ func (m *machineProvider) updateIdleMachine(config *common.RunnerConfig, data *m
 func (m *machineProvider) updateMachines(machines []string, config *common.RunnerConfig) (data machinesData, err error) {
 	for _, name := range machines {
 		details := m.machineDetails(name, false)
-		err := m.updateIdleMachine(config, &data, details)
+		err := m.updateMachine(config, &data, details)
 		if err != nil {
 			m.remove(details.Name, err)
 		}
@@ -199,29 +199,9 @@ func (m *machineProvider) createMachines(config *common.RunnerConfig, data *mach
 	}
 }
 
-func (m *machineProvider) findFreeMachine(machines []string) (details *machineDetails) {
-	// Enumerate all machines
-	for _, name := range machines {
-		details := m.machineDetails(name, true)
-		if details == nil {
-			continue
-		}
-
-		// Check if node is running
-		canConnect := m.machine.CanConnect(name)
-		if !canConnect {
-			m.remove(name)
-			continue
-		}
-		return details
-	}
-
-	return nil
-}
-
 func (m *machineProvider) loadMachines(config *common.RunnerConfig) ([]string, error) {
-	// Find a new machine{
-	return m.machine.List(m.filter(config))
+	// Find a new machine
+	return m.machine.List(machineFilter(config))
 }
 
 func (m *machineProvider) Acquire(config *common.RunnerConfig) (data common.ExecutorData, err error) {

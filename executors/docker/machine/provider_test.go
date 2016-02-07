@@ -4,10 +4,6 @@ import (
 	"errors"
 	"strings"
 	"testing"
-	"time"
-
-	"fmt"
-
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/docker"
@@ -21,10 +17,10 @@ var machineDefaultConfig = &common.RunnerConfig{
 	},
 }
 
-var machineCreateFail = &common.RunnerConfig{
+var machineProvisionFail = &common.RunnerConfig{
 	RunnerSettings: common.RunnerSettings{
 		Machine: &common.DockerMachine{
-			MachineName: "create-fail-%s",
+			MachineName: "provision-fail-%s",
 		},
 	},
 }
@@ -46,8 +42,16 @@ type testMachine struct {
 }
 
 func (m *testMachine) Create(driver, name string, opts ...string) error {
-	if strings.Contains(name, "create-fail") {
+	if strings.Contains(name, "create-fail") || strings.Contains(name, "provision-fail") {
 		return errors.New("Failed to create")
+	}
+	m.machines = append(m.machines, name)
+	return nil
+}
+
+func (m *testMachine) Provision(name string) error {
+	if strings.Contains(name, "provision-fail") {
+		return errors.New("Failed to provision")
 	}
 	m.machines = append(m.machines, name)
 	return nil
@@ -91,32 +95,27 @@ func testMachineProvider(machine ...string) *machineProvider {
 	}
 }
 
-func TestMachineDetailsUsed(t *testing.T) {
-	d := machineDetails{}
-	d.State = machineStateIdle
-	assert.False(t, d.isUsed())
-	d.State = machineStateAcquired
-	assert.True(t, d.isUsed())
-	d.State = machineStateCreating
-	assert.True(t, d.isUsed())
-	d.State = machineStateUsed
-	assert.True(t, d.isUsed())
-	d.State = machineStateRemoving
-	assert.True(t, d.isUsed())
+func TestMachineDetails(t *testing.T) {
+	p := testMachineProvider()
+	m1 := p.machineDetails("test", false)
+	assert.NotNil(t, m1, "returns a new machine")
+	assert.Equal(t, machineStateIdle, m1.State)
+
+	m2 := p.machineDetails("test", false)
+	assert.Equal(t, m1, m2, "returns the same machine")
+
+	m3 := p.machineDetails("test", true)
+	assert.Equal(t, machineStateAcquired, m3.State, "acquires machine")
+
+	m4 := p.machineDetails("test", true)
+	assert.Nil(t, m4, "fails to return re-acquired machine")
+
+	m5 := p.machineDetails("test", false)
+	assert.Equal(t, m1, m5, "returns acquired machine")
+	assert.Equal(t, machineStateAcquired, m5.State, "machine is acquired")
 }
 
-func TestMachineNewName(t *testing.T) {
-	a := newMachineName("machine-template-%s")
-	b := newMachineName("machine-template-%s")
-	assert.NotEqual(t, a, b)
-}
-
-func TestMachineDetailsMatcher(t *testing.T) {
-	d := machineDetails{Name: newMachineName("machine-template-%s")}
-	assert.True(t, d.match("machine-template-%s"))
-	assert.False(t, d.match("machine-other-template-%s"))
-}
-
+/*
 func TestMachineFindNew(t *testing.T) {
 	p := testMachineProvider()
 	details := p.findNew("%s")
@@ -153,7 +152,7 @@ func TestMachineCreationAndRemoval(t *testing.T) {
 	assert.Equal(t, machineStateUsed, details.State)
 	assert.NotNil(t, p.details[details.Name])
 
-	details2, errCh := p.create(machineCreateFail, machineStateUsed)
+	details2, errCh := p.create(machineProvisionFail, machineStateUsed)
 	assert.NotNil(t, details2)
 	assert.Error(t, <-errCh)
 	assert.Equal(t, machineStateRemoving, details2.State)
@@ -173,7 +172,7 @@ func TestMachineAcquireAndRelease(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEqual(t, "test-machine", machine2, "create a new machine")
 
-	_, _, err = p.acquire(machineCreateFail)
+	_, _, err = p.acquire(machineProvisionFail)
 	assert.Error(t, err, "fail to create machine")
 
 	p.release(machine2)
@@ -302,3 +301,4 @@ func TestMachineList(t *testing.T) {
 	err := p.Update(config)
 	assert.NoError(t, err, "it should have some machines")
 }
+*/

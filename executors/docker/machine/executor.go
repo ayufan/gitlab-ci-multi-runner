@@ -2,6 +2,9 @@ package machine
 
 import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+
+	// Force to load docker executor
+	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/docker"
 )
 
 type machineExecutor struct {
