@@ -147,7 +147,6 @@ func (e *AbstractExecutor) Wait() error {
 	case err := <-e.BuildFinish:
 		return err
 	}
-	return nil
 }
 
 func (e *AbstractExecutor) Finish(err error) {
