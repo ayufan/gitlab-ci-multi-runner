@@ -18,6 +18,14 @@ func (e DefaultExecutorProvider) Create() common.Executor {
 	return e.Creator()
 }
 
+func (e DefaultExecutorProvider) Acquire(config *common.RunnerConfig) (common.ExecutorData, error) {
+	return nil, nil
+}
+
+func (e DefaultExecutorProvider) Release(config *common.RunnerConfig, data common.ExecutorData) error {
+	return nil
+}
+
 func (e DefaultExecutorProvider) GetFeatures(features *common.FeaturesInfo) {
 	if e.FeaturesUpdater != nil {
 		e.FeaturesUpdater(features)

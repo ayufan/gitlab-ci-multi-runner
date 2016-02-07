@@ -50,7 +50,7 @@ func waitForInterrupts(finished *bool, abortSignal chan os.Signal, doneSignal ch
 	}
 }
 
-func (r *RunSingleCommand) processBuild(abortSignal chan os.Signal) {
+func (r *RunSingleCommand) processBuild(data common.ExecutorData, abortSignal chan os.Signal) {
 	buildData, healthy := r.network.GetBuild(r.RunnerConfig)
 	if !healthy {
 		log.Println("Runner is not healthy!")
@@ -76,6 +76,7 @@ func (r *RunSingleCommand) processBuild(abortSignal chan os.Signal) {
 		Runner:           &r.RunnerConfig,
 		BuildAbort:       abortSignal,
 		Network:          r.network,
+		ExecutorData:     data,
 	}
 	newBuild.AssignID()
 	newBuild.Run(config)
@@ -92,6 +93,11 @@ func (r *RunSingleCommand) Execute(c *cli.Context) {
 		log.Fatalln("Missing Executor")
 	}
 
+	executorProvider := common.GetExecutor(r.Executor)
+	if executorProvider == nil {
+		log.Fatalln("Uknown executor:", r.Executor)
+	}
+
 	log.Println("Starting runner for", r.URL, "with token", r.ShortDescription(), "...")
 
 	finished := false
@@ -101,7 +107,13 @@ func (r *RunSingleCommand) Execute(c *cli.Context) {
 	go waitForInterrupts(&finished, abortSignal, doneSignal)
 
 	for !finished {
-		r.processBuild(abortSignal)
+		data, err := executorProvider.Acquire(&r.RunnerConfig)
+		if err != nil {
+			log.Warningln("Executor update:", err)
+		}
+
+		r.processBuild(data, abortSignal)
+		executorProvider.Release(&r.RunnerConfig, data)
 	}
 
 	doneSignal <- 0
