@@ -679,7 +679,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 
 	s.Println("Using Docker executor with image", imageName, "...")
 
-	client, err := docker_helpers.Connect(s.Config.Docker.DockerCredentials, dockerAPIVersion)
+	client, err := docker_helpers.New(s.Config.Docker.DockerCredentials, dockerAPIVersion)
 	if err != nil {
 		return err
 	}
@@ -698,6 +698,10 @@ func (s *executor) Cleanup() {
 
 	for _, build := range s.builds {
 		s.removeContainer(build.ID)
+	}
+
+	if s.client != nil {
+		docker_helpers.Close(s.client)
 	}
 
 	s.AbstractExecutor.Cleanup()
