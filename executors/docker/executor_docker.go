@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/user"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -21,8 +22,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	docker_helpers "gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/docker"
-	"io"
-	"path"
 )
 
 type executor struct {
@@ -41,7 +40,7 @@ func (s *executor) getServiceVariables() []string {
 
 func (s *executor) getAuthConfig(imageName string) (docker.AuthConfiguration, error) {
 	homeDir := homedir.Get()
-	if s.Shell.User != nil {
+	if s.Shell.User != "" {
 		u, err := user.Lookup(s.Shell.User)
 		if err != nil {
 			return docker.AuthConfiguration{}, err
