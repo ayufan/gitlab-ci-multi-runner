@@ -71,10 +71,6 @@ deps:
 	-go get golang.org/x/sys/windows/svc
 	go get -u github.com/jteeuwen/go-bindata/...
 
-	# Fix broken BSD builds
-	rm -rf vendor/github.com/fsouza/go-dockerclient/external/github.com/Sirupsen/logrus
-	ln -s $(PWD)/vendor/github.com/Sirupsen/logrus vendor/github.com/fsouza/go-dockerclient/external/github.com/Sirupsen/logrus
-
 out/docker/prebuilt.tar.gz: $(GO_FILES)
 	# Create directory
 	mkdir -p out/docker
