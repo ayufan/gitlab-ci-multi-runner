@@ -31,7 +31,7 @@
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",
-			"Rev": "163268693e2cf8be2920158b59ef438fc77b85e2"
+			"Rev": "0099401a7342ad77e71ca9f9a57c5e72fb80f6b2"
 		},
 		{
 			"ImportPath": "github.com/golang/mock/gomock",
