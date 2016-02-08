@@ -24,7 +24,7 @@ RPM_PLATFORMS ?= el/6 el/7 \
 RPM_ARCHS ?= x86_64 i686 arm armhf
 GO_LDFLAGS ?= -X main.NAME $(PACKAGE_NAME) -X main.VERSION $(VERSION) -X main.REVISION $(REVISION)
 GO_FILES ?= $(shell find . -name '*.go')
-GO15VENDOREXPERIMENT ?= 1 
+export GO15VENDOREXPERIMENT := 1
 
 all: deps verify build
 
@@ -58,6 +58,7 @@ version: FORCE
 	@echo Current revision: $(REVISION)
 	@echo DEB platforms: $(DEB_PLATFORMS)
 	@echo RPM platforms: $(RPM_PLATFORMS)
+	bash -c 'echo TEST: ${GO15VENDOREXPERIMENT}'
 
 verify: fmt vet lint complexity test
 
