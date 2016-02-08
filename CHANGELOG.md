@@ -1,6 +1,7 @@
 v 1.0.3
 - Fix support for Windows Batch
 - Remove git index lock file: this solves problem with git checkout being terminated
+- Hijack docker.Client to use keep-alives and to close extra connections
 
 v 1.0.2
 - Fix bad warning about not found untracked files
