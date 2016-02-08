@@ -4,9 +4,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"os"
-	"os/signal"
-	"runtime"
-	"syscall"
 )
 
 func SetupLogLevelOptions(app *cli.App) {
@@ -38,17 +35,7 @@ func SetupLogLevelOptions(app *cli.App) {
 		// enforce log-level=debug.
 		if !c.IsSet("log-level") && !c.IsSet("l") && c.Bool("debug") {
 			log.SetLevel(log.DebugLevel)
-
-			// On USR1 dump stacks of all go routines
-			dumpStacks := make(chan os.Signal, 1)
-			signal.Notify(dumpStacks, syscall.SIGUSR1)
-			go func() {
-				for _ = range dumpStacks {
-					buf := make([]byte, 1<<20)
-					runtime.Stack(buf, true)
-					log.Printf("=== received SIGUSR1 ===\n*** goroutine dump...\n%s\n*** end\n", buf)
-				}
-			}()
+			go watchForGoroutinesDump()
 		}
 
 		if appBefore != nil {

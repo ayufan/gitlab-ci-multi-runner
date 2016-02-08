@@ -1,5 +1,8 @@
 # Bootstrap golang runner
-go-wrapper true &>/dev/null || true
+GODIR=$GOPATH/src/gitlab.com/gitlab-org/gitlab-ci-multi-runner
+mkdir -p "$(dirname "$GODIR")"
+ln -sfv "$(pwd -P)" "$GODIR"
+cd "$GODIR"
 
 # Installing dependencies
 apt-get update >/dev/null

@@ -24,8 +24,9 @@ RPM_PLATFORMS ?= el/6 el/7 \
 RPM_ARCHS ?= x86_64 i686 arm armhf
 GO_LDFLAGS ?= -X main.NAME $(PACKAGE_NAME) -X main.VERSION $(VERSION) -X main.REVISION $(REVISION)
 GO_FILES ?= $(shell find . -name '*.go')
+export GO15VENDOREXPERIMENT := 1
 
-all: deps verify toolchain build
+all: deps verify build
 
 help:
 	# Commands:
@@ -47,7 +48,6 @@ help:
 	# Deployment commands:
 	# make deps - install all dependencies
 	# make build - build project for all supported OSes
-	# make toolchain - install crossplatform toolchain
 	# make package - package project using FPM
 	# make packagecloud - send all packages to packagecloud
 	# make packagecloud-yank - remove specific version from packagecloud
@@ -58,12 +58,12 @@ version: FORCE
 	@echo Current revision: $(REVISION)
 	@echo DEB platforms: $(DEB_PLATFORMS)
 	@echo RPM platforms: $(RPM_PLATFORMS)
+	bash -c 'echo TEST: ${GO15VENDOREXPERIMENT}'
 
 verify: fmt vet lint complexity test
 
 deps:
 	# Installing dependencies...
-	go get github.com/tools/godep
 	go get -u github.com/golang/lint/golint
 	go get github.com/mitchellh/gox
 	go get golang.org/x/tools/cmd/cover
@@ -71,15 +71,6 @@ deps:
 	go get github.com/fzipp/gocyclo
 	-go get golang.org/x/sys/windows/svc
 	go get -u github.com/jteeuwen/go-bindata/...
-	godep restore
-
-	# Fix broken BSD builds
-	rm -rf $(GOPATH)/src/github.com/fsouza/go-dockerclient/external/github.com/Sirupsen/logrus
-	ln -s $(GOPATH)/src/github.com/Sirupsen/logrus $(GOPATH)/src/github.com/fsouza/go-dockerclient/external/github.com/Sirupsen/
-
-toolchain:
-	# Building toolchain...
-	gox -build-toolchain $(BUILD_PLATFORMS)
 
 out/docker/prebuilt.tar.gz: $(GO_FILES)
 	# Create directory
