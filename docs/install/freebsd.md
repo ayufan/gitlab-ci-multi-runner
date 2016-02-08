@@ -1,8 +1,5 @@
 ### Install on FreeBSD
 
-**The FreeBSD version will be available once the 0.6.0 is released.
-Currently you can use [Bleeding edge](bleeding-edge.md)** 
-
 Download the binary for your system:
 
 ```bash
@@ -22,19 +19,18 @@ Register the runner:
 ```bash
 gitlab-ci-multi-runner register
 
-Please enter the gitlab-ci coordinator URL (e.g. https://gitlab.com/ci )
-https://gitlab.com/ci
-Please enter the gitlab-ci token for this runner
-xxx
-Please enter the gitlab-ci description for this runner
-my-runner
-INFO[0034] fcf5c619 Registering runner... succeeded
-Please enter the executor: shell, docker, docker-ssh, ssh?
-docker
-Please enter the Docker image (eg. ruby:2.1):
-ruby:2.1
-INFO[0037] Runner registered successfully. Feel free to start it, but if it's
-running already the config should be automatically reloaded!
+Please enter the gitlab-ci coordinator URL (e.g. https://gitlab.com/ci):
+
+Please enter the gitlab-ci token for this runner:
+
+Please enter the gitlab-ci description for this runner:
+[name]: 
+Please enter the gitlab-ci tags for this runner (comma separated):
+
+Registering runner... succeeded
+Please enter the executor: virtualbox, ssh, shell, parallels, docker, docker-ssh:
+shell
+Runner registered successfully. Feel free to start it, but if it's running already the config should be automatically reloaded!
 ```
 
 Run GitLab-Runner:
@@ -44,4 +40,6 @@ cd ~
 gitlab-ci-multi-runner run
 ```
 
-Voila! Runner is currently running, but it will not start automatically after system reboot.
+Voila! Runner is currently running, but it will not start automatically after system reboot because BSD startup service is not supported.
+
+**The FreeBSD version is also availble from [Bleeding edge](bleeding-edge.md)** 
