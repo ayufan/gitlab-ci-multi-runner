@@ -8,6 +8,7 @@ import (
 )
 
 type machinesData struct {
+	Runner   string
 	Acquired int
 	Creating int
 	Idle     int

@@ -171,6 +171,8 @@ func (m *machineProvider) updateMachine(config *common.RunnerConfig, data *machi
 }
 
 func (m *machineProvider) updateMachines(machines []string, config *common.RunnerConfig) (data machinesData) {
+	data.Runner = config.ShortDescription()
+
 	for _, name := range machines {
 		details := m.machineDetails(name, false)
 		err := m.updateMachine(config, &data, details)
