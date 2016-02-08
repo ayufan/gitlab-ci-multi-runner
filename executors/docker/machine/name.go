@@ -3,8 +3,8 @@ package machine
 import (
 	"crypto/rand"
 	"fmt"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"time"
-"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 )
 
 func machineFormat(runner string, template string) string {

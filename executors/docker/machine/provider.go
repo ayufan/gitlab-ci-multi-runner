@@ -75,7 +75,7 @@ func (m *machineProvider) create(config *common.RunnerConfig, state machineState
 	return
 }
 
-func (m *machineProvider) findFreeMachine(machines... string) (details *machineDetails) {
+func (m *machineProvider) findFreeMachine(machines ...string) (details *machineDetails) {
 	// Enumerate all machines
 	for _, name := range machines {
 		details := m.machineDetails(name, true)

@@ -1,8 +1,8 @@
 package machine
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestMachineNewName(t *testing.T) {
