@@ -39,7 +39,7 @@ func (s *executor) getServiceVariables() []string {
 	return s.Build.GetAllVariables().PublicOrInternal().StringList()
 }
 
-func (s *DockerExecutor) getAuthConfig(imageName string) (docker.AuthConfiguration, error) {
+func (s *executor) getAuthConfig(imageName string) (docker.AuthConfiguration, error) {
 	homeDir := homedir.Get()
 	if s.Shell.User != nil {
 		u, err := user.Lookup(s.Shell.User)
