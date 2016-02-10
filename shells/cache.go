@@ -30,7 +30,7 @@ func (b *bucketLocationTripper) RoundTrip(req *http.Request) (res *http.Response
 }
 
 func getCacheObjectName(build *common.Build, cache *common.CacheConfig, key string) string {
-	if key == "" || cache == nil || !cache.UseS3 {
+	if key == "" {
 		return ""
 	}
 	return path.Join("runner", build.Runner.ShortDescription(), "project", strconv.Itoa(build.ProjectID), key)
@@ -47,7 +47,7 @@ func getCacheStorageClient(cache *common.CacheConfig) (scl minio.CloudStorageCli
 	return
 }
 
-func getCacheDownloadURL(build *common.Build, key string) (url string) {
+func getS3DownloadURL(build *common.Build, key string) (url string) {
 	cache := build.Runner.Cache
 	objectName := getCacheObjectName(build, cache, key)
 	if objectName == "" {
@@ -65,11 +65,23 @@ func getCacheDownloadURL(build *common.Build, key string) (url string) {
 		logrus.Warningln(err)
 		return
 	}
-
 	return
 }
 
-func getCacheUploadURL(build *common.Build, key string) (url string) {
+func getCacheDownloadURL(build *common.Build, key string) (url string) {
+	cache := build.Runner.Cache
+	if cache == nil {
+		return
+	}
+
+	switch cache.Type {
+	case "s3":
+		return getS3DownloadURL(build, key)
+	}
+	return
+}
+
+func getS3UploadURL(build *common.Build, key string) (url string) {
 	cache := build.Runner.Cache
 	objectName := getCacheObjectName(build, cache, key)
 	if objectName == "" {
@@ -87,6 +99,18 @@ func getCacheUploadURL(build *common.Build, key string) (url string) {
 		logrus.Warningln(err)
 		return
 	}
+	return
+}
 
+func getCacheUploadURL(build *common.Build, key string) (url string) {
+	cache := build.Runner.Cache
+	if cache == nil {
+		return
+	}
+
+	switch cache.Type {
+	case "s3":
+		return getS3UploadURL(build, key)
+	}
 	return
 }
