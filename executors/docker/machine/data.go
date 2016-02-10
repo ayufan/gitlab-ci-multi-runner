@@ -45,6 +45,7 @@ func (d *machinesData) Add(state machineState) {
 
 func (d *machinesData) Fields() logrus.Fields {
 	return logrus.Fields{
+		"runner":   d.Runner,
 		"used":     d.Used,
 		"idle":     d.Idle,
 		"total":    d.Total(),
@@ -65,6 +66,7 @@ func (d *machinesData) writeDebugInformation() {
 	defer file.Close()
 	fmt.Fprintln(file,
 		"time", time.Now(),
+		"runner", d.Runner,
 		"acquired", d.Acquired,
 		"creating", d.Creating,
 		"idle", d.Idle,
