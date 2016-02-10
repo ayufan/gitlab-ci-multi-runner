@@ -74,14 +74,13 @@ func (b *PsWriter) Command(command string, arguments ...string) {
 }
 
 func (b *PsWriter) Variable(variable common.BuildVariable) {
-	b.Line("$" + variable.Key + "=" + psQuoteVariable(variable.Value))
-
 	if variable.File {
 		variableFile := b.Absolute(path.Join(b.TemporaryPath, variable.Key))
 		variableFile = helpers.ToBackslash(variableFile)
-		b.Line(fmt.Sprintf("md %s -Force | out-null", psQuote(helpers.ToBackslash(b.TemporaryPath))))
-		b.Line(fmt.Sprintf("$%s | Out-File %s", variable.Key, psQuote(variableFile)))
+		b.Line(fmt.Sprintf("Set-Content %s -Value %s -Encoding UTF8 -Force", psQuote(variableFile), psQuoteVariable(variable.Value)))
 		b.Line("$" + variable.Key + "=" + psQuote(variableFile))
+	} else {
+		b.Line("$" + variable.Key + "=" + psQuoteVariable(variable.Value))
 	}
 
 	b.Line("$env:" + variable.Key + "=$" + variable.Key)
