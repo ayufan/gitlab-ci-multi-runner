@@ -119,6 +119,7 @@ func (s *executor) getDockerImage(imageName string) (*docker.Image, error) {
 			s.Warningln("Locally found image will be used instead.")
 			return image, nil
 		}
+		return nil, err
 	}
 
 	imageTTL := s.Config.Docker.ImageTTL
