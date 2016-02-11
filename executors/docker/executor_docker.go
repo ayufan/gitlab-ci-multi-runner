@@ -341,6 +341,47 @@ func (s *executor) createVolumes() ([]string, []string, error) {
 	return binds, volumesFrom, nil
 }
 
+func (s *executor) parseDeviceString(devStr string) (dev docker.Device, err error) {
+
+	parts := strings.Split(devStr, ":")
+
+	dev.PathOnHost = parts[0]
+	dev.PathInContainer = parts[0] // default: device at same path in container
+	dev.CgroupPermissions = "rwm"  // default: rwm, just like 'docker run'
+
+	switch len(parts) {
+	case 3:
+		dev.CgroupPermissions = parts[2]
+		fallthrough
+	case 2:
+		dev.PathInContainer = parts[1]
+	case 1:
+		break
+
+	default:
+		err = fmt.Errorf("Too many colons")
+		return
+	}
+
+	return
+}
+
+func (s *executor) createDevices() (devices []docker.Device, err error) {
+
+	for _, devStr := range s.Config.Docker.Devices {
+
+		dev, err := s.parseDeviceString(devStr)
+		if err != nil {
+			err = fmt.Errorf("Failed to parse device string \"%s\": %s", devStr, err)
+			//s.Errorln("Failed to parse device string", devStr, err)
+			return nil, err
+		}
+
+		devices = append(devices, dev)
+	}
+	return
+}
+
 func (s *executor) splitServiceAndVersion(serviceDescription string) (string, string, string) {
 	splits := strings.SplitN(serviceDescription, ":", 2)
 	service := ""
@@ -515,6 +556,12 @@ func (s *executor) prepareBuildContainer() (options *docker.CreateContainerOptio
 			Links:         s.Config.Docker.Links,
 		},
 	}
+
+	devices, err := s.createDevices()
+	if err != nil {
+		return options, err
+	}
+	options.HostConfig.Devices = devices
 
 	s.Debugln("Creating services...")
 	links, err := s.createServices()
