@@ -33,6 +33,7 @@ If you want to use **Docker** make sure that you have **1.5.0** at least install
  - locally
  - using Docker container
  - using Docker container and executing job over SSH
+ - using Docker container with autoscaling on different clouds and virtualization hypervisors
  - connecting to remote SSH server
 * Is written in Go and distributed as single binary without any other requirements
 * Supports Bash, Windows Batch and Windows PowerShell
@@ -74,6 +75,7 @@ The config file is automatically migrated when GitLab Runner was installed from 
 
 * [See the self-signed certificates](docs/configuration/tls-self-signed.md)
 * [See advanced configuration options](docs/configuration/advanced-configuration.md)
+* [See autoscale configuration](docs/configuration/autoscale.md)
 * [See example configuration file](config.toml.example)
 * [See security considerations](docs/security/index.md)
 * [Example configuration running the GitLab CE integration tests](docs/examples/gitlab.md)
