@@ -349,3 +349,9 @@ func (n *GitLabClient) DownloadArtifacts(config common.BuildCredentials, artifac
 		return common.DownloadFailed
 	}
 }
+
+func (n *GitLabClient) ProcessBuild(config common.RunnerConfig, id int) common.BuildTrace {
+	trace := newBuildTrace(n, config, id)
+	trace.start()
+	return trace
+}

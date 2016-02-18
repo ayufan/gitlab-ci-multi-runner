@@ -84,7 +84,7 @@ func (s *RegisterCommand) askExecutor() {
 		names := common.GetExecutors()
 		executors := strings.Join(names, ", ")
 		s.Executor = s.ask("executor", "Please enter the executor: "+executors+":", true)
-		if common.NewExecutor(s.Executor) != nil {
+		if common.GetExecutor(s.Executor) != nil {
 			return
 		}
 
@@ -222,6 +222,7 @@ func (s *RegisterCommand) Execute(context *cli.Context) {
 	if s.config.Concurrent < s.Limit {
 		log.Warningf("Specified limit (%d) larger then current concurrent limit (%d). Concurrent limit will not be enlarged.", s.Limit, s.config.Concurrent)
 	}
+	s.Machine = nil
 
 	s.askExecutorOptions()
 	s.addRunner(&s.RunnerConfig)

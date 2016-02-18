@@ -1,10 +1,8 @@
 package common
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"net/url"
 	"os"
@@ -12,8 +10,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
-	"time"
 )
 
 type BuildState string
@@ -28,26 +24,21 @@ const (
 type Build struct {
 	GetBuildResponse `yaml:",inline"`
 	Network          Network
-	BuildState       BuildState     `json:"build_state"`
-	BuildStarted     time.Time      `json:"build_started"`
-	BuildFinished    time.Time      `json:"build_finished"`
-	BuildDuration    time.Duration  `json:"build_duration"`
-	BuildAbort       chan os.Signal `json:"-" yaml:"-"`
-	RootDir          string         `json:"-" yaml:"-"`
-	BuildDir         string         `json:"-" yaml:"-"`
-	CacheDir         string         `json:"-" yaml:"-"`
-	Hostname         string         `json:"-" yaml:"-"`
-	Runner           *RunnerConfig  `json:"runner"`
-	ExecutorData     ExecutorData
+
+	Trace        BuildTrace
+	BuildAbort   chan os.Signal `json:"-" yaml:"-"`
+	RootDir      string         `json:"-" yaml:"-"`
+	BuildDir     string         `json:"-" yaml:"-"`
+	CacheDir     string         `json:"-" yaml:"-"`
+	Hostname     string         `json:"-" yaml:"-"`
+	Runner       *RunnerConfig  `json:"runner"`
+	ExecutorData ExecutorData
 
 	// Unique ID for all running builds on this runner
 	RunnerID int `json:"runner_id"`
 
 	// Unique ID for all running builds on this runner and this project
 	ProjectRunnerID int `json:"project_runner_id"`
-
-	buildLog     bytes.Buffer
-	buildLogLock sync.RWMutex
 }
 
 func (b *Build) AssignID(otherBuilds ...*Build) {
@@ -159,78 +150,29 @@ func (b *Build) CacheKey() string {
 }
 
 func (b *Build) StartBuild(rootDir, cacheDir string, sharedDir bool) {
-	b.BuildStarted = time.Now()
-	b.BuildState = Pending
 	b.RootDir = rootDir
 	b.BuildDir = path.Join(rootDir, b.ProjectUniqueDir(sharedDir))
 	b.CacheDir = path.Join(cacheDir, b.ProjectUniqueDir(false))
 }
 
-func (b *Build) FinishBuild(buildState BuildState) {
-	b.BuildState = buildState
-	b.BuildFinished = time.Now()
-	b.BuildDuration = b.BuildFinished.Sub(b.BuildStarted)
-}
-
-func (b *Build) BuildLog() string {
-	b.buildLogLock.RLock()
-	defer b.buildLogLock.RUnlock()
-	return b.buildLog.String()
-}
-
-func (b *Build) BuildLogLen() int {
-	b.buildLogLock.RLock()
-	defer b.buildLogLock.RUnlock()
-	return b.buildLog.Len()
-}
-
-func (b *Build) WriteString(data string) (int, error) {
-	b.buildLogLock.Lock()
-	defer b.buildLogLock.Unlock()
-	return b.buildLog.WriteString(data)
-}
-
-func (b *Build) WriteRune(r rune) (int, error) {
-	b.buildLogLock.Lock()
-	defer b.buildLogLock.Unlock()
-	return b.buildLog.WriteRune(r)
-}
-
-func (b *Build) SendBuildLog() {
-	var buildTrace string
-
-	if b.Network == nil {
-		return
-	}
-
-	buildTrace = b.BuildLog()
-	for {
-		if b.Network.UpdateBuild(*b.Runner, b.ID, b.BuildState, buildTrace) != UpdateFailed {
-			break
+func (b *Build) Run(globalConfig *Config, trace BuildTrace) (err error) {
+	defer func() {
+		if err != nil {
+			trace.Fail(err)
 		} else {
-			time.Sleep(UpdateRetryInterval * time.Second)
+			trace.Success()
 		}
-	}
-}
+	}()
+	b.Trace = trace
 
-func (b *Build) Run(globalConfig *Config) error {
-	logrus.Debugln("Starting a new build:", helpers.ToYAML(b))
-	provider := GetExecutor(b.Runner.Executor)
-	if provider == nil {
-		b.WriteString("Executor not found: " + b.Runner.Executor)
-		b.SendBuildLog()
-		return errors.New("executor not found")
-	}
-
-	executor := provider.Create()
+	executor := NewExecutor(b.Runner.Executor)
 	if executor == nil {
-		b.WriteString("Failed to create executor: " + b.Runner.Executor)
-		b.SendBuildLog()
+		fmt.Fprint(trace, "Executor not found:", b.Runner.Executor)
 		return errors.New("executor not found")
 	}
 	defer executor.Cleanup()
 
-	err := executor.Prepare(globalConfig, b.Runner, b)
+	err = executor.Prepare(globalConfig, b.Runner, b)
 	if err == nil {
 		err = executor.Start()
 	}

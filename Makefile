@@ -176,6 +176,10 @@ build-and-deploy:
 	scp out/deb/$(PACKAGE_NAME)_amd64.deb $(SERVER):
 	ssh $(SERVER) dpkg -i $(PACKAGE_NAME)_amd64.deb
 
+build-and-deploy-binary:
+	make build BUILD_PLATFORMS="-os=linux -arch=amd64"
+	scp out/binaries/$(PACKAGE_NAME)-linux-amd64 $(SERVER):/usr/bin/gitlab-runner
+
 package: package-deps package-deb package-rpm
 
 package-deb:

@@ -124,10 +124,9 @@ func (b *BashWriter) EmptyLine() {
 	b.Line("echo")
 }
 
-func (b *BashWriter) Finish(shell string) string {
+func (b *BashWriter) Finish() string {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
-	io.WriteString(w, "#!/usr/bin/env "+shell+"\n\n")
 	io.WriteString(w, "set -eo pipefail\n")
 	io.WriteString(w, "set +o noclobber\n")
 	io.WriteString(w, ": | eval "+helpers.ShellEscape(b.String())+"\n")
@@ -157,24 +156,39 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	b.GeneratePostBuild(postScript, info)
 
 	script := common.ShellScript{
-		PreScript:   preScript.Finish(b.Shell),
-		BuildScript: buildScript.Finish(b.Shell),
-		PostScript:  postScript.Finish(b.Shell),
+		PreScript:   preScript.Finish(),
+		BuildScript: buildScript.Finish(),
+		PostScript:  postScript.Finish(),
 	}
 
 	// su
 	if info.User != "" {
 		script.Command = "su"
-		if info.Type == common.LoginShell {
-			script.Arguments = []string{"--shell", "/bin/" + b.Shell, "--login", info.User}
-		} else {
-			script.Arguments = []string{"--shell", "/bin/" + b.Shell, info.User}
-		}
+		script.Arguments = []string{"--shell", "/bin/sh", info.User}
 	} else {
-		script.Command = b.Shell
-		if info.Type == common.LoginShell {
-			script.Arguments = []string{"--login"}
-		}
+		script.Command = "sh"
+	}
+
+	detectShell := `if [ -x /usr/local/bin/bash ]; then
+	exec /usr/local/bin/bash $@
+elif [ -x /usr/bin/bash ]; then
+	exec /usr/bin/bash $@
+elif [ -x /bin/bash ]; then
+	exec /bin/bash $@
+elif [ -x /usr/local/bin/sh ]; then
+	exec /usr/local/bin/sh $@
+elif [ -x /usr/bin/sh ]; then
+	exec /usr/bin/sh $@
+elif [ -x /bin/sh ]; then
+	exec /bin/sh $@
+else
+	echo shell not found
+	exit 1
+fi`
+
+	script.Arguments = append(script.Arguments, "-c", detectShell, "--")
+	if info.Type == common.LoginShell {
+		script.Arguments = append(script.Arguments, "--login")
 	}
 
 	return &script, nil

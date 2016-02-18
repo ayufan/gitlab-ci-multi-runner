@@ -82,7 +82,7 @@ func (mr *RunCommand) feedRunners(runners chan *runnerAcquire) {
 	}
 }
 
-func (mr *RunCommand) processRunner(id int, runner *runnerAcquire) {
+func (mr *RunCommand) processRunner(id int, runner *runnerAcquire) (err error) {
 	defer runner.Release()
 
 	// Acquire build slot
@@ -99,11 +99,16 @@ func (mr *RunCommand) processRunner(id int, runner *runnerAcquire) {
 		return
 	}
 
+	// Make sure to always close output
+	trace := mr.network.ProcessBuild(runner.RunnerConfig, buildData.ID)
+	defer trace.Fail(err)
+
 	// Process a build
 	build.GetBuildResponse = *buildData
 	build.BuildAbort = mr.abortBuilds
 	build.Network = mr.network
-	build.Run(mr.config)
+	err = build.Run(mr.config, trace)
+	return
 }
 
 func (mr *RunCommand) processRunners(id int, stopWorker chan bool, runners chan *runnerAcquire) {

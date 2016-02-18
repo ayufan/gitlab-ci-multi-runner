@@ -120,6 +120,14 @@ type BuildCredentials struct {
 	TLSCAFile string `long:"tls-ca-file" env:"CI_SERVER_TLS_CA_FILE" description:"File containing the certificates to verify the peer when using HTTPS"`
 }
 
+type BuildTrace interface {
+	io.Writer
+	Success()
+	Fail(err error)
+	Notify(abort func())
+	IsStdout() bool
+}
+
 type Network interface {
 	GetBuild(config RunnerConfig) (*GetBuildResponse, bool)
 	RegisterRunner(config RunnerCredentials, description, tags string) *RegisterRunnerResponse
@@ -129,4 +137,5 @@ type Network interface {
 	DownloadArtifacts(config BuildCredentials, artifactsFile string) DownloadState
 	UploadRawArtifacts(config BuildCredentials, reader io.Reader, baseName string) UploadState
 	UploadArtifacts(config BuildCredentials, artifactsFile string) UploadState
+	ProcessBuild(config RunnerConfig, id int) BuildTrace
 }
