@@ -69,7 +69,6 @@ deps:
 	go get golang.org/x/tools/cmd/cover
 	go get golang.org/x/tools/cmd/vet
 	go get github.com/fzipp/gocyclo
-	-go get golang.org/x/sys/windows/svc
 	go get -u github.com/jteeuwen/go-bindata/...
 
 out/docker/prebuilt.tar.gz: $(GO_FILES)
