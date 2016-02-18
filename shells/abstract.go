@@ -116,6 +116,11 @@ func (b *AbstractShell) cacheExtractor(w ShellWriter, info common.ShellScriptInf
 		"--file", b.cacheFile(cacheKey, info),
 	}
 
+	// Generate cache download address
+	if url := getCacheDownloadURL(info.Build, cacheKey); url != "" {
+		args = append(args, "--url", url)
+	}
+
 	// Execute archive command
 	w.Notice("Checking cache for %s...", cacheKey)
 	w.Command(info.RunnerCommand, args...)
@@ -208,6 +213,11 @@ func (b *AbstractShell) cacheArchiver(w ShellWriter, list interface{}, info comm
 		return
 	}
 	args = append(args, archiverArgs...)
+
+	// Generate cache upload address
+	if url := getCacheUploadURL(info.Build, cacheKey); url != "" {
+		args = append(args, "--url", url)
+	}
 
 	// Execute archive command
 	w.Notice("Creating cache %s...", cacheKey)
