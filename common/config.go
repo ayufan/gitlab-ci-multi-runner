@@ -61,12 +61,12 @@ type RunnerCredentials struct {
 
 type CacheConfig struct {
 	Type           string `toml:"Type,omitempty" long:"type" env:"CACHE_TYPE" description:"Select caching method: s3, to use S3 buckets"`
-	ServerAddress  string `toml:"ServerAddress,omitempty" long:"type" env:"CACHE_TYPE" description:"Select caching method: s3, to use S3 buckets"`
+	ServerAddress  string `toml:"ServerAddress,omitempty" long:"s3-server-address" env:"S3_SERVER_ADDRESS" description:"S3 Server Address"`
 	AccessKey      string `toml:"AccessKey,omitempty" long:"s3-access-key" env:"S3_ACCESS_KEY" description:"S3 Access Key"`
 	SecretKey      string `toml:"SecretKey,omitempty" long:"s3-secret-key" env:"S3_SECRET_KEY" description:"S3 Secret Key"`
 	BucketName     string `toml:"BucketName,omitempty" long:"s3-bucket-name" env:"S3_BUCKET_NAME" description:"S3 bucket name"`
 	BucketLocation string `toml:"BucketLocation,omitempty" long:"s3-bucket-location" env:"S3_BUCKET_LOCATION" description:"S3 location"`
-	Insecure       bool   `toml:"Insecure,omitempty" long:"insecure" env:"CACHE_INSECURE" description:"Use insecure mode (without https)"`
+	Insecure       bool   `toml:"Insecure,omitempty" long:"s3-insecure" env:"S3_CACHE_INSECURE" description:"Use insecure mode (without https)"`
 }
 
 type RunnerSettings struct {

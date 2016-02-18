@@ -386,6 +386,7 @@ func (s *executor) createService(service, version string) (*docker.Container, er
 		},
 		HostConfig: &docker.HostConfig{
 			RestartPolicy: docker.NeverRestart(),
+			Privileged:    s.Config.Docker.Privileged,
 		},
 	}
 
