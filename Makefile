@@ -76,7 +76,7 @@ out/docker/prebuilt.tar.gz: $(GO_FILES)
 	# Create directory
 	mkdir -p out/docker
 
-ifneq (, $(shell which docker))
+ifneq (, $(shell docker info))
 	# Building gitlab-runner-helper
 	gox -osarch=linux/amd64 \
 		-ldflags "$(GO_LDFLAGS)" \
