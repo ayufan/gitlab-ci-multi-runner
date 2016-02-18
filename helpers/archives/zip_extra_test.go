@@ -40,6 +40,7 @@ func TestProcessZipExtra(t *testing.T) {
 	zipFile.Extra = createZipExtra(fi)
 
 	err = ioutil.WriteFile(fi.Name(), []byte{}, 0666)
+	defer os.Remove(fi.Name())
 	assert.NoError(t, err)
 
 	err = processZipExtra(zipFile)
