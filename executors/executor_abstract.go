@@ -63,7 +63,7 @@ func (e *AbstractExecutor) startBuild() error {
 	}
 
 	// Save hostname
-	if e.ShowHostname {
+	if e.ShowHostname && e.Build.Hostname == "" {
 		e.Build.Hostname, _ = os.Hostname()
 	}
 
