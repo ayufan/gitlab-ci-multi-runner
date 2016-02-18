@@ -138,4 +138,4 @@ GLOBAL OPTIONS:
 
 ### License
 
-GPLv3
+This code is distributed under the MIT license, see the LICENSE file.
