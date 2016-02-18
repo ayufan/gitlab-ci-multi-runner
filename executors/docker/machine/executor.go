@@ -1,10 +1,11 @@
 package machine
 
 import (
+	"errors"
+
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 
 	// Force to load docker executor
-	"errors"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/docker"
 )
 
