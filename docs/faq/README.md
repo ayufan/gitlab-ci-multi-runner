@@ -58,3 +58,15 @@ or this article about [control and configure with systemd](https://docs.docker.c
 This happens due to fact that runner uses `Transfer-Encoding: chunked` which is broken on early version of Nginx (http://serverfault.com/questions/164220/is-there-a-way-to-avoid-nginx-411-content-length-required-errors).
 
 Upgrade your Nginx to newer version. For more information see this issue: https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues/1031
+
+## 8. I can't run Windows BASH scripts; I'm getting `The system cannot find the batch label specified - buildscript`.
+
+You need to prepend `call` to your batch file line in .gitlab-ci.yml so that it looks like `call C:\path\to\test.bat`. Here
+is a more complete example:
+
+```
+before_script:
+  - call C:\path\to\test.bat
+```
+
+Additional info can be found under issue [#1025](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues/1025).
