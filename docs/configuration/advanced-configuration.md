@@ -67,10 +67,12 @@ There are a couple of available executors currently.
 | -------- | ----------- |
 | `shell`       | run build locally, default |
 | `docker`      | run build using Docker container - this requires the presence of `[runners.docker]` and [Docker Engine][] installed on the system that the Runner runs |
-| `docker-ssh`  | run build using Docker container, but connect to it with SSH - this requires the presence of `[runners.docker]` , `[runners.ssh]` and [Docker Engine][] installed on the system that the Runner runs. **Note: This will run the docker container on the local machine, it just changes how the commands are run inside that container. If you want to run docker commands on an external machine, then you should change the `host` parameter in the `runners.docker` section.|
+| `docker-ssh`  | run build using Docker container, but connect to it with SSH - this requires the presence of `[runners.docker]` , `[runners.ssh]` and [Docker Engine][] installed on the system that the Runner runs. **Note: This will run the docker container on the local machine, it just changes how the commands are run inside that container. If you want to run docker commands on an external machine, then you should change the `host` parameter in the `runners.docker` section.**|
 | `ssh`         | run build remotely with SSH - this requires the presence of `[runners.ssh]` |
 | `parallels`   | run build using Parallels VM, but connect to it with SSH - this requires the presence of `[runners.parallels]` and `[runners.ssh]` |
 | `virtualbox`  | run build using VirtualBox VM, but connect to it with SSH - this requires the presence of `[runners.virtualbox]` and `[runners.ssh]` |
+| `docker+machine` | like `docker`, but uses autoscaled docker machines - this requires the presence of `[runners.docker]` and `[runners.machine]` |
+| `docker-ssh+machine` | like `docker-ssh`, but uses autoscaled docker machines - this requires the presence of `[runners.docker]` and `[runners.machine]` |
 
 ## The SHELLS
 
@@ -296,6 +298,11 @@ Example:
   password = "production-server-password"
   identity_file = ""
 ```
+
+## The [runners.machine] section
+
+This defines the Docker Machine based autoscaling feature. More details can be found
+in [runners autoscale documentation](autoscale.md#runner-configuration).
 
 ## Note
 
