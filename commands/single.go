@@ -50,7 +50,7 @@ func waitForInterrupts(finished *bool, abortSignal chan os.Signal, doneSignal ch
 	}
 }
 
-func (r *RunSingleCommand) processBuild(data common.ExecutorData, abortSignal chan os.Signal) {
+func (r *RunSingleCommand) processBuild(data common.ExecutorData, abortSignal chan os.Signal) (err error) {
 	buildData, healthy := r.network.GetBuild(r.RunnerConfig)
 	if !healthy {
 		log.Println("Runner is not healthy!")
@@ -79,7 +79,12 @@ func (r *RunSingleCommand) processBuild(data common.ExecutorData, abortSignal ch
 		ExecutorData:     data,
 	}
 	newBuild.AssignID()
-	newBuild.Run(config)
+
+	trace := r.network.ProcessBuild(r.RunnerConfig, buildData.ID)
+	defer trace.Fail(err)
+
+	err = newBuild.Run(config, trace)
+	return
 }
 
 func (r *RunSingleCommand) Execute(c *cli.Context) {

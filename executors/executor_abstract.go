@@ -1,13 +1,12 @@
 package executors
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"io"
 )
 
 type ExecutorOptions struct {
@@ -23,12 +22,9 @@ type AbstractExecutor struct {
 	ExecutorOptions
 	Config      common.RunnerConfig
 	Build       *common.Build
+	BuildLog    common.BuildTrace
 	BuildFinish chan error
-	BuildLog    io.WriteCloser
 	BuildScript *common.ShellScript
-
-	buildCanceled     chan bool
-	finishUpdateTrace chan bool
 }
 
 func (e *AbstractExecutor) updateShell() error {
@@ -51,17 +47,6 @@ func (e *AbstractExecutor) generateShellScript() error {
 }
 
 func (e *AbstractExecutor) startBuild() error {
-	// Create pipe where data are read
-	if e.Build.Network != nil {
-		e.finishUpdateTrace = make(chan bool)
-		reader, writer := io.Pipe()
-		e.BuildLog = writer
-		go e.readTrace(reader)
-		go e.updateTrace(e.Config, e.buildCanceled, e.finishUpdateTrace)
-	} else {
-		e.BuildLog = os.Stdout
-	}
-
 	// Save hostname
 	if e.ShowHostname && e.Build.Hostname == "" {
 		e.Build.Hostname, _ = os.Hostname()
@@ -108,8 +93,8 @@ func (e *AbstractExecutor) verifyOptions() error {
 func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
 	e.Config = *config
 	e.Build = build
-	e.buildCanceled = make(chan bool, 1)
 	e.BuildFinish = make(chan error, 1)
+	e.BuildLog = build.Trace
 
 	err := e.startBuild()
 	if err != nil {
@@ -136,70 +121,42 @@ func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.R
 }
 
 func (e *AbstractExecutor) Wait() error {
-	e.Build.BuildState = common.Running
-
 	buildTimeout := e.Build.Timeout
 	if buildTimeout <= 0 {
 		buildTimeout = common.DefaultTimeout
 	}
 
+	buildCanceled := make(chan bool)
+	e.Build.Trace.Notify(func() {
+		buildCanceled <- true
+	})
+
 	// Wait for signals: cancel, timeout, abort or finish
-	log.Debugln(e.Config.ShortDescription(), e.Build.ID, "Waiting for signals...")
+	e.Debugln("Waiting for signals...")
 	select {
-	case <-e.buildCanceled:
-		e.Println()
-		e.Warningln("Build got canceled.")
-		e.Build.FinishBuild(common.Failed)
+	case <-buildCanceled:
+		return errors.New("canceled")
 
 	case <-time.After(time.Duration(buildTimeout) * time.Second):
-		e.Println()
-		e.Errorln("CI Timeout. Execution took longer then", buildTimeout, "seconds.")
-		e.Build.FinishBuild(common.Failed)
+		return fmt.Errorf("execution took longer then %v seconds", buildTimeout)
 
 	case signal := <-e.Build.BuildAbort:
-		e.Println()
-		e.Errorln("Build got aborted:", signal)
-		e.Build.FinishBuild(common.Failed)
+		return fmt.Errorf("aborted: %v", signal)
 
 	case err := <-e.BuildFinish:
-		if err != nil {
-			return err
-		}
-
-		e.Println()
-		e.Infoln("Build succeeded.")
-		e.Build.FinishBuild(common.Success)
+		return err
 	}
-	return nil
 }
 
 func (e *AbstractExecutor) Finish(err error) {
 	if err != nil {
 		e.Println()
-		e.Errorln("Build failed with:", err)
-		e.Build.FinishBuild(common.Failed)
+		e.Errorln("Build failed:", err)
+	} else {
+		e.Println()
+		e.Infoln("Build succeeded")
 	}
-
-	e.Debugln("Build took", e.Build.BuildDuration)
-
-	if e.finishUpdateTrace != nil {
-		// wait for update log routine to finish
-		e.Debugln("Waiting for build log updater to finish")
-		e.finishUpdateTrace <- true
-		e.Debugln("Build log updater finished.")
-	}
-
-	// Send final build state to server
-	if e.Build.Network != nil {
-		e.Debugln("Build log: ", e.Build.BuildLog())
-		e.Build.SendBuildLog()
-	}
-	e.Debugln("Build finished")
 }
 
 func (e *AbstractExecutor) Cleanup() {
-	if e.BuildLog != nil {
-		e.BuildLog.Close()
-	}
-	e.Debugln("Cleanup finished")
 }
