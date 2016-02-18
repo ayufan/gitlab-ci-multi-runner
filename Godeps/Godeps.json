@@ -76,8 +76,20 @@
 			"Rev": "0a14b63a7466ee44de4a90f998fad73afa8482bf"
 		},
 		{
+			"ImportPath": "golang.org/x/crypto/curve25519",
+			"Rev": "1f22c0103821b9390939b6776727195525381532"
+		},
+		{
 			"ImportPath": "golang.org/x/crypto/ssh",
 			"Rev": "1f22c0103821b9390939b6776727195525381532"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "98fc11432b951eb53c62602ba4ae99d03c1fb7e2"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/windows",
+			"Rev": "98fc11432b951eb53c62602ba4ae99d03c1fb7e2"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v1",
