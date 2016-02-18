@@ -16,6 +16,7 @@ type machineProvider struct {
 	machine  docker_helpers.Machine
 	details  machinesDetails
 	lock     sync.RWMutex
+	// provider stores a real executor that is used to start run the builds
 	provider common.ExecutorProvider
 }
 
@@ -300,13 +301,8 @@ func (m *machineProvider) GetFeatures(features *common.FeaturesInfo) {
 }
 
 func (m *machineProvider) Create() common.Executor {
-	executor := m.provider.Create()
-	if executor == nil {
-		return nil
-	}
 	return &machineExecutor{
 		provider:      m,
-		otherExecutor: executor,
 	}
 }
 
