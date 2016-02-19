@@ -87,7 +87,7 @@ func (m *machineProvider) findFreeMachine(machines ...string) (details *machineD
 		// Check if node is running
 		canConnect := m.machine.CanConnect(name)
 		if !canConnect {
-			m.remove(name)
+			m.remove(name, "machine is unavailable")
 			continue
 		}
 		return details
