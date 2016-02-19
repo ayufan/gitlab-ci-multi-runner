@@ -341,43 +341,46 @@ func (s *executor) createVolumes() ([]string, []string, error) {
 	return binds, volumesFrom, nil
 }
 
-func (s *executor) parseDeviceString(devStr string) (dev docker.Device, err error) {
+func (s *executor) parseDeviceString(deviceString string) (device docker.Device, err error) {
+	// Split the device string PathOnHost[:PathInContainer[:CgroupPermissions]]
+	parts := strings.Split(deviceString, ":")
 
-	parts := strings.Split(devStr, ":")
-
-	dev.PathOnHost = parts[0]
-	dev.PathInContainer = parts[0] // default: device at same path in container
-	dev.CgroupPermissions = "rwm"  // default: rwm, just like 'docker run'
-
-	switch len(parts) {
-	case 3:
-		dev.CgroupPermissions = parts[2]
-		fallthrough
-	case 2:
-		dev.PathInContainer = parts[1]
-	case 1:
-		break
-
-	default:
+	if len(parts) > 3 {
 		err = fmt.Errorf("Too many colons")
 		return
+	}
+
+	device.PathOnHost = parts[0]
+
+	// Optional container path
+	if len(parts) >= 2 {
+		device.PathInContainer = parts[1]
+	} else {
+		// default: device at same path in container
+		device.PathInContainer = device.PathOnHost
+	}
+
+	// Optional permissions
+	if len(parts) >= 3 {
+		device.CgroupPermissions = parts[2]
+	} else {
+		// default: rwm, just like 'docker run'
+		device.CgroupPermissions = "rwm"
 	}
 
 	return
 }
 
 func (s *executor) createDevices() (devices []docker.Device, err error) {
+	for _, deviceString := range s.Config.Docker.Devices {
 
-	for _, devStr := range s.Config.Docker.Devices {
-
-		dev, err := s.parseDeviceString(devStr)
+		device, err := s.parseDeviceString(deviceString)
 		if err != nil {
-			err = fmt.Errorf("Failed to parse device string \"%s\": %s", devStr, err)
-			//s.Errorln("Failed to parse device string", devStr, err)
+			err = fmt.Errorf("Failed to parse device string %q: %s", deviceString, err)
 			return nil, err
 		}
 
-		devices = append(devices, dev)
+		devices = append(devices, device)
 	}
 	return
 }
