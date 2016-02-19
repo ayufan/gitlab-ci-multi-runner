@@ -301,14 +301,21 @@ func (mr *RunCommand) Run() {
 	mr.runFinished <- true
 }
 
-func (mr *RunCommand) Stop(s service.Service) error {
+func (mr *RunCommand) interruptRun() {
 	// Pump interrupt signal
-	go func() {
-		for {
-			mr.runSignal <- mr.stopSignal
-		}
-	}()
+	for {
+		mr.runSignal <- mr.stopSignal
+	}
+}
 
+func (mr *RunCommand) abortAllBuilds() {
+	// Pump signal to abort all current builds
+	for {
+		mr.abortBuilds <- mr.stopSignal
+	}
+}
+
+func (mr *RunCommand) handleGracefulShutdown() error {
 	// We wait till we have a SIGQUIT
 	for mr.stopSignal == syscall.SIGQUIT {
 		mr.log().Warningln("Requested quit, waiting for builds to finish")
@@ -316,7 +323,7 @@ func (mr *RunCommand) Stop(s service.Service) error {
 		// Wait for other signals to finish builds
 		select {
 		case mr.stopSignal = <-mr.stopSignals:
-			// We received a new signal
+		// We received a new signal
 
 		case <-mr.runFinished:
 			// Everything finished we can exit now
@@ -324,16 +331,15 @@ func (mr *RunCommand) Stop(s service.Service) error {
 		}
 	}
 
+	return fmt.Errorf("received: %v", mr.stopSignal)
+}
+
+func (mr *RunCommand) handleShutdown() error {
 	mr.log().Warningln("Requested service stop:", mr.stopSignal)
 
-	// Pump signal to abort all current builds
-	go func() {
-		for {
-			mr.abortBuilds <- mr.stopSignal
-		}
-	}()
+	go mr.abortAllBuilds()
 
-	// Wait for graceful shutdown after abort or timeout after some time
+	// Wait for graceful shutdown or abort after timeout
 	for {
 		select {
 		case mr.stopSignal = <-mr.stopSignals:
@@ -347,6 +353,16 @@ func (mr *RunCommand) Stop(s service.Service) error {
 			return nil
 		}
 	}
+}
+
+func (mr *RunCommand) Stop(s service.Service) (err error) {
+	go mr.interruptRun()
+	err = mr.handleGracefulShutdown()
+	if err == nil {
+		return
+	}
+	err = mr.handleShutdown()
+	return
 }
 
 func (mr *RunCommand) Execute(context *cli.Context) {
