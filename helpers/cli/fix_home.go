@@ -1,9 +1,9 @@
 package cli_helpers
 
 import (
+	"fmt"
 	"os"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/docker/docker/pkg/homedir"
 )
@@ -14,13 +14,12 @@ func FixHOME(app *cli.App) {
 	app.Before = func(c *cli.Context) error {
 		key := homedir.Key()
 		if os.Getenv(key) != "" {
-			return
+			return nil
 		}
 
 		value := homedir.Get()
 		if value == "" {
-			logrus.Fatalln("The", key, "is not set")
-			return
+			return fmt.Errorf("the %q is not set", key)
 		}
 
 		os.Setenv(key, value)
