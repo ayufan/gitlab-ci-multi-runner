@@ -78,6 +78,10 @@ const (
 	optionUserServiceDefault   = false
 	optionSessionCreate        = "SessionCreate"
 	optionSessionCreateDefault = false
+
+	optionRunWait      = "RunWait"
+	optionReloadSignal = "ReloadSignal"
+	optionPIDFile      = "PIDFile"
 )
 
 // Config provides the setup for a Service. The Name field is required.
@@ -106,6 +110,10 @@ type Config struct {
 	//    - RunAtLoad     bool (false)
 	//    - UserService   bool (false) - Install as a current user service.
 	//    - SessionCreate bool (false) - Create a full user session.
+	//  * POSIX
+	//    - RunWait      func() (wait for SIGNAL) - Do not install signal but wait for this function to return.
+	//    - ReloadSignal string () [USR1, ...] - Signal to send on reaload.
+	//    - PIDFile     string () [/run/prog.pid] - Location of the PID file.
 	Option KeyValue
 }
 
@@ -147,7 +155,7 @@ func New(i Interface, c *Config) (Service, error) {
 // more details.
 type KeyValue map[string]interface{}
 
-// Bool returns the value of the given name, assuming the value is a boolean.
+// bool returns the value of the given name, assuming the value is a boolean.
 // If the value isn't found or is not of the type, the defaultValue is returned.
 func (kv KeyValue) bool(name string, defaultValue bool) bool {
 	if v, found := kv[name]; found {
@@ -158,7 +166,7 @@ func (kv KeyValue) bool(name string, defaultValue bool) bool {
 	return defaultValue
 }
 
-// Int returns the value of the given name, assuming the value is an int.
+// int returns the value of the given name, assuming the value is an int.
 // If the value isn't found or is not of the type, the defaultValue is returned.
 func (kv KeyValue) int(name string, defaultValue int) int {
 	if v, found := kv[name]; found {
@@ -169,7 +177,7 @@ func (kv KeyValue) int(name string, defaultValue int) int {
 	return defaultValue
 }
 
-// Int returns the value of the given name, assuming the value is a string.
+// string returns the value of the given name, assuming the value is a string.
 // If the value isn't found or is not of the type, the defaultValue is returned.
 func (kv KeyValue) string(name string, defaultValue string) string {
 	if v, found := kv[name]; found {
@@ -180,11 +188,22 @@ func (kv KeyValue) string(name string, defaultValue string) string {
 	return defaultValue
 }
 
-// Int returns the value of the given name, assuming the value is a float64.
+// float64 returns the value of the given name, assuming the value is a float64.
 // If the value isn't found or is not of the type, the defaultValue is returned.
 func (kv KeyValue) float64(name string, defaultValue float64) float64 {
 	if v, found := kv[name]; found {
 		if castValue, is := v.(float64); is {
+			return castValue
+		}
+	}
+	return defaultValue
+}
+
+// funcSingle returns the value of the given name, assuming the value is a float64.
+// If the value isn't found or is not of the type, the defaultValue is returned.
+func (kv KeyValue) funcSingle(name string, defaultValue func()) func() {
+	if v, found := kv[name]; found {
+		if castValue, is := v.(func()); is {
 			return castValue
 		}
 	}
