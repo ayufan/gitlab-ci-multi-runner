@@ -41,11 +41,24 @@ type RunCommand struct {
 	User             string `short:"u" long:"user" description:"Use specific user to execute shell scripts"`
 	Syslog           bool   `long:"syslog" description:"Log to syslog"`
 
-	finished        bool
-	abortBuilds     chan os.Signal
-	interruptSignal chan os.Signal
-	reloadSignal    chan os.Signal
-	doneSignal      chan int
+	// abortBuilds is used to abort running builds
+	abortBuilds chan os.Signal
+
+	// runSignal is used to abort current operation (scaling workers, waiting for config)
+	runSignal chan os.Signal
+
+	// reloadSignal is used to trigger forceful config reload
+	reloadSignal chan os.Signal
+
+	// stopSignals is to catch a signals notified to process: SIGTERM, SIGQUIT, Interrupt, Kill
+	stopSignals chan os.Signal
+
+	// stopSignal is used to preserve the signal that was used to stop the process
+	// In case this is SIGQUIT it makes to finish all buids
+	stopSignal os.Signal
+
+	// runFinished is used to notify that Run() did finish
+	runFinished chan bool
 }
 
 func (mr *RunCommand) log() *log.Entry {
@@ -72,7 +85,7 @@ func (mr *RunCommand) feedRunner(runner *common.RunnerConfig, runners chan *runn
 }
 
 func (mr *RunCommand) feedRunners(runners chan *runnerAcquire) {
-	for !mr.finished {
+	for mr.stopSignal == nil {
 		mr.log().Debugln("Feeding runners to channel")
 		config := mr.config
 		for _, runner := range config.Runners {
@@ -113,7 +126,7 @@ func (mr *RunCommand) processRunner(id int, runner *runnerAcquire) (err error) {
 
 func (mr *RunCommand) processRunners(id int, stopWorker chan bool, runners chan *runnerAcquire) {
 	mr.log().Debugln("Starting worker", id)
-	for !mr.finished {
+	for mr.stopSignal == nil {
 		select {
 		case runner := <-runners:
 			mr.processRunner(id, runner)
@@ -130,7 +143,7 @@ func (mr *RunCommand) processRunners(id int, stopWorker chan bool, runners chan 
 }
 
 func (mr *RunCommand) startWorkers(startWorker chan int, stopWorker chan bool, runners chan *runnerAcquire) {
-	for !mr.finished {
+	for mr.stopSignal == nil {
 		id := <-startWorker
 		go mr.processRunners(id, stopWorker, runners)
 	}
@@ -175,9 +188,10 @@ func (mr *RunCommand) checkConfig() (err error) {
 func (mr *RunCommand) Start(s service.Service) error {
 	mr.builds = []*common.Build{}
 	mr.abortBuilds = make(chan os.Signal)
-	mr.interruptSignal = make(chan os.Signal, 1)
+	mr.runSignal = make(chan os.Signal, 1)
 	mr.reloadSignal = make(chan os.Signal, 1)
-	mr.doneSignal = make(chan int, 1)
+	mr.runFinished = make(chan bool, 1)
+	mr.stopSignals = make(chan os.Signal)
 	mr.log().Println("Starting multi-runner from", mr.ConfigFile, "...")
 
 	userModeWarning(false)
@@ -206,7 +220,7 @@ func (mr *RunCommand) updateWorkers(currentWorkers, workerIndex *int, startWorke
 	for *currentWorkers > buildLimit {
 		select {
 		case stopWorker <- true:
-		case signaled := <-mr.interruptSignal:
+		case signaled := <-mr.runSignal:
 			return signaled
 		}
 		*currentWorkers--
@@ -215,7 +229,7 @@ func (mr *RunCommand) updateWorkers(currentWorkers, workerIndex *int, startWorke
 	for *currentWorkers < buildLimit {
 		select {
 		case startWorker <- *workerIndex:
-		case signaled := <-mr.interruptSignal:
+		case signaled := <-mr.runSignal:
 			return signaled
 		}
 		*currentWorkers++
@@ -239,29 +253,35 @@ func (mr *RunCommand) updateConfig() os.Signal {
 			mr.log().Errorln("Failed to load config", err)
 		}
 
-	case signaled := <-mr.interruptSignal:
+	case signaled := <-mr.runSignal:
 		return signaled
 	}
 	return nil
+}
+
+func (mr *RunCommand) runWait() {
+	mr.log().Debugln("Waiting for stop signal")
+
+	// Save the stop signal and exit to execute Stop()
+	mr.stopSignal = <-mr.stopSignals
 }
 
 func (mr *RunCommand) Run() {
 	runners := make(chan *runnerAcquire)
 	go mr.feedRunners(runners)
 
+	signal.Notify(mr.stopSignals, syscall.SIGQUIT, syscall.SIGTERM, os.Interrupt, os.Kill)
+	signal.Notify(mr.reloadSignal, syscall.SIGHUP)
+
 	startWorker := make(chan int)
 	stopWorker := make(chan bool)
 	go mr.startWorkers(startWorker, stopWorker, runners)
 
-	signal.Notify(mr.reloadSignal, syscall.SIGHUP)
-	signal.Notify(mr.interruptSignal, syscall.SIGQUIT)
-
 	currentWorkers := 0
 	workerIndex := 0
 
-	var signaled os.Signal
-	for {
-		signaled = mr.updateWorkers(&currentWorkers, &workerIndex, startWorker, stopWorker)
+	for mr.stopSignal == nil {
+		signaled := mr.updateWorkers(&currentWorkers, &workerIndex, startWorker, stopWorker)
 		if signaled != nil {
 			break
 		}
@@ -271,18 +291,6 @@ func (mr *RunCommand) Run() {
 			break
 		}
 	}
-	mr.finished = true
-
-	// Pump signal to abort all builds
-	go func() {
-		for signaled == syscall.SIGQUIT {
-			mr.log().Warningln("Requested quit, waiting for builds to finish")
-			signaled = <-mr.interruptSignal
-		}
-		for {
-			mr.abortBuilds <- signaled
-		}
-	}()
 
 	// Wait for workers to shutdown
 	for currentWorkers > 0 {
@@ -290,24 +298,71 @@ func (mr *RunCommand) Run() {
 		currentWorkers--
 	}
 	mr.log().Println("All workers stopped. Can exit now")
-	mr.doneSignal <- 0
+	mr.runFinished <- true
 }
 
-func (mr *RunCommand) Stop(s service.Service) error {
-	mr.log().Warningln("Requested service stop")
-	mr.interruptSignal <- os.Interrupt
-
-	signals := make(chan os.Signal)
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-
-	select {
-	case newSignal := <-signals:
-		return fmt.Errorf("forced exit: %v", newSignal)
-	case <-time.After(common.ShutdownTimeout * time.Second):
-		return errors.New("shutdown timedout")
-	case <-mr.doneSignal:
-		return nil
+func (mr *RunCommand) interruptRun() {
+	// Pump interrupt signal
+	for {
+		mr.runSignal <- mr.stopSignal
 	}
+}
+
+func (mr *RunCommand) abortAllBuilds() {
+	// Pump signal to abort all current builds
+	for {
+		mr.abortBuilds <- mr.stopSignal
+	}
+}
+
+func (mr *RunCommand) handleGracefulShutdown() error {
+	// We wait till we have a SIGQUIT
+	for mr.stopSignal == syscall.SIGQUIT {
+		mr.log().Warningln("Requested quit, waiting for builds to finish")
+
+		// Wait for other signals to finish builds
+		select {
+		case mr.stopSignal = <-mr.stopSignals:
+		// We received a new signal
+
+		case <-mr.runFinished:
+			// Everything finished we can exit now
+			return nil
+		}
+	}
+
+	return fmt.Errorf("received: %v", mr.stopSignal)
+}
+
+func (mr *RunCommand) handleShutdown() error {
+	mr.log().Warningln("Requested service stop:", mr.stopSignal)
+
+	go mr.abortAllBuilds()
+
+	// Wait for graceful shutdown or abort after timeout
+	for {
+		select {
+		case mr.stopSignal = <-mr.stopSignals:
+			return fmt.Errorf("forced exit: %v", mr.stopSignal)
+
+		case <-time.After(common.ShutdownTimeout * time.Second):
+			return errors.New("shutdown timedout")
+
+		case <-mr.runFinished:
+			// Everything finished we can exit now
+			return nil
+		}
+	}
+}
+
+func (mr *RunCommand) Stop(s service.Service) (err error) {
+	go mr.interruptRun()
+	err = mr.handleGracefulShutdown()
+	if err == nil {
+		return
+	}
+	err = mr.handleShutdown()
+	return
 }
 
 func (mr *RunCommand) Execute(context *cli.Context) {
@@ -316,6 +371,9 @@ func (mr *RunCommand) Execute(context *cli.Context) {
 		DisplayName: mr.ServiceName,
 		Description: defaultDescription,
 		Arguments:   []string{"run"},
+		Option: service.KeyValue{
+			"RunWait": mr.runWait,
+		},
 	}
 
 	service, err := service_helpers.New(mr, svcConfig)
