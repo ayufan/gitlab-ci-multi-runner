@@ -124,11 +124,11 @@ func (m *machineCommand) Status(name string) (string, error) {
 }
 
 func (m *machineCommand) CanConnect(name string) bool {
-	status, err := m.Status(name)
-	if err != nil {
-		return false
-	}
-	if status == "Running" {
+	// Execute docker-machine config which actively ask the machine if it is up and online
+	cmd := exec.Command("docker-machine", "config", name)
+	cmd.Env = os.Environ()
+	err := cmd.Run()
+	if err == nil {
 		return true
 	}
 	return false
