@@ -343,7 +343,7 @@ func (mr *RunCommand) Stop(s service.Service) error {
 			return errors.New("shutdown timedout")
 
 		case <-mr.runFinished:
-		// Everything finished we can exit now
+			// Everything finished we can exit now
 			return nil
 		}
 	}
