@@ -93,6 +93,9 @@ This defines the Docker Container parameters.
 | `tls_cert_path`             | when set it will use `ca.pem`, `cert.pem` and `key.pem` from that folder to make secure TLS connection to Docker (useful in boot2docker) |
 | `image`                     | use this image to run builds |
 | `privileged`                | make container run in Privileged mode (insecure) |
+| `cap_add`                   | add additional Linux capabilities to the container |
+| `cap_drop`                  | drop additional Linux capabilities from the container |
+| `devices`                   | share additional host devices with the container |
 | `disable_cache`             | disable automatic |
 | `wait_for_services_timeout` | specify how long to wait for docker services, set to 0 to disable, default: 30 |
 | `cache_dir`                 | specify where Docker caches should be stored (this can be absolute or relative to current working directory) |
@@ -113,6 +116,9 @@ Example:
   tls_cert_path = "/Users/ayufan/.boot2docker/certs"
   image = "ruby:2.1"
   privileged = false
+  cap_add = ["NET_ADMIN"]
+  cap_drop = ["DAC_OVERRIDE"]
+  devices = ["/dev/net/tun"]
   disable_cache = false
   wait_for_services_timeout = 30
   cache_dir = ""

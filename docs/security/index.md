@@ -12,6 +12,8 @@ When using `gitlab-ci-multi-runner` you should be aware of potential security im
 
 On the other hand there's privileged mode which enables full access to host system, permission to mount and umount volumes and run nested containers. It's not advised to run containers in privileged mode.
 
+More granular permissions can be configured in non-privileged mode via the `cap_add`/`cap_drop` settings.
+
 ## Systems with Docker installed
 
 **This applies to installations below 0.5.0 or one's that were upgraded to newer version**

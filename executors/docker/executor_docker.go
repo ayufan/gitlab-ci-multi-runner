@@ -341,6 +341,50 @@ func (s *executor) createVolumes() ([]string, []string, error) {
 	return binds, volumesFrom, nil
 }
 
+func (s *executor) parseDeviceString(deviceString string) (device docker.Device, err error) {
+	// Split the device string PathOnHost[:PathInContainer[:CgroupPermissions]]
+	parts := strings.Split(deviceString, ":")
+
+	if len(parts) > 3 {
+		err = fmt.Errorf("Too many colons")
+		return
+	}
+
+	device.PathOnHost = parts[0]
+
+	// Optional container path
+	if len(parts) >= 2 {
+		device.PathInContainer = parts[1]
+	} else {
+		// default: device at same path in container
+		device.PathInContainer = device.PathOnHost
+	}
+
+	// Optional permissions
+	if len(parts) >= 3 {
+		device.CgroupPermissions = parts[2]
+	} else {
+		// default: rwm, just like 'docker run'
+		device.CgroupPermissions = "rwm"
+	}
+
+	return
+}
+
+func (s *executor) createDevices() (devices []docker.Device, err error) {
+	for _, deviceString := range s.Config.Docker.Devices {
+
+		device, err := s.parseDeviceString(deviceString)
+		if err != nil {
+			err = fmt.Errorf("Failed to parse device string %q: %s", deviceString, err)
+			return nil, err
+		}
+
+		devices = append(devices, device)
+	}
+	return
+}
+
 func (s *executor) splitServiceAndVersion(serviceDescription string) (string, string, string) {
 	splits := strings.SplitN(serviceDescription, ":", 2)
 	service := ""
@@ -508,11 +552,19 @@ func (s *executor) prepareBuildContainer() (options *docker.CreateContainerOptio
 		},
 		HostConfig: &docker.HostConfig{
 			Privileged:    s.Config.Docker.Privileged,
+			CapAdd:        s.Config.Docker.CapAdd,
+			CapDrop:       s.Config.Docker.CapDrop,
 			RestartPolicy: docker.NeverRestart(),
 			ExtraHosts:    s.Config.Docker.ExtraHosts,
 			Links:         s.Config.Docker.Links,
 		},
 	}
+
+	devices, err := s.createDevices()
+	if err != nil {
+		return options, err
+	}
+	options.HostConfig.Devices = devices
 
 	s.Debugln("Creating services...")
 	links, err := s.createServices()
