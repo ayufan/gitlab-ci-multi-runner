@@ -165,16 +165,16 @@ func (n *GitLabClient) VerifyRunner(runner common.RunnerCredentials) bool {
 	switch result {
 	case 404:
 		// this is expected due to fact that we ask for non-existing job
-		runner.Log().Println("Veryfing runner...", "is alive")
+		runner.Log().Println("Verifying runner...", "is alive")
 		return true
 	case 403:
-		runner.Log().Errorln("Veryfing runner...", "is removed")
+		runner.Log().Errorln("Verifying runner...", "is removed")
 		return false
 	case clientError:
-		runner.Log().WithField("status", statusText).Errorln("Veryfing runner...", "error")
+		runner.Log().WithField("status", statusText).Errorln("Verifying runner...", "error")
 		return false
 	default:
-		runner.Log().WithField("status", statusText).Errorln("Veryfing runner...", "failed")
+		runner.Log().WithField("status", statusText).Errorln("Verifying runner...", "failed")
 		return true
 	}
 }
