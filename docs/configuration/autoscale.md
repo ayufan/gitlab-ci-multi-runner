@@ -109,14 +109,14 @@ and [GitLab Runner - Advanced Configuration][runner-configuration].
 
 | Parameter    | Value   | Description |
 |--------------|---------|-------------|
-| `concurrent` | integer | Limits how many jobs globally can be run concurrently. The most upper limit of jobs using all defined runners. For autoscale it's the upper limit of created machines (when using only `machine` executor). |
+| `concurrent` | integer | Limits how many jobs globally can be run concurrently. The most upper limit of jobs using all defined runners. Together with `limit` (from **[runners]** section) and `IdleCount` (from **[runners.machine]** section) it affects the upper limit of created machines. |
 
 **runners**
 
 | Parameter  | Value            | Description |
 |------------|------------------|------------------|
 | `executor` | string           | To use autoscale feature must be set to `docker+machine` or `docker-ssh+machine`. |
-| `limit`    | integer          | Limits how many jobs can be handled concurrently by this token. 0 simply means don't limit. For autoscale it's the upper limit of machines created by this provider. |
+| `limit`    | integer          | Limits how many jobs can be handled concurrently by this token. 0 simply means don't limit. For autoscale it's the upper limit of machines created by this provider (with complicity of `concurrent` and `IdleCount`). |
 
 **runners.machine**
 
@@ -125,7 +125,7 @@ and [GitLab Runner - Advanced Configuration][runner-configuration].
 | `IdleCount`      | integer          | Number of machines, that need to be created and waiting in *Idle* state. |
 | `IdleTime`       | integer          | Time (in seconds) for machine to be in *Idle* state before it is removed. |
 | `MaxBuilds`      | integer          | Builds count after which machine will be removed. |
-| `MachineName`    | string           | Name of the machine. It must contain `%s`. |
+| `MachineName`    | string           | Name of the machine. It must contain `%s`. The `%s` will be replaced with unique machine identifier. |
 | `MachineDriver`  | string           | Docker Machine `driver` to use. More details can be found in [Docker Machine configuration section](#docker-machine-configuration). |
 | `MachineOptions` | array of strings | Docker Machine options. More details can be found in [Docker Machine configuration section](#docker-machine-configuration). |
 
@@ -171,6 +171,45 @@ This config assumes, that:
 
 `MachineOptions` parameter contains options for `digitalocean driver` used by Docker Machine,
 and one option for Docker Machine itself (`engine-registry-mirror`).
+
+**Additional informations**
+
+There is also a special mode, where `IdleCount = 0`. In this mode machines are **always** created
+**on-demand** before build (if there is no available machine in *Idle* state). After the build autoscaling
+algorithm works the same as it was wrote above. Machine is waiting for next builds, and if no one
+is executed - after the `IdleTime` time period - the machine is removed. If there is no builds - we
+have no machines in *Idle* state.
+
+**How `current`, `limit` and `IdleCount` generate the upper limit of running machines**
+
+**Example 1:**
+
+```toml
+concurrent=20
+
+[[runners]]
+limit=40
+[[runners.machine]]
+IdleCount=10
+```
+
+In the worst case scenario we will have 30 machines: 20, because this is how many builds can be
+run concurrently and 10 extra, because we want to fulfil the docker+machine policy to have
+at least 10 idle machines.
+
+**Example 2:**
+
+```toml
+concurrent=20
+
+[[runners]]
+limit=25
+[[runners.machine]]
+IdleCount=10
+```
+
+In this example we will have at most 20 concurrent builds, and at most 25 machines created.
+In the worst case we will not be able to have 10 idle machines, but only 5, because of the limit.
 
 ## Docker Machine configuration
 
