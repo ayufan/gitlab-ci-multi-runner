@@ -70,3 +70,24 @@ before_script:
 ```
 
 Additional info can be found under issue [#1025](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues/1025).
+
+## 9. My gitlab runner is on Windows. How can I get colored ouptut on the web terminal?
+
+**Short answer:**
+
+Make sure that you have the ANSI color codes in your program's output. For the purposes of text formatting, assume that you're
+running in a UNIX ANSI terminal emulator (because that's what the webUI's output is).
+
+**Long Answer:**
+
+The web interface for gitlab-ci emulates a UNIX ANSI terminal (at least partially). The `gitlab-runner` pipes any output from the build
+directly to the web interface. That means that any ANSI color codes that are present will be honored.
+
+Windows' CMD terminal (before Win10 ([source](http://www.nivot.org/blog/post/2016/02/04/Windows-10-TH2-(v1511)-Console-Host-Enhancements)))
+does not support ANSI color codes - it uses win32 ([`ANSI.SYS`](https://en.wikipedia.org/wiki/ANSI.SYS)) calls instead which are **not** present in
+the string to be displayed. When writing cross-platform programs, a developer will typically use ANSI color codes by default and convert
+them to win32 calls when running on a Windows system (example: [Colorama](https://pypi.python.org/pypi/colorama)).
+
+If you're program is doing the above, then you need to disable that conversion for the CI builds so that the ANSI codes remain in the string.
+
+See issue [#332](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues/332) for more information.
