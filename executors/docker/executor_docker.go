@@ -576,7 +576,7 @@ func (s *executor) prepareBuildContainer() (options *docker.CreateContainerOptio
 			AttachStderr: true,
 			OpenStdin:    true,
 			StdinOnce:    true,
-			Env:          s.BuildScript.Environment,
+			Env:          append(s.getServiceVariables(), s.BuildScript.Environment...),
 		},
 		HostConfig: &docker.HostConfig{
 			Privileged:    s.Config.Docker.Privileged,
