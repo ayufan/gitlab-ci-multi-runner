@@ -200,7 +200,7 @@ func init() {
 	if runtime.GOOS == "windows" {
 		installFlags = append(installFlags, cli.StringFlag{
 			Name:  "user, u",
-			Value: helpers.GetCurrentUserName(),
+			Value: "",
 			Usage: "Specify user-name to secure the runner",
 		})
 		installFlags = append(installFlags, cli.StringFlag{

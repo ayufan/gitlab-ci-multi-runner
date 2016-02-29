@@ -35,7 +35,7 @@ Install runner as a service and start it. You have to enter a valid password
 for the current user account, because it's required to start the service by Windows:
 
 ```bash
-gitlab-ci-multi-runner install --password ENTER-YOUR-PASSWORD
+gitlab-ci-multi-runner install --user ENTER-YOUR-USERNAME --password ENTER-YOUR-PASSWORD
 gitlab-ci-multi-runner start
 ```
 
