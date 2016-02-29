@@ -77,6 +77,7 @@ func (b *PsWriter) Variable(variable common.BuildVariable) {
 	if variable.File {
 		variableFile := b.Absolute(path.Join(b.TemporaryPath, variable.Key))
 		variableFile = helpers.ToBackslash(variableFile)
+		b.Line(fmt.Sprintf("md %s -Force | out-null", psQuote(helpers.ToBackslash(b.TemporaryPath))))
 		b.Line(fmt.Sprintf("Set-Content %s -Value %s -Encoding UTF8 -Force", psQuote(variableFile), psQuoteVariable(variable.Value)))
 		b.Line("$" + variable.Key + "=" + psQuote(variableFile))
 	} else {
