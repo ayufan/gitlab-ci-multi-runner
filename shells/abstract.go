@@ -105,9 +105,16 @@ func (b *AbstractShell) encodeArchiverOptions(list interface{}) (args []string) 
 	return
 }
 
-func (b *AbstractShell) cacheExtractor(w ShellWriter, info common.ShellScriptInfo, cacheKey string) {
+func (b *AbstractShell) cacheExtractor(w ShellWriter, list interface{}, info common.ShellScriptInfo, cacheKey string) {
 	if info.RunnerCommand == "" {
 		w.Warning("The cache is not supported in this executor.")
+		return
+	}
+
+	// Create list of files to archive
+	archiverArgs := b.encodeArchiverOptions(list)
+	if len(archiverArgs) == 0 {
+		// Skip restoring cache if no cache is defined
 		return
 	}
 
@@ -166,7 +173,7 @@ func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptI
 
 	// Try to restore from main cache, if not found cache for master
 	if cacheKey := info.Build.CacheKey(); cacheKey != "" {
-		b.cacheExtractor(w, info, cacheKey)
+		b.cacheExtractor(w, info.Build.Options["cache"], info, cacheKey)
 	}
 
 	// Process all artifacts
