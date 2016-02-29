@@ -99,6 +99,59 @@ internal drivers, the appropriate driver plugin must be installed. Docker Machin
 plugin installation and configuration is out of scope of this docummentation. For more details
 please read [Docker Machine documentation][docker-machine-docs].
 
+## Distributed runners caching
+
+To speed up your builds GitLab Runner provides a cache mechanism. Selected directories and/or
+files are saved and shared between subsequent builds.
+
+This is working fine when builds are runned on the same host. But when you start using runners
+atoscale feature, most of your builds will be runned on a new (or almost new) host, which will
+execute each build in a new docker container. This will spoil the power of runners cache feature.
+
+To prevent this, together with autoscale feature, the distributed runners cache feature
+was introduced.
+
+It uses any S3-compatible server to share the cache between used docker hosts. The GitLab Runner,
+when restoring and archiving cache, will ask S3-server and download or upload the archive.
+
+To enable distributed caching you have to define it in `config.toml`:
+
+```toml
+  [runners.cache]
+    Type = "s3"
+    ServerAddress = "s3.example.com"
+    AccessKey = "access-key"
+    SecretKey = "secret-key"
+    BucketName = "runner"
+    Insecure = false
+```
+
+## Distributed docker registry mirroring
+
+To speed up builds executed inside of docker containers you can use docker registry mirroring
+service. It will provide a proxy between your docker machines and all used registries. Images
+will be downloaded once by the registry mirror. On each new host, or on another existing host
+where such image was not available, it will be downloaded from configured registry mirror.
+
+Since the mirror will exist - mostly - in your docker machines LAN, the image downloading
+step should be much faster on each host.
+
+To configure docker registry mirroring you have to add a `MachineOption` to the configuration
+in `config.toml`:
+
+```toml
+  [runners.machine]
+    (...)
+    MachineOptions = [
+      (...)
+      "engine-registry-mirror=http://10.11.12.13:12345"
+    ]
+```
+
+Where `10.11.12.13:12345` is an address and port where your registry mirror is listening
+for connections from docker service. It must be accessible for each host created by the
+Docker Machine.
+
 ## Runner configuration
 
 In this section will be discribed only parameters significant from the autoscale feature point
@@ -112,9 +165,9 @@ and [GitLab Runner - Advanced Configuration][runner-configuration].
 | `concurrent` | integer | Limits how many jobs globally can be run concurrently. The most upper limit of jobs using all defined runners. Together with `limit` (from **[runners]** section) and `IdleCount` (from **[runners.machine]** section) it affects the upper limit of created machines. |
 
 **runners**
-
+*
 | Parameter  | Value            | Description |
-|------------|------------------|------------------|
+|------------|------------------|-------------|
 | `executor` | string           | To use autoscale feature must be set to `docker+machine` or `docker-ssh+machine`. |
 | `limit`    | integer          | Limits how many jobs can be handled concurrently by this token. 0 simply means don't limit. For autoscale it's the upper limit of machines created by this provider (with complicity of `concurrent` and `IdleCount`). |
 
@@ -128,6 +181,16 @@ and [GitLab Runner - Advanced Configuration][runner-configuration].
 | `MachineName`    | string           | Name of the machine. It must contain `%s`. The `%s` will be replaced with unique machine identifier. |
 | `MachineDriver`  | string           | Docker Machine `driver` to use. More details can be found in [Docker Machine configuration section](#docker-machine-configuration). |
 | `MachineOptions` | array of strings | Docker Machine options. More details can be found in [Docker Machine configuration section](#docker-machine-configuration). |
+
+**runners.cache**
+| Parameter        | Value            | Description |
+|------------------|------------------|-------------|
+| `Type`           | string           | As for now only `s3` can be used. |
+| `ServerAddress`  | string           | A `host:port` to the used S3-compatible server. |
+| `AccessKey`      | string           | AccessKey specified for your S3 instance. |
+| `SecretKey`      | string           | SecretKey specified for your S3 instance. |
+| `BucketName`     | string           | Name of the bucket where cache will be stored. |
+| `Insecure`       | boolean          | Set to `true` if the S3 service is available by `HTTP`. Is set tu `false` by default. |
 
 **Example of config.toml**
 
@@ -155,8 +218,15 @@ concurrent = 50
         "digitalocean-region=nyc2",
         "digitalocean-size=4gb",
         "digitalocean-private-networking",
-        "engine-registry-mirror=http://10.128.11.79:34723"
+        "engine-registry-mirror=http://10.11.12.13:12345"
     ]
+  [runners.cache]
+    Type = "s3"
+    ServerAddress = "s3-eu-west-1.amazonaws.com"
+    AccessKey = "AMAZON_S3_ACCESS_KEY"
+    SecretKey = "AMAZON_S3_SECRET_KEY"
+    BucketName = "runners"
+    Insecure = false
 ```
 
 This config assumes, that:
@@ -167,7 +237,9 @@ This config assumes, that:
 - there must be **5** machines in *Idle* state,
 - each machine can be in *Idle* state up to **600** seconds (after this it will be removed),
 - each machine can handle up to **100** builds (after this it will be removed),
-- Docker Machine uses `digitalocean` driver.
+- Docker Machine is using `digitalocean` driver,
+- Docker Machine is using registry mirroring, with mirror service available at `http://10.11.12.13:12345`,
+- runner is using distributed cache with Amazon S3 service.
 
 `MachineOptions` parameter contains options for `digitalocean driver` used by Docker Machine,
 and one option for Docker Machine itself (`engine-registry-mirror`).
@@ -221,3 +293,4 @@ including virtualization/cloud provider parameters, are available at [Docker Mac
 [runner-configuration]: https://gitlab.com/gitlab-org/gitlab-ci-multi-runner#advanced-configuration
 [docker-machine-docs]: https://docs.docker.com/machine/
 [docker-machine-installation]: https://docs.docker.com/machine/install-machine/
+[minio-website]: https://www.minio.io/
