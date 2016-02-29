@@ -584,6 +584,7 @@ func (s *executor) prepareBuildContainer() (options *docker.CreateContainerOptio
 			CapDrop:       s.Config.Docker.CapDrop,
 			RestartPolicy: docker.NeverRestart(),
 			ExtraHosts:    s.Config.Docker.ExtraHosts,
+			NetworkMode:   s.Config.Docker.NetworkMode,
 			Links:         s.Config.Docker.Links,
 			LogConfig: docker.LogConfig{
 				Type: "json-file",

@@ -58,7 +58,7 @@ func (b *AbstractShell) writeFetchCmd(w ShellWriter, build *common.Build, projec
 	w.Command("git", "clean", "-ffdx")
 	w.Command("git", "reset", "--hard")
 	w.Command("git", "remote", "set-url", "origin", build.RepoURL)
-	w.Command("git", "fetch", "origin")
+	w.Command("git", "fetch", "origin", "--prune", "+refs/heads/*:refs/remotes/origin/*", "+refs/tags/*:refs/tags/*")
 	w.Else()
 	b.writeCloneCmd(w, build, projectDir)
 	w.EndIf()
