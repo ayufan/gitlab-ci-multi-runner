@@ -34,7 +34,8 @@ type RunCommand struct {
 	configOptions
 	network common.Network
 	healthHelper
-	buildsHelper
+
+	buildsHelper buildsHelper
 
 	ServiceName      string `short:"n" long:"service" description:"Use different names for different services"`
 	WorkingDirectory string `short:"d" long:"working-directory" description:"Specify custom working directory"`
@@ -62,7 +63,7 @@ type RunCommand struct {
 }
 
 func (mr *RunCommand) log() *log.Entry {
-	return log.WithField("builds", len(mr.builds))
+	return log.WithField("builds", len(mr.buildsHelper.builds))
 }
 
 func (mr *RunCommand) feedRunner(runner *common.RunnerConfig, runners chan *runnerAcquire) {
@@ -99,11 +100,10 @@ func (mr *RunCommand) processRunner(id int, runner *runnerAcquire) (err error) {
 	defer runner.Release()
 
 	// Acquire build slot
-	build := mr.buildsHelper.acquire(runner)
-	if build == nil {
+	if !mr.buildsHelper.acquire(runner) {
 		return
 	}
-	defer mr.buildsHelper.release(build)
+	defer mr.buildsHelper.release(runner)
 
 	// Receive a new build
 	buildData, healthy := mr.network.GetBuild(runner.RunnerConfig)
@@ -116,12 +116,21 @@ func (mr *RunCommand) processRunner(id int, runner *runnerAcquire) (err error) {
 	trace := mr.network.ProcessBuild(runner.RunnerConfig, buildData.ID)
 	defer trace.Fail(err)
 
+	// Create a new build
+	build := common.Build{
+		GetBuildResponse: *buildData,
+		Runner:           &runner.RunnerConfig,
+		ExecutorData:     runner.data,
+		BuildAbort:       mr.abortBuilds,
+		Network:          mr.network,
+	}
+
+	// Add build to list of builds to assign numbers
+	mr.buildsHelper.addBuild(build)
+	defer mr.buildsHelper.removeBuild(build)
+
 	// Process a build
-	build.GetBuildResponse = *buildData
-	build.BuildAbort = mr.abortBuilds
-	build.Network = mr.network
-	err = build.Run(mr.config, trace)
-	return
+	return build.Run(mr.config, trace)
 }
 
 func (mr *RunCommand) processRunners(id int, stopWorker chan bool, runners chan *runnerAcquire) {
@@ -186,7 +195,7 @@ func (mr *RunCommand) checkConfig() (err error) {
 }
 
 func (mr *RunCommand) Start(s service.Service) error {
-	mr.builds = []*common.Build{}
+	mr.acquires = []*common.Build{}
 	mr.abortBuilds = make(chan os.Signal)
 	mr.runSignal = make(chan os.Signal, 1)
 	mr.reloadSignal = make(chan os.Signal, 1)
