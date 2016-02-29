@@ -213,7 +213,11 @@ func (s *executor) createCacheVolume(containerName, containerPath string) (*dock
 			},
 			Labels: s.getLabels("cache", "cache.dir="+containerPath),
 		},
-		HostConfig: &docker.HostConfig{},
+		HostConfig: &docker.HostConfig{
+			LogConfig: docker.LogConfig{
+				Type: "json-file",
+			},
+		},
 	}
 
 	container, err := s.client.CreateContainer(createContainerOptions)
@@ -431,6 +435,9 @@ func (s *executor) createService(service, version string) (*docker.Container, er
 		HostConfig: &docker.HostConfig{
 			RestartPolicy: docker.NeverRestart(),
 			Privileged:    s.Config.Docker.Privileged,
+			LogConfig: docker.LogConfig{
+				Type: "json-file",
+			},
 		},
 	}
 
@@ -557,6 +564,9 @@ func (s *executor) prepareBuildContainer() (options *docker.CreateContainerOptio
 			RestartPolicy: docker.NeverRestart(),
 			ExtraHosts:    s.Config.Docker.ExtraHosts,
 			Links:         s.Config.Docker.Links,
+			LogConfig: docker.LogConfig{
+				Type: "json-file",
+			},
 		},
 	}
 
@@ -792,6 +802,9 @@ func (s *executor) runServiceHealthCheckContainer(container *docker.Container, t
 		HostConfig: &docker.HostConfig{
 			RestartPolicy: docker.NeverRestart(),
 			Links:         []string{container.Name + ":" + container.Name},
+			LogConfig: docker.LogConfig{
+				Type: "json-file",
+			},
 		},
 	}
 	s.Debugln("Waiting for service container", container.Name, "to be up and running...")
