@@ -389,10 +389,9 @@ func (s *executor) createDevices() (devices []docker.Device, err error) {
 	return
 }
 
-func (s *executor) splitServiceAndVersion(serviceDescription string) (string, string, string) {
+func (s *executor) splitServiceAndVersion(serviceDescription string) (service string, version string, linkNames []string) {
 	splits := strings.SplitN(serviceDescription, ":", 2)
-	service := ""
-	version := "latest"
+	version = "latest"
 	switch len(splits) {
 	case 1:
 		service = splits[0]
@@ -402,11 +401,18 @@ func (s *executor) splitServiceAndVersion(serviceDescription string) (string, st
 		version = splits[1]
 
 	default:
-		return "", "", ""
+		return
 	}
 
 	linkName := strings.Replace(service, "/", "__", -1)
-	return service, version, linkName
+	linkNames = append(linkNames, linkName)
+
+	// Create alternative link name according to RFC 1123
+	// Where you can use only `a-zA-Z0-9-`
+	if alternativeName := strings.Replace(service, "/", "-", -1); linkName != alternativeName {
+		linkNames = append(linkNames, alternativeName)
+	}
+	return
 }
 
 func (s *executor) createService(service, version string) (*docker.Container, error) {
@@ -515,6 +521,31 @@ func (s *executor) buildServiceLinks(linksMap map[string]*docker.Container) (lin
 	return
 }
 
+func (s *executor) createFromServiceDescription(description string, linksMap map[string]*docker.Container) (err error) {
+	var container *docker.Container
+
+	service, version, linkNames := s.splitServiceAndVersion(description)
+
+	for _, linkName := range linkNames {
+		if linksMap[linkName] != nil {
+			s.Warningln("Service", description, "is already created. Ignoring.")
+			continue
+		}
+
+		// Create service if not yet created
+		if container == nil {
+			container, err = s.createService(service, version)
+			if err != nil {
+				return
+			}
+			s.Debugln("Created service", description, "as", container.ID)
+			s.services = append(s.services, container)
+		}
+		linksMap[linkName] = container
+	}
+	return
+}
+
 func (s *executor) createServices() ([]string, error) {
 	serviceNames, err := s.getServiceNames()
 	if err != nil {
@@ -524,20 +555,10 @@ func (s *executor) createServices() ([]string, error) {
 	linksMap := make(map[string]*docker.Container)
 
 	for _, serviceDescription := range serviceNames {
-		service, version, linkName := s.splitServiceAndVersion(serviceDescription)
-		if linksMap[linkName] != nil {
-			s.Warningln("Service", serviceDescription, "is already created. Ignoring.")
-			continue
-		}
-
-		container, err := s.createService(service, version)
+		err = s.createFromServiceDescription(serviceDescription, linksMap)
 		if err != nil {
 			return nil, err
 		}
-
-		s.Debugln("Created service", serviceDescription, "as", container.ID)
-		linksMap[linkName] = container
-		s.services = append(s.services, container)
 	}
 
 	s.waitForServices()

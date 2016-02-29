@@ -45,3 +45,34 @@ func TestParseDeviceStringFour(t *testing.T) {
 
 	assert.Error(t, err)
 }
+
+func TestSplitService(t *testing.T) {
+	e := executor{}
+
+	tests := []struct {
+		description string
+		service     string
+		version     string
+		alias       string
+		alternative string
+	}{
+		{"service", "service", "latest", "service", ""},
+		{"service:version", "service", "version", "service", ""},
+		{"namespace/service", "namespace/service", "latest", "namespace__service", "namespace-service"},
+		{"namespace/service:version", "namespace/service", "version", "namespace__service", "namespace-service"},
+	}
+
+	for _, test := range tests {
+		service, version, linkNames := e.splitServiceAndVersion(test.description)
+
+		assert.Equal(t, test.service, service, "for", test.description)
+		assert.Equal(t, test.version, version, "for", test.description)
+		assert.Equal(t, test.alias, linkNames[0], "for", test.description)
+		if test.alternative != "" {
+			assert.Len(t, linkNames, 2, "for", test.description)
+			assert.Equal(t, test.alternative, linkNames[1], "for", test.description)
+		} else {
+			assert.Len(t, linkNames, 1, "for", test.description)
+		}
+	}
+}
