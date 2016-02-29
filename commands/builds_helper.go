@@ -6,44 +6,82 @@ import (
 )
 
 type buildsHelper struct {
-	builds     []*common.Build
-	buildsLock sync.Mutex
+	counts map[string]int
+	builds []*common.Build
+	lock   sync.Mutex
 }
 
-func (b *buildsHelper) count(runner *common.RunnerConfig) int {
-	count := 0
-	for _, build := range b.builds {
-		if build.Runner.ShortDescription() == runner.ShortDescription() {
-			count++
-		}
-	}
-	return count
-}
-
-func (b *buildsHelper) acquire(runner *runnerAcquire) (build *common.Build) {
-	b.buildsLock.Lock()
-	defer b.buildsLock.Unlock()
+func (b *buildsHelper) acquire(runner *runnerAcquire) bool {
+	b.lock.Lock()
+	defer b.lock.Unlock()
 
 	// Check number of builds
-	count := b.count(&runner.RunnerConfig)
+	count, _ := b.counts[runner.Token]
 	if runner.Limit > 0 && count >= runner.Limit {
 		// Too many builds
-		return
+		return false
 	}
 
 	// Create a new build
-	build = &common.Build{
-		Runner:       &runner.RunnerConfig,
-		ExecutorData: runner.data,
+	if b.counts == nil {
+		b.counts = make(map[string]int)
 	}
-	build.AssignID(b.builds...)
+	b.counts[runner.Token]++
+	return true
+}
+
+func (b *buildsHelper) release(runner *runnerAcquire) bool {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
+	_, ok := b.counts[runner.Token]
+	if ok {
+		b.counts[runner.Token]--
+		return true
+	}
+	return false
+}
+
+func (b *buildsHelper) addBuild(build *common.Build) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
+	runners := make(map[int]bool)
+	projectRunners := make(map[int]bool)
+
+	for _, otherBuild := range b.builds {
+		if otherBuild.Runner.Token != build.Runner.Token {
+			continue
+		}
+		runners[otherBuild.RunnerID] = true
+
+		if otherBuild.ProjectID != build.ProjectID {
+			continue
+		}
+		projectRunners[otherBuild.ProjectRunnerID] = true
+	}
+
+	for {
+		if !runners[build.RunnerID] {
+			break
+		}
+		build.RunnerID++
+	}
+
+	for {
+		if !projectRunners[build.ProjectRunnerID] {
+			break
+		}
+		build.ProjectRunnerID++
+	}
+
 	b.builds = append(b.builds, build)
 	return
 }
 
-func (b *buildsHelper) release(deleteBuild *common.Build) bool {
-	b.buildsLock.Lock()
-	defer b.buildsLock.Unlock()
+func (b *buildsHelper) removeBuild(deleteBuild *common.Build) bool {
+	b.lock.Lock()
+	defer b.lock.Unlock()
 
 	for idx, build := range b.builds {
 		if build == deleteBuild {

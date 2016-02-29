@@ -41,37 +41,6 @@ type Build struct {
 	ProjectRunnerID int `json:"project_runner_id"`
 }
 
-func (b *Build) AssignID(otherBuilds ...*Build) {
-	runners := make(map[int]bool)
-	projectRunners := make(map[int]bool)
-
-	for _, otherBuild := range otherBuilds {
-		if otherBuild.Runner.ShortDescription() != b.Runner.ShortDescription() {
-			continue
-		}
-		runners[otherBuild.RunnerID] = true
-
-		if otherBuild.ProjectID != b.ProjectID {
-			continue
-		}
-		projectRunners[otherBuild.ProjectRunnerID] = true
-	}
-
-	for {
-		if !runners[b.RunnerID] {
-			break
-		}
-		b.RunnerID++
-	}
-
-	for {
-		if !projectRunners[b.ProjectRunnerID] {
-			break
-		}
-		b.ProjectRunnerID++
-	}
-}
-
 func (b *Build) ProjectUniqueName() string {
 	return fmt.Sprintf("runner-%s-project-%d-concurrent-%d",
 		b.Runner.ShortDescription(), b.ProjectID, b.ProjectRunnerID)

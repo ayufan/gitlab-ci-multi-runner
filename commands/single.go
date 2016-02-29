@@ -78,7 +78,6 @@ func (r *RunSingleCommand) processBuild(data common.ExecutorData, abortSignal ch
 		Network:          r.network,
 		ExecutorData:     data,
 	}
-	newBuild.AssignID()
 
 	trace := r.network.ProcessBuild(r.RunnerConfig, buildData.ID)
 	defer trace.Fail(err)
