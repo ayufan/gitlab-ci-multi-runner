@@ -117,7 +117,7 @@ func (mr *RunCommand) processRunner(id int, runner *runnerAcquire) (err error) {
 	defer trace.Fail(err)
 
 	// Create a new build
-	build := common.Build{
+	build := &common.Build{
 		GetBuildResponse: *buildData,
 		Runner:           &runner.RunnerConfig,
 		ExecutorData:     runner.data,
@@ -195,7 +195,6 @@ func (mr *RunCommand) checkConfig() (err error) {
 }
 
 func (mr *RunCommand) Start(s service.Service) error {
-	mr.acquires = []*common.Build{}
 	mr.abortBuilds = make(chan os.Signal)
 	mr.runSignal = make(chan os.Signal, 1)
 	mr.reloadSignal = make(chan os.Signal, 1)

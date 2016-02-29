@@ -27,7 +27,7 @@ func (b *buildsHelper) acquire(runner *runnerAcquire) bool {
 		b.counts = make(map[string]int)
 	}
 	b.counts[runner.Token]++
-	return
+	return true
 }
 
 func (b *buildsHelper) release(runner *runnerAcquire) bool {
