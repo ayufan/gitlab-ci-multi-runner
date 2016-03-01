@@ -105,7 +105,7 @@ To speed up your builds GitLab Runner provides a cache mechanism. Selected direc
 files are saved and shared between subsequent builds.
 
 This is working fine when builds are runned on the same host. But when you start using runners
-atoscale feature, most of your builds will be runned on a new (or almost new) host, which will
+autoscale feature, most of your builds will be running on a new (or almost new) host, which will
 execute each build in a new docker container. This will spoil the power of runners cache feature.
 
 To prevent this, together with autoscale feature, the distributed runners cache feature
@@ -131,7 +131,7 @@ To enable distributed caching you have to define it in `config.toml`:
 To speed up builds executed inside of docker containers you can use docker registry mirroring
 service. It will provide a proxy between your docker machines and all used registries. Images
 will be downloaded once by the registry mirror. On each new host, or on another existing host
-where such image was not available, it will be downloaded from configured registry mirror.
+where such image is not available, it will be downloaded from configured registry mirror.
 
 Since the mirror will exist - mostly - in your docker machines LAN, the image downloading
 step should be much faster on each host.
@@ -293,4 +293,3 @@ including virtualization/cloud provider parameters, are available at [Docker Mac
 [runner-configuration]: https://gitlab.com/gitlab-org/gitlab-ci-multi-runner#advanced-configuration
 [docker-machine-docs]: https://docs.docker.com/machine/
 [docker-machine-installation]: https://docs.docker.com/machine/install-machine/
-[minio-website]: https://www.minio.io/

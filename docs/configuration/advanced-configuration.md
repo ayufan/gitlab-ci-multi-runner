@@ -304,6 +304,10 @@ Example:
 This defines the Docker Machine based autoscaling feature. More details can be found
 in [runners autoscale documentation](autoscale.md#runner-configuration).
 
+## The [runners.cache] section
+
+This defines the distributed cache feature. More details can be found in [runners autoscale documentation](autoscale.md#distributed-runners-caching).
+
 ## Note
 
 If you'd like to deploy to multiple servers using GitLab CI, you can create a
