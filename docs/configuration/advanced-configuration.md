@@ -302,11 +302,62 @@ Example:
 ## The [runners.machine] section
 
 This defines the Docker Machine based autoscaling feature. More details can be found
-in [runners autoscale documentation](autoscale.md#runner-configuration).
+in [runners autoscale documentation](autoscale.md).
+
+| Parameter        | Description |
+|------------------|-------------|
+| `IdleCount`      | Number of machines, that need to be created and waiting in *Idle* state. |
+| `IdleTime`       | Time (in seconds) for machine to be in *Idle* state before it is removed. |
+| `MaxBuilds`      | Builds count after which machine will be removed. |
+| `MachineName`    | Name of the machine. It must contain `%s`. The `%s` will be replaced with unique machine identifier. |
+| `MachineDriver`  | Docker Machine `driver` to use. More details can be found in [Docker Machine configuration section](autoscale.md#docker-machine-configuration). |
+| `MachineOptions` | Docker Machine options. More details can be found in [Docker Machine configuration section](autoscale.md#docker-machine-configuration). |
+
+Example:
+
+```bash
+[runners.machine]
+  IdleCount = 5
+  IdleTime = 600
+  MaxBuilds = 100
+  MachineName = "auto-scale-%s"
+  MachineDriver = "digitalocean"
+  MachineOptions = [
+      "digitalocean-image=coreos-beta",
+      "digitalocean-ssh-user=core",
+      "digitalocean-access-token=DO_ACCESS_TOKEN",
+      "digitalocean-region=nyc2",
+      "digitalocean-size=4gb",
+      "digitalocean-private-networking",
+      "engine-registry-mirror=http://10.11.12.13:12345"
+  ]
+```
 
 ## The [runners.cache] section
 
-This defines the distributed cache feature. More details can be found in [runners autoscale documentation](autoscale.md#distributed-runners-caching).
+This defines the distributed cache feature. More details can be found
+in [runners autoscale documentation](autoscale.md#distributed-runners-caching).
+
+| Parameter        | Value            | Description |
+|------------------|------------------|-------------|
+| `Type`           | string           | As for now only `s3` can be used. |
+| `ServerAddress`  | string           | A `host:port` to the used S3-compatible server. |
+| `AccessKey`      | string           | AccessKey specified for your S3 instance. |
+| `SecretKey`      | string           | SecretKey specified for your S3 instance. |
+| `BucketName`     | string           | Name of the bucket where cache will be stored. |
+| `Insecure`       | boolean          | Set to `true` if the S3 service is available by `HTTP`. Is set tu `false` by default. |
+
+Example:
+
+```bash
+[runners.cache]
+  Type = "s3"
+  ServerAddress = "s3-eu-west-1.amazonaws.com"
+  AccessKey = "AMAZON_S3_ACCESS_KEY"
+  SecretKey = "AMAZON_S3_SECRET_KEY"
+  BucketName = "runners"
+  Insecure = false
+```
 
 ## Note
 

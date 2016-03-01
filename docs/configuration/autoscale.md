@@ -37,7 +37,7 @@ machine. If the time exceeds *IdleTime* value, the machine is removed.
 
 Let's suppose, that we have configured GitLab Runner with following autoscale parameters:
 
-```
+```bash
 [[runners]]
   limit = 10
   (...)
@@ -116,7 +116,7 @@ when restoring and archiving cache, will ask S3-server and download or upload th
 
 To enable distributed caching you have to define it in `config.toml`:
 
-```toml
+```bash
   [runners.cache]
     Type = "s3"
     ServerAddress = "s3.example.com"
@@ -139,7 +139,7 @@ step should be much faster on each host.
 To configure docker registry mirroring you have to add a `MachineOption` to the configuration
 in `config.toml`:
 
-```toml
+```bash
   [runners.machine]
     (...)
     MachineOptions = [
@@ -158,43 +158,32 @@ In this section will be discribed only parameters significant from the autoscale
 of view. For more configurations details please read [GitLab Runner - Installation][runner-installation]
 and [GitLab Runner - Advanced Configuration][runner-configuration].
 
-**Global**
+**global**
 
 | Parameter    | Value   | Description |
 |--------------|---------|-------------|
 | `concurrent` | integer | Limits how many jobs globally can be run concurrently. The most upper limit of jobs using all defined runners. Together with `limit` (from **[runners]** section) and `IdleCount` (from **[runners.machine]** section) it affects the upper limit of created machines. |
 
-**runners**
-*
+**[[runners]]**
+
 | Parameter  | Value            | Description |
 |------------|------------------|-------------|
 | `executor` | string           | To use autoscale feature must be set to `docker+machine` or `docker-ssh+machine`. |
 | `limit`    | integer          | Limits how many jobs can be handled concurrently by this token. 0 simply means don't limit. For autoscale it's the upper limit of machines created by this provider (with complicity of `concurrent` and `IdleCount`). |
 
-**runners.machine**
+**[runners.machine]**
 
-| Parameter        | Value            | Description |
-|------------------|------------------|-------------|
-| `IdleCount`      | integer          | Number of machines, that need to be created and waiting in *Idle* state. |
-| `IdleTime`       | integer          | Time (in seconds) for machine to be in *Idle* state before it is removed. |
-| `MaxBuilds`      | integer          | Builds count after which machine will be removed. |
-| `MachineName`    | string           | Name of the machine. It must contain `%s`. The `%s` will be replaced with unique machine identifier. |
-| `MachineDriver`  | string           | Docker Machine `driver` to use. More details can be found in [Docker Machine configuration section](#docker-machine-configuration). |
-| `MachineOptions` | array of strings | Docker Machine options. More details can be found in [Docker Machine configuration section](#docker-machine-configuration). |
+Configuration parameters details can be found
+in [GitLab Runner - Advanced Configuration - The runners.machine section](advanced-configuration.md#the-runnersmachine-section).
 
-**runners.cache**
-| Parameter        | Value            | Description |
-|------------------|------------------|-------------|
-| `Type`           | string           | As for now only `s3` can be used. |
-| `ServerAddress`  | string           | A `host:port` to the used S3-compatible server. |
-| `AccessKey`      | string           | AccessKey specified for your S3 instance. |
-| `SecretKey`      | string           | SecretKey specified for your S3 instance. |
-| `BucketName`     | string           | Name of the bucket where cache will be stored. |
-| `Insecure`       | boolean          | Set to `true` if the S3 service is available by `HTTP`. Is set tu `false` by default. |
+**[runners.cache]**
+
+Configuration parameters details can be found
+in [GitLab Runner - Advanced Configuration - The runners.cache section](advanced-configuration.md#the-runnerscache-section)
 
 **Example of config.toml**
 
-```toml
+```bash
 concurrent = 50
 
 [[runners]]
@@ -256,7 +245,7 @@ have no machines in *Idle* state.
 
 **Example 1:**
 
-```toml
+```bash
 concurrent=20
 
 [[runners]]
@@ -271,7 +260,7 @@ at least 10 idle machines.
 
 **Example 2:**
 
-```toml
+```bash
 concurrent=20
 
 [[runners]]
