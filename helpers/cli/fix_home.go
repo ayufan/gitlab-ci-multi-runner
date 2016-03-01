@@ -6,7 +6,6 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/docker/docker/pkg/homedir"
-	"github.com/Sirupsen/logrus"
 )
 
 func FixHOME(app *cli.App) {

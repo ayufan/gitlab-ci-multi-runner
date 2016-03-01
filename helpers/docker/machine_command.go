@@ -22,13 +22,7 @@ func (m *machineCommand) Create(driver, name string, opts ...string) error {
 		"--driver", driver,
 	}
 	for _, opt := range opts {
-		keyValue := strings.SplitN(opt, "=", 2)
-		if len(keyValue) > 0 {
-			args = append(args, "--"+keyValue[0])
-		}
-		if len(keyValue) > 1 {
-			args = append(args, keyValue[1])
-		}
+		args = append(args, "--"+opt)
 	}
 	args = append(args, name)
 
