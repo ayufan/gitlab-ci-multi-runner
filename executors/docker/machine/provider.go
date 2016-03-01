@@ -40,7 +40,6 @@ func (m *machineProvider) machineDetails(name string, acquire bool) *machineDeta
 			return nil
 		}
 		details.State = machineStateAcquired
-		details.Used = time.Now()
 	}
 
 	return details
@@ -67,6 +66,7 @@ func (m *machineProvider) create(config *common.RunnerConfig, state machineState
 			m.remove(details.Name, "Failed to create")
 		} else {
 			details.State = state
+			details.Used = time.Now()
 			logrus.WithField("time", time.Since(started)).
 				WithField("name", details.Name).
 				Infoln("Machine created")
@@ -278,7 +278,6 @@ func (m *machineProvider) Use(config *common.RunnerConfig, data common.ExecutorD
 
 	// Mark machine as used
 	details.State = machineStateUsed
-	details.UsedCount++
 	return
 }
 
@@ -286,7 +285,11 @@ func (m *machineProvider) Release(config *common.RunnerConfig, data common.Execu
 	// Release machine
 	details, ok := data.(*machineDetails)
 	if ok {
-		details.Used = time.Now()
+		// Mark last used time when is Used
+		if details.State == machineStateUsed {
+			details.Used = time.Now()
+			details.UsedCount++
+		}
 		details.State = machineStateIdle
 	}
 	return nil
