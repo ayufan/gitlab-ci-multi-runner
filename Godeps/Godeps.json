@@ -43,8 +43,8 @@
 		},
 		{
 			"ImportPath": "github.com/minio/minio-go",
-			"Comment": "v0.2.5-255-gc5884ce",
-			"Rev": "c5884ce9ce3ac73b025d0bc58c4d3d72870edc0b"
+			"Comment": "v1.0.0-2-g1fe1145",
+			"Rev": "1fe1145a231e36743b79939742debafaed1cd5d0"
 		},
 		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer/user",
