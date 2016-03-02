@@ -36,7 +36,7 @@ func getCacheObjectName(build *common.Build, cache *common.CacheConfig, key stri
 	return path.Join("runner", build.Runner.ShortDescription(), "project", strconv.Itoa(build.ProjectID), key)
 }
 
-func getCacheStorageClient(cache *common.CacheConfig) (scl minio.CloudStorageClient, err error) {
+func getCacheStorageClient(cache *common.CacheConfig) (scl *minio.Client, err error) {
 	scl, err = minio.New(cache.ServerAddress, cache.AccessKey, cache.SecretKey, cache.Insecure)
 	if err != nil {
 		logrus.Warningln(err)
@@ -60,7 +60,7 @@ func getS3DownloadURL(build *common.Build, key string) (url string) {
 		return
 	}
 
-	url, err = scl.PresignedGetObject(cache.BucketName, objectName, time.Second*time.Duration(build.Timeout))
+	url, err = scl.PresignedGetObject(cache.BucketName, objectName, time.Second*time.Duration(build.Timeout), nil)
 	if err != nil {
 		logrus.Warningln(err)
 		return
