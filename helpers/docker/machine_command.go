@@ -43,7 +43,7 @@ func (m *machineCommand) Provision(name string) error {
 }
 
 func (m *machineCommand) Remove(name string) error {
-	cmd := exec.Command("docker-machine", "rm", "-f", name)
+	cmd := exec.Command("docker-machine", "rm", "-y", name)
 	cmd.Env = os.Environ()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

@@ -122,29 +122,45 @@ func (m *machineProvider) retryUseMachine(config *common.RunnerConfig) (details 
 	return
 }
 
+func (m *machineProvider) finalizeRemoval(details *machineDetails) {
+	for {
+		err := m.machine.Remove(details.Name)
+		if err == nil {
+			break
+		}
+		time.Sleep(30 * time.Second)
+		logrus.WithField("name", details.Name).
+			WithField("created", time.Since(details.Created)).
+			WithField("used", time.Since(details.Used)).
+			WithField("reason", details.Reason).
+			Warningln("Retrying removal")
+	}
+
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	delete(m.details, details.Name)
+}
+
 func (m *machineProvider) remove(machineName string, reason ...interface{}) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	details, ok := m.details[machineName]
-	if ok {
-		details.Reason = fmt.Sprint(reason...)
-		details.State = machineStateRemoving
-		logrus.WithField("name", machineName).
-			WithField("created", time.Since(details.Created)).
-			WithField("used", time.Since(details.Used)).
-			WithField("reason", details.Reason).
-			Warningln("Removing machine")
-		details.Used = time.Now()
-		details.writeDebugInformation()
+	details, _ := m.details[machineName]
+	if details == nil {
+		return
 	}
 
-	go func() {
-		m.machine.Remove(machineName)
-		m.lock.Lock()
-		defer m.lock.Unlock()
-		delete(m.details, machineName)
-	}()
+	details.Reason = fmt.Sprint(reason...)
+	details.State = machineStateRemoving
+	logrus.WithField("name", machineName).
+		WithField("created", time.Since(details.Created)).
+		WithField("used", time.Since(details.Used)).
+		WithField("reason", details.Reason).
+		Warningln("Removing machine")
+	details.Used = time.Now()
+	details.writeDebugInformation()
+
+	go m.finalizeRemoval(details)
 }
 
 func (m *machineProvider) updateMachine(config *common.RunnerConfig, data *machinesData, details *machineDetails) error {
