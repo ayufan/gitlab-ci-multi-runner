@@ -4,38 +4,38 @@
 
 ## Overview
 
-Autoscale provides a possibility to utilise resources in more elastic and more dynamic way.
+Autoscale provides the possibility to utilise resources in more elastic and a more dynamic way.
 
-When feature is enabled and configured properly, builds are executed on machines created
-*on demand*. Those machines, after the build is finished, can wait to run next builds or can
-be removed after configured *idle time*. In case of many cloud providers this helps to
+When this feature is enabled and configured properly, builds are executed on machines created
+*on demand*. Those machines, after the build is finished, can wait to run the next builds or can
+be removed after the configured `IdleTime`. In case of many cloud providers this helps to
 utilise the cost of used instances.
 
-Thanks to runners autoscale, Your infrastructure contains only as much build instances
-as is necessary at anytime.
+Thanks to runners autoscale, your infrastructure contains only as much build instances
+as necessary at anytime.
 
-Real life example of runners autoscale feature, tested on GitLab.com for
-*GitLab Community Edition* project:
+Below you can see a real life example of the runners autoscale
+feature, tested on GitLab.com for the *GitLab Community Edition* project:
 
 ![real life example of autoscaling](autoscale-example.png)
 
-Each machine on the chart is a independent cloud instance, running build jobs inside
+Each machine on the chart is an independent cloud instance, running build jobs inside
 of docker containers.
 
 ## Autoscaling algorithm and parameters
 
-Autoscaling algorithm is based on three main parameters: *IdleCount*, *IdleTime* and *limit*.
+The autoscaling algorithm is based on three main parameters: `IdleCount`, `IdleTime` and `limit`.
 
 Each machine, which actually does not run a build, is in *Idle* state. GitLab Runner
-in autoscale mode monitors all machines and ensures, that there is always an *IdleCount*
+in autoscale mode monitors all machines, and ensures that there is always an `IdleCount`
 of machines in *Idle* state.
 
 At the same time GitLab Runner is checking the duration of the *Idle* state of each
-machine. If the time exceeds *IdleTime* value, the machine is removed.
+machine. If the time exceeds `IdleTime` value, the machine is removed.
 
 **Example**
 
-Let's suppose, that we have configured GitLab Runner with following autoscale parameters:
+Let's suppose, that we have configured GitLab Runner with the following autoscale parameters:
 
 ```bash
 [[runners]]

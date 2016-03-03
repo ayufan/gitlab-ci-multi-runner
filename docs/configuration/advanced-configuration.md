@@ -340,12 +340,12 @@ in [runners autoscale documentation](autoscale.md#distributed-runners-caching).
 
 | Parameter        | Value            | Description |
 |------------------|------------------|-------------|
-| `Type`           | string           | As for now only `s3` can be used. |
+| `Type`           | string           | As of now, only S3-compatible services are supported, so only `s3` can be used. |
 | `ServerAddress`  | string           | A `host:port` to the used S3-compatible server. |
 | `AccessKey`      | string           | AccessKey specified for your S3 instance. |
 | `SecretKey`      | string           | SecretKey specified for your S3 instance. |
 | `BucketName`     | string           | Name of the bucket where cache will be stored. |
-| `Insecure`       | boolean          | Set to `true` if the S3 service is available by `HTTP`. Is set tu `false` by default. |
+| `Insecure`       | boolean          | Set to `true` if the S3 service is available by `HTTP`. Is set to `false` by default. |
 
 Example:
 
