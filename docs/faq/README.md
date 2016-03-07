@@ -91,3 +91,13 @@ them to win32 calls when running on a Windows system (example: [Colorama](https:
 If you're program is doing the above, then you need to disable that conversion for the CI builds so that the ANSI codes remain in the string.
 
 See issue [#332](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues/332) for more information.
+
+## 10. While cloning the repository by HTTP(S) (with GitLab Runner or manually for tests) I get an error: "warning: You appear to have cloned an empty repository."
+
+Make sure, that your GitLab server installation is done properly. Aspecially, if You are using some HTTP Proxy with
+own configuration, make sure that GitLab requests are proxied to **GitLab Workhorse socket**, not to the **GitLab
+unicorn socket**.
+
+Git protocol via HTTP(S) is resolved by the GitLab Workhorse, so this is the main entrypoint of GitLab.
+
+See issue [#1105](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues/1105) for more information.
