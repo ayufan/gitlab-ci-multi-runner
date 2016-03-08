@@ -92,7 +92,7 @@ func (s *executor) Start() error {
 	// Start process
 	err := s.cmd.Start()
 	if err != nil {
-		return errors.New("Failed to start process")
+		return fmt.Errorf("Failed to start process: %s", err)
 	}
 
 	// Wait for process to exit
