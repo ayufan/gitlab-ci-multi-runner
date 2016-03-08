@@ -1,6 +1,11 @@
 FROM alpine
 
-RUN apk add --update bash wget ca-certificates openssl
+RUN apk add --update \
+		bash \
+		ca-certificates \
+		git \
+		openssl \
+		wget
 
 RUN wget -O /tmp/glibc.apk "https://circle-artifacts.com/gh/andyshinn/alpine-pkg-glibc/6/artifacts/0/home/ubuntu/alpine-pkg-glibc/packages/x86_64/glibc-2.21-r2.apk" && \
     apk add --allow-untrusted /tmp/glibc.apk && \
