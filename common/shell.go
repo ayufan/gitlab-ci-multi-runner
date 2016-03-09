@@ -4,7 +4,6 @@ import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"strings"
 )
 
 type ShellScript struct {
@@ -31,14 +30,6 @@ func (s *ShellScript) GetCommandWithArguments() []string {
 		parts = append(parts, arg)
 	}
 	return parts
-}
-
-func (s *ShellScript) GetFullCommand() string {
-	parts := s.GetCommandWithArguments()
-	for idx, part := range parts {
-		parts[idx] = part
-	}
-	return strings.Join(parts, " ")
 }
 
 func (s *ShellScript) GetScriptBytes() []byte {
