@@ -188,7 +188,7 @@ fi`
 
 	script.Arguments = append(script.Arguments, "-c", detectShell, "--")
 	if info.Type == common.LoginShell {
-		script.Arguments = append(script.Arguments, "--login")
+		script.Arguments = append(script.Arguments, "-l")
 	}
 
 	return &script, nil

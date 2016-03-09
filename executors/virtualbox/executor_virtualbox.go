@@ -27,7 +27,7 @@ func (s *executor) verifyMachine(vmName string, sshPort string) error {
 	// Create SSH command
 	sshCommand := ssh.Command{
 		Config:         *s.Config.SSH,
-		Command:        "exit 0",
+		Command:        []string{"exit"},
 		Stdout:         s.BuildLog,
 		Stderr:         s.BuildLog,
 		ConnectRetries: 30,
@@ -233,7 +233,7 @@ func (s *executor) Start() error {
 	s.sshCommand = ssh.Command{
 		Config:      *s.Config.SSH,
 		Environment: s.BuildScript.Environment,
-		Command:     s.BuildScript.GetFullCommand(),
+		Command:     s.BuildScript.GetCommandWithArguments(),
 		Stdin:       s.BuildScript.GetScriptBytes(),
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,

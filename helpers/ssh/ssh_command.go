@@ -10,13 +10,14 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io/ioutil"
+	"strings"
 )
 
 type Command struct {
 	Config
 
 	Environment []string
-	Command     string
+	Command     []string
 	Stdin       []byte
 	Stdout      io.Writer
 	Stderr      io.Writer
@@ -107,6 +108,15 @@ func (s *Command) Exec(cmd string) error {
 	return err
 }
 
+func (s *Command) fullCommand() string {
+	var arguments []string
+	// TODO: This method is compatible only with Bjourne compatible shells
+	for _, part := range s.Command {
+		arguments = append(arguments, helpers.ShellEscape(part))
+	}
+	return strings.Join(arguments, " ")
+}
+
 func (s *Command) Run() error {
 	if s.client == nil {
 		return errors.New("Not connected")
@@ -128,7 +138,7 @@ func (s *Command) Run() error {
 	)
 	session.Stdout = s.Stdout
 	session.Stderr = s.Stderr
-	err = session.Run(s.Command)
+	err = session.Run(s.fullCommand())
 	session.Close()
 	return err
 }
