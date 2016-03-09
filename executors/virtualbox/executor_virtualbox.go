@@ -60,7 +60,7 @@ func (s *executor) restoreFromSnapshot() error {
 }
 
 // virtualbox doesn't support templates
-func (s *executor) createVM(vmName string) error {
+func (s *executor) createVM(vmName string) (err error) {
 	baseImage := s.Config.VirtualBox.BaseName
 	if baseImage == "" {
 		return errors.New("Missing Image setting from VirtualBox configuration")
@@ -79,25 +79,23 @@ func (s *executor) createVM(vmName string) error {
 		}
 	}
 
-	s.Debugln("Creating localhost ssh forwarding...")
-	vmSSHPort := s.Config.SSH.Port
-	if vmSSHPort == "" {
-		vmSSHPort = "22"
-	}
-	err := vbox.ConfigureSSH(vmName, vmSSHPort)
+	s.Debugln("Identify SSH Port...")
+	s.sshPort, err = vbox.FindSSHPort(s.vmName)
 	if err != nil {
-		return err
+		s.Debugln("Creating localhost ssh forwarding...")
+		vmSSHPort := s.Config.SSH.Port
+		if vmSSHPort == "" {
+			vmSSHPort = "22"
+		}
+		s.sshPort, err = vbox.ConfigureSSH(vmName, vmSSHPort)
+		if err != nil {
+			return err
+		}
 	}
+	s.Debugln("Using local", s.sshPort, "SSH port to connect to VM...")
 
 	s.Debugln("Bootstraping VM...")
 	err = vbox.Start(s.vmName)
-	if err != nil {
-		return err
-	}
-
-	s.Debugln("Identify SSH Port...")
-	sshPort, err := vbox.FindSSHPort(s.vmName)
-	s.sshPort = sshPort
 	if err != nil {
 		return err
 	}
