@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	log "github.com/Sirupsen/logrus"
+	"net"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -86,21 +87,55 @@ func FindNextPort(highport string, usedPorts [][]string) string {
 	return highport
 }
 
-func ConfigureSSH(vmName string, vmSSHPort string) error {
-	var localport string
+func isPortUnassigned(highport string, usedPorts [][]string) bool {
+	for _, port := range usedPorts {
+		if highport == port[1] {
+			return false
+		}
+	}
+	return true
+}
+
+func getUsedVirtualboxPorts() ([][]string, error) {
 	output, err := VBoxManage("list", "vms", "-l")
+	if err != nil {
+		return nil, err
+	}
 	allPortsRe := regexp.MustCompile(`host port = (\d+)`)
 	usedPorts := allPortsRe.FindAllStringSubmatch(output, -1)
 	log.Debugln(usedPorts)
-	if usedPorts == nil {
-		localport = "2222"
-	} else {
-		highport := "2222"
-		localport = FindNextPort(highport, usedPorts)
+	return usedPorts, nil
+}
+
+func ConfigureSSH(vmName string, vmSSHPort string) error {
+	var localport string
+
+	for {
+		ln, err := net.Listen("tcp", ":0")
+		if err != nil {
+			log.Debugln(err)
+			return err
+		}
+		defer ln.Close()
+
+		addressElements := strings.Split(ln.Addr().String(), ":")
+		localport = addressElements[len(addressElements)-1]
+
+		usedPorts, err := getUsedVirtualboxPorts()
+		if err != nil {
+			log.Debugln(err)
+			return err
+		}
+
+		if isPortUnassigned(localport, usedPorts) {
+			break
+		}
+		// We're going around the loop again, getting a new ln
+		ln.Close()
 	}
 
 	rule := fmt.Sprintf("guestssh,tcp,127.0.0.1,%s,,%s", localport, vmSSHPort)
-	_, err = VBoxManage("modifyvm", vmName, "--natpf1", rule)
+	_, err := VBoxManage("modifyvm", vmName, "--natpf1", rule)
 	return err
 }
 
