@@ -153,6 +153,21 @@ func (b *AbstractShell) downloadArtifacts(w ShellWriter, build *common.BuildInfo
 	w.Command(info.RunnerCommand, args...)
 }
 
+func (b *AbstractShell) isDependentBuild(build *common.Build, name string) bool {
+	dependencies, ok := build.Options["dependencies"].([]interface{})
+	if !ok {
+		// If no dependencies are defined we assume that we depend on all builds
+		return true
+	}
+
+	for _, dependency := range dependencies {
+		if value, ok := dependency.(string); ok && name == value {
+			return true
+		}
+	}
+	return false
+}
+
 func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptInfo) {
 	b.writeExports(w, info)
 
@@ -179,6 +194,9 @@ func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptI
 	// Process all artifacts
 	for _, otherBuild := range info.Build.DependsOnBuilds {
 		if otherBuild.Artifacts == nil || otherBuild.Artifacts.Filename == "" {
+			continue
+		}
+		if !b.isDependentBuild(info.Build, otherBuild.Name) {
 			continue
 		}
 		b.downloadArtifacts(w, &otherBuild, info)
@@ -254,6 +272,13 @@ func (b *AbstractShell) uploadArtifacts(w ShellWriter, list interface{}, info co
 		return
 	}
 	args = append(args, archiverArgs...)
+
+	// Get artifacts:name
+	if name, ok := helpers.GetMapKey(info.Build.Options["artifacts"], "name"); ok {
+		if nameValue, ok := name.(string); ok && nameValue != "" {
+			args = append(args, "--name", nameValue)
+		}
+	}
 
 	w.Notice("Uploading artifacts...")
 	w.Command(info.RunnerCommand, args...)

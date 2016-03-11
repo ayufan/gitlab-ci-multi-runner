@@ -95,9 +95,9 @@ func (b *Build) CacheKeyForRef(ref string) string {
 		cacheKey := path.Join(b.Name, ref)
 
 		// Get cache:key
-		if hash, ok := b.Options["cache"].(map[string]interface{}); ok {
-			if key, ok := hash["key"].(string); ok && key != "" {
-				cacheKey = key
+		if key, ok := helpers.GetMapKey(b.Options, "cache", "key"); ok {
+			if keyValue, ok := key.(string); ok && key != "" {
+				cacheKey = keyValue
 			}
 		}
 

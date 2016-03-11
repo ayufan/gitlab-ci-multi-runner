@@ -48,3 +48,27 @@ func ToConfigMap(list interface{}) (map[string]interface{}, bool) {
 
 	return result, true
 }
+
+func GetMapKey(value interface{}, keys ...string) (interface{}, bool) {
+	for _, key := range keys {
+		stringMap, ok := value.(map[string]interface{})
+		if ok {
+			value, ok = stringMap[key]
+			if !ok {
+				return nil, false
+			}
+			continue
+		}
+
+		interfaceMap, ok := value.(map[interface{}]interface{})
+		if ok {
+			value, ok = interfaceMap[key]
+			if !ok {
+				return nil, false
+			}
+			continue
+		}
+	}
+
+	return value, true
+}
