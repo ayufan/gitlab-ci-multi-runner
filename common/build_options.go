@@ -2,7 +2,6 @@ package common
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -10,17 +9,6 @@ import (
 )
 
 type BuildOptions map[string]interface{}
-
-func (m *BuildOptions) MarshalJSON() ([]byte, error) {
-	return json.Marshal(*m)
-}
-
-func (m *BuildOptions) UnmarshalJSON(data []byte) error {
-	if m == nil {
-		return errors.New("BuildOptions: UnmarshalJSON on nil pointer")
-	}
-	return json.Unmarshal(data, *m)
-}
 
 func (m *BuildOptions) Get(keys ...string) (interface{}, bool) {
 	return helpers.GetMapKey(*m, keys...)
