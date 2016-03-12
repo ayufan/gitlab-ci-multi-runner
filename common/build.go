@@ -23,7 +23,6 @@ const (
 
 type Build struct {
 	GetBuildResponse `yaml:",inline"`
-	Network          Network
 
 	Trace        BuildTrace
 	BuildAbort   chan os.Signal `json:"-" yaml:"-"`

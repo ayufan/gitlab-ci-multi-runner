@@ -210,7 +210,6 @@ func (c *ExecCommand) createBuild(repoURL string, abortSignal chan os.Signal) (b
 			RunnerSettings: c.RunnerSettings,
 		},
 		BuildAbort: abortSignal,
-		Network:    nil,
 	}
 	return
 }

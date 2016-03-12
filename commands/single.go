@@ -75,7 +75,6 @@ func (r *RunSingleCommand) processBuild(data common.ExecutorData, abortSignal ch
 		GetBuildResponse: *buildData,
 		Runner:           &r.RunnerConfig,
 		BuildAbort:       abortSignal,
-		Network:          r.network,
 		ExecutorData:     data,
 	}
 

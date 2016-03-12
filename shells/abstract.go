@@ -250,6 +250,9 @@ func (b *AbstractShell) cacheArchiver(w ShellWriter, list interface{}, info comm
 }
 
 func (b *AbstractShell) uploadArtifacts(w ShellWriter, list interface{}, info common.ShellScriptInfo) {
+	if info.Build.Runner.URL == "" {
+		return
+	}
 	if info.RunnerCommand == "" {
 		w.Warning("The artifacts uploading is not supported in this executor.")
 		return
@@ -295,7 +298,5 @@ func (b *AbstractShell) GeneratePostBuild(w ShellWriter, info common.ShellScript
 	}
 
 	// Upload artifacts
-	if info.Build.Network != nil {
-		b.uploadArtifacts(w, info.Build.Options["artifacts"], info)
-	}
+	b.uploadArtifacts(w, info.Build.Options["artifacts"], info)
 }

@@ -122,7 +122,6 @@ func (mr *RunCommand) processRunner(id int, runner *runnerAcquire) (err error) {
 		Runner:           &runner.RunnerConfig,
 		ExecutorData:     runner.data,
 		BuildAbort:       mr.abortBuilds,
-		Network:          mr.network,
 	}
 
 	// Add build to list of builds to assign numbers
