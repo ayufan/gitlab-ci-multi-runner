@@ -91,21 +91,12 @@ test:
 `
 
 	config1 := make(map[string]interface{})
-	config2 := make(map[interface{}]interface{})
 	require.NoError(t, yaml.Unmarshal([]byte(data), config1))
-	require.NoError(t, yaml.Unmarshal([]byte(data), config2))
 
 	value, ok := GetMapKey(config1, "test", "cache", "untracked")
 	assert.True(t, ok)
 	assert.Equal(t, true, value)
 
-	value, ok = GetMapKey(config2, "test", "cache", "untracked")
-	assert.True(t, ok)
-	assert.Equal(t, true, value)
-
 	_, ok = GetMapKey(config1, "test", "undefined", "untracked")
-	assert.False(t, ok)
-
-	_, ok = GetMapKey(config2, "test", "undefined", "untracked")
 	assert.False(t, ok)
 }
