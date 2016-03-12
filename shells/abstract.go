@@ -19,7 +19,7 @@ func (b *AbstractShell) GetFeatures(features *common.FeaturesInfo) {
 }
 
 func (b *AbstractShell) GetSupportedOptions() []string {
-	return []string{"artifacts", "cache"}
+	return []string{"artifacts", "cache", "dependencies"}
 }
 
 func (b *AbstractShell) writeCdBuildDir(w ShellWriter, info common.ShellScriptInfo) {
