@@ -1,6 +1,8 @@
 package common
 
-import "io"
+import (
+	"io"
+)
 
 type UpdateState int
 type UploadState int
@@ -48,8 +50,6 @@ type GetBuildRequest struct {
 	Info  VersionInfo `json:"info,omitempty"`
 	Token string      `json:"token,omitempty"`
 }
-
-type BuildOptions map[string]interface{}
 
 type BuildArtifacts struct {
 	Filename string `json:"filename,omitempty"`

@@ -3,13 +3,13 @@ package common
 import (
 	"errors"
 	"fmt"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
+
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 )
 
 type BuildState string
@@ -23,7 +23,6 @@ const (
 
 type Build struct {
 	GetBuildResponse `yaml:",inline"`
-	Network          Network
 
 	Trace        BuildTrace
 	BuildAbort   chan os.Signal `json:"-" yaml:"-"`
@@ -88,34 +87,6 @@ func (b *Build) ProjectUniqueDir(sharedDir bool) string {
 
 func (b *Build) FullProjectDir() string {
 	return helpers.ToSlash(b.BuildDir)
-}
-
-func (b *Build) CacheKeyForRef(ref string) string {
-	if b.CacheDir != "" {
-		cacheKey := path.Join(b.Name, ref)
-
-		// Get cache:key
-		if hash, ok := b.Options["cache"].(map[string]interface{}); ok {
-			if key, ok := hash["key"].(string); ok && key != "" {
-				cacheKey = key
-			}
-		}
-
-		// Ignore groups that are nil
-		if cacheKey == "" {
-			return ""
-		}
-		return filepath.ToSlash(path.Join(cacheKey, "cache.zip"))
-	}
-	return ""
-}
-
-func (b *Build) CacheKey() string {
-	// For tags we don't create cache
-	if b.Tag {
-		return ""
-	}
-	return b.CacheKeyForRef(b.RefName)
 }
 
 func (b *Build) StartBuild(rootDir, cacheDir string, sharedDir bool) {

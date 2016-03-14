@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 )
 
 type AbstractShell struct {
@@ -19,7 +18,7 @@ func (b *AbstractShell) GetFeatures(features *common.FeaturesInfo) {
 }
 
 func (b *AbstractShell) GetSupportedOptions() []string {
-	return []string{"artifacts", "cache"}
+	return []string{"artifacts", "cache", "dependencies"}
 }
 
 func (b *AbstractShell) writeCdBuildDir(w ShellWriter, info common.ShellScriptInfo) {
@@ -71,56 +70,65 @@ func (b *AbstractShell) writeCheckoutCmd(w ShellWriter, build *common.Build) {
 	w.Command("git", "checkout", build.Sha)
 }
 
-func (b *AbstractShell) cacheFile(cacheKey string, info common.ShellScriptInfo) string {
-	if cacheKey == "" {
-		return ""
-	}
-	cacheFile := path.Join(info.Build.CacheDir, cacheKey)
-	cacheFile, err := filepath.Rel(info.Build.BuildDir, cacheFile)
-	if err != nil {
-		return ""
-	}
-	return cacheFile
-}
-
-func (b *AbstractShell) encodeArchiverOptions(list interface{}) (args []string) {
-	hash, ok := helpers.ToConfigMap(list)
-	if !ok {
+func (b *AbstractShell) cacheFile(build *common.Build, userKey string) (key, file string) {
+	// For tags we don't create cache
+	if build.Tag || build.CacheDir == "" {
 		return
 	}
 
-	// Collect paths
-	if paths, ok := hash["paths"].([]interface{}); ok {
-		for _, artifactPath := range paths {
-			if file, ok := artifactPath.(string); ok {
-				args = append(args, "--path", file)
-			}
-		}
+	// Deduce cache key
+	key = path.Join(build.Name, build.RefName)
+	if userKey != "" {
+		key = build.GetAllVariables().ExpandValue(userKey)
 	}
 
-	// Archive also untracked files
-	if untracked, ok := hash["untracked"].(bool); ok && untracked {
+	// Ignore cache without the key
+	if key == "" {
+		return
+	}
+
+	file = path.Join(build.CacheDir, key, "cache.zip")
+	file, err := filepath.Rel(build.BuildDir, file)
+	if err != nil {
+		return "", ""
+	}
+	return
+}
+
+func (o *archivingOptions) CommandArguments() (args []string) {
+	for _, path := range o.Paths {
+		args = append(args, "--path", path)
+	}
+
+	if o.Untracked {
 		args = append(args, "--untracked")
 	}
 	return
 }
 
-func (b *AbstractShell) cacheExtractor(w ShellWriter, list interface{}, info common.ShellScriptInfo, cacheKey string) {
+func (b *AbstractShell) cacheExtractor(w ShellWriter, options *archivingOptions, info common.ShellScriptInfo) {
+	if options == nil {
+		return
+	}
 	if info.RunnerCommand == "" {
 		w.Warning("The cache is not supported in this executor.")
 		return
 	}
 
-	// Create list of files to archive
-	archiverArgs := b.encodeArchiverOptions(list)
-	if len(archiverArgs) == 0 {
-		// Skip restoring cache if no cache is defined
+	// Skip restoring cache if no cache is defined
+	if archiverArgs := options.CommandArguments(); len(archiverArgs) == 0 {
+		return
+	}
+
+	// Skip archiving if no cache is defined
+	cacheKey, cacheFile := b.cacheFile(info.Build, options.Key)
+	if cacheKey == "" {
 		return
 	}
 
 	args := []string{
 		"cache-extractor",
-		"--file", b.cacheFile(cacheKey, info),
+		"--file", cacheFile,
 	}
 
 	// Generate cache download address
@@ -153,6 +161,18 @@ func (b *AbstractShell) downloadArtifacts(w ShellWriter, build *common.BuildInfo
 	w.Command(info.RunnerCommand, args...)
 }
 
+func (b *AbstractShell) downloadAllArtifacts(w ShellWriter, dependencies *dependencies, info common.ShellScriptInfo) {
+	for _, otherBuild := range info.Build.DependsOnBuilds {
+		if otherBuild.Artifacts == nil || otherBuild.Artifacts.Filename == "" {
+			continue
+		}
+		if !dependencies.IsDependent(otherBuild.Name) {
+			continue
+		}
+		b.downloadArtifacts(w, &otherBuild, info)
+	}
+}
+
 func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptInfo) {
 	b.writeExports(w, info)
 
@@ -171,18 +191,15 @@ func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptI
 
 	b.writeCheckoutCmd(w, build)
 
+	// Parse options
+	var options shellOptions
+	info.Build.Options.Decode(&options)
+
 	// Try to restore from main cache, if not found cache for master
-	if cacheKey := info.Build.CacheKey(); cacheKey != "" {
-		b.cacheExtractor(w, info.Build.Options["cache"], info, cacheKey)
-	}
+	b.cacheExtractor(w, options.Cache, info)
 
 	// Process all artifacts
-	for _, otherBuild := range info.Build.DependsOnBuilds {
-		if otherBuild.Artifacts == nil || otherBuild.Artifacts.Filename == "" {
-			continue
-		}
-		b.downloadArtifacts(w, &otherBuild, info)
-	}
+	b.downloadAllArtifacts(w, options.Dependencies, info)
 }
 
 func (b *AbstractShell) GenerateCommands(w ShellWriter, info common.ShellScriptInfo) {
@@ -202,19 +219,28 @@ func (b *AbstractShell) GenerateCommands(w ShellWriter, info common.ShellScriptI
 	}
 }
 
-func (b *AbstractShell) cacheArchiver(w ShellWriter, list interface{}, info common.ShellScriptInfo, cacheKey string) {
+func (b *AbstractShell) cacheArchiver(w ShellWriter, options *archivingOptions, info common.ShellScriptInfo) {
+	if options == nil {
+		return
+	}
 	if info.RunnerCommand == "" {
 		w.Warning("The cache is not supported in this executor.")
 		return
 	}
 
+	// Skip archiving if no cache is defined
+	cacheKey, cacheFile := b.cacheFile(info.Build, options.Key)
+	if cacheKey == "" {
+		return
+	}
+
 	args := []string{
 		"cache-archiver",
-		"--file", b.cacheFile(cacheKey, info),
+		"--file", cacheFile,
 	}
 
 	// Create list of files to archive
-	archiverArgs := b.encodeArchiverOptions(list)
+	archiverArgs := options.CommandArguments()
 	if len(archiverArgs) == 0 {
 		// Skip creating archive
 		return
@@ -231,7 +257,13 @@ func (b *AbstractShell) cacheArchiver(w ShellWriter, list interface{}, info comm
 	w.Command(info.RunnerCommand, args...)
 }
 
-func (b *AbstractShell) uploadArtifacts(w ShellWriter, list interface{}, info common.ShellScriptInfo) {
+func (b *AbstractShell) uploadArtifacts(w ShellWriter, options *archivingOptions, info common.ShellScriptInfo) {
+	if options == nil {
+		return
+	}
+	if info.Build.Runner.URL == "" {
+		return
+	}
 	if info.RunnerCommand == "" {
 		w.Warning("The artifacts uploading is not supported in this executor.")
 		return
@@ -248,12 +280,17 @@ func (b *AbstractShell) uploadArtifacts(w ShellWriter, list interface{}, info co
 	}
 
 	// Create list of files to archive
-	archiverArgs := b.encodeArchiverOptions(list)
+	archiverArgs := options.CommandArguments()
 	if len(archiverArgs) == 0 {
 		// Skip creating archive
 		return
 	}
 	args = append(args, archiverArgs...)
+
+	// Get artifacts:name
+	if name, ok := info.Build.Options.GetString("artifacts", "name"); ok && name != "" {
+		args = append(args, "--name", name)
+	}
 
 	w.Notice("Uploading artifacts...")
 	w.Command(info.RunnerCommand, args...)
@@ -264,13 +301,13 @@ func (b *AbstractShell) GeneratePostBuild(w ShellWriter, info common.ShellScript
 	b.writeCdBuildDir(w, info)
 	b.writeTLSCAInfo(w, info.Build, "CI_SERVER_TLS_CA_FILE")
 
+	// Parse options
+	var options shellOptions
+	info.Build.Options.Decode(&options)
+
 	// Find cached files and archive them
-	if cacheKey := info.Build.CacheKey(); cacheKey != "" {
-		b.cacheArchiver(w, info.Build.Options["cache"], info, cacheKey)
-	}
+	b.cacheArchiver(w, options.Cache, info)
 
 	// Upload artifacts
-	if info.Build.Network != nil {
-		b.uploadArtifacts(w, info.Build.Options["artifacts"], info)
-	}
+	b.uploadArtifacts(w, options.Artifacts, info)
 }

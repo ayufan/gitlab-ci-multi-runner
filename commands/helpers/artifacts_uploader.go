@@ -1,14 +1,15 @@
 package helpers
 
 import (
+	"errors"
 	"io"
 	"os"
+	"path"
 	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 
-	"errors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/archives"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/formatter"
@@ -20,6 +21,8 @@ type ArtifactsUploaderCommand struct {
 	fileArchiver
 	retryHelper
 	network common.Network
+
+	Name string `long:"name" description:"The name of the archive"`
 }
 
 func (c *ArtifactsUploaderCommand) createAndUpload() (bool, error) {
@@ -32,8 +35,10 @@ func (c *ArtifactsUploaderCommand) createAndUpload() (bool, error) {
 		pw.CloseWithError(err)
 	}()
 
+	artifactsName := path.Base(c.Name) + ".zip"
+
 	// Upload the data
-	switch c.network.UploadRawArtifacts(c.BuildCredentials, pr, "artifacts.zip") {
+	switch c.network.UploadRawArtifacts(c.BuildCredentials, pr, artifactsName) {
 	case common.UploadSucceeded:
 		return false, nil
 	case common.UploadForbidden:
@@ -77,5 +82,6 @@ func init() {
 			Retry:     2,
 			RetryTime: time.Second,
 		},
+		Name: "artifacts",
 	})
 }

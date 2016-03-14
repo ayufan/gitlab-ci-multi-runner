@@ -24,12 +24,18 @@ import (
 	docker_helpers "gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/docker"
 )
 
+type dockerOptions struct {
+	Image    string   `json:"image"`
+	Services []string `json:"services"`
+}
+
 type executor struct {
 	executors.AbstractExecutor
 	client   *docker.Client
 	builds   []*docker.Container
 	services []*docker.Container
 	caches   []*docker.Container
+	options  dockerOptions
 }
 
 const PrebuiltArchive = "prebuilt.tar.gz"
@@ -466,22 +472,14 @@ func (s *executor) createService(service, version string) (*docker.Container, er
 func (s *executor) getServiceNames() ([]string, error) {
 	services := s.Config.Docker.Services
 
-	if servicesOption, ok := s.Build.Options["services"].([]interface{}); ok {
-		for _, service := range servicesOption {
-			serviceName, ok := service.(string)
-			if !ok {
-				s.Errorln("Invalid service name passed:", service)
-				return nil, errors.New("invalid service name")
-			}
-			serviceName = s.Build.GetAllVariables().ExpandValue(serviceName)
-
-			err := s.verifyAllowedImage(serviceName, "services", s.Config.Docker.AllowedServices, s.Config.Docker.Services)
-			if err != nil {
-				return nil, err
-			}
-
-			services = append(services, serviceName)
+	for _, service := range s.options.Services {
+		service = s.Build.GetAllVariables().ExpandValue(service)
+		err := s.verifyAllowedImage(service, "services", s.Config.Docker.AllowedServices, s.Config.Docker.Services)
+		if err != nil {
+			return nil, err
 		}
+
+		services = append(services, service)
 	}
 
 	return services, nil
@@ -732,9 +730,9 @@ func (s *executor) verifyAllowedImage(image, optionName string, allowedImages []
 }
 
 func (s *executor) getImageName() (string, error) {
-	if image, ok := s.Build.Options["image"].(string); ok && image != "" {
-		image = s.Build.GetAllVariables().ExpandValue(image)
-		err := s.verifyAllowedImage(image, "images", s.Config.Docker.AllowedImages, []string{s.Config.Docker.Image})
+	if s.options.Image != "" {
+		image := s.Build.GetAllVariables().ExpandValue(s.options.Image)
+		err := s.verifyAllowedImage(s.options.Image, "images", s.Config.Docker.AllowedImages, []string{s.Config.Docker.Image})
 		if err != nil {
 			return "", err
 		}
@@ -760,6 +758,11 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 
 	if config.Docker == nil {
 		return errors.New("Missing docker configuration")
+	}
+
+	err = build.Options.Decode(&s.options)
+	if err != nil {
+		return err
 	}
 
 	imageName, err := s.getImageName()
