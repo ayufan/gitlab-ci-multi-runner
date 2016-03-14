@@ -94,10 +94,27 @@ See issue [#332](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues/332
 
 ## 10. While cloning the repository by HTTP(S) (with GitLab Runner or manually for tests) I get an error: "warning: You appear to have cloned an empty repository."
 
-Make sure, that your GitLab server installation is done properly. Aspecially, if You are using some HTTP Proxy with
-own configuration, make sure that GitLab requests are proxied to **GitLab Workhorse socket**, not to the **GitLab
-unicorn socket**.
+When running `git clone` by the HTTP(s) you have received an output:
 
-Git protocol via HTTP(S) is resolved by the GitLab Workhorse, so this is the main entrypoint of GitLab.
+```bash
+$ git clone https://git.example.com/user/repo.git
 
-See issue [#1105](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues/1105) for more information.
+Cloning into 'repo'...
+warning: You appear to have cloned an empty repository.
+```
+
+Make sure, that configuration of the HTTP Proxy in your GitLab server installation is done properly. Aspecially, if
+You are using some HTTP Proxy with own configuration, make sure that GitLab requests are proxied to the **GitLab
+Workhorse socket**, not to the **GitLab unicorn socket**.
+
+Git protocol via HTTP(S) is resolved by the GitLab Workhorse, so this is the **main entrypoint** of GitLab.
+
+If you are using GitLab installed from omnibus package, but you don't want to use Nginx server bundled within it,
+please read [omnibus settings - using a non-bundled web-server](http://doc.gitlab.com/omnibus/settings/nginx.html#using-a-non-bundled-web-server).
+Please also look at [gitlab-recipe repository - web-servers configuration examples](https://gitlab.com/gitlab-org/gitlab-recipes/tree/master/web-server),
+for examples of configurations files for Apache, Lighttpd and Nginx.
+
+If you are using GitLab installed from source, also please read above documentation and examples, and make sure
+that whole HTTP(S) traffic is going trough the **GitLab Workhorse**.
+
+See [gitlab-org/gitlab-ci-multi-runner#1105](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues/1105) for an example of user issue.
