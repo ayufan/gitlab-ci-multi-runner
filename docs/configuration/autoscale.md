@@ -189,52 +189,55 @@ each host created by Docker Machine.
 
 ## Runner configuration
 
-In this section will be discribed only parameters significant from the autoscale feature point
-of view. For more configurations details please read [GitLab Runner - Installation][runner-installation]
+In this section we will describe only the significant parameters from the
+autoscale feature point of view. For more configurations details please read
+the [GitLab Runner - Installation][runner-installation]
 and [GitLab Runner - Advanced Configuration][runner-configuration].
 
-**global**
+### Runner global options
 
 | Parameter    | Value   | Description |
 |--------------|---------|-------------|
-| `concurrent` | integer | Limits how many jobs globally can be run concurrently. The most upper limit of jobs using all defined runners. Together with `limit` (from **[runners]** section) and `IdleCount` (from **[runners.machine]** section) it affects the upper limit of created machines. |
+| `concurrent` | integer | Limits how many jobs globally can be run concurrently. This is the most upper limit of number of jobs using _all_ defined runners, local and autoscale. Together with `limit` (from [`[[runners]]` section](#runners-options)) and `IdleCount` (from [`[runners.machine]` section](advanced-configuration.md#the-runnersmachine-section)) it affects the upper limit of created machines. |
 
-**[[runners]]**
+### `[[runners]]` options
 
 | Parameter  | Value            | Description |
 |------------|------------------|-------------|
-| `executor` | string           | To use autoscale feature must be set to `docker+machine` or `docker-ssh+machine`. |
-| `limit`    | integer          | Limits how many jobs can be handled concurrently by this token. 0 simply means don't limit. For autoscale it's the upper limit of machines created by this provider (with complicity of `concurrent` and `IdleCount`). |
+| `executor` | string           | To use the autoscale feature, `executor` must be set to `docker+machine` or `docker-ssh+machine`. |
+| `limit`    | integer          | Limits how many jobs can be handled concurrently by this specific token. 0 simply means don't limit. For autoscale it's the upper limit of machines created by this provider (in conjuction with `concurrent` and `IdleCount`). |
 
-**[runners.machine]**
+### `[runners.machine]` options
 
 Configuration parameters details can be found
 in [GitLab Runner - Advanced Configuration - The runners.machine section](advanced-configuration.md#the-runnersmachine-section).
 
-**[runners.cache]**
+### `[runners.cache]` options
 
 Configuration parameters details can be found
 in [GitLab Runner - Advanced Configuration - The runners.cache section](advanced-configuration.md#the-runnerscache-section)
 
-**Example of config.toml**
+### A complete example of `config.toml`
+
+The `config.toml` below uses the `digitalocean` Docker Machine driver:
 
 ```bash
-concurrent = 50
+concurrent = 50   # All registered Runners can run up to 50 concurrent builds
 
 [[runners]]
   url = "https://gitlab.com/ci"
   token = "RUNNER_TOKEN"
   name = "autoscale-runner"
-  executor = "docker+machine"
-  limit = 10
+  executor = "docker+machine"       # This Runner is using the 'docker+machine' executor
+  limit = 10                        # This Runner can execute up to 10 builds (created machines)
   [runners.docker]
-    image = "ruby:2.1"
+    image = "ruby:2.1"              # The default image used for builds is 'ruby:2.1'
   [runners.machine]
-    IdleCount = 5
-    IdleTime = 600
-    MaxBuilds = 100
-    MachineName = "auto-scale-%s"
-    MachineDriver = "digitalocean"
+    IdleCount = 5                   # There must be 5 machines in Idle state
+    IdleTime = 600                  # Each machine can be in Idle state up to 600 seconds (after this it will be removed)
+    MaxBuilds = 100                 # Each machine can handle up to 100 builds in a row (after this it will be removed)
+    MachineName = "auto-scale-%s"   # Each machine will have a unique name ('%s' is required)
+    MachineDriver = "digitalocean"  # Docker Machine is using the 'digitalocean' driver
     MachineOptions = [
         "digitalocean-image=coreos-beta",
         "digitalocean-ssh-user=core",
@@ -242,10 +245,10 @@ concurrent = 50
         "digitalocean-region=nyc2",
         "digitalocean-size=4gb",
         "digitalocean-private-networking",
-        "engine-registry-mirror=http://10.11.12.13:12345"
+        "engine-registry-mirror=http://10.11.12.13:12345"   # Docker Machine is using registry mirroring
     ]
   [runners.cache]
-    Type = "s3"
+    Type = "s3"   # The Runner is using a distributed cache with Amazon S3 service
     ServerAddress = "s3-eu-west-1.amazonaws.com"
     AccessKey = "AMAZON_S3_ACCESS_KEY"
     SecretKey = "AMAZON_S3_SECRET_KEY"
@@ -253,30 +256,22 @@ concurrent = 50
     Insecure = false
 ```
 
-This config assumes, that:
-
-- runner is using `docker+machine` executor,
-- runner can execute up to 10 builds (created machines),
-- default image used for builds is `ruby:2.1`,
-- there must be **5** machines in _Idle_ state,
-- each machine can be in _Idle_ state up to **600** seconds (after this it will be removed),
-- each machine can handle up to **100** builds (after this it will be removed),
-- Docker Machine is using `digitalocean` driver,
-- Docker Machine is using registry mirroring, with mirror service available at `http://10.11.12.13:12345`,
-- runner is using distributed cache with Amazon S3 service.
-
-`MachineOptions` parameter contains options for `digitalocean driver` used by Docker Machine,
+Note that the `MachineOptions` parameter contains options for the `digitalocean`
+driver which is used by Docker Machine to spawn machines hosted on Digital Ocean,
 and one option for Docker Machine itself (`engine-registry-mirror`).
 
-**Additional informations**
+### Additional configuration information
 
-There is also a special mode, where `IdleCount = 0`. In this mode machines are **always** created
-**on-demand** before build (if there is no available machine in _Idle_ state). After the build autoscaling
-algorithm works the same as it was wrote above. Machine is waiting for next builds, and if no one
-is executed - after the `IdleTime` time period - the machine is removed. If there is no builds - we
-have no machines in _Idle_ state.
+There is also a special mode, when you set `IdleCount = 0`. In this mode,
+machines are **always** created **on-demand** before each build (if there is no
+available machine in _Idle_ state). After the build is finished, the autoscaling
+algorithm works
+[the same as it was described above](#autoscaling-algorithm-and-parameters).
+The machine is waiting for the next builds, and if no one is executed, after
+the `IdleTime` period, the machine is removed. If there are no builds, there
+are no machines in _Idle_ state.
 
-**How `current`, `limit` and `IdleCount` generate the upper limit of running machines**
+## How `current`, `limit` and `IdleCount` generate the upper limit of running machines
 
 **Example 1:**
 
@@ -289,9 +284,9 @@ limit=40
 IdleCount=10
 ```
 
-In the worst case scenario we will have 30 machines: 20, because this is how many builds can be
-run concurrently and 10 extra, because we want to fulfil the docker+machine policy to have
-at least 10 idle machines.
+In the worst case scenario we will have 30 machines: 20, because this is how
+many builds can be run concurrently and 10 extra, because we want to fulfill
+the `docker+machine` policy to have at least 10 idle machines.
 
 **Example 2:**
 
@@ -304,13 +299,15 @@ limit=25
 IdleCount=10
 ```
 
-In this example we will have at most 20 concurrent builds, and at most 25 machines created.
-In the worst case we will not be able to have 10 idle machines, but only 5, because of the limit.
+In this example we will have at most 20 concurrent builds, and at most 25
+machines created. In the worst case we will not be able to have 10 idle
+machines, but only 5, because of the limit.
 
 ## Docker Machine configuration
 
-Autoscale mechanism currently is based on *Docker Machine*. Advanced configuration options,
-including virtualization/cloud provider parameters, are available at [Docker Machine documentation][docker-machine-docs].
+Autoscale mechanism currently is based on *Docker Machine*. Advanced
+configuration options, including virtualization/cloud provider parameters, are
+available at [Docker Machine documentation][docker-machine-docs].
 
 [cache]: http://doc.gitlab.com/ce/ci/yaml/README.html#cache
 [runner-installation]: https://gitlab.com/gitlab-org/gitlab-ci-multi-runner#installation
