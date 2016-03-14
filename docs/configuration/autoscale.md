@@ -157,20 +157,24 @@ To enable distributed caching, you have to define it in `config.toml` using the
     Insecure = false
 ```
 
-## Distributed docker registry mirroring
+## Distributed Docker registry mirroring
 
-To speed up builds executed inside of docker containers you can use docker registry mirroring
-service. It will provide a proxy between your docker machines and all used registries. Images
-will be downloaded once by the registry mirror. On each new host, or on another existing host
-where such image is not available, it will be downloaded from configured registry mirror.
+To speed up builds executed inside of Docker containers, you can use the [Docker
+registry mirroring service][registry]. This will provide a proxy between your
+Docker machines and all used registries. Images will be downloaded once by the
+registry mirror. On each new host, or on an existing host where the image is
+not available, it will be downloaded from the configured registry mirror.
 
-Since the mirror will exist - mostly - in your docker machines LAN, the image downloading
-step should be much faster on each host.
+Provided that the mirror will exist in your Docker machines LAN, the image
+downloading step should be much faster on each host.
 
-To configure docker registry mirroring you have to add a `MachineOption` to the configuration
-in `config.toml`:
+To configure the Docker registry mirroring, you have to add `MachineOptions` to
+the configuration in `config.toml`:
 
 ```bash
+[[runners]]
+  limit = 10
+  executor = "docker+machine"
   [runners.machine]
     (...)
     MachineOptions = [
@@ -179,9 +183,9 @@ in `config.toml`:
     ]
 ```
 
-Where `10.11.12.13:12345` is an address and port where your registry mirror is listening
-for connections from docker service. It must be accessible for each host created by the
-Docker Machine.
+Where `10.11.12.13:12345` is the IP address and port where your registry mirror
+is listening for connections from the Docker service. It must be accessible for
+each host created by Docker Machine.
 
 ## Runner configuration
 
@@ -314,3 +318,4 @@ including virtualization/cloud provider parameters, are available at [Docker Mac
 [docker-machine-docs]: https://docs.docker.com/machine/
 [docker-machine-installation]: https://docs.docker.com/machine/install-machine/
 [runners-cache]: advanced-configuration.md#the-runnerscache-section
+[registry]: https://docs.docker.com/docker-trusted-registry/overview/
