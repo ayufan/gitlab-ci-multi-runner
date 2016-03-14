@@ -14,7 +14,9 @@ In case of many cloud providers this helps to utilize the cost of already used
 instances.
 
 Thanks to runners being able to autoscale, your infrastructure contains only as
-much build instances as necessary at anytime.
+much build instances as necessary at anytime. If you configure the Runner to
+only use autoscale, the system on which the Runner is installed acts as a
+bastion for all the machines it creates.
 
 Below, you can see a real life example of the runners autoscale feature, tested
 on GitLab.com for the [GitLab Community Edition][ce] project:
@@ -107,34 +109,45 @@ in time:
 
 ## System requirements
 
-To use autoscale feature, system must have:
+To use the autoscale feature, the system which will host the Runner must have:
 
-- GitLab Runner executable - installation guide can be found in [GitLab Runner Documentation][runner-installation]
-- Docker Machine executable - installation guide can be found in [Docker Machine documentation][docker-machine-installation]
+- GitLab Runner executable - installation guide can be found in
+  [GitLab Runner Documentation][runner-installation]
+- Docker Machine executable - installation guide can be found in
+  [Docker Machine documentation][docker-machine-installation]
 
-If autoscale need to use virtualization/cloud providers that aren't handled by Docker Machine
-internal drivers, the appropriate driver plugin must be installed. Docker Machine driver
-plugin installation and configuration is out of scope of this docummentation. For more details
-please read [Docker Machine documentation][docker-machine-docs].
+If you need to use any virtualization/cloud providers that aren't handled by
+Docker's Machine internal drivers, the appropriate driver plugin must be
+installed. The Docker Machine driver plugin installation and configuration is
+out of the scope of this documentation. For more details please read the
+[Docker Machine documentation][docker-machine-docs].
 
 ## Distributed runners caching
 
-To speed up your builds GitLab Runner provides a cache mechanism. Selected directories and/or
-files are saved and shared between subsequent builds.
+To speed up your builds, GitLab Runner provides a [cache mechanism][cache]
+where selected directories and/or files are saved and shared between subsequent
+builds.
 
-This is working fine when builds are runned on the same host. But when you start using runners
-autoscale feature, most of your builds will be running on a new (or almost new) host, which will
-execute each build in a new docker container. This will spoil the power of runners cache feature.
+This is working fine when builds are run on the same host, but when you start
+using the Runners autoscale feature, most of your builds will be running on a
+new (or almost new) host, which will execute each build in a new Docker
+container. In that case, you will not be able to take advantage of the cache
+feature.
 
-To prevent this, together with autoscale feature, the distributed runners cache feature
-was introduced.
+To overcome this issue, together with the autoscale feature, the distributed
+Runners cache feature was introduced.
 
-It uses any S3-compatible server to share the cache between used docker hosts. The GitLab Runner,
-when restoring and archiving cache, will ask S3-server and download or upload the archive.
+It uses any S3-compatible server to share the cache between used Docker hosts.
+When restoring and archiving the cache, GitLab Runner will query the S3 server
+and will download or upload the archive.
 
-To enable distributed caching you have to define it in `config.toml`:
+To enable distributed caching, you have to define it in `config.toml` using the
+[`[runners.cache]` directive][runners-cache]:
 
 ```bash
+[[runners]]
+  limit = 10
+  executor = "docker+machine"
   [runners.cache]
     Type = "s3"
     ServerAddress = "s3.example.com"
@@ -295,8 +308,9 @@ In the worst case we will not be able to have 10 idle machines, but only 5, beca
 Autoscale mechanism currently is based on *Docker Machine*. Advanced configuration options,
 including virtualization/cloud provider parameters, are available at [Docker Machine documentation][docker-machine-docs].
 
-
+[cache]: http://doc.gitlab.com/ce/ci/yaml/README.html#cache
 [runner-installation]: https://gitlab.com/gitlab-org/gitlab-ci-multi-runner#installation
 [runner-configuration]: https://gitlab.com/gitlab-org/gitlab-ci-multi-runner#advanced-configuration
 [docker-machine-docs]: https://docs.docker.com/machine/
 [docker-machine-installation]: https://docs.docker.com/machine/install-machine/
+[runners-cache]: advanced-configuration.md#the-runnerscache-section
