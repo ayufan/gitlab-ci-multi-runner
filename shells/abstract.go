@@ -71,8 +71,7 @@ func (b *AbstractShell) writeCheckoutCmd(w ShellWriter, build *common.Build) {
 }
 
 func (b *AbstractShell) cacheFile(build *common.Build, userKey string) (key, file string) {
-	// For tags we don't create cache
-	if build.Tag || build.CacheDir == "" {
+	if build.CacheDir == "" {
 		return
 	}
 
