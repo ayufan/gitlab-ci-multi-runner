@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 )
 
 type AbstractShell struct {
@@ -289,10 +288,8 @@ func (b *AbstractShell) uploadArtifacts(w ShellWriter, options *archivingOptions
 	args = append(args, archiverArgs...)
 
 	// Get artifacts:name
-	if name, ok := helpers.GetMapKey(info.Build.Options["artifacts"], "name"); ok {
-		if nameValue, ok := name.(string); ok && nameValue != "" {
-			args = append(args, "--name", nameValue)
-		}
+	if name, ok := info.Build.Options.GetString("artifacts", "name"); ok && name != "" {
+		args = append(args, "--name", name)
 	}
 
 	w.Notice("Uploading artifacts...")
