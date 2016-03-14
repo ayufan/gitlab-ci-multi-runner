@@ -4,10 +4,10 @@ GitLab Runner configuration uses the [TOML][] format.
 
 The file to be edited can be found in:
 
-1. `/etc/gitlab-runner/config.toml` on *nix systems when gitlab-runner is
-   executed as root. **This is also path for service configuration**
-1. `~/.gitlab-runner/config.toml` on *nix systems when gitlab-runner is
-   executed as non-root,
+1. `/etc/gitlab-runner/config.toml` on \*nix systems when gitlab-runner is
+   executed as root (**this is also path for service configuration**)
+1. `~/.gitlab-runner/config.toml` on \*nix systems when gitlab-runner is
+   executed as non-root
 1. `./config.toml` on other systems
 
 ## The global section
@@ -71,8 +71,8 @@ There are a couple of available executors currently.
 | `ssh`         | run build remotely with SSH - this requires the presence of `[runners.ssh]` |
 | `parallels`   | run build using Parallels VM, but connect to it with SSH - this requires the presence of `[runners.parallels]` and `[runners.ssh]` |
 | `virtualbox`  | run build using VirtualBox VM, but connect to it with SSH - this requires the presence of `[runners.virtualbox]` and `[runners.ssh]` |
-| `docker+machine` | like `docker`, but uses autoscaled docker machines - this requires the presence of `[runners.docker]` and `[runners.machine]` |
-| `docker-ssh+machine` | like `docker-ssh`, but uses autoscaled docker machines - this requires the presence of `[runners.docker]` and `[runners.machine]` |
+| `docker+machine` | like `docker`, but uses [auto-scaled docker machines](autoscale.md) - this requires the presence of `[runners.docker]` and `[runners.machine]` |
+| `docker-ssh+machine` | like `docker-ssh`, but uses [auto-scaled docker machines](autoscale.md) - this requires the presence of `[runners.docker]` and `[runners.machine]` |
 
 ## The SHELLS
 
@@ -301,17 +301,20 @@ Example:
 
 ## The [runners.machine] section
 
-This defines the Docker Machine based autoscaling feature. More details can be found
-in [runners autoscale documentation](autoscale.md).
+>**Note:**
+Added in GitLab Runner v1.1.0.
+
+This defines the Docker Machine based autoscaling feature. More details can be
+found in the separate [runners autoscale documentation](autoscale.md).
 
 | Parameter        | Description |
 |------------------|-------------|
-| `IdleCount`      | Number of machines, that need to be created and waiting in *Idle* state. |
-| `IdleTime`       | Time (in seconds) for machine to be in *Idle* state before it is removed. |
+| `IdleCount`      | Number of machines, that need to be created and waiting in _Idle_ state. |
+| `IdleTime`       | Time (in seconds) for machine to be in _Idle_ state before it is removed. |
 | `MaxBuilds`      | Builds count after which machine will be removed. |
-| `MachineName`    | Name of the machine. It must contain `%s`. The `%s` will be replaced with unique machine identifier. |
-| `MachineDriver`  | Docker Machine `driver` to use. More details can be found in [Docker Machine configuration section](autoscale.md#docker-machine-configuration). |
-| `MachineOptions` | Docker Machine options. More details can be found in [Docker Machine configuration section](autoscale.md#docker-machine-configuration). |
+| `MachineName`    | Name of the machine. It **must** contain `%s`. The `%s` will be replaced with a unique machine identifier. |
+| `MachineDriver`  | Docker Machine `driver` to use. More details can be found in the [Docker Machine configuration section](autoscale.md#docker-machine-configuration). |
+| `MachineOptions` | Docker Machine options. More details can be found in the [Docker Machine configuration section](autoscale.md#docker-machine-configuration). |
 
 Example:
 
@@ -335,15 +338,18 @@ Example:
 
 ## The [runners.cache] section
 
-This defines the distributed cache feature. More details can be found
-in [runners autoscale documentation](autoscale.md#distributed-runners-caching).
+>**Note:**
+Added in GitLab Runner v1.1.0.
 
-| Parameter        | Value            | Description |
+This defines the distributed cache feature. More details can be found
+in the [runners autoscale documentation](autoscale.md#distributed-runners-caching).
+
+| Parameter        | Type             | Description |
 |------------------|------------------|-------------|
 | `Type`           | string           | As of now, only S3-compatible services are supported, so only `s3` can be used. |
 | `ServerAddress`  | string           | A `host:port` to the used S3-compatible server. |
-| `AccessKey`      | string           | AccessKey specified for your S3 instance. |
-| `SecretKey`      | string           | SecretKey specified for your S3 instance. |
+| `AccessKey`      | string           | The access key specified for your S3 instance. |
+| `SecretKey`      | string           | The secret key specified for your S3 instance. |
 | `BucketName`     | string           | Name of the bucket where cache will be stored. |
 | `Insecure`       | boolean          | Set to `true` if the S3 service is available by `HTTP`. Is set to `false` by default. |
 
