@@ -1,41 +1,49 @@
 # Runners autoscale configuration
 
-> Autoscale feature was introduced in version `1.1.0`.
+> The autoscale feature was introduced in GitLab Runner 1.1.0.
 
 ## Overview
 
-Autoscale provides the possibility to utilise resources in more elastic and a more dynamic way.
+Autoscale provides the ability to utilize resources in a more elastic and
+dynamic way.
 
-When this feature is enabled and configured properly, builds are executed on machines created
-*on demand*. Those machines, after the build is finished, can wait to run the next builds or can
-be removed after the configured `IdleTime`. In case of many cloud providers this helps to
-utilise the cost of used instances.
+When this feature is enabled and configured properly, builds are executed on
+machines created _on demand_. Those machines, after the build is finished, can
+wait to run the next builds or can be removed after the configured `IdleTime`.
+In case of many cloud providers this helps to utilize the cost of already used
+instances.
 
-Thanks to runners autoscale, your infrastructure contains only as much build instances
-as necessary at anytime.
+Thanks to runners being able to autoscale, your infrastructure contains only as
+much build instances as necessary at anytime.
 
-Below you can see a real life example of the runners autoscale
-feature, tested on GitLab.com for the *GitLab Community Edition* project:
+Below, you can see a real life example of the runners autoscale feature, tested
+on GitLab.com for the [GitLab Community Edition][ce] project:
 
-![real life example of autoscaling](autoscale-example.png)
+![Real life example of autoscaling](img/autoscale-example.png)
 
-Each machine on the chart is an independent cloud instance, running build jobs inside
-of docker containers.
+Each machine on the chart is an independent cloud instance, running build jobs
+inside of Docker containers.
+
+[ce]: https://gitlab.com/gitlab-org/gitlab-ce
 
 ## Autoscaling algorithm and parameters
 
-The autoscaling algorithm is based on three main parameters: `IdleCount`, `IdleTime` and `limit`.
+The autoscaling algorithm is based on three main parameters: `IdleCount`,
+`IdleTime` and `limit`.
 
-Each machine, which actually does not run a build, is in *Idle* state. GitLab Runner
-in autoscale mode monitors all machines, and ensures that there is always an `IdleCount`
-of machines in *Idle* state.
+We say that each machine that does not run a build is in _Idle_ state. When
+GitLab Runner is in autoscale mode, it monitors all machines and ensures that
+there is always an `IdleCount` of machines in _Idle_ state.
 
-At the same time GitLab Runner is checking the duration of the *Idle* state of each
-machine. If the time exceeds `IdleTime` value, the machine is removed.
+At the same time, GitLab Runner is checking the duration of the _Idle_ state of
+each machine. If the time exceeds the `IdleTime` value, the machine is
+automatically removed.
 
-**Example**
+---
 
-Let's suppose, that we have configured GitLab Runner with the following autoscale parameters:
+**Example:**
+Let's suppose, that we have configured GitLab Runner with the following
+autoscale parameters:
 
 ```bash
 [[runners]]
@@ -48,44 +56,54 @@ Let's suppose, that we have configured GitLab Runner with the following autoscal
     (...)
 ```
 
-At the beginning, when no builds are queued, GitLab Runner starts two machines (*IdleCount = 2*),
-and sets them in the *Idle* state. After half of hour (*IdleTime = 1800*) both machines are
-removed. At this moment we have **zero** machines in *Idle* state, so GitLab Runner starts a new
-two machines.
+At the beginning, when no builds are queued, GitLab Runner starts two machines
+(`IdleCount = 2`), and sets them in _Idle_ state. After 30 minutes
+(`IdleTime = 1800`), both machines are removed. As of this moment we have
+**zero** machines in _Idle_ state, so GitLab Runner starts 2 new machines to
+satisfy `IdleCount` which is set to 2.
 
-After this, **five** builds are queued in the GitLab CI. First two builds are send to the *Idle*
-machines. At this moment GitLab Runner notices that the number of *Idle* machines is less than
-*IdleCount*, so it starts a new two machines. After this next two builds from queue are sent
-to those machines. Again - number of *Idle* machines is less than *IdleCount*, GitLab Runner
-starts a new two machines. Last queued build is sent to one of the *Idle* machines.
+Now, let's assume that 5 builds are queued in GitLab CI. The first 2 builds are
+sent to the _Idle_ machines. GitLab Runner notices that the number of _Idle_
+machines is less than `IdleCount` (`0 < 2`), so it starts 2 new machines. Then,
+the next 2 builds from the queue are sent to those newly created machines.
+Again, the number of _Idle_ machines is less than `IdleCount`, so GitLab Runner
+starts 2 new machines and the last queued build is sent to one of the _Idle_
+machines.
 
-At this moment we have **one** *Idle* machine, so GitLab Runner starts **one** new machine.
-Because there is no new builds in queue, those two machines stay in *Idle* state, and GitLab
-Runner is satisfied.
+We now have 1 _Idle_ machine, so GitLab Runner starts another 1 new machine to
+satisfy `IdleCount`. Because there are no new builds in queue, those two
+machines stay in _Idle_ state and GitLab Runner is satisfied.
 
-**What happend?**
+---
 
-We had **two** machines, waiting in *Idle* state for new builds. After **five** builds where
-queued, new machines were created, and after that we have now **seven** machines. **Five** of
-them are running builds, and **two** are in *Idle* state, waiting for next builds.
+**This is what happend:**
+We had 2 machines, waiting in _Idle_ state for new builds. After the 5 builds
+where queued, new machines were created, so in total we had 7 machines. Five of
+them were running builds, and 2 were in _Idle_ state, waiting for the next
+builds.
 
-The algorithm will still work in the same way - GitLab Runner will create new *Idle* machine
-for each machine used for build execution. Those machines will be created up to the number
-defined by *limit* parameter. If GitLab Runner notices, that there is *limit* number of created
-machines, it will stop autoscaling, and new builds will need to wait in build queue until machines
-will start returning to *Idle* state.
+The algorithm will still work in the same way; GitLab Runner will create a new
+_Idle_ machine for each machine used for the build execution. Those machines
+will be created up to the number defined by `limit` parameter. If GitLab Runner
+notices that there is a `limit` number of total created machines, it will stop
+autoscaling, and new builds will need to wait in the build queue until machines
+start returning to _Idle_ state.
 
-**Scaling down**
+---
 
-After build is finished, the machine is set to *Idle* state and is waiting for next builds to
-be executed. Let's suppose, that we have no new builds in queue. After time designated by *IdleTime*
-*Idle* machines will be removed. In our example, after half of hour all machines will be removed
-(each machine after half of hour from when last build execution ended) and GitLab Runner will start
-to keep an *IdleCount* of *Idle* machines running, just like at the beginning of the example.
+**Scaling down:**
+After the build is finished, the machine is set to _Idle_ state and is waiting
+for the next builds to be executed. Let's suppose that we have no new builds in
+the queue. After the time designated by `IdleTime` passes, the _Idle_ machines
+will be removed. In our example, after 30 minutes, all machines will be removed
+(each machine after 30 minutes from when last build execution ended) and GitLab
+Runner will start to keep an `IdleCount` of _Idle_ machines running, just like
+at the beginning of the example.
 
-A comp chart of builds statuses and machines statuses in time:
+Below you can see a comparison chart of builds statuses and machines statuses
+in time:
 
-![autoscale state chart](autoscale-state-chart.png)
+![Autoscale state chart](img/autoscale-state-chart.png)
 
 ## System requirements
 
@@ -223,8 +241,8 @@ This config assumes, that:
 - runner is using `docker+machine` executor,
 - runner can execute up to 10 builds (created machines),
 - default image used for builds is `ruby:2.1`,
-- there must be **5** machines in *Idle* state,
-- each machine can be in *Idle* state up to **600** seconds (after this it will be removed),
+- there must be **5** machines in _Idle_ state,
+- each machine can be in _Idle_ state up to **600** seconds (after this it will be removed),
 - each machine can handle up to **100** builds (after this it will be removed),
 - Docker Machine is using `digitalocean` driver,
 - Docker Machine is using registry mirroring, with mirror service available at `http://10.11.12.13:12345`,
@@ -236,10 +254,10 @@ and one option for Docker Machine itself (`engine-registry-mirror`).
 **Additional informations**
 
 There is also a special mode, where `IdleCount = 0`. In this mode machines are **always** created
-**on-demand** before build (if there is no available machine in *Idle* state). After the build autoscaling
+**on-demand** before build (if there is no available machine in _Idle_ state). After the build autoscaling
 algorithm works the same as it was wrote above. Machine is waiting for next builds, and if no one
 is executed - after the `IdleTime` time period - the machine is removed. If there is no builds - we
-have no machines in *Idle* state.
+have no machines in _Idle_ state.
 
 **How `current`, `limit` and `IdleCount` generate the upper limit of running machines**
 
