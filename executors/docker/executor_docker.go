@@ -31,7 +31,7 @@ type dockerOptions struct {
 
 type executor struct {
 	executors.AbstractExecutor
-	client   *docker.Client
+	client   docker_helpers.Client
 	builds   []*docker.Container
 	services []*docker.Container
 	caches   []*docker.Container
