@@ -447,6 +447,7 @@ func (s *executor) createService(service, version string) (*docker.Container, er
 		HostConfig: &docker.HostConfig{
 			RestartPolicy: docker.NeverRestart(),
 			Privileged:    s.Config.Docker.Privileged,
+			NetworkMode:   s.Config.Docker.NetworkMode,
 			LogConfig: docker.LogConfig{
 				Type: "json-file",
 			},
@@ -827,6 +828,7 @@ func (s *executor) runServiceHealthCheckContainer(container *docker.Container, t
 		HostConfig: &docker.HostConfig{
 			RestartPolicy: docker.NeverRestart(),
 			Links:         []string{container.Name + ":" + container.Name},
+			NetworkMode:   s.Config.Docker.NetworkMode,
 			LogConfig: docker.LogConfig{
 				Type: "json-file",
 			},
