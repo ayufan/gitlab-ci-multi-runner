@@ -334,18 +334,25 @@ This is required to properly map your local directory to directory in **docker**
 
 Some of the features may or may not work, like: caching or artifacts.
 
+The `gitlab-runner exec docker` can only be used only when Docker is installed locally.
+This is needed, because GitLab Runner used host-bind volumes to access the git sources.
+
 ### Internal commands
 
 The GitLab Runner is distributed as single binary and contains a few internal commands that are used during builds.
 
-#### gitlab-runner archive
-
-Create a cache or artifacts archive.
-
-#### gitlab-runner artifacts
+#### gitlab-runner artifacts-downloader
 
 Upload the artifacts archive to GitLab.
 
-#### gitlab-runner extract
+#### gitlab-runner artifacts-uploader
 
-Extract a cache archive in context of current build.
+Upload the artifacts archive to GitLab.
+
+#### gitlab-runner cache-archiver
+
+Create a cache archive, store it locally or upload it to external server.
+
+#### gitlab-runner cache-extractor
+
+Restore the cache archive from locally or externally stored file.

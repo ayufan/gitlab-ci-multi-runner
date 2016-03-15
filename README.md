@@ -75,6 +75,7 @@ Supported systems by different shells:
 * [Install on OSX (preferred)](docs/install/osx.md)
 * [Install on Windows (preferred)](docs/install/windows.md)
 * [Install as Docker Service](docs/install/docker.md)
+* [Install in Auto-scaling mode](docs/install/auto-scaling.md)
 * [Use on FreeBSD](docs/install/freebsd.md)
 
 ### Use GitLab Runner
@@ -98,14 +99,12 @@ Supported systems by different shells:
 
 ### Advanced Configuration
 
+* [Auto-scaling](docs/configuration/autoscale.md)
 * [Install Bleeding Edge (development)](docs/install/bleeding-edge.md)
 * [Manual installation (advanced)](docs/install/linux-manually.md)
 * [See details about the shells](docs/shells/README.md)
 * [See advanced configuration options](docs/configuration/advanced-configuration.md)
-* [See autoscale configuration](docs/configuration/autoscale.md)
-* [See example configuration file](config.toml.example)
 * [See security considerations](docs/security/index.md)
-* [Example configuration running the GitLab CE integration tests](docs/examples/gitlab.md)
 
 ### Extra projects?
 
