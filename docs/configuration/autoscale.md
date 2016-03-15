@@ -60,9 +60,10 @@ autoscale parameters:
 
 At the beginning, when no builds are queued, GitLab Runner starts two machines
 (`IdleCount = 2`), and sets them in _Idle_ state. After 30 minutes
-(`IdleTime = 1800`), both machines are removed. As of this moment we have
-**zero** machines in _Idle_ state, so GitLab Runner starts 2 new machines to
-satisfy `IdleCount` which is set to 2.
+(`IdleTime = 1800`) of inactivity (since last project finished building), both
+machines are removed. As of this moment we have **zero** machines in _Idle_
+state, so GitLab Runner starts 2 new machines to satisfy `IdleCount` which is
+set to 2.
 
 Now, let's assume that 5 builds are queued in GitLab CI. The first 2 builds are
 sent to the _Idle_ machines. GitLab Runner notices that the number of _Idle_
