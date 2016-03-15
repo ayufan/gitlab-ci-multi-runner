@@ -105,16 +105,21 @@ func (s *executor) pullDockerImage(imageName string) (*docker.Image, error) {
 func (s *executor) getDockerImage(imageName string) (*docker.Image, error) {
 	s.Debugln("Looking for image", imageName, "...")
 	image, err := s.client.InspectImage(imageName)
+
+	// If never is specified then we return what inspect did return
+	if s.Config.Docker.PullPolicy == common.DockerPullPolicyNever {
+		return image, err
+	}
+
 	if err == nil {
 		// Don't pull image that is passed by ID
 		if image.ID == imageName {
 			return image, nil
 		}
-		if s.Config.Docker.ImageTTL == 0 {
-			return image, nil
-		}
-		if !pulledImageCache.isExpired(imageName) {
-			return image, nil
+
+		// If not-present is specified
+		if s.Config.Docker.PullPolicy == common.DockerPullPolicyIfNotPresent {
+			return image, err
 		}
 	}
 
@@ -127,13 +132,6 @@ func (s *executor) getDockerImage(imageName string) (*docker.Image, error) {
 		}
 		return nil, err
 	}
-
-	imageTTL := s.Config.Docker.ImageTTL
-	if imageTTL == 0 {
-		imageTTL = dockerImageTTL
-	}
-
-	pulledImageCache.mark(imageName, newImage.ID, imageTTL)
 	return newImage, nil
 }
 
