@@ -312,9 +312,9 @@ found in the separate [runners autoscale documentation](autoscale.md).
 | `IdleCount`      | Number of machines, that need to be created and waiting in _Idle_ state. |
 | `IdleTime`       | Time (in seconds) for machine to be in _Idle_ state before it is removed. |
 | `MaxBuilds`      | Builds count after which machine will be removed. |
-| `MachineName`    | Name of the machine. It **must** contain `%s`. The `%s` will be replaced with a unique machine identifier. |
-| `MachineDriver`  | Docker Machine `driver` to use. More details can be found in the [Docker Machine configuration section](autoscale.md#docker-machine-configuration). |
-| `MachineOptions` | Docker Machine options. More details can be found in the [Docker Machine configuration section](autoscale.md#docker-machine-configuration). |
+| `MachineName`    | Name of the machine. It **must** contain `%s`, which will be replaced with a unique machine identifier. |
+| `MachineDriver`  | Docker Machine `driver` to use. More details can be found in the [Docker Machine configuration section](autoscale.md#what-are-the-supported-cloud-providers). |
+| `MachineOptions` | Docker Machine options. More details can be found in the [Docker Machine configuration section](autoscale.md#what-are-the-supported-cloud-providers). |
 
 Example:
 
