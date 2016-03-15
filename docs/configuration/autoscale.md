@@ -102,7 +102,7 @@ There is also a special mode, when you set `IdleCount = 0`. In this mode,
 machines are **always** created **on-demand** before each build (if there is no
 available machine in _Idle_ state). After the build is finished, the autoscaling
 algorithm works
-[the same as it was described above](#autoscaling-algorithm-and-parameters).
+[the same as it is described below](#autoscaling-algorithm-and-parameters).
 The machine is waiting for the next builds, and if no one is executed, after
 the `IdleTime` period, the machine is removed. If there are no builds, there
 are no machines in _Idle_ state.
