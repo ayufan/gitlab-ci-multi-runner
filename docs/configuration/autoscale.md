@@ -208,6 +208,16 @@ in time:
 
 ## How `current`, `limit` and `IdleCount` generate the upper limit of running machines
 
+There doesn't exist a magic equation that will tell you what to set `limit` or
+`concurrent` to. Act according to your needs. Having `IdleCount` of _Idle_
+machines is a speedup feature. You don't need to wait 10s/20s/30s for the
+instance to be created. But as a user, you'd want all your machines (for which
+you need to pay) to be running builds, not stay in _Idle_ state. So you should
+have `concurrent` and `limit` set to values that will run the maximum count of
+machines you are willing to pay for. As for `IdleCount`, it should be set to a
+value that will generate a minimum amount of _not used_ machines when the build
+queue is empty.
+
 Let's assume the following example:
 
 ```bash
