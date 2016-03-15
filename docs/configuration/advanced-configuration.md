@@ -4,10 +4,10 @@ GitLab Runner configuration uses the [TOML][] format.
 
 The file to be edited can be found in:
 
-1. `/etc/gitlab-runner/config.toml` on *nix systems when gitlab-runner is
-   executed as root. **This is also path for service configuration**
-1. `~/.gitlab-runner/config.toml` on *nix systems when gitlab-runner is
-   executed as non-root,
+1. `/etc/gitlab-runner/config.toml` on \*nix systems when gitlab-runner is
+   executed as root (**this is also path for service configuration**)
+1. `~/.gitlab-runner/config.toml` on \*nix systems when gitlab-runner is
+   executed as non-root
 1. `./config.toml` on other systems
 
 ## The global section
@@ -67,10 +67,12 @@ There are a couple of available executors currently.
 | -------- | ----------- |
 | `shell`       | run build locally, default |
 | `docker`      | run build using Docker container - this requires the presence of `[runners.docker]` and [Docker Engine][] installed on the system that the Runner runs |
-| `docker-ssh`  | run build using Docker container, but connect to it with SSH - this requires the presence of `[runners.docker]` , `[runners.ssh]` and [Docker Engine][] installed on the system that the Runner runs. **Note: This will run the docker container on the local machine, it just changes how the commands are run inside that container. If you want to run docker commands on an external machine, then you should change the `host` parameter in the `runners.docker` section.|
+| `docker-ssh`  | run build using Docker container, but connect to it with SSH - this requires the presence of `[runners.docker]` , `[runners.ssh]` and [Docker Engine][] installed on the system that the Runner runs. **Note: This will run the docker container on the local machine, it just changes how the commands are run inside that container. If you want to run docker commands on an external machine, then you should change the `host` parameter in the `runners.docker` section.**|
 | `ssh`         | run build remotely with SSH - this requires the presence of `[runners.ssh]` |
 | `parallels`   | run build using Parallels VM, but connect to it with SSH - this requires the presence of `[runners.parallels]` and `[runners.ssh]` |
 | `virtualbox`  | run build using VirtualBox VM, but connect to it with SSH - this requires the presence of `[runners.virtualbox]` and `[runners.ssh]` |
+| `docker+machine` | like `docker`, but uses [auto-scaled docker machines](autoscale.md) - this requires the presence of `[runners.docker]` and `[runners.machine]` |
+| `docker-ssh+machine` | like `docker-ssh`, but uses [auto-scaled docker machines](autoscale.md) - this requires the presence of `[runners.docker]` and `[runners.machine]` |
 
 ## The SHELLS
 
@@ -295,6 +297,72 @@ Example:
   user = "root"
   password = "production-server-password"
   identity_file = ""
+```
+
+## The [runners.machine] section
+
+>**Note:**
+Added in GitLab Runner v1.1.0.
+
+This defines the Docker Machine based autoscaling feature. More details can be
+found in the separate [runners autoscale documentation](autoscale.md).
+
+| Parameter        | Description |
+|------------------|-------------|
+| `IdleCount`      | Number of machines, that need to be created and waiting in _Idle_ state. |
+| `IdleTime`       | Time (in seconds) for machine to be in _Idle_ state before it is removed. |
+| `MaxBuilds`      | Builds count after which machine will be removed. |
+| `MachineName`    | Name of the machine. It **must** contain `%s`, which will be replaced with a unique machine identifier. |
+| `MachineDriver`  | Docker Machine `driver` to use. More details can be found in the [Docker Machine configuration section](autoscale.md#what-are-the-supported-cloud-providers). |
+| `MachineOptions` | Docker Machine options. More details can be found in the [Docker Machine configuration section](autoscale.md#what-are-the-supported-cloud-providers). |
+
+Example:
+
+```bash
+[runners.machine]
+  IdleCount = 5
+  IdleTime = 600
+  MaxBuilds = 100
+  MachineName = "auto-scale-%s"
+  MachineDriver = "digitalocean"
+  MachineOptions = [
+      "digitalocean-image=coreos-beta",
+      "digitalocean-ssh-user=core",
+      "digitalocean-access-token=DO_ACCESS_TOKEN",
+      "digitalocean-region=nyc2",
+      "digitalocean-size=4gb",
+      "digitalocean-private-networking",
+      "engine-registry-mirror=http://10.11.12.13:12345"
+  ]
+```
+
+## The [runners.cache] section
+
+>**Note:**
+Added in GitLab Runner v1.1.0.
+
+This defines the distributed cache feature. More details can be found
+in the [runners autoscale documentation](autoscale.md#distributed-runners-caching).
+
+| Parameter        | Type             | Description |
+|------------------|------------------|-------------|
+| `Type`           | string           | As of now, only S3-compatible services are supported, so only `s3` can be used. |
+| `ServerAddress`  | string           | A `host:port` to the used S3-compatible server. |
+| `AccessKey`      | string           | The access key specified for your S3 instance. |
+| `SecretKey`      | string           | The secret key specified for your S3 instance. |
+| `BucketName`     | string           | Name of the bucket where cache will be stored. |
+| `Insecure`       | boolean          | Set to `true` if the S3 service is available by `HTTP`. Is set to `false` by default. |
+
+Example:
+
+```bash
+[runners.cache]
+  Type = "s3"
+  ServerAddress = "s3-eu-west-1.amazonaws.com"
+  AccessKey = "AMAZON_S3_ACCESS_KEY"
+  SecretKey = "AMAZON_S3_SECRET_KEY"
+  BucketName = "runners"
+  Insecure = false
 ```
 
 ## Note
