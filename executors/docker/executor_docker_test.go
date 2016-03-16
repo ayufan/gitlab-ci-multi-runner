@@ -151,13 +151,25 @@ func TestDockerGetImageById(t *testing.T) {
 		Return(&docker.Image{ID: "ID"}, nil).
 		Once()
 
+	// Use default policy
 	e := executor{client: &c}
-	e.setPolicyMode(common.DockerPullPolicyNone)
+	e.setPolicyMode("")
 
 	image, err := e.getDockerImage("ID")
 	assert.NoError(t, err)
 	assert.NotNil(t, image)
 	assert.Equal(t, "ID", image.ID)
+}
+
+func TestDockerUnknownPolicyMode(t *testing.T) {
+	var c mocks.Client
+	defer c.AssertExpectations(t)
+
+	e := executor{client: &c}
+	e.setPolicyMode("unknown")
+
+	_, err := e.getDockerImage("not-existing")
+	assert.Error(t, err)
 }
 
 func TestDockerPolicyModeNever(t *testing.T) {

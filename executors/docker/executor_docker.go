@@ -103,11 +103,25 @@ func (s *executor) pullDockerImage(imageName string) (*docker.Image, error) {
 }
 
 func (s *executor) getDockerImage(imageName string) (*docker.Image, error) {
+	pullPolicy := s.Config.Docker.PullPolicy
+
+	// Default policy is always
+	if pullPolicy == "" {
+		pullPolicy = common.DockerPullPolicyAlways
+	}
+
+	// Verify pull policy
+	if pullPolicy != common.DockerPullPolicyNever &&
+		pullPolicy != common.DockerPullPolicyIfNotPresent &&
+		pullPolicy != common.DockerPullPolicyAlways {
+		return nil, fmt.Errorf("unsupported docker-pull-policy: %v", pullPolicy)
+	}
+
 	s.Debugln("Looking for image", imageName, "...")
 	image, err := s.client.InspectImage(imageName)
 
 	// If never is specified then we return what inspect did return
-	if s.Config.Docker.PullPolicy == common.DockerPullPolicyNever {
+	if pullPolicy == common.DockerPullPolicyNever {
 		return image, err
 	}
 
@@ -118,7 +132,7 @@ func (s *executor) getDockerImage(imageName string) (*docker.Image, error) {
 		}
 
 		// If not-present is specified
-		if s.Config.Docker.PullPolicy == common.DockerPullPolicyIfNotPresent {
+		if pullPolicy == common.DockerPullPolicyIfNotPresent {
 			return image, err
 		}
 	}

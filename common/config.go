@@ -19,10 +19,9 @@ import (
 type DockerPullPolicy string
 
 const (
-	DockerPullPolicyNone         DockerPullPolicy = ""
+	DockerPullPolicyAlways       DockerPullPolicy = "always"
 	DockerPullPolicyNever                         = "never"
 	DockerPullPolicyIfNotPresent                  = "if-not-present"
-	DockerPullPolicyAlways                        = "always"
 )
 
 type DockerConfig struct {
