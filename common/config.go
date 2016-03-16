@@ -24,6 +24,22 @@ const (
 	DockerPullPolicyIfNotPresent                  = "if-not-present"
 )
 
+// Get returns one of the predefined values or returns an error if the value can't match the predefined
+func (p DockerPullPolicy) Get() (DockerPullPolicy, error) {
+	// Default policy is always
+	if p == "" {
+		return DockerPullPolicyAlways, nil
+	}
+
+	// Verify pull policy
+	if p != DockerPullPolicyNever &&
+		p != DockerPullPolicyIfNotPresent &&
+		p != DockerPullPolicyAlways {
+		return "", fmt.Errorf("unsupported docker-pull-policy: %v", p)
+	}
+	return p, nil
+}
+
 type DockerConfig struct {
 	docker_helpers.DockerCredentials
 	Hostname               string           `toml:"hostname,omitempty" json:"hostname" long:"hostname" env:"DOCKER_HOSTNAME" description:"Custom container hostname"`
