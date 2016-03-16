@@ -1,8 +1,13 @@
 package docker
 
 import (
-	"github.com/stretchr/testify/assert"
+	"os"
 	"testing"
+
+	"github.com/fsouza/go-dockerclient"
+	"github.com/stretchr/testify/assert"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/mocks"
 )
 
 func TestParseDeviceStringOne(t *testing.T) {
@@ -75,4 +80,226 @@ func TestSplitService(t *testing.T) {
 			assert.Len(t, linkNames, 1, "for", test.description)
 		}
 	}
+}
+
+func TestDockerForNamedImage(t *testing.T) {
+	var c mocks.Client
+	defer c.AssertExpectations(t)
+
+	e := executor{client: &c}
+	ac, _ := e.getAuthConfig("test")
+
+	c.On("PullImage", docker.PullImageOptions{Repository: "test:latest"}, ac).
+		Return(os.ErrNotExist).
+		Once()
+
+	c.On("PullImage", docker.PullImageOptions{Repository: "tagged:tag"}, ac).
+		Return(os.ErrNotExist).
+		Once()
+
+	c.On("PullImage", docker.PullImageOptions{Repository: "real@sha"}, ac).
+		Return(os.ErrNotExist).
+		Once()
+
+	image, err := e.pullDockerImage("test")
+	assert.Error(t, err)
+	assert.Nil(t, image)
+
+	image, err = e.pullDockerImage("tagged:tag")
+	assert.Error(t, err)
+	assert.Nil(t, image)
+
+	image, err = e.pullDockerImage("real@sha")
+	assert.Error(t, err)
+	assert.Nil(t, image)
+}
+
+func TestDockerForExistingImage(t *testing.T) {
+	var c mocks.Client
+	defer c.AssertExpectations(t)
+
+	e := executor{client: &c}
+	ac, _ := e.getAuthConfig("existing")
+
+	c.On("PullImage", docker.PullImageOptions{Repository: "existing:latest"}, ac).
+		Return(nil).
+		Once()
+	c.On("InspectImage", "existing").
+		Return(&docker.Image{}, nil).
+		Once()
+
+	image, err := e.pullDockerImage("existing")
+	assert.NoError(t, err)
+	assert.NotNil(t, image)
+}
+
+func (e *executor) setPolicyMode(pullPolicy common.DockerPullPolicy) {
+	e.Config = common.RunnerConfig{
+		RunnerSettings: common.RunnerSettings{
+			Docker: &common.DockerConfig{
+				PullPolicy: pullPolicy,
+			},
+		},
+	}
+}
+
+func TestDockerGetImageById(t *testing.T) {
+	var c mocks.Client
+	defer c.AssertExpectations(t)
+
+	c.On("InspectImage", "ID").
+		Return(&docker.Image{ID: "ID"}, nil).
+		Once()
+
+	// Use default policy
+	e := executor{client: &c}
+	e.setPolicyMode("")
+
+	image, err := e.getDockerImage("ID")
+	assert.NoError(t, err)
+	assert.NotNil(t, image)
+	assert.Equal(t, "ID", image.ID)
+}
+
+func TestDockerUnknownPolicyMode(t *testing.T) {
+	var c mocks.Client
+	defer c.AssertExpectations(t)
+
+	e := executor{client: &c}
+	e.setPolicyMode("unknown")
+
+	_, err := e.getDockerImage("not-existing")
+	assert.Error(t, err)
+}
+
+func TestDockerPolicyModeNever(t *testing.T) {
+	var c mocks.Client
+	defer c.AssertExpectations(t)
+
+	c.On("InspectImage", "existing").
+		Return(&docker.Image{}, nil).
+		Once()
+
+	c.On("InspectImage", "not-existing").
+		Return(nil, os.ErrNotExist).
+		Once()
+
+	e := executor{client: &c}
+	e.setPolicyMode(common.DockerPullPolicyNever)
+
+	image, err := e.getDockerImage("existing")
+	assert.NoError(t, err)
+	assert.NotNil(t, image)
+
+	image, err = e.getDockerImage("not-existing")
+	assert.Error(t, err)
+	assert.Nil(t, image)
+}
+
+func TestDockerPolicyModeIfNotPresentForExistingImage(t *testing.T) {
+	var c mocks.Client
+	defer c.AssertExpectations(t)
+
+	e := executor{client: &c}
+	e.setPolicyMode(common.DockerPullPolicyIfNotPresent)
+
+	c.On("InspectImage", "existing").
+		Return(&docker.Image{}, nil).
+		Once()
+
+	image, err := e.getDockerImage("existing")
+	assert.NoError(t, err)
+	assert.NotNil(t, image)
+}
+
+func TestDockerPolicyModeIfNotPresentForNotExistingImage(t *testing.T) {
+	var c mocks.Client
+	defer c.AssertExpectations(t)
+
+	e := executor{client: &c}
+	e.setPolicyMode(common.DockerPullPolicyIfNotPresent)
+
+	c.On("InspectImage", "not-existing").
+		Return(nil, os.ErrNotExist).
+		Once()
+
+	ac, _ := e.getAuthConfig("not-existing")
+	c.On("PullImage", docker.PullImageOptions{Repository: "not-existing:latest"}, ac).
+		Return(nil).
+		Once()
+
+	c.On("InspectImage", "not-existing").
+		Return(&docker.Image{}, nil).
+		Once()
+
+	image, err := e.getDockerImage("not-existing")
+	assert.NoError(t, err)
+	assert.NotNil(t, image)
+
+	c.On("InspectImage", "not-existing").
+		Return(&docker.Image{}, nil).
+		Once()
+
+	// It shouldn't execute the pull for second time
+	image, err = e.getDockerImage("not-existing")
+	assert.NoError(t, err)
+	assert.NotNil(t, image)
+}
+
+func TestDockerPolicyModeAlwaysForExistingImage(t *testing.T) {
+	var c mocks.Client
+	defer c.AssertExpectations(t)
+
+	e := executor{client: &c}
+	e.setPolicyMode(common.DockerPullPolicyAlways)
+
+	c.On("InspectImage", "existing").
+		Return(&docker.Image{}, nil).
+		Once()
+
+	ac, _ := e.getAuthConfig("existing")
+	c.On("PullImage", docker.PullImageOptions{Repository: "existing:latest"}, ac).
+		Return(nil).
+		Once()
+
+	c.On("InspectImage", "existing").
+		Return(&docker.Image{}, nil).
+		Once()
+
+	image, err := e.getDockerImage("existing")
+	assert.NoError(t, err)
+	assert.NotNil(t, image)
+}
+
+func TestDockerGetExistingDockerImageIfPullFails(t *testing.T) {
+	var c mocks.Client
+	defer c.AssertExpectations(t)
+
+	e := executor{client: &c}
+	e.setPolicyMode(common.DockerPullPolicyAlways)
+
+	c.On("InspectImage", "to-pull").
+		Return(&docker.Image{}, nil).
+		Once()
+
+	ac, _ := e.getAuthConfig("to-pull")
+	c.On("PullImage", docker.PullImageOptions{Repository: "to-pull:latest"}, ac).
+		Return(os.ErrNotExist).
+		Once()
+
+	image, err := e.getDockerImage("to-pull")
+	assert.NoError(t, err)
+	assert.NotNil(t, image, "Returns existing image")
+
+	c.On("InspectImage", "not-existing").
+		Return(nil, os.ErrNotExist).
+		Once()
+
+	c.On("PullImage", docker.PullImageOptions{Repository: "not-existing:latest"}, ac).
+		Return(os.ErrNotExist).
+		Once()
+
+	image, err = e.getDockerImage("not-existing")
+	assert.Error(t, err)
+	assert.Nil(t, image, "No existing image")
 }

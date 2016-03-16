@@ -155,6 +155,7 @@ mocks: FORCE
 	rm -rf mocks/
 	mockery -dir=$(GOPATH)/src/github.com/ayufan/golang-kardianos-service -name=Interface
 	mockery -dir=./common -name=Network
+	mockery -dir=./helpers/docker -name=Client
 
 test-docker:
 	make test-docker-image IMAGE=centos:6 TYPE=rpm
