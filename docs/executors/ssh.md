@@ -27,8 +27,6 @@ The project source is checked out to:
 
 The caching is currently not supported for SSH executor.
 
-* `<working-directory>` is the value of `--working-directory` as passed to `gitlab-runner run` command or
-current directory where runner is running,
 * `<short-token>` is shortened runner token, 8 first letters,
 * `<concurrent-id>` is unique number, identifying the local job ID on this runner in context of this project,
 * `<group-name>` is namespace where the project is stored on GitLab,
