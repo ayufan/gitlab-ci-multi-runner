@@ -7,16 +7,15 @@ The shell script contains commands to execute all steps of the build:
 1. restore build cache
 1. build commands
 1. update build cache
-1. generate build artifacts
-1. upload build artifacts
+1. generate and upload build artifacts
 
 The shells doesn't have configuration options.
 The build steps are received with the build from GitLab. 
 
 Currently supported shells are:
 
-| Shell | Description |
-| ----- | ----------- |
+| Shell         | Description |
+| --------------| ----------- |
 | `bash`        | Bash (Bourne-shell) shell. All commands executed in Bash context (default for all Unix systems) |
 | `sh`          | Sh (Bourne-shell) shell. All commands executed in Sh context (default for all Unix systems) |
 | `cmd`         | Windows Batch script. All commands are executed in Batch context (default for Windows) |
