@@ -22,7 +22,7 @@ Install `gitlab-ci-multi-runner`:
 
 ```bash
 # For Debian/Ubuntu
-apt-get install gitlab-ci-multi-runner
+sudo apt-get install gitlab-ci-multi-runner
 
 # For CentOS
 yum install gitlab-ci-multi-runner
