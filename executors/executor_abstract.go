@@ -138,7 +138,7 @@ func (e *AbstractExecutor) Wait() error {
 		return errors.New("canceled")
 
 	case <-time.After(time.Duration(buildTimeout) * time.Second):
-		return fmt.Errorf("execution took longer then %v seconds", buildTimeout)
+		return fmt.Errorf("execution took longer than %v seconds", buildTimeout)
 
 	case signal := <-e.Build.BuildAbort:
 		return fmt.Errorf("aborted: %v", signal)
