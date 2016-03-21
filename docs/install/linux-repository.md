@@ -25,7 +25,7 @@ Install `gitlab-ci-multi-runner`:
 sudo apt-get install gitlab-ci-multi-runner
 
 # For CentOS
-yum install gitlab-ci-multi-runner
+sudo yum install gitlab-ci-multi-runner
 ```
 
 Register the runner:
@@ -56,10 +56,10 @@ Simply execute to install latest version:
 
 ```bash
 # For Debian/Ubuntu
-apt-get update
-apt-get install gitlab-ci-multi-runner
+sudo apt-get update
+sudo apt-get install gitlab-ci-multi-runner
 
 # For CentOS
-yum update
-yum install gitlab-ci-multi-runner
+sudo yum update
+sudo yum install gitlab-ci-multi-runner
 ```
