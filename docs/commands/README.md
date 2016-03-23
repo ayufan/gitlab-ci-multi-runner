@@ -296,13 +296,15 @@ executing `gitlab-runner list`:
 test-runner     Executor=shell Token=t0k3n URL=http://gitlab.example.com/ci/
 ```
 
-Then use this information to unregister it:
+Then use this information to unregister it, using the following command.
+
+>**Warning:**
+This operation cannot be undone, it will update the configuration file, so
+make sure to have a backup of `config.toml` before executing it.
 
 ```bash
 gitlab-runner unregister -u http://gitlab.example.com/ci/ -t t0k3n
 ```
-
-This will update the configuration file.
 
 ## Service-related commands
 
