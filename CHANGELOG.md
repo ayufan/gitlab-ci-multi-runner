@@ -1,3 +1,6 @@
+v 1.0.5
+- Fix error level checking for Windows Batch and PowerShell
+
 v 1.0.4
 - Fix support for Windows PowerShell
 

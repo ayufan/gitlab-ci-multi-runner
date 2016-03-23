@@ -47,6 +47,10 @@ func (b *PsWriter) Line(text string) {
 	b.WriteString(strings.Repeat("  ", b.indent) + text + "\r\n")
 }
 
+func (b *PsWriter) CheckForErrors() {
+	b.checkErrorLevel()
+}
+
 func (b *PsWriter) Indent() {
 	b.indent++
 }

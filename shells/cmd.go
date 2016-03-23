@@ -52,6 +52,10 @@ func (b *CmdWriter) Line(text string) {
 	b.WriteString(strings.Repeat("  ", b.indent) + text + "\r\n")
 }
 
+func (b *CmdWriter) CheckForErrors() {
+	b.checkErrorLevel()
+}
+
 func (b *CmdWriter) Indent() {
 	b.indent++
 }
