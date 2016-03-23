@@ -1,0 +1,46 @@
+package commands
+
+import (
+	"os"
+	"runtime"
+
+	"github.com/Sirupsen/logrus"
+)
+
+func userModeWarning(withRun bool) {
+	// everything is supported on windows
+	if runtime.GOOS == "windows" {
+		return
+	}
+
+	// We support services on Linux, Windows and Darwin
+	noServices :=
+		runtime.GOOS != "linux" &&
+			runtime.GOOS != "darwin"
+
+	// We don't support services installed as an User on Linux
+	noUserService :=
+		runtime.GOOS == "linux"
+
+	if os.Getuid() == 0 {
+		logrus.Infoln("Running in system-mode.")
+	} else {
+		logrus.Warningln("Running in user-mode.")
+	}
+
+	if withRun {
+		if noServices {
+			logrus.Warningln("You need to manually start builds processing:")
+			logrus.Warningln("$ gitlab-runner run")
+		} else if noUserService {
+			logrus.Warningln("The user-mode requires you to manually start builds processing:")
+			logrus.Warningln("$ gitlab-runner run")
+		}
+	}
+
+	if os.Getuid() != 0 && noUserService {
+		logrus.Warningln("Use sudo for system-mode:")
+		logrus.Warningln("$ sudo gitlab-runner...")
+	}
+	logrus.Infoln("")
+}
