@@ -10,6 +10,7 @@ v 1.1.0
 - Add `git` to gitlab-runner:alpine
 - Add support for `CapAdd`, `CapDrop` and `Devices` by docker executor
 - Add support for passing the name of artifacts archive (`artifacts:name`)
+- Add support for running runner as system service on OSX
 - Refactor: The build trace is now implemented by `network` module
 - Refactor: Remove CGO dependency on Windows
 - Fix: Create alternative aliases for docker services (uses `-`)
