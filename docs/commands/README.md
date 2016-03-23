@@ -275,13 +275,16 @@ Verifying runner... is alive                        runner=826f687f
 Verifying runner... is alive                        runner=32773c0f
 ```
 
-To delete the old and removed from GitLab runners, execute:
+To delete the old and removed from GitLab runners, execute the following
+command.
+
+>**Warning:**
+This operation cannot be undone, it will update the configuration file, so
+make sure to have a backup of `config.toml` before executing it.
 
 ```bash
 gitlab-runner verify --delete
 ```
-
-This will update the configuration file.
 
 ### gitlab-runner unregister
 
