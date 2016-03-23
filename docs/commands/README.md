@@ -422,6 +422,9 @@ When executing `exec` you need to specify the executor and the job name that is
 present in `.gitlab-ci.yml`. The command should be executed from the root
 directory of your Git repository that contains `.gitlab-ci.yml`.
 
+`gitlab-runner exec` will clone the current state of the local Git repository.
+Make sure you have committed any changes you want to test beforehand.
+
 For example, the following command will execute the job named **tests** locally
 using a shell executor:
 
