@@ -6,6 +6,7 @@ type ShellWriter interface {
 	Variable(variable common.BuildVariable)
 	Command(command string, arguments ...string)
 	Line(text string)
+	CheckForErrors()
 
 	IfDirectory(path string)
 	IfFile(file string)

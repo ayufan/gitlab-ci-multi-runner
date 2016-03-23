@@ -215,6 +215,7 @@ func (b *AbstractShell) GenerateCommands(w ShellWriter, info common.ShellScriptI
 			w.EmptyLine()
 		}
 		w.Line(command)
+		w.CheckForErrors()
 	}
 }
 

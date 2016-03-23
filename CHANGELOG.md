@@ -18,8 +18,9 @@ v 1.1.0
 - Fix: Make the shell executor more verbose when the process cannot be started
 - Fix: Pass gitlab-ci.yml variables to build container created by docker executor
 - Fix: Don't restore cache if not defined in gitlab-ci.yml
-- Fix: always use `json-file` when starting docker containers
-
+- Fix: Always use `json-file` when starting docker containers
+- Fix: Error level checking for Windows Batch and PowerShell
+ 
 v 1.0.4
 - Fix support for Windows PowerShell
 

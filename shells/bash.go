@@ -29,6 +29,9 @@ func (b *BashWriter) Line(text string) {
 	b.WriteString(strings.Repeat("  ", b.indent) + text + "\n")
 }
 
+func (b *BashWriter) CheckForErrors() {
+}
+
 func (b *BashWriter) Indent() {
 	b.indent++
 }
