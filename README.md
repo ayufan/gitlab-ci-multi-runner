@@ -58,7 +58,7 @@ Supported features by different executors:
 | gitlab-ci.yml: cache                  | ✓       | ✓      | no         | no         | no        | no   |
 | gitlab-ci.yml: artifacts              | ✓       | ✓      | no         | no         | no        | no   |
 | Absolute paths: caching, artifacts    | no      | no     | no         | no         | no        | no   |
-| Passing artifacts between stages      | no      | no     | no         | no         | no        | no   |
+| Passing artifacts between stages      | ✓       | ✓      | no         | no         | no        | no   |
 
 Supported systems by different shells:
 
