@@ -1,54 +1,65 @@
 # Executors
 
-GitLab Runner implements a number of executors that can be used to run your builds in different scenarios:
+GitLab Runner implements a number of executors that can be used to run your
+builds in different scenarios:
 
-* [Shell](shell.md)
-* [Docker and Docker-SSH](docker.md)
-* [Parallels](parallels.md)
-* [VirtualBox](virtualbox.md)
-* [SSH](ssh.md)
+- [Shell](shell.md)
+- [Docker and Docker-SSH](docker.md)
+- [Docker Machine and Docker Machine SSH (auto-scaling)](../install/auto-scaling.md)
+- [Parallels](parallels.md)
+- [VirtualBox](virtualbox.md)
+- [SSH](ssh.md)
 
 ## Select the executor
 
-The executors are created to support different and methodologies for building the project.
+The executors support different platforms and methodologies for building a
+project. The table below shows the key facts for each executor which will help
+you decide.
 
-The table tries to answer about each of the key facts about using different executors:
+| Executor                                          | Shell   | Docker | Docker-SSH | VirtualBox | Parallels | SSH  |
+|---------------------------------------------------|---------|--------|------------|------------|-----------|------|
+| Clean build environment for every build           | no      | ✓      | ✓          | ✓          | ✓         | no   |
+| Migrate runner machine                            | no      | ✓      | ✓          | partial    | partial   | no   |
+| Zero-configuration support for concurrent builds  | no (1)  | ✓      | ✓          | ✓          | ✓         | no   |
+| Complicated build environments                    | no (2)  | ✓      | ✓          | ✓ (3)      | ✓ (3)     | no   |
+| Debugging build problems                          | easy    | medium | medium     | hard       | hard      | easy |
 
-| Executor                                               | Shell   | Docker | Docker-SSH | VirtualBox | Parallels | SSH  |
-|--------------------------------------------------------|---------|--------|------------|------------|-----------|------|
-| Clean build environment for every build                | no      | ✓      | ✓          | ✓          | ✓         | no   |
-| Migrate runner machine                                 | no      | yes    | yes        | partial    | partial   | no   |
-| Zero-configuration support for concurrent builds       | no (1)  | ✓      | ✓          | ✓          | ✓         | no   |
-| Complicated build environments                         | no (2)  | ✓      | ✓          | ✓ (3)      | ✓ (3)     | no   |
-| Debugging build problems                               | easy    | medium | medium     | hard       | hard      | easy |
-
-1: it's possible, but in most cases it is problematic if build uses services installed on machine
-2: it requires to install all dependencies by hand
-3: for example using Vagrant
+1. it's possible, but in most cases it is problematic if the build uses services
+   installed on the build machine
+2. it requires to install all dependencies by hand
+3. for example using Vagrant
 
 ### I'm not sure
 
-In most cases the best is to use **Shell** as this is the simplest to configure.
-You simply have to install, and register GitLab Runner.
-All required dependencies needs to be installed by hand using, ex.: `apt-get`.
+**Shell** is the simplest executor to configure. All required dependencies for
+your builds need to be installed manually on the machine that the Runner is
+installed.
 
-The better way is to use **Docker** it allows to have a clean build environment,
-with easy dependencies management (all dependencies for building the project could be put in Docker Image).
-However, sometimes it can be complicated to debug potential problems with build.
-The **Docker** allows to fairly easy create a build environments with dependent services, like: MySQL.
+A better way is to use **Docker** as it allows to have a clean build environment,
+with easy dependency management (all dependencies for building the project could
+be put in the Docker image). The Docker executor allows you to easily create
+a build environment with dependent [services], like MySQL.
 
-We usually don't advise to use **Docker-SSH** which is the special version of **Docker** executor.
-It allows to connect to Docker Container that runs **SSHD** daemon inside.
-This executor can be useful if you Docker Image tries to replicate full working system:
-it uses some process management system (init 1), exposes SSHD daemon, and contains already installed services.
-This kind of images are generally are fat images, and not generally advised to be used by Docker community.
+We usually don't advise to use **Docker-SSH** which is a special version of
+the **Docker** executor. This executor allows you to connect to a Docker
+container that runs the **SSH** daemon inside it. It can be useful if your
+Docker image tries to replicate a full working system: it uses some process
+management system (`init`), exposes the SSH daemon, and contains already
+installed services. These kind of images are fat images, and are not generally
+advised to be used by the Docker community.
 
-We also offer two full system virtualisation options: **VirtualBox** and **Parallels**.
-It allows you to use already created VM, which will be cloned and run for time of your build.
-It can be useful if you require to use completely different system on your GitLab Runner machine.
-Basically, it allows to create VM with Windows, OSX or FreeBSD and make GitLab Runner to connect to the VM
-and run build on it. It can be useful to reduce cost of infrastructure.
+We also offer two full system virtualization options: **VirtualBox** and
+**Parallels**. This type of executor allows you to use an already created
+virtual machine, which will be cloned and used to run your build. It can prove
+useful if you want to run your builds on different Operating Systems since it
+allows to create virtual machines with Windows, Linux, OSX or FreeBSD and make
+GitLab Runner to connect to the virtual machine and run the build on it. Its
+usage can also be useful to reduce the cost of infrastructure.
 
-The **SSH** is added for completeness. It's the least supported executor from all of the already mentioned.
-It makes the GitLab Runner to connect to some external server and run builds there.
-We have some success stories from organizations using that executor, but generally we advise to use any of the above.
+The **SSH** executor is added for completeness. It's the least supported
+executor from all of the already mentioned ones. It makes GitLab Runner to
+connect to some external server and run the builds there. We have some success
+stories from organizations using that executor, but generally we advise to use
+any of the above.
+
+[services]: http://doc.gitlab.com/ce/ci/services/README.html
