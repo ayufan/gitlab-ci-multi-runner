@@ -278,11 +278,11 @@ services, thus allowing to easily use the docker-in-docker approach.
 
 First, configure your Runner (config.toml) to run in `privileged` mode:
 
-```bash
+```toml
 [[runners]]
-executor = "docker"
+  executor = "docker"
   [runners.docker]
-  privileged = true
+    privileged = true
 ```
 
 Then, make your build script (`.gitlab-ci.yml`) to use Docker-in-Docker
@@ -341,7 +341,14 @@ Consider the following example:
 
 3. Push the image to the Docker registry.
 
-4. Run Docker executor in `privileged` mode.
+4. Run Docker executor in `privileged` mode. In `config.toml` define:
+
+    ```toml
+    [[runners]]
+      executor = "docker"
+      [runners.docker]
+        privileged = true
+    ```
 
 5. In your project use the following `.gitlab-ci.yml`:
 
