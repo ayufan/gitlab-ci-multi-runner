@@ -49,7 +49,7 @@ virtual machine.
 ## Create a new Runner
 
 1. Install GitLab Runner on the host running VirtualBox
-1. Register a new GitLab Runner with `gitlab-runner register`
+1. Register a new GitLab Runner with `gitlab-ci-multi-runner register`
 1. Select the `virtualbox` executor
 1. Enter the name of the base virtual machine you created earlier (find it under
    the settings of the virtual machine **General > Basic > Name**)
