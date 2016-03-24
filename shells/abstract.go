@@ -21,12 +21,12 @@ func (b *AbstractShell) GetSupportedOptions() []string {
 	return []string{"artifacts", "cache", "dependencies"}
 }
 
-func (b *AbstractShell) writeCdBuildDir(w ShellWriter, info common.ShellScriptInfo) {
-	w.Cd(info.Build.FullProjectDir())
+func (b *AbstractShell) writeCdBuildDir(w ShellWriter, build *common.Build) {
+	w.Cd(build.FullProjectDir())
 }
 
-func (b *AbstractShell) writeExports(w ShellWriter, info common.ShellScriptInfo) {
-	for _, variable := range info.Build.GetAllVariables() {
+func (b *AbstractShell) writeExports(w ShellWriter, build *common.Build) {
+	for _, variable := range build.GetAllVariables() {
 		w.Variable(variable)
 	}
 }
@@ -105,11 +105,11 @@ func (o *archivingOptions) CommandArguments() (args []string) {
 	return
 }
 
-func (b *AbstractShell) cacheExtractor(w ShellWriter, options *archivingOptions, info common.ShellScriptInfo) {
+func (b *AbstractShell) cacheExtractor(w ShellWriter, options *archivingOptions, build *common.Build) {
 	if options == nil {
 		return
 	}
-	if info.RunnerCommand == "" {
+	if build.RunnerCommand == "" {
 		w.Warning("The cache is not supported in this executor.")
 		return
 	}
@@ -120,7 +120,7 @@ func (b *AbstractShell) cacheExtractor(w ShellWriter, options *archivingOptions,
 	}
 
 	// Skip archiving if no cache is defined
-	cacheKey, cacheFile := b.cacheFile(info.Build, options.Key)
+	cacheKey, cacheFile := b.cacheFile(build, options.Key)
 	if cacheKey == "" {
 		return
 	}
@@ -131,17 +131,17 @@ func (b *AbstractShell) cacheExtractor(w ShellWriter, options *archivingOptions,
 	}
 
 	// Generate cache download address
-	if url := getCacheDownloadURL(info.Build, cacheKey); url != "" {
+	if url := getCacheDownloadURL(build, cacheKey); url != "" {
 		args = append(args, "--url", url)
 	}
 
 	// Execute archive command
 	w.Notice("Checking cache for %s...", cacheKey)
-	w.Command(info.RunnerCommand, args...)
+	w.Command(build.RunnerCommand, args...)
 }
 
-func (b *AbstractShell) downloadArtifacts(w ShellWriter, build *common.BuildInfo, info common.ShellScriptInfo) {
-	if info.RunnerCommand == "" {
+func (b *AbstractShell) downloadArtifacts(w ShellWriter, otherBuild *common.BuildInfo, build *common.Build) {
+	if build.RunnerCommand == "" {
 		w.Warning("The artifacts downloading is not supported in this executor.")
 		return
 	}
@@ -149,38 +149,37 @@ func (b *AbstractShell) downloadArtifacts(w ShellWriter, build *common.BuildInfo
 	args := []string{
 		"artifacts-downloader",
 		"--url",
-		info.Build.Runner.URL,
+		build.Runner.URL,
 		"--token",
 		build.Token,
 		"--id",
-		strconv.Itoa(build.ID),
+		strconv.Itoa(otherBuild.ID),
 	}
 
-	w.Notice("Downloading artifacts for %s (%d)...", build.Name, build.ID)
-	w.Command(info.RunnerCommand, args...)
+	w.Notice("Downloading artifacts for %s (%d)...", otherBuild.Name, otherBuild.ID)
+	w.Command(build.RunnerCommand, args...)
 }
 
-func (b *AbstractShell) downloadAllArtifacts(w ShellWriter, dependencies *dependencies, info common.ShellScriptInfo) {
-	for _, otherBuild := range info.Build.DependsOnBuilds {
+func (b *AbstractShell) downloadAllArtifacts(w ShellWriter, dependencies *dependencies, build *common.Build) {
+	for _, otherBuild := range build.DependsOnBuilds {
 		if otherBuild.Artifacts == nil || otherBuild.Artifacts.Filename == "" {
 			continue
 		}
 		if !dependencies.IsDependent(otherBuild.Name) {
 			continue
 		}
-		b.downloadArtifacts(w, &otherBuild, info)
+		b.downloadArtifacts(w, &otherBuild, build)
 	}
 }
 
-func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptInfo) {
-	b.writeExports(w, info)
+func (b *AbstractShell) GeneratePreBuild(w ShellWriter, build *common.Build) {
+	b.writeExports(w, build)
 
-	build := info.Build
 	projectDir := build.FullProjectDir()
 	gitDir := path.Join(build.FullProjectDir(), ".git")
 
-	b.writeTLSCAInfo(w, info.Build, "GIT_SSL_CAINFO")
-	b.writeTLSCAInfo(w, info.Build, "CI_SERVER_TLS_CA_FILE")
+	b.writeTLSCAInfo(w, build, "GIT_SSL_CAINFO")
+	b.writeTLSCAInfo(w, build, "CI_SERVER_TLS_CA_FILE")
 
 	if build.AllowGitFetch {
 		b.writeFetchCmd(w, build, projectDir, gitDir)
@@ -192,20 +191,20 @@ func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptI
 
 	// Parse options
 	var options shellOptions
-	info.Build.Options.Decode(&options)
+	build.Options.Decode(&options)
 
 	// Try to restore from main cache, if not found cache for master
-	b.cacheExtractor(w, options.Cache, info)
+	b.cacheExtractor(w, options.Cache, build)
 
 	// Process all artifacts
-	b.downloadAllArtifacts(w, options.Dependencies, info)
+	b.downloadAllArtifacts(w, options.Dependencies, build)
 }
 
-func (b *AbstractShell) GenerateCommands(w ShellWriter, info common.ShellScriptInfo) {
-	b.writeExports(w, info)
-	b.writeCdBuildDir(w, info)
+func (b *AbstractShell) GenerateCommands(w ShellWriter, build *common.Build) {
+	b.writeExports(w, build)
+	b.writeCdBuildDir(w, build)
 
-	commands := info.Build.Commands
+	commands := build.Commands
 	commands = strings.TrimSpace(commands)
 	for _, command := range strings.Split(commands, "\n") {
 		command = strings.TrimSpace(command)
@@ -219,17 +218,17 @@ func (b *AbstractShell) GenerateCommands(w ShellWriter, info common.ShellScriptI
 	}
 }
 
-func (b *AbstractShell) cacheArchiver(w ShellWriter, options *archivingOptions, info common.ShellScriptInfo) {
+func (b *AbstractShell) cacheArchiver(w ShellWriter, options *archivingOptions, build *common.Build) {
 	if options == nil {
 		return
 	}
-	if info.RunnerCommand == "" {
+	if build.RunnerCommand == "" {
 		w.Warning("The cache is not supported in this executor.")
 		return
 	}
 
 	// Skip archiving if no cache is defined
-	cacheKey, cacheFile := b.cacheFile(info.Build, options.Key)
+	cacheKey, cacheFile := b.cacheFile(build, options.Key)
 	if cacheKey == "" {
 		return
 	}
@@ -248,23 +247,23 @@ func (b *AbstractShell) cacheArchiver(w ShellWriter, options *archivingOptions, 
 	args = append(args, archiverArgs...)
 
 	// Generate cache upload address
-	if url := getCacheUploadURL(info.Build, cacheKey); url != "" {
+	if url := getCacheUploadURL(build, cacheKey); url != "" {
 		args = append(args, "--url", url)
 	}
 
 	// Execute archive command
 	w.Notice("Creating cache %s...", cacheKey)
-	w.Command(info.RunnerCommand, args...)
+	w.Command(build.RunnerCommand, args...)
 }
 
-func (b *AbstractShell) uploadArtifacts(w ShellWriter, options *archivingOptions, info common.ShellScriptInfo) {
+func (b *AbstractShell) uploadArtifacts(w ShellWriter, options *archivingOptions, build *common.Build) {
 	if options == nil {
 		return
 	}
-	if info.Build.Runner.URL == "" {
+	if build.Runner.URL == "" {
 		return
 	}
-	if info.RunnerCommand == "" {
+	if build.RunnerCommand == "" {
 		w.Warning("The artifacts uploading is not supported in this executor.")
 		return
 	}
@@ -272,11 +271,11 @@ func (b *AbstractShell) uploadArtifacts(w ShellWriter, options *archivingOptions
 	args := []string{
 		"artifacts-uploader",
 		"--url",
-		info.Build.Runner.URL,
+		build.Runner.URL,
 		"--token",
-		info.Build.Token,
+		build.Token,
 		"--id",
-		strconv.Itoa(info.Build.ID),
+		strconv.Itoa(build.ID),
 	}
 
 	// Create list of files to archive
@@ -288,26 +287,26 @@ func (b *AbstractShell) uploadArtifacts(w ShellWriter, options *archivingOptions
 	args = append(args, archiverArgs...)
 
 	// Get artifacts:name
-	if name, ok := info.Build.Options.GetString("artifacts", "name"); ok && name != "" {
+	if name, ok := build.Options.GetString("artifacts", "name"); ok && name != "" {
 		args = append(args, "--name", name)
 	}
 
 	w.Notice("Uploading artifacts...")
-	w.Command(info.RunnerCommand, args...)
+	w.Command(build.RunnerCommand, args...)
 }
 
-func (b *AbstractShell) GeneratePostBuild(w ShellWriter, info common.ShellScriptInfo) {
-	b.writeExports(w, info)
-	b.writeCdBuildDir(w, info)
-	b.writeTLSCAInfo(w, info.Build, "CI_SERVER_TLS_CA_FILE")
+func (b *AbstractShell) GeneratePostBuild(w ShellWriter, build *common.Build) {
+	b.writeExports(w, build)
+	b.writeCdBuildDir(w, build)
+	b.writeTLSCAInfo(w, build, "CI_SERVER_TLS_CA_FILE")
 
 	// Parse options
 	var options shellOptions
-	info.Build.Options.Decode(&options)
+	build.Options.Decode(&options)
 
 	// Find cached files and archive them
-	b.cacheArchiver(w, options.Cache, info)
+	b.cacheArchiver(w, options.Cache, build)
 
 	// Upload artifacts
-	b.uploadArtifacts(w, options.Artifacts, info)
+	b.uploadArtifacts(w, options.Artifacts, build)
 }

@@ -15,10 +15,7 @@ import (
 
 	// Force to load all executors, executes init() on them
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/docker"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/parallels"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/shell"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/ssh"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/virtualbox"
 )
 
 type ExecCommand struct {
@@ -166,7 +163,7 @@ func (c *ExecCommand) parseYaml(job string, build *common.GetBuildResponse) erro
 	return nil
 }
 
-func (c *ExecCommand) createBuild(repoURL string, abortSignal chan os.Signal) (build *common.Build, err error) {
+func (c *ExecCommand) createBuild(repoURL string) (build *common.Build, err error) {
 	// Check if we have uncommitted changes
 	_, err = c.runCommand("git", "diff", "--quiet", "HEAD")
 	if err != nil {
@@ -190,8 +187,7 @@ func (c *ExecCommand) createBuild(repoURL string, abortSignal chan os.Signal) (b
 		return
 	}
 
-	build = &common.Build{
-		GetBuildResponse: common.GetBuildResponse{
+	build = common.NewBuild(common.GetBuildResponse{
 			ID:            1,
 			ProjectID:     1,
 			RepoURL:       repoURL,
@@ -206,11 +202,10 @@ func (c *ExecCommand) createBuild(repoURL string, abortSignal chan os.Signal) (b
 			Stage:         "",
 			Tag:           false,
 		},
-		Runner: &common.RunnerConfig{
+		common.RunnerConfig{
 			RunnerSettings: c.RunnerSettings,
 		},
-		BuildAbort: abortSignal,
-	}
+	)
 	return
 }
 
@@ -243,7 +238,7 @@ func (c *ExecCommand) Execute(context *cli.Context) {
 	c.RunnerSettings.Docker.Volumes = append(c.RunnerSettings.Docker.Volumes, wd+":"+wd+":ro")
 
 	// Create build
-	build, err := c.createBuild(wd, abortSignal)
+	build, err := c.createBuild(wd)
 	if err != nil {
 		logrus.Fatalln(err)
 	}
@@ -253,7 +248,7 @@ func (c *ExecCommand) Execute(context *cli.Context) {
 		logrus.Fatalln(err)
 	}
 
-	err = build.Run(&common.Config{}, &stdoutTrace{})
+	err = build.Run(nil, &stdoutTrace{}, abortSignal)
 	if err != nil {
 		logrus.Fatalln(err)
 	}

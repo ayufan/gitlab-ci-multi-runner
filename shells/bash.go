@@ -14,6 +14,23 @@ import (
 	"strings"
 )
 
+const detectBashShell = `if [ -x /usr/local/bin/bash ]; then
+	exec /usr/local/bin/bash $@
+elif [ -x /usr/bin/bash ]; then
+	exec /usr/bin/bash $@
+elif [ -x /bin/bash ]; then
+	exec /bin/bash $@
+elif [ -x /usr/local/bin/sh ]; then
+	exec /usr/local/bin/sh $@
+elif [ -x /usr/bin/sh ]; then
+	exec /usr/bin/sh $@
+elif [ -x /bin/sh ]; then
+	exec /bin/sh $@
+else
+	echo shell not found
+	exit 1
+fi`
+
 type BashShell struct {
 	AbstractShell
 	Shell string
@@ -127,7 +144,7 @@ func (b *BashWriter) EmptyLine() {
 	b.Line("echo")
 }
 
-func (b *BashWriter) Finish() string {
+func (b *BashWriter) GetScript() string {
 	var buffer bytes.Buffer
 	w := bufio.NewWriter(&buffer)
 	io.WriteString(w, "set -eo pipefail\n")
@@ -141,64 +158,46 @@ func (b *BashShell) GetName() string {
 	return b.Shell
 }
 
-func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
-	temporaryPath := info.Build.FullProjectDir() + ".tmp"
-
-	preScript := &BashWriter{TemporaryPath: temporaryPath}
-	if len(info.Build.Hostname) != 0 {
-		preScript.Line("echo " + strconv.Quote("Running on $(hostname) via "+info.Build.Hostname+"..."))
-	} else {
-		preScript.Line("echo " + strconv.Quote("Running on $(hostname)..."))
+func (b *BashShell) shell(build *common.Build, handler func(w ShellWriter) error) (script *common.ShellScript, err error) {
+	temporaryPath := build.FullProjectDir() + ".tmp"
+	w := &BashWriter{TemporaryPath: temporaryPath}
+	handler(w)
+	script = &common.ShellScript{
+		Command:   "sh",
+		Arguments: []string{"-c", detectBashShell, "--"},
+		Script:    w.GetScript(),
 	}
-	b.GeneratePreBuild(preScript, info)
-
-	buildScript := &BashWriter{TemporaryPath: temporaryPath}
-	b.GenerateCommands(buildScript, info)
-
-	postScript := &BashWriter{TemporaryPath: temporaryPath}
-	b.GeneratePostBuild(postScript, info)
-
-	script := common.ShellScript{
-		PreScript:   preScript.Finish(),
-		BuildScript: buildScript.Finish(),
-		PostScript:  postScript.Finish(),
-	}
-
-	// su
-	if info.User != "" {
-		script.Command = "su"
-		if runtime.GOOS == "linux" {
-			// Support to specify shell when used on Linux
-			script.Arguments = []string{"--shell", "/bin/sh"}
-		}
-		script.Arguments = append(script.Arguments, info.User)
-	} else {
-		script.Command = "sh"
-	}
-
-	detectShell := `if [ -x /usr/local/bin/bash ]; then
-	exec /usr/local/bin/bash $@
-elif [ -x /usr/bin/bash ]; then
-	exec /usr/bin/bash $@
-elif [ -x /bin/bash ]; then
-	exec /bin/bash $@
-elif [ -x /usr/local/bin/sh ]; then
-	exec /usr/local/bin/sh $@
-elif [ -x /usr/bin/sh ]; then
-	exec /usr/bin/sh $@
-elif [ -x /bin/sh ]; then
-	exec /bin/sh $@
-else
-	echo shell not found
-	exit 1
-fi`
-
-	script.Arguments = append(script.Arguments, "-c", detectShell, "--")
-	if info.Type == common.LoginShell {
+	if build.ShellType == common.LoginShell {
 		script.Arguments = append(script.Arguments, "-l")
 	}
+	return
+}
 
-	return &script, nil
+func (b *BashShell) PreBuild(build *common.Build) (script *common.ShellScript, err error) {
+	return b.shell(build, func(w ShellWriter) error {
+		if len(build.Hostname) != 0 {
+			w.Line("echo " + strconv.Quote("Running on $(hostname) via "+build.Hostname+"..."))
+		} else {
+			w.Line("echo " + strconv.Quote("Running on $(hostname)..."))
+		}
+		w.Line("")
+		b.GeneratePreBuild(w, build)
+		return nil
+	})
+}
+
+func (b *BashShell) Build(build *common.Build) (script *common.ShellScript, err error) {
+	return b.shell(build, func(w ShellWriter) error {
+		b.GenerateCommands(w, build)
+		return nil
+	})
+}
+
+func (b *BashShell) PostBuild(build *common.Build) (script *common.ShellScript, err error) {
+	return b.shell(build, func(w ShellWriter) error {
+		b.GeneratePostBuild(w, build)
+		return nil
+	})
 }
 
 func (b *BashShell) IsDefault() bool {

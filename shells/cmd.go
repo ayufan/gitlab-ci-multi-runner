@@ -1,10 +1,12 @@
 package shells
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"io"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -159,53 +161,60 @@ func (b *CmdWriter) Absolute(dir string) string {
 	return filepath.Join("%CD%", dir)
 }
 
-func (b *CmdShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
-	w := &CmdWriter{
-		TemporaryPath: info.Build.FullProjectDir() + ".tmp",
+func (b *CmdWriter) GetScript() string {
+	var buffer bytes.Buffer
+	w := bufio.NewWriter(&buffer)
+	io.WriteString(w, "@echo off\r\n")
+	io.WriteString(w, "setlocal enableextensions\r\n")
+	io.WriteString(w, "setlocal enableDelayedExpansion\r\n")
+	io.WriteString(w, "set nl=^\r\n\r\n\r\n")
+	io.WriteString(w, b.String())
+	w.Flush()
+	return buffer.String()
+}
+
+func (b *CmdWriter) GetCommand(login bool) (cmd string, args []string) {
+	return "cmd", []string{"/Q", "/C"}
+}
+
+func (b *CmdShell) shell(build *common.Build, handler func(w ShellWriter) error) (script *common.ShellScript, err error) {
+	temporaryPath := build.FullProjectDir() + ".tmp"
+	w := &CmdWriter{TemporaryPath: temporaryPath}
+	handler(w)
+	script = &common.ShellScript{
+		Command:   "cmd",
+		Arguments: []string{"/Q", "/C"},
+		Extension: "cmd",
+		Script:    w.GetScript(),
 	}
-	w.Line("@echo off")
-	w.Line("setlocal enableextensions")
-	w.Line("setlocal enableDelayedExpansion")
-	w.Line("set nl=^\r\n\r\n")
+	return
+}
 
-	if len(info.Build.Hostname) != 0 {
-		w.Line("echo Running on %COMPUTERNAME% via " + batchEscape(info.Build.Hostname) + "...")
-	} else {
-		w.Line("echo Running on %COMPUTERNAME%...")
-	}
-	w.Line("")
+func (b *CmdShell) PreBuild(build *common.Build) (script *common.ShellScript, err error) {
+	return b.shell(build, func(w ShellWriter) error {
+		if len(build.Hostname) != 0 {
+			w.Line("echo Running on %COMPUTERNAME% via " + batchEscape(build.Hostname) + "...")
+		} else {
+			w.Line("echo Running on %COMPUTERNAME%...")
+		}
+		w.Line("")
+		b.GeneratePreBuild(w, build)
+		return nil
+	})
+}
 
-	w.Line("call :prescript")
-	w.checkErrorLevel()
-	w.Line("call :buildscript")
-	w.checkErrorLevel()
-	w.Line("call :postscript")
-	w.checkErrorLevel()
-	w.Line("goto :EOF")
+func (b *CmdShell) Build(build *common.Build) (script *common.ShellScript, err error) {
+	return b.shell(build, func(w ShellWriter) error {
+		b.GenerateCommands(w, build)
+		return nil
+	})
+}
 
-	w.Line(":prescript")
-	b.GeneratePreBuild(w, info)
-	w.Line("goto :EOF")
-	w.Line("")
-
-	w.Line(":buildscript")
-	b.GenerateCommands(w, info)
-	w.Line("goto :EOF")
-	w.Line("")
-
-	w.Line(":postscript")
-	b.GeneratePostBuild(w, info)
-	w.Line("goto :EOF")
-	w.Line("")
-
-	script := common.ShellScript{
-		BuildScript: w.String(),
-		Command:     "cmd",
-		Arguments:   []string{"/Q", "/C"},
-		PassFile:    true,
-		Extension:   "cmd",
-	}
-	return &script, nil
+func (b *CmdShell) PostBuild(build *common.Build) (script *common.ShellScript, err error) {
+	return b.shell(build, func(w ShellWriter) error {
+		b.GeneratePostBuild(w, build)
+		return nil
+	})
 }
 
 func (b *CmdShell) IsDefault() bool {

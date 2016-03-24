@@ -6,11 +6,24 @@ import (
 
 type ExecutorData interface{}
 
+const (
+	ImageDefault string = ""
+	ImageInternalPrefix = "***"
+	ImagePreBuild = ImageInternalPrefix + "custom-pre-build-image"
+	ImagePostBuild = ImageInternalPrefix + "custom-post-build-image"
+)
+
+type ExecutorRun struct {
+	ShellScript
+
+	Image           string
+	Trace           BuildTrace
+	Abort           chan error
+}
+
 type Executor interface {
-	Prepare(globalConfig *Config, config *RunnerConfig, build *Build) error
-	Start() error
-	Wait() error
-	Finish(err error)
+	Prepare(build *Build, data ExecutorData) error
+	Run(run ExecutorRun) error
 	Cleanup()
 }
 

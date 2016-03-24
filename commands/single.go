@@ -69,19 +69,12 @@ func (r *RunSingleCommand) processBuild(data common.ExecutorData, abortSignal ch
 		return
 	}
 
-	config := common.NewConfig()
-
-	newBuild := common.Build{
-		GetBuildResponse: *buildData,
-		Runner:           &r.RunnerConfig,
-		BuildAbort:       abortSignal,
-		ExecutorData:     data,
-	}
+	newBuild := common.NewBuild(*buildData, r.RunnerConfig)
 
 	trace := r.network.ProcessBuild(r.RunnerConfig, buildData.ID)
 	defer trace.Fail(err)
 
-	err = newBuild.Run(config, trace)
+	err = newBuild.Run(data, trace, abortSignal)
 	return
 }
 

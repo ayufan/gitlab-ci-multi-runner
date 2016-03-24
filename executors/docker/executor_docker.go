@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/user"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -46,13 +45,6 @@ func (s *executor) getServiceVariables() []string {
 
 func (s *executor) getAuthConfig(imageName string) (docker.AuthConfiguration, error) {
 	homeDir := homedir.Get()
-	if s.Shell.User != "" {
-		u, err := user.Lookup(s.Shell.User)
-		if err != nil {
-			return docker.AuthConfiguration{}, err
-		}
-		homeDir = u.HomeDir
-	}
 	if homeDir == "" {
 		return docker.AuthConfiguration{}, fmt.Errorf("Failed to get home directory")
 	}
@@ -578,7 +570,7 @@ func (s *executor) prepareBuildContainer() (options *docker.CreateContainerOptio
 			AttachStderr: true,
 			OpenStdin:    true,
 			StdinOnce:    true,
-			Env:          append(s.Build.GetAllVariables().StringList(), s.BuildScript.Environment...),
+			Env:          s.Build.GetAllVariables().StringList(),
 		},
 		HostConfig: &docker.HostConfig{
 			Privileged:    s.Config.Docker.Privileged,
@@ -654,7 +646,7 @@ func (s *executor) createContainer(containerType, imageName string, cmd []string
 	return
 }
 
-func (s *executor) watchContainer(container *docker.Container, input io.Reader) (err error) {
+func (s *executor) watchContainer(container *docker.Container, input io.Reader, output io.Writer) (err error) {
 	s.Debugln("Starting container", container.ID, "...")
 	err = s.client.StartContainer(container.ID, nil)
 	if err != nil {
@@ -664,8 +656,8 @@ func (s *executor) watchContainer(container *docker.Container, input io.Reader) 
 	options := docker.AttachToContainerOptions{
 		Container:    container.ID,
 		InputStream:  input,
-		OutputStream: s.BuildLog,
-		ErrorStream:  s.BuildLog,
+		OutputStream: output,
+		ErrorStream:  output,
 		Logs:         true,
 		Stream:       true,
 		Stdin:        true,
@@ -750,17 +742,13 @@ func (s *executor) getImageName() (string, error) {
 	return s.Config.Docker.Image, nil
 }
 
-func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
-	err := s.AbstractExecutor.Prepare(globalConfig, config, build)
+func (s *executor) Prepare(build *common.Build, data common.ExecutorData) error {
+	err := s.AbstractExecutor.Prepare(build, data)
 	if err != nil {
 		return err
 	}
 
-	if s.BuildScript.PassFile {
-		return errors.New("Docker doesn't support shells that require script file")
-	}
-
-	if config.Docker == nil {
+	if s.Config.Docker == nil {
 		return errors.New("Missing docker configuration")
 	}
 
@@ -901,6 +889,6 @@ func (s *executor) waitForServiceContainer(container *docker.Container, timeout 
 	buffer.WriteString("\n")
 	buffer.WriteString(helpers.ANSI_BOLD_YELLOW + "*********" + helpers.ANSI_RESET + "\n")
 	buffer.WriteString("\n")
-	io.Copy(s.BuildLog, &buffer)
+	io.Copy(s.Logging.LogTrace, &buffer)
 	return err
 }

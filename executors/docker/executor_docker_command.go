@@ -2,82 +2,89 @@ package docker
 
 import (
 	"bytes"
+	"errors"
 	"github.com/fsouza/go-dockerclient"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
+	"strconv"
 )
 
 type commandExecutor struct {
 	executor
+	defaultImage     string
+	defaultContainer *docker.CreateContainerOptions
+	containerIdx     int
 }
 
-func (s *commandExecutor) watchContainers(preContainer, buildContainer, postContainer *docker.Container) {
-	s.Println()
-
-	err := s.watchContainer(preContainer, bytes.NewBufferString(s.BuildScript.PreScript))
+func (s *commandExecutor) Prepare(build *common.Build, data common.ExecutorData) (err error) {
+	err = s.executor.Prepare(build, data)
 	if err != nil {
-		s.BuildFinish <- err
 		return
 	}
 
-	s.Println()
-
-	err = s.watchContainer(buildContainer, bytes.NewBufferString(s.BuildScript.BuildScript))
+	s.defaultImage, err = s.getImageName()
 	if err != nil {
-		s.BuildFinish <- err
 		return
 	}
 
-	s.Println()
-
-	err = s.watchContainer(postContainer, bytes.NewBufferString(s.BuildScript.PostScript))
+	s.defaultContainer, err = s.prepareBuildContainer()
 	if err != nil {
-		s.BuildFinish <- err
 		return
 	}
 
-	s.BuildFinish <- nil
+	return
 }
 
-func (s *commandExecutor) Start() error {
-	s.Debugln("Starting Docker command...")
+func (s *commandExecutor) getContainerImage(runImage string) (string, error) {
+	switch runImage {
+	case common.ImagePreBuild, common.ImagePostBuild:
+		buildImage, err := s.getPrebuiltImage("build")
+		if err != nil {
+			return "", nil
+		}
+		return buildImage.ID, nil
 
-	imageName, err := s.getImageName()
-	if err != nil {
-		return err
+	case common.ImageDefault:
+		return s.defaultImage, nil
+
+	default:
+		return runImage, nil
 	}
 
-	options, err := s.prepareBuildContainer()
+	return "", errors.New("undefined run type: " + runImage)
+}
+
+func (s *commandExecutor) Run(run common.ExecutorRun) (err error) {
+	containerImage, err := s.getContainerImage(run.Image)
 	if err != nil {
-		return err
+		return
 	}
 
-	buildImage, err := s.getPrebuiltImage("build")
-	if err != nil {
-		return err
-	}
+	containerCommand := append([]string{run.Command}, run.Arguments...)
+
+	s.containerIdx++
+	containerType := "step-" + strconv.Itoa(s.containerIdx)
 
 	// Start pre-build container which will git clone changes
-	preContainer, err := s.createContainer("pre", buildImage.ID, nil, *options)
+	container, err := s.createContainer(containerType, containerImage, containerCommand, *s.defaultContainer)
 	if err != nil {
 		return err
 	}
+	defer s.removeContainer(container.ID)
 
-	// Start post-build container which will upload artifacts
-	postContainer, err := s.createContainer("post", buildImage.ID, nil, *options)
-	if err != nil {
-		return err
+	resultCh := make(chan error, 1)
+	go func() {
+		resultCh <- s.watchContainer(container, bytes.NewBufferString(run.Script), run.Trace)
+	}()
+
+	// Wait for process to finish
+	select {
+	case err = <-resultCh:
+		return
+	case err = <-run.Abort:
+		return
 	}
-
-	// Start build container which will run actual build
-	buildContainer, err := s.createContainer("build", imageName, s.BuildScript.GetCommandWithArguments(), *options)
-	if err != nil {
-		return err
-	}
-
-	// Wait for process to exit
-	go s.watchContainers(preContainer, buildContainer, postContainer)
-	return nil
+	return
 }
 
 func init() {
@@ -85,11 +92,9 @@ func init() {
 		DefaultBuildsDir: "/builds",
 		DefaultCacheDir:  "/cache",
 		SharedBuildsDir:  false,
-		Shell: common.ShellScriptInfo{
-			Shell:         "bash",
-			Type:          common.NormalShell,
-			RunnerCommand: "/usr/bin/gitlab-runner-helper",
-		},
+		Shell:            "bash",
+		Type:             common.NormalShell,
+		RunnerCommand:    "/usr/bin/gitlab-runner-helper",
 		ShowHostname:     true,
 		SupportedOptions: []string{"image", "services"},
 	}

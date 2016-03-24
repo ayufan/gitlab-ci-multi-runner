@@ -8,6 +8,8 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"bufio"
+	"io"
 )
 
 type PowerShell struct {
@@ -182,49 +184,57 @@ func (b *PowerShell) GetName() string {
 	return "powershell"
 }
 
-func (b *PowerShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
-	w := &PsWriter{
-		TemporaryPath: info.Build.FullProjectDir() + ".tmp",
+func (b *PsWriter) GetScript() string {
+	var buffer bytes.Buffer
+	w := bufio.NewWriter(&buffer)
+	io.WriteString(w, "$ErrorActionPreference = \"Stop\"\r\n")
+	io.WriteString(w, b.String())
+	w.Flush()
+	return buffer.String()
+}
+
+func (b *PsWriter) GetCommand(login bool) (cmd string, args []string) {
+	return "powershell", []string{"-noprofile", "-noninteractive", "-executionpolicy", "Bypass", "-command"}
+}
+
+func (b *PowerShell) shell(build *common.Build, handler func(w ShellWriter) error) (script *common.ShellScript, err error) {
+	temporaryPath := build.FullProjectDir() + ".tmp"
+	w := &CmdWriter{TemporaryPath: temporaryPath}
+	handler(w)
+	script = &common.ShellScript{
+		Command:   "powershell",
+		Arguments: []string{"-noprofile", "-noninteractive", "-executionpolicy", "Bypass", "-command"},
+		Extension: "ps1",
+		Script:    w.GetScript(),
 	}
-	w.Line("$ErrorActionPreference = \"Stop\"")
-	w.Line("")
+	return
+}
 
-	if len(info.Build.Hostname) != 0 {
-		w.Line("echo \"Running on $env:computername via " + psQuoteVariable(info.Build.Hostname) + "...\"")
-	} else {
-		w.Line("echo \"Running on $env:computername...\"")
-	}
-	w.Line("")
+func (b *PowerShell) PreBuild(build *common.Build) (script *common.ShellScript, err error) {
+	return b.shell(build, func(w ShellWriter) error {
+		if len(build.Hostname) != 0 {
+			w.Line("echo \"Running on $env:computername via " + psQuoteVariable(build.Hostname) + "...\"")
+		} else {
+			w.Line("echo \"Running on $env:computername...\"")
+		}
+		w.Line("")
+		b.GeneratePreBuild(w, build)
+		return nil
+	})
+}
 
-	w.Line("& {")
-	w.Indent()
-	b.GeneratePreBuild(w, info)
-	w.Unindent()
-	w.Line("}")
-	w.checkErrorLevel()
+func (b *PowerShell) Build(build *common.Build) (script *common.ShellScript, err error) {
+	return b.shell(build, func(w ShellWriter) error {
+		b.GenerateCommands(w, build)
+		return nil
+	})
+}
 
-	w.Line("& {")
-	w.Indent()
-	b.GenerateCommands(w, info)
-	w.Unindent()
-	w.Line("}")
-	w.checkErrorLevel()
-
-	w.Line("& {")
-	w.Indent()
-	b.GeneratePostBuild(w, info)
-	w.Unindent()
-	w.Line("}")
-	w.checkErrorLevel()
-
-	script := common.ShellScript{
-		BuildScript: w.String(),
-		Command:     "powershell",
-		Arguments:   []string{"-noprofile", "-noninteractive", "-executionpolicy", "Bypass", "-command"},
-		PassFile:    true,
-		Extension:   "ps1",
-	}
-	return &script, nil
+func (b *PowerShell) PostBuild(build *common.Build) (script *common.ShellScript, err error) {
+	return b.shell(build, func(w ShellWriter) error {
+		b.GeneratePostBuild(w, build)
+		return nil
+	})
 }
 
 func (b *PowerShell) IsDefault() bool {

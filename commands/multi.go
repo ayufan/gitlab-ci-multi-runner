@@ -117,19 +117,14 @@ func (mr *RunCommand) processRunner(id int, runner *runnerAcquire) (err error) {
 	defer trace.Fail(err)
 
 	// Create a new build
-	build := &common.Build{
-		GetBuildResponse: *buildData,
-		Runner:           &runner.RunnerConfig,
-		ExecutorData:     runner.data,
-		BuildAbort:       mr.abortBuilds,
-	}
+	build := common.NewBuild(*buildData, runner.RunnerConfig)
 
 	// Add build to list of builds to assign numbers
 	mr.buildsHelper.addBuild(build)
 	defer mr.buildsHelper.removeBuild(build)
 
 	// Process a build
-	return build.Run(mr.config, trace)
+	return build.Run(runner.data, trace, mr.abortBuilds)
 }
 
 func (mr *RunCommand) processRunners(id int, stopWorker chan bool, runners chan *runnerAcquire) {

@@ -1,19 +1,15 @@
 package common
 
 import (
-	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 )
 
 type ShellScript struct {
 	Environment []string
-	PreScript   string
-	BuildScript string
-	PostScript  string
 	Command     string
 	Arguments   []string
-	PassFile    bool
+	Script      string
 	Extension   string
 }
 
@@ -32,28 +28,19 @@ func (s *ShellScript) GetCommandWithArguments() []string {
 	return parts
 }
 
-func (s *ShellScript) GetScriptBytes() []byte {
-	return []byte(s.PreScript + s.BuildScript + s.PostScript)
-}
-
 func (s *ShellScript) String() string {
 	return helpers.ToYAML(s)
-}
-
-type ShellScriptInfo struct {
-	Shell         string
-	Build         *Build
-	Type          ShellType
-	User          string
-	RunnerCommand string
 }
 
 type Shell interface {
 	GetName() string
 	GetSupportedOptions() []string
-	GenerateScript(info ShellScriptInfo) (*ShellScript, error)
 	GetFeatures(features *FeaturesInfo)
 	IsDefault() bool
+
+	PreBuild(build *Build) (*ShellScript, error)
+	Build(build *Build) (*ShellScript, error)
+	PostBuild(build *Build) (*ShellScript, error)
 }
 
 var shells map[string]Shell
@@ -86,15 +73,6 @@ func GetShells() []string {
 		}
 	}
 	return names
-}
-
-func GenerateShellScript(info ShellScriptInfo) (*ShellScript, error) {
-	shell := GetShell(info.Shell)
-	if shell == nil {
-		return nil, fmt.Errorf("shell %s not found", info.Shell)
-	}
-
-	return shell.GenerateScript(info)
 }
 
 func GetDefaultShell() string {
