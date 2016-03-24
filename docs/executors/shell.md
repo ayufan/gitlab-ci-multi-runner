@@ -33,7 +33,7 @@ Where:
 - `<working-directory>` is the value of `--working-directory` as passed to the
   `gitlab-runner run` command or the current directory where the Runner is
   running
-- `<short-token>` is a shortened version of the Runner's token (8 first letters)
+- `<short-token>` is a shortened version of the Runner's token (first 8 letters)
 - `<concurrent-id>` is a unique number, identifying the local job ID on the
   particular Runner in context of the project
 - `<namespace>` is the namespace where the project is stored on GitLab
