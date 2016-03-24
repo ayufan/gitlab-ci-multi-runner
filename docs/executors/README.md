@@ -4,7 +4,7 @@ GitLab Runner implements a number of executors that can be used to run your
 builds in different scenarios:
 
 - [Shell](shell.md)
-- [Docker and Docker-SSH](docker.md)
+- [Docker](docker.md)
 - [Docker Machine and Docker Machine SSH (auto-scaling)](../install/auto-scaling.md)
 - [Parallels](parallels.md)
 - [VirtualBox](virtualbox.md)
