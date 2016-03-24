@@ -127,7 +127,7 @@ In the case of **Windows** you may need to run the **Command Prompt** in
 
 ## Configuration file
 
-GitLab Runner configuration uses the [TOML][] format.
+GitLab Runner configuration uses the [TOML] format.
 
 The file to be edited can be found in:
 
@@ -142,7 +142,7 @@ allowing you to have a multiple different configurations on a single machine.
 To specify a custom configuration file use the `-c` or `--config` flag, or use
 the `CONFIG_FILE` environment variable.
 
-[toml]: https://github.com/toml-lang/toml
+[TOML]: https://github.com/toml-lang/toml
 
 ## Signals
 
