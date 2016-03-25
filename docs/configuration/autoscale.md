@@ -285,6 +285,8 @@ To enable distributed caching, you have to define it in `config.toml` using the
     Insecure = false
 ```
 
+Read how to [install your own caching server][caching].
+
 ## Distributed Docker registry mirroring
 
 To speed up builds executed inside of Docker containers, you can use the [Docker
@@ -314,6 +316,8 @@ the configuration in `config.toml`:
 Where `10.11.12.13:12345` is the IP address and port where your registry mirror
 is listening for connections from the Docker service. It must be accessible for
 each host created by Docker Machine.
+
+Read how to [install your own Docker registry server][registry-server].
 
 ## A complete example of `config.toml`
 
@@ -372,3 +376,5 @@ available at the [Docker Machine documentation][docker-machine-driver].
 [docker-machine-installation]: https://docs.docker.com/machine/install-machine/
 [runners-cache]: advanced-configuration.md#the-runnerscache-section
 [registry]: https://docs.docker.com/docker-trusted-registry/overview/
+[caching]: ../install/auto-scaling.md#install-the-cache-server
+[registry-server]: ../install/auto-scaling.md#install-docker-registry
