@@ -5,7 +5,7 @@ It runs tests and sends the results to GitLab.
 [GitLab CI](https://about.gitlab.com/gitlab-ci) is the open-source
 continuous integration service included with GitLab that coordinates the testing.
 
-[![Build Status](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/badges/master/build.svg)]
+![Build Status](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/badges/master/build.svg)
 
 ### Contributing
 
