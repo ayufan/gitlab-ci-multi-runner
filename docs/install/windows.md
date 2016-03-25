@@ -60,6 +60,8 @@ Start service:
 gitlab-ci-multi-runner start
 ```
 
+Make sure that you read the [FAQ](../faq/README.md) section which describes most common problems with the GitLab Runner. 
+
 [x86]: https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-ci-multi-runner-windows-386.exe
 [amd64]: https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-ci-multi-runner-windows-amd64.exe
 [prompt]: http://pcsupport.about.com/od/windows-8/a/elevated-command-prompt-windows-8.htm

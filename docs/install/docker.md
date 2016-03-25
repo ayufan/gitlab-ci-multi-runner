@@ -62,6 +62,8 @@ running already the config should be automatically reloaded!
 
 The runner should is started already and you are ready to build your projects!
 
+Make sure that you read the [FAQ](../faq/README.md) section which describes most common problems with the GitLab Runner. 
+
 ### Update
 
 Pull the latest version:

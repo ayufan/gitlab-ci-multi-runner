@@ -212,7 +212,7 @@ func (mr *RunCommand) Start(s service.Service) error {
 
 	err := mr.loadConfig()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	// Start should not block. Do the actual work async.

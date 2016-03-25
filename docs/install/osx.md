@@ -70,3 +70,34 @@ Start the service:
 ```bash
 gitlab-ci-multi-runner start
 ```
+
+Make sure that you read the [FAQ](../faq/README.md) section which describes most common problems with the GitLab Runner. 
+
+### Limitations on OSX
+
+Currently the only proven to work mode for OSX is running service in user-mode.
+
+**The service needs to be installed from Terminal running GUI interface as your user.
+Only then you will be able to manage the service.**
+
+Since the service will be running only when the user is logged in you should enable auto-logging on your OSX machine.
+
+The service will be launched as one of `LaunchAgents`.
+By using `LaunchAgents` the builds will be able to do UI interactions,
+making it possible to run and test on iOS simulator and also do process instrumentations.
+
+Worth to note is that OSX also have the `LaunchDaemons`, the services running completely in background.
+The `LaunchDaemons` are run on system startup, but they don't have the same access to UI interactions as `LaunchAgents`.
+You can try to run service as `LaunchDaemon`, but this mode of operation as of now is not supported.
+
+You can verify that runner created service configuration after the executing `install` command
+by checking the `~user/Library/LaunchAgents/gitlab-runner.plist` file.
+
+### Upgrade the service file
+
+In order to upgrade the `LaunchAgent` configuration you need to uninstall and install the service:
+```
+gitlab-ci-multi-runner uninstall
+gitlab-ci-multi-runner install
+gitlab-ci-multi-runner start
+```

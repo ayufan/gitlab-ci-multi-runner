@@ -42,4 +42,6 @@ gitlab-ci-multi-runner run
 
 Voila! Runner is currently running, but it will not start automatically after system reboot because BSD startup service is not supported.
 
-**The FreeBSD version is also availble from [Bleeding edge](bleeding-edge.md)** 
+**The FreeBSD version is also available from [Bleeding edge](bleeding-edge.md)**
+ 
+Make sure that you read the [FAQ](../faq/README.md) section which describes most common problems with the GitLab Runner. 
