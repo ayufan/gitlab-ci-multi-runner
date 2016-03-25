@@ -129,7 +129,7 @@ func createServiceConfig(c *cli.Context) (svcConfig *service.Config) {
 		svcConfig.Option = service.KeyValue{
 			"KeepAlive":   true,
 			"RunAtLoad":   true,
-			"UserService": os.Getuid() == 0,
+			"UserService": os.Getuid() != 0,
 		}
 
 		if user := c.String("user"); user != "" {
