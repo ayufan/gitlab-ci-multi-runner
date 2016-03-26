@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 )
 
 type AbstractShell struct {
@@ -200,11 +201,7 @@ func (b *AbstractShell) GeneratePreBuild(w ShellWriter, build *common.Build) {
 	b.downloadAllArtifacts(w, options.Dependencies, build)
 }
 
-func (b *AbstractShell) GenerateCommands(w ShellWriter, build *common.Build) {
-	b.writeExports(w, build)
-	b.writeCdBuildDir(w, build)
-
-	commands := build.Commands
+func (b *AbstractShell) processCommands(w ShellWriter, commands string) {
 	commands = strings.TrimSpace(commands)
 	for _, command := range strings.Split(commands, "\n") {
 		command = strings.TrimSpace(command)
@@ -215,6 +212,28 @@ func (b *AbstractShell) GenerateCommands(w ShellWriter, build *common.Build) {
 		}
 		w.Line(command)
 		w.CheckForErrors()
+	}
+}
+
+func (b *AbstractShell) processListOfCommands(w ShellWriter, data interface{}) {
+	if commands, ok := data.(string); ok {
+		b.processCommands(w, commands)
+	} else if commands, ok := data.([]interface{}); ok {
+		for _, command := range commands {
+			b.processListOfCommands(w, command)
+		}
+	}
+}
+
+func (b *AbstractShell) GenerateCommands(w ShellWriter, build *common.Build, options common.BuildOptions) {
+	b.writeExports(w, build)
+	b.writeCdBuildDir(w, build)
+
+	if options["script"] != nil {
+		b.processListOfCommands(w, options["before_script"])
+		b.processListOfCommands(w, options["script"])
+	} else {
+		b.processCommands(w, build.Commands)
 	}
 }
 

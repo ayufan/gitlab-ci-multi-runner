@@ -4,7 +4,7 @@ import "github.com/Sirupsen/logrus"
 
 type Plugin interface {
 	GetName() string
-	Run(b *Build, abort chan error) error
+	Run(b *Build, options BuildOptions, abort chan error) error
 }
 
 var plugins map[string]Plugin

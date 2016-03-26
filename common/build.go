@@ -177,7 +177,7 @@ func (b *Build) Run(data ExecutorData, trace BuildTrace, signal chan os.Signal) 
 	// Wait for signals: cancel, timeout, abort or finish
 	go b.wait(trace, done, signal, abort)
 
-	return plugin.Run(b, abort)
+	return plugin.Run(b, b.Options, abort)
 }
 
 func (b *Build) Step(script *ShellScript, image string, abort chan error) error {

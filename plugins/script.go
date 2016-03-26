@@ -9,7 +9,7 @@ func (s *scriptPlugin) GetName() string {
 	return "script"
 }
 
-func (s *scriptPlugin) Run(b *common.Build, abort chan error) error {
+func (s *scriptPlugin) Run(b *common.Build, options common.BuildOptions, abort chan error) error {
 	sc, err := b.Shell.Build(b)
 	if err != nil {
 		return err

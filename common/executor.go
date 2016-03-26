@@ -7,18 +7,18 @@ import (
 type ExecutorData interface{}
 
 const (
-	ImageDefault string = ""
-	ImageInternalPrefix = "***"
-	ImagePreBuild = ImageInternalPrefix + "custom-pre-build-image"
-	ImagePostBuild = ImageInternalPrefix + "custom-post-build-image"
+	ImageDefault        string = ""
+	ImageInternalPrefix        = "***"
+	ImagePreBuild              = ImageInternalPrefix + "custom-pre-build-image"
+	ImagePostBuild             = ImageInternalPrefix + "custom-post-build-image"
 )
 
 type ExecutorRun struct {
 	ShellScript
 
-	Image           string
-	Trace           BuildTrace
-	Abort           chan error
+	Image string
+	Trace BuildTrace
+	Abort chan error
 }
 
 type Executor interface {

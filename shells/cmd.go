@@ -190,7 +190,7 @@ func (b *CmdShell) shell(build *common.Build, handler func(w ShellWriter) error)
 	return
 }
 
-func (b *CmdShell) PreBuild(build *common.Build) (script *common.ShellScript, err error) {
+func (b *CmdShell) PreBuild(build *common.Build, options common.BuildOptions) (script *common.ShellScript, err error) {
 	return b.shell(build, func(w ShellWriter) error {
 		if len(build.Hostname) != 0 {
 			w.Line("echo Running on %COMPUTERNAME% via " + batchEscape(build.Hostname) + "...")
@@ -203,14 +203,14 @@ func (b *CmdShell) PreBuild(build *common.Build) (script *common.ShellScript, er
 	})
 }
 
-func (b *CmdShell) Build(build *common.Build) (script *common.ShellScript, err error) {
+func (b *CmdShell) Build(build *common.Build, options common.BuildOptions) (script *common.ShellScript, err error) {
 	return b.shell(build, func(w ShellWriter) error {
 		b.GenerateCommands(w, build)
 		return nil
 	})
 }
 
-func (b *CmdShell) PostBuild(build *common.Build) (script *common.ShellScript, err error) {
+func (b *CmdShell) PostBuild(build *common.Build, options common.BuildOptions) (script *common.ShellScript, err error) {
 	return b.shell(build, func(w ShellWriter) error {
 		b.GeneratePostBuild(w, build)
 		return nil

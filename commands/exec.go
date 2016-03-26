@@ -16,6 +16,7 @@ import (
 	// Force to load all executors, executes init() on them
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/docker"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/shell"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 )
 
 type ExecCommand struct {
@@ -29,54 +30,6 @@ func (c *ExecCommand) runCommand(name string, arg ...string) (string, error) {
 	cmd.Stderr = os.Stderr
 	result, err := cmd.Output()
 	return string(result), err
-}
-
-func (c *ExecCommand) getCommands(commands interface{}) (string, error) {
-	if lines, ok := commands.([]interface{}); ok {
-		text := ""
-		for _, line := range lines {
-			if lineText, ok := line.(string); ok {
-				text += lineText + "\n"
-			} else {
-				return "", errors.New("unsupported script")
-			}
-		}
-		return text + "\n", nil
-	} else if text, ok := commands.(string); ok {
-		return text + "\n", nil
-	} else if commands != nil {
-		return "", errors.New("unsupported script")
-	}
-	return "", nil
-}
-
-func (c *ExecCommand) supportedOption(key string, _ interface{}) bool {
-	switch key {
-	case "image", "services", "artifacts", "cache":
-		return true
-	default:
-		return false
-	}
-}
-
-func (c *ExecCommand) buildCommands(configBeforeScript, jobScript interface{}) (commands string, err error) {
-	// get before_script
-	beforeScript, err := c.getCommands(configBeforeScript)
-	if err != nil {
-		return
-	}
-	commands += beforeScript
-
-	// get script
-	script, err := c.getCommands(jobScript)
-	if err != nil {
-		return
-	} else if jobScript == nil {
-		err = fmt.Errorf("missing 'script' for job")
-		return
-	}
-	commands += script
-	return
 }
 
 func (c *ExecCommand) buildVariables(configVariables interface{}) (buildVariables common.BuildVariables, err error) {
@@ -98,6 +51,14 @@ func (c *ExecCommand) buildVariables(configVariables interface{}) (buildVariable
 	return
 }
 
+func (c *ExecCommand) isJob(config map[string]interface{}, name string) (ok bool) {
+	_, ok = helpers.GetMapKey(config, name, "plugin")
+	if !ok {
+		_, ok = helpers.GetMapKey(config, name, "script")
+	}
+	return
+}
+
 func (c *ExecCommand) buildOptions(config map[string]interface{},
 	jobConfig map[interface{}]interface{}) (options common.BuildOptions, err error) {
 
@@ -105,16 +66,22 @@ func (c *ExecCommand) buildOptions(config map[string]interface{},
 
 	// parse global options
 	for key, value := range config {
-		if c.supportedOption(key, value) {
-			options[key] = value
+		if c.isJob(config, key) {
+			continue
 		}
+		if key == "variables" {
+			continue
+		}
+		options[key] = value
 	}
 
 	// parse job options
 	for key, value := range jobConfig {
-		if c.supportedOption(key.(string), value) {
-			options[key.(string)] = value
+		keyName := key.(string)
+		if keyName == "stage" || keyName == "plugin" {
+			continue
 		}
+		options[keyName] = value
 	}
 	return
 }
@@ -140,11 +107,6 @@ func (c *ExecCommand) parseYaml(job string, build *common.GetBuildResponse) erro
 		return fmt.Errorf("no job named %q", job)
 	}
 
-	build.Commands, err = c.buildCommands(config["before_script"], jobConfig["script"])
-	if err != nil {
-		return err
-	}
-
 	build.Variables, err = c.buildVariables(config["variables"])
 	if err != nil {
 		return err
@@ -159,6 +121,12 @@ func (c *ExecCommand) parseYaml(job string, build *common.GetBuildResponse) erro
 		build.Stage = stage
 	} else {
 		build.Stage = "test"
+	}
+
+	if stage, ok := jobConfig["plugin"].(string); ok {
+		build.Plugin = stage
+	} else {
+		build.Plugin = "script"
 	}
 	return nil
 }
@@ -188,20 +156,20 @@ func (c *ExecCommand) createBuild(repoURL string) (build *common.Build, err erro
 	}
 
 	build = common.NewBuild(common.GetBuildResponse{
-			ID:            1,
-			ProjectID:     1,
-			RepoURL:       repoURL,
-			Commands:      "",
-			Sha:           strings.TrimSpace(sha),
-			RefName:       strings.TrimSpace(refName),
-			BeforeSha:     strings.TrimSpace(beforeSha),
-			AllowGitFetch: false,
-			Timeout:       30 * 60,
-			Token:         "",
-			Name:          "",
-			Stage:         "",
-			Tag:           false,
-		},
+		ID:            1,
+		ProjectID:     1,
+		RepoURL:       repoURL,
+		Commands:      "",
+		Sha:           strings.TrimSpace(sha),
+		RefName:       strings.TrimSpace(refName),
+		BeforeSha:     strings.TrimSpace(beforeSha),
+		AllowGitFetch: false,
+		Timeout:       30 * 60,
+		Token:         "",
+		Name:          "",
+		Stage:         "",
+		Tag:           false,
+	},
 		common.RunnerConfig{
 			RunnerSettings: c.RunnerSettings,
 		},

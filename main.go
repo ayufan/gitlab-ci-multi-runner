@@ -16,8 +16,8 @@ import (
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/commands/helpers"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/docker"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/shell"
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/shells"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/plugins"
+	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/shells"
 )
 
 var NAME = "gitlab-ci-multi-runner"

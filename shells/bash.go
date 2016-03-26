@@ -173,7 +173,7 @@ func (b *BashShell) shell(build *common.Build, handler func(w ShellWriter) error
 	return
 }
 
-func (b *BashShell) PreBuild(build *common.Build) (script *common.ShellScript, err error) {
+func (b *BashShell) PreBuild(build *common.Build, options common.BuildOptions) (script *common.ShellScript, err error) {
 	return b.shell(build, func(w ShellWriter) error {
 		if len(build.Hostname) != 0 {
 			w.Line("echo " + strconv.Quote("Running on $(hostname) via "+build.Hostname+"..."))
@@ -186,14 +186,14 @@ func (b *BashShell) PreBuild(build *common.Build) (script *common.ShellScript, e
 	})
 }
 
-func (b *BashShell) Build(build *common.Build) (script *common.ShellScript, err error) {
+func (b *BashShell) Build(build *common.Build, options common.BuildOptions) (script *common.ShellScript, err error) {
 	return b.shell(build, func(w ShellWriter) error {
 		b.GenerateCommands(w, build)
 		return nil
 	})
 }
 
-func (b *BashShell) PostBuild(build *common.Build) (script *common.ShellScript, err error) {
+func (b *BashShell) PostBuild(build *common.Build, options common.BuildOptions) (script *common.ShellScript, err error) {
 	return b.shell(build, func(w ShellWriter) error {
 		b.GeneratePostBuild(w, build)
 		return nil

@@ -82,6 +82,7 @@ type GetBuildResponse struct {
 	Token           string         `json:"token"`
 	Name            string         `json:"name"`
 	Stage           string         `json:"stage"`
+	Plugin          string         `json:"plugin"`
 	Tag             bool           `json:"tag"`
 	DependsOnBuilds []BuildInfo    `json:"depends_on_builds"`
 	TLSCAChain      string         `json:"-"`

@@ -38,9 +38,9 @@ type Shell interface {
 	GetFeatures(features *FeaturesInfo)
 	IsDefault() bool
 
-	PreBuild(build *Build) (*ShellScript, error)
-	Build(build *Build) (*ShellScript, error)
-	PostBuild(build *Build) (*ShellScript, error)
+	PreBuild(build *Build, options BuildOptions) (*ShellScript, error)
+	Build(build *Build, options BuildOptions) (*ShellScript, error)
+	PostBuild(build *Build, options BuildOptions) (*ShellScript, error)
 }
 
 var shells map[string]Shell

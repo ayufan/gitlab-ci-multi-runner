@@ -1,15 +1,15 @@
 package shells
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"io"
 	"path"
 	"path/filepath"
 	"strings"
-	"bufio"
-	"io"
 )
 
 type PowerShell struct {
@@ -210,7 +210,7 @@ func (b *PowerShell) shell(build *common.Build, handler func(w ShellWriter) erro
 	return
 }
 
-func (b *PowerShell) PreBuild(build *common.Build) (script *common.ShellScript, err error) {
+func (b *PowerShell) PreBuild(build *common.Build, options common.BuildOptions) (script *common.ShellScript, err error) {
 	return b.shell(build, func(w ShellWriter) error {
 		if len(build.Hostname) != 0 {
 			w.Line("echo \"Running on $env:computername via " + psQuoteVariable(build.Hostname) + "...\"")
@@ -223,14 +223,14 @@ func (b *PowerShell) PreBuild(build *common.Build) (script *common.ShellScript, 
 	})
 }
 
-func (b *PowerShell) Build(build *common.Build) (script *common.ShellScript, err error) {
+func (b *PowerShell) Build(build *common.Build, options common.BuildOptions) (script *common.ShellScript, err error) {
 	return b.shell(build, func(w ShellWriter) error {
-		b.GenerateCommands(w, build)
+		b.GenerateCommands(w, build, options)
 		return nil
 	})
 }
 
-func (b *PowerShell) PostBuild(build *common.Build) (script *common.ShellScript, err error) {
+func (b *PowerShell) PostBuild(build *common.Build, options common.BuildOptions) (script *common.ShellScript, err error) {
 	return b.shell(build, func(w ShellWriter) error {
 		b.GeneratePostBuild(w, build)
 		return nil

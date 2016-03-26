@@ -1,6 +1,9 @@
 package plugins
 
-import "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+import (
+	"errors"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+)
 
 type defaultPlugin struct {
 }
@@ -9,21 +12,30 @@ func (s *defaultPlugin) GetName() string {
 	return "default"
 }
 
-func (s *defaultPlugin) Run(b *common.Build, abort chan error) (err error) {
-	clone := &clonePlugin{}
-	err = clone.Run(b, abort)
+func (s *defaultPlugin) Run(b *common.Build, options common.BuildOptions, abort chan error) (err error) {
+	preBuild, err := b.Shell.PreBuild(b)
+	if err != nil {
+		return
+	}
+	err = b.Step(preBuild, common.ImagePreBuild, abort)
 	if err != nil {
 		return
 	}
 
-	script := &scriptPlugin{}
-	err = script.Run(b, abort)
+	plugin := common.GetPlugin(b.Plugin)
+	if plugin == nil {
+		return errors.New("plugin not found: " + b.Plugin)
+	}
+	err = plugin.Run(b, options, abort)
 	if err != nil {
 		return
 	}
 
-	artifacts := &artifactsPlugin{}
-	err = artifacts.Run(b, abort)
+	postBuild, err := b.Shell.PreBuild(b)
+	if err != nil {
+		return
+	}
+	err = b.Step(postBuild, common.ImagePostBuild, abort)
 	if err != nil {
 		return
 	}
