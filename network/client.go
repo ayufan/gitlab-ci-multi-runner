@@ -22,6 +22,11 @@ import (
 	"time"
 )
 
+var dialer = net.Dialer{
+	Timeout:   30 * time.Second,
+	KeepAlive: 30 * time.Second,
+}
+
 type client struct {
 	http.Client
 	url        *url.URL
@@ -72,10 +77,10 @@ func (n *client) createTransport() {
 	// create transport
 	n.Transport = &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
-		Dial: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).Dial,
+		Dial: func(network, addr string) (net.Conn, error) {
+			logrus.Debugln("Dialing:", network, addr, "...")
+			return dialer.Dial(network, addr)
+		},
 		TLSHandshakeTimeout: 10 * time.Second,
 		TLSClientConfig:     &tlsConfig,
 	}
