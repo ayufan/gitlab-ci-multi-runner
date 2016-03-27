@@ -172,6 +172,7 @@ func (n *client) doJSON(uri, method string, statusCode int, request interface{},
 		return -1, err.Error(), ""
 	}
 	defer res.Body.Close()
+	defer io.Copy(ioutil.Discard, res.Body)
 
 	if res.StatusCode == statusCode {
 		if response != nil {

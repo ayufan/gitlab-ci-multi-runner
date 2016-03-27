@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"io/ioutil"
 )
 
 const clientError = -100
@@ -256,6 +257,7 @@ func (n *GitLabClient) UploadRawArtifacts(config common.BuildCredentials, reader
 		return common.UploadFailed
 	}
 	defer res.Body.Close()
+	defer io.Copy(ioutil.Discard, res.Body)
 
 	switch res.StatusCode {
 	case 201:
@@ -322,6 +324,7 @@ func (n *GitLabClient) DownloadArtifacts(config common.BuildCredentials, artifac
 		return common.DownloadFailed
 	}
 	defer res.Body.Close()
+	defer io.Copy(ioutil.Discard, res.Body)
 
 	switch res.StatusCode {
 	case 200:
