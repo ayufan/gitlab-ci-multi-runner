@@ -128,30 +128,39 @@ See [an example of a user issue][1105].
 [recipes]: https://gitlab.com/gitlab-org/gitlab-recipes/tree/master/web-server
 [1105]: https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues/1105
 
-## 11. Runner cannot be installed on OSX, because of `"launchctl" failed: exit status 112, Could not find domain for`:
+## 11. `"launchctl" failed: exit status 112, Could not find domain for`
 
-Make sure that you manage GitLab Runner service from the GUI Terminal application, not the SSH connection.
+This message may occur when you try to install GitLab Runner on OSX. Make sure
+that you manage GitLab Runner service from the GUI Terminal application, not
+the SSH connection.
 
-## 12. Runner is stuck on `Failed to authorize rights (0x1) with status: -60007.` when using OSX:
+## 12. `Failed to authorize rights (0x1) with status: -60007.`
 
-There are two problems why this happens:
-1. Make sure that your user can do UI interactions.
+If your Runner is stuck on the above message when using OSX, there are two
+problems why this happens:
 
-    ```
+1. Make sure that your user can perform UI interactions:
+
+    ```bash
     DevToolsSecurity -enable
     sudo security authorizationdb remove system.privilege.taskport is-developer
     ```
-    
-    The first command enables access to developer tools for your user.
-    
-    Second command allows the user, member of developer group to do UI interactions, ex. run iOS simulator.
 
-2. Make sure that your runner service doesn't use `SessionCreate = true`.
-Previously when running GitLab Runner as an service we were creating the `LaunchAgents` with `SessionCreate`.
-At that point (`Mavericks`) it was the only solution to make Code Signing work,
-but recently with introduction of `El Capitan` OSX introduced a lot of new security features which did change this behaviour.
-Since GitLab Runner 1.1 when creating a `LaunchAgent` we don't set the `SessionCreate`.
-However, in order to upgrade you need to manually reinstall the `LaunchAgent` script:
+    The first command enables access to developer tools for your user.
+    The second command allows the user who is member of the developer group to
+    do UI interactions, e.g., run the iOS simulator.
+
+    ---
+
+2. Make sure that your Runner service doesn't use `SessionCreate = true`.
+   Previously, when running GitLab Runner as a service, we were creating
+   `LaunchAgents` with `SessionCreate`. At that point (**Mavericks**), this was
+   the only solution to make Code Signing work. That changed recently with
+   **OSX El Capitan** which introduced a lot of new security features that
+   altered this behavior.
+   Since GitLab Runner 1.1, when creating a `LaunchAgent`, we don't set
+   `SessionCreate`. However, in order to upgrade, you need to manually
+   reinstall the `LaunchAgent` script:
 
     ```
     gitlab-ci-multi-runner uninstall
@@ -159,4 +168,5 @@ However, in order to upgrade you need to manually reinstall the `LaunchAgent` sc
     gitlab-ci-multi-runner start
     ```
 
-    Then you can verify that `~/Library/LaunchAgents/gitlab-runner.plist` have `SessionCreate` set to `false`.
+    Then you can verify that `~/Library/LaunchAgents/gitlab-runner.plist` has
+    `SessionCreate` set to `false`.

@@ -50,7 +50,8 @@ running already the config should be automatically reloaded!
 
 The runner should be started already and you are ready to build your projects!
 
-Make sure that you read the [FAQ](../faq/README.md) section which describes most common problems with the GitLab Runner. 
+Make sure that you read the [FAQ](../faq/README.md) section which describes
+some of the most common problems with GitLab Runner.
 
 ### Update
 
