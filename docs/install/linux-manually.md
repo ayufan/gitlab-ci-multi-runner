@@ -66,3 +66,6 @@ Start the service:
 ```bash
 sudo gitlab-ci-multi-runner start
 ```
+
+Make sure that you read the [FAQ](../faq/README.md) section which describes
+some of the most common problems with GitLab Runner.

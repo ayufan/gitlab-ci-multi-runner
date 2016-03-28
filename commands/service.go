@@ -90,7 +90,7 @@ func runServiceStatus(displayName string, s service.Service, c *cli.Context) err
 	return nil
 }
 
-func getServiceArguments(c *cli.Context, isUserService bool) (arguments []string) {
+func getServiceArguments(c *cli.Context) (arguments []string) {
 	if wd := c.String("working-directory"); wd != "" {
 		arguments = append(arguments, "--working-directory", wd)
 	}
@@ -103,53 +103,48 @@ func getServiceArguments(c *cli.Context, isUserService bool) (arguments []string
 		arguments = append(arguments, "--service", sn)
 	}
 
-	if user := c.String("user"); !isUserService && user != "" {
-		arguments = append(arguments, "--user", user)
-	}
-
 	arguments = append(arguments, "--syslog")
 	return
 }
 
 func createServiceConfig(c *cli.Context) (svcConfig *service.Config) {
-	// detect whether we want to install as user service or system service
-	isUserService := os.Getuid() != 0
-	if runtime.GOOS == "windows" {
-		isUserService = true
-	}
-
-	// when installing service as system wide service don't specify username for service
-	serviceUserName := c.String("user")
-	if !isUserService {
-		serviceUserName = ""
-	}
-
-	if isUserService && runtime.GOOS == "linux" {
-		logrus.Fatal("Please run the commands as root")
-	}
-
 	svcConfig = &service.Config{
 		Name:        c.String("service"),
 		DisplayName: c.String("service"),
 		Description: defaultDescription,
 		Arguments:   []string{"run"},
-		UserName:    serviceUserName,
 	}
-	svcConfig.Arguments = append(svcConfig.Arguments, getServiceArguments(c, isUserService)...)
+	svcConfig.Arguments = append(svcConfig.Arguments, getServiceArguments(c)...)
 
 	switch runtime.GOOS {
+	case "linux":
+		if os.Getuid() != 0 {
+			logrus.Fatal("Please run the commands as root")
+		}
+		if user := c.String("user"); user != "" {
+			svcConfig.Arguments = append(svcConfig.Arguments, "--user", user)
+		}
+
 	case "darwin":
 		svcConfig.Option = service.KeyValue{
-			"KeepAlive":     true,
-			"RunAtLoad":     true,
-			"SessionCreate": true,
-			"UserService":   isUserService,
+			"KeepAlive":   true,
+			"RunAtLoad":   true,
+			"UserService": os.Getuid() != 0,
+		}
+
+		if user := c.String("user"); user != "" {
+			if os.Getuid() == 0 {
+				svcConfig.Arguments = append(svcConfig.Arguments, "--user", user)
+			} else {
+				logrus.Fatalln("The --user is not supported for non-root users")
+			}
 		}
 
 	case "windows":
 		svcConfig.Option = service.KeyValue{
 			"Password": c.String("password"),
 		}
+		svcConfig.UserName = c.String("user")
 	}
 	return
 }
