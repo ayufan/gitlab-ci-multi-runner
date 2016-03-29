@@ -35,7 +35,7 @@ Mirror:
   - chmod -R 0600 ~/.ssh/
   - git remote add github git@github.com:ayufan/gitlab-ci-multi-runner.git
   - git fetch github
-  - git push github --mirror
+  - git push github "$CI_BUILD_REF_NAME" -f
   only:
   - master@gitlab-org/gitlab-ci-multi-runner
   - tags@gitlab-org/gitlab-ci-multi-runner
