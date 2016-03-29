@@ -6,6 +6,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -298,6 +299,7 @@ func (n *GitLabClient) UploadRawArtifacts(config common.BuildCredentials, reader
 		return common.UploadFailed
 	}
 	defer res.Body.Close()
+	defer io.Copy(ioutil.Discard, res.Body)
 
 	switch res.StatusCode {
 	case 201:
@@ -365,6 +367,7 @@ func (n *GitLabClient) DownloadArtifacts(config common.BuildCredentials, artifac
 		return common.DownloadFailed
 	}
 	defer res.Body.Close()
+	defer io.Copy(ioutil.Discard, res.Body)
 
 	switch res.StatusCode {
 	case 200:
