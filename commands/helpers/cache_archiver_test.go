@@ -32,12 +32,15 @@ func TestCacheArchiverIsUpToDate(t *testing.T) {
 	fi, _ := os.Stat(cacheArchiverArchive)
 	cmd.Execute(nil)
 	fi2, _ := os.Stat(cacheArchiverArchive)
-	assert.Equal(t, fi.ModTime(), fi2.ModTime())
+	assert.Equal(t, fi.ModTime(), fi2.ModTime(), "archive is up to date")
+
+	// We need to wait one second, since the FS doesn't save milliseconds
+	time.Sleep(time.Second)
 
 	os.Chtimes(cacheArchiverTestArchivedFile, time.Now(), time.Now())
 	cmd.Execute(nil)
 	fi3, _ := os.Stat(cacheArchiverArchive)
-	assert.Equal(t, fi.ModTime(), fi3.ModTime())
+	assert.NotEqual(t, fi.ModTime(), fi3.ModTime(), "archive should get updated")
 }
 
 func TestCacheArchiverForIfNoFileDefined(t *testing.T) {
