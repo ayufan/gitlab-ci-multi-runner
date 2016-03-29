@@ -21,6 +21,7 @@ v 1.1.0
 - Fix: Don't restore cache if not defined in gitlab-ci.yml
 - Fix: Always use `json-file` when starting docker containers
 - Fix: Error level checking for Windows Batch and PowerShell
+- Fix: Inject GIT_SSL_CA_INFO only if Repo URL matches the Runner URL
  
 v 1.0.4
 - Fix support for Windows PowerShell

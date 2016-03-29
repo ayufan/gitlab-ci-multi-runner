@@ -1,6 +1,8 @@
 package shells
 
 import (
+	"errors"
+	"net/url"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -31,8 +33,24 @@ func (b *AbstractShell) writeExports(w ShellWriter, info common.ShellScriptInfo)
 	}
 }
 
-func (b *AbstractShell) writeTLSCAInfo(w ShellWriter, build *common.Build, key string) {
-	if build.TLSCAChain != "" {
+func (b *AbstractShell) writeTLSCAInfo(w ShellWriter, build *common.Build, key string, forRawUrl string) error {
+	if build.TLSCAChain == "" {
+		return errors.New("No TLSCAChain")
+	}
+
+	runnerUrl, err := url.Parse(build.Runner.URL)
+	if err != nil {
+		return err
+	}
+
+	forUrl, err := url.Parse(forRawUrl)
+	if err != nil {
+		return err
+	}
+
+	// Define `key` only if forRawUrl matches
+	if strings.EqualFold(runnerUrl.Scheme, forUrl.Scheme) &&
+		strings.EqualFold(runnerUrl.Host, forUrl.Host) {
 		w.Variable(common.BuildVariable{
 			Key:      key,
 			Value:    build.TLSCAChain,
@@ -41,6 +59,7 @@ func (b *AbstractShell) writeTLSCAInfo(w ShellWriter, build *common.Build, key s
 			File:     true,
 		})
 	}
+	return nil
 }
 
 func (b *AbstractShell) writeCloneCmd(w ShellWriter, build *common.Build, projectDir string) {
@@ -179,8 +198,8 @@ func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptI
 	projectDir := build.FullProjectDir()
 	gitDir := path.Join(build.FullProjectDir(), ".git")
 
-	b.writeTLSCAInfo(w, info.Build, "GIT_SSL_CAINFO")
-	b.writeTLSCAInfo(w, info.Build, "CI_SERVER_TLS_CA_FILE")
+	b.writeTLSCAInfo(w, info.Build, "GIT_SSL_CAINFO", build.GetBuildResponse.RepoURL)
+	b.writeTLSCAInfo(w, info.Build, "CI_SERVER_TLS_CA_FILE", build.Runner.URL)
 
 	if build.AllowGitFetch {
 		b.writeFetchCmd(w, build, projectDir, gitDir)
@@ -299,7 +318,7 @@ func (b *AbstractShell) uploadArtifacts(w ShellWriter, options *archivingOptions
 func (b *AbstractShell) GeneratePostBuild(w ShellWriter, info common.ShellScriptInfo) {
 	b.writeExports(w, info)
 	b.writeCdBuildDir(w, info)
-	b.writeTLSCAInfo(w, info.Build, "CI_SERVER_TLS_CA_FILE")
+	b.writeTLSCAInfo(w, info.Build, "CI_SERVER_TLS_CA_FILE", info.Build.Runner.URL)
 
 	// Parse options
 	var options shellOptions
