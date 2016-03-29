@@ -51,6 +51,20 @@ func (m *Network) UpdateBuild(config common.RunnerConfig, id int, state common.B
 
 	return r0
 }
+func (m *Network) UpdateBuildState(config common.RunnerConfig, id int, state common.BuildState) common.UpdateState {
+	ret := m.Called(config, id, state)
+
+	r0 := ret.Get(0).(common.UpdateState)
+
+	return r0
+}
+func (m *Network) SendTracePart(config common.RunnerConfig, id int, tracePart string) common.UpdateState {
+	ret := m.Called(config, id, tracePart)
+
+	r0 := ret.Get(0).(common.UpdateState)
+
+	return r0
+}
 func (m *Network) DownloadArtifacts(config common.BuildCredentials, artifactsFile string) common.DownloadState {
 	ret := m.Called(config, artifactsFile)
 

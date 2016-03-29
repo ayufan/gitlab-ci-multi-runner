@@ -113,6 +113,10 @@ type UpdateBuildRequest struct {
 	Trace string      `json:"trace,omitempty"`
 }
 
+type SendTracePartRequest struct {
+	TracePart string
+}
+
 type BuildCredentials struct {
 	ID        int    `long:"id" env:"CI_BUILD_ID" description:"The build ID to upload artifacts for"`
 	Token     string `long:"token" env:"CI_BUILD_TOKEN" required:"true" description:"Build token"`
@@ -134,6 +138,8 @@ type Network interface {
 	DeleteRunner(config RunnerCredentials) bool
 	VerifyRunner(config RunnerCredentials) bool
 	UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) UpdateState
+	UpdateBuildState(config RunnerConfig, id int, state BuildState) UpdateState
+	SendTracePart(config RunnerConfig, id int, tracePart string) UpdateState
 	DownloadArtifacts(config BuildCredentials, artifactsFile string) DownloadState
 	UploadRawArtifacts(config BuildCredentials, reader io.Reader, baseName string) UploadState
 	UploadArtifacts(config BuildCredentials, artifactsFile string) UploadState

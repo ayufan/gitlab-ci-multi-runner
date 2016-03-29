@@ -188,6 +188,20 @@ func (n *GitLabClient) UpdateBuild(config common.RunnerConfig, id int, state com
 		Trace: trace,
 	}
 
+	return n.updateBuild(config, id, request)
+}
+
+func (n *GitLabClient) UpdateBuildState(config common.RunnerConfig, id int, state common.BuildState) common.UpdateState {
+	request := common.UpdateBuildRequest{
+		Info:  n.getRunnerVersion(config),
+		Token: config.Token,
+		State: state,
+	}
+
+	return n.updateBuild(config, id, request)
+}
+
+func (n *GitLabClient) updateBuild(config common.RunnerConfig, id int, request common.UpdateBuildRequest) common.UpdateState {
 	result, statusText, _ := n.doJSON(config.RunnerCredentials, "PUT", fmt.Sprintf("builds/%d.json", id), 200, &request, nil)
 	switch result {
 	case 200:
@@ -206,6 +220,35 @@ func (n *GitLabClient) UpdateBuild(config common.RunnerConfig, id int, state com
 		config.Log().WithField("status", statusText).Warningln(id, "Submitting build to coordinator...", "failed")
 		return common.UpdateFailed
 	}
+}
+
+func (n *GitLabClient) SendTracePart(config common.RunnerConfig, id int, tracePart string) common.UpdateState {
+	request := common.SendTracePartRequest{
+		TracePart: tracePart,
+	}
+
+	result, statusText, _ := n.doJSON(config.RunnerCredentials, "PATCH", fmt.Sprintf("builds/%d/trace.txt", id), 200, &request, nil)
+	logrus.Debugln(fmt.Sprintf("result=%s, statusText=%s", result, statusText))
+
+	return common.UpdateSucceeded
+
+	/*switch result {
+	case 200:
+		config.Log().Println(id, "Submitting build to coordinator...", "ok")
+		return common.UpdateSucceeded
+	case 404:
+		config.Log().Warningln(id, "Submitting build to coordinator...", "aborted")
+		return common.UpdateAbort
+	case 403:
+		config.Log().Errorln(id, "Submitting build to coordinator...", "forbidden")
+		return common.UpdateAbort
+	case clientError:
+		config.Log().WithField("status", statusText).Errorln(id, "Submitting build to coordinator...", "error")
+		return common.UpdateAbort
+	default:
+		config.Log().WithField("status", statusText).Warningln(id, "Submitting build to coordinator...", "failed")
+		return common.UpdateFailed
+	}*/
 }
 
 func (n *GitLabClient) createArtifactsForm(mpw *multipart.Writer, reader io.Reader, baseName string) error {

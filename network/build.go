@@ -29,7 +29,6 @@ type clientBuildTrace struct {
 	state    common.BuildState
 	finished chan bool
 
-	sentTrace int
 	sentTime  time.Time
 	sentState common.BuildState
 }
@@ -136,23 +135,27 @@ func (c *clientBuildTrace) process(pipe *io.PipeReader) {
 func (c *clientBuildTrace) update() common.UpdateState {
 	c.lock.RLock()
 	state := c.state
-	trace := c.log.String()
+	tracePart := c.log.String()
 	c.lock.RUnlock()
 
 	if c.sentState == state &&
-		c.sentTrace == len(trace) &&
 		time.Since(c.sentTime) < traceForceSendInterval {
 		return common.UpdateSucceeded
 	}
 
-	upload := c.client.UpdateBuild(c.config, c.id, state, trace)
+	traceUpdate := c.client.SendTracePart(c.config, c.id, tracePart)
+	if traceUpdate == common.UpdateSucceeded {
+		c.lock.Lock()
+		c.log.Reset()
+		c.lock.Unlock()
+	}
 
-	if upload == common.UpdateSucceeded {
-		c.sentTrace = len(trace)
+	stateUpdate := c.client.UpdateBuildState(c.config, c.id, state)
+	if stateUpdate == common.UpdateSucceeded {
 		c.sentState = state
 		c.sentTime = time.Now()
 	}
-	return upload
+	return stateUpdate
 }
 
 func (c *clientBuildTrace) watch() {
