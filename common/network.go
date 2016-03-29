@@ -114,7 +114,8 @@ type UpdateBuildRequest struct {
 }
 
 type SendTracePartRequest struct {
-	TracePart string
+	Token     string `json:"token,omitempty"`
+	TracePart string `json:"trace_part"`
 }
 
 type BuildCredentials struct {

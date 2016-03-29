@@ -6,7 +6,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -224,31 +223,29 @@ func (n *GitLabClient) updateBuild(config common.RunnerConfig, id int, request c
 
 func (n *GitLabClient) SendTracePart(config common.RunnerConfig, id int, tracePart string) common.UpdateState {
 	request := common.SendTracePartRequest{
+		Token:     config.Token,
 		TracePart: tracePart,
 	}
 
 	result, statusText, _ := n.doJSON(config.RunnerCredentials, "PATCH", fmt.Sprintf("builds/%d/trace.txt", id), 200, &request, nil)
-	logrus.Debugln(fmt.Sprintf("result=%s, statusText=%s", result, statusText))
 
-	return common.UpdateSucceeded
-
-	/*switch result {
+	switch result {
 	case 200:
-		config.Log().Println(id, "Submitting build to coordinator...", "ok")
+		config.Log().Println(id, "Appending trace to coordinator...", "ok")
 		return common.UpdateSucceeded
 	case 404:
-		config.Log().Warningln(id, "Submitting build to coordinator...", "aborted")
+		config.Log().Warningln(id, "Appending trace to coordinator...", "aborted")
 		return common.UpdateAbort
 	case 403:
-		config.Log().Errorln(id, "Submitting build to coordinator...", "forbidden")
+		config.Log().Errorln(id, "Appending trace to coordinator...", "forbidden")
 		return common.UpdateAbort
 	case clientError:
-		config.Log().WithField("status", statusText).Errorln(id, "Submitting build to coordinator...", "error")
+		config.Log().WithField("status", statusText).Errorln(id, "Appending trace to coordinator...", "error")
 		return common.UpdateAbort
 	default:
-		config.Log().WithField("status", statusText).Warningln(id, "Submitting build to coordinator...", "failed")
+		config.Log().WithField("status", statusText).Warningln(id, "Appending trace to coordinator...", "failed")
 		return common.UpdateFailed
-	}*/
+	}
 }
 
 func (n *GitLabClient) createArtifactsForm(mpw *multipart.Writer, reader io.Reader, baseName string) error {
@@ -301,7 +298,6 @@ func (n *GitLabClient) UploadRawArtifacts(config common.BuildCredentials, reader
 		return common.UploadFailed
 	}
 	defer res.Body.Close()
-	defer io.Copy(ioutil.Discard, res.Body)
 
 	switch res.StatusCode {
 	case 201:
@@ -369,7 +365,6 @@ func (n *GitLabClient) DownloadArtifacts(config common.BuildCredentials, artifac
 		return common.DownloadFailed
 	}
 	defer res.Body.Close()
-	defer io.Copy(ioutil.Discard, res.Body)
 
 	switch res.StatusCode {
 	case 200:

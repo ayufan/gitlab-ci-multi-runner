@@ -139,6 +139,7 @@ func (c *clientBuildTrace) update() common.UpdateState {
 	c.lock.RUnlock()
 
 	if c.sentState == state &&
+		len(tracePart) == 0 &&
 		time.Since(c.sentTime) < traceForceSendInterval {
 		return common.UpdateSucceeded
 	}
