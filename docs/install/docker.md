@@ -62,6 +62,9 @@ running already the config should be automatically reloaded!
 
 The runner should is started already and you are ready to build your projects!
 
+Make sure that you read the [FAQ](../faq/README.md) section which describes
+some of the most common problems with GitLab Runner.
+
 ### Update
 
 Pull the latest version:
@@ -112,7 +115,7 @@ gitlab/gitlab-runner    latest              3e8077e209f5        13 hours ago    
 gitlab/gitlab-runner    alpine              7c431ac8f30f        13 hours ago        25.98 MB
 ```
 
-**Alpine Linux image is designed to use only Docker as the method of spawning runners.** 
+**Alpine Linux image is designed to use only Docker as the method of spawning runners.**
 
 The original `gitlab/gitlab-runner:latest` is based on Ubuntu 14.04 LTS.
 
@@ -136,6 +139,6 @@ Install the `selinux-dockersock` and to resolve the issue: https://github.com/dp
       -v /srv/gitlab-runner/config:/etc/gitlab-runner:Z \
       gitlab/gitlab-runner:latest
 ```
-      
+
 More information about the cause and resolution can be found here:
 http://www.projectatomic.io/blog/2015/06/using-volumes-with-docker-can-cause-problems-with-selinux/
