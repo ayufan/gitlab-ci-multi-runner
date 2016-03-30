@@ -83,11 +83,11 @@ func (c *ExecCommand) buildCommands(configBeforeScript, jobScript interface{}) (
 }
 
 func (c *ExecCommand) buildVariables(configVariables interface{}) (buildVariables common.BuildVariables, err error) {
-	if variables, ok := configVariables.(map[interface{}]interface{}); ok {
+	if variables, ok := configVariables.(map[string]interface{}); ok {
 		for key, value := range variables {
 			if valueText, ok := value.(string); ok {
 				buildVariables = append(buildVariables, common.BuildVariable{
-					Key:    key.(string),
+					Key:    key,
 					Value:  valueText,
 					Public: true,
 				})
@@ -101,9 +101,7 @@ func (c *ExecCommand) buildVariables(configVariables interface{}) (buildVariable
 	return
 }
 
-func (c *ExecCommand) buildOptions(config map[string]interface{},
-	jobConfig map[interface{}]interface{}) (options common.BuildOptions, err error) {
-
+func (c *ExecCommand) buildOptions(config, jobConfig common.BuildOptions) (options common.BuildOptions, err error) {
 	options = make(common.BuildOptions)
 
 	// parse global options
@@ -115,8 +113,8 @@ func (c *ExecCommand) buildOptions(config map[string]interface{},
 
 	// parse job options
 	for key, value := range jobConfig {
-		if c.supportedOption(key.(string), value) {
-			options[key.(string)] = value
+		if c.supportedOption(key, value) {
+			options[key] = value
 		}
 	}
 	return
@@ -131,14 +129,19 @@ func (c *ExecCommand) parseYaml(job string, build *common.GetBuildResponse) erro
 	build.Name = job
 
 	// parse gitlab-ci.yml
-	config := make(map[string]interface{})
+	config := make(common.BuildOptions)
 	err = yaml.Unmarshal(data, config)
 	if err != nil {
 		return err
 	}
 
+	err = config.Sanitize()
+	if err != nil {
+		return err
+	}
+
 	// get job
-	jobConfig, ok := config[job].(map[interface{}]interface{})
+	jobConfig, ok := config.GetSubOptions(job)
 	if !ok {
 		return fmt.Errorf("no job named %q", job)
 	}
@@ -158,7 +161,7 @@ func (c *ExecCommand) parseYaml(job string, build *common.GetBuildResponse) erro
 		return err
 	}
 
-	if stage, ok := jobConfig["stage"].(string); ok {
+	if stage, ok := jobConfig.GetString("stage"); ok {
 		build.Stage = stage
 	} else {
 		build.Stage = "test"
