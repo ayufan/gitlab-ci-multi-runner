@@ -7,14 +7,15 @@ import (
 )
 
 type ShellScript struct {
-	Environment []string
-	PreScript   string
-	BuildScript string
-	PostScript  string
-	Command     string
-	Arguments   []string
-	PassFile    bool
-	Extension   string
+	Environment  []string
+	DetectScript string
+	PreScript    string
+	BuildScript  string
+	PostScript   string
+	Command      string
+	Arguments    []string
+	PassFile     bool
+	Extension    string
 }
 
 type ShellType int
@@ -33,7 +34,7 @@ func (s *ShellScript) GetCommandWithArguments() []string {
 }
 
 func (s *ShellScript) GetScriptBytes() []byte {
-	return []byte(s.PreScript + s.BuildScript + s.PostScript)
+	return []byte(s.DetectScript + s.PreScript + s.BuildScript + s.PostScript)
 }
 
 func (s *ShellScript) String() string {

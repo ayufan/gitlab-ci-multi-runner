@@ -14,6 +14,25 @@ import (
 	"strings"
 )
 
+const bashDetectShell = `if [ -x /usr/local/bin/bash ]; then
+	exec /usr/local/bin/bash $@
+elif [ -x /usr/bin/bash ]; then
+	exec /usr/bin/bash $@
+elif [ -x /bin/bash ]; then
+	exec /bin/bash $@
+elif [ -x /usr/local/bin/sh ]; then
+	exec /usr/local/bin/sh $@
+elif [ -x /usr/bin/sh ]; then
+	exec /usr/bin/sh $@
+elif [ -x /bin/sh ]; then
+	exec /bin/sh $@
+else
+	echo shell not found
+	exit 1
+fi
+
+`
+
 type BashShell struct {
 	AbstractShell
 	Shell string
@@ -159,45 +178,28 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	b.GeneratePostBuild(postScript, info)
 
 	script := common.ShellScript{
-		PreScript:   preScript.Finish(),
-		BuildScript: buildScript.Finish(),
-		PostScript:  postScript.Finish(),
+		DetectScript: bashDetectShell,
+		PreScript:    preScript.Finish(),
+		BuildScript:  buildScript.Finish(),
+		PostScript:   postScript.Finish(),
 	}
 
 	// su
 	if info.User != "" {
 		script.Command = "su"
-		if runtime.GOOS == "linux" {
-			// Support to specify shell when used on Linux
-			script.Arguments = []string{"--shell", "/bin/sh"}
-		}
 		script.Arguments = append(script.Arguments, info.User)
+		script.Arguments = append(script.Arguments, "-c")
+		if info.Type == common.LoginShell {
+			script.Arguments = append(script.Arguments, "/bin/sh -l")
+		} else {
+			script.Arguments = append(script.Arguments, "/bin/sh")
+		}
 	} else {
 		script.Command = "sh"
+		if info.Type == common.LoginShell {
+			script.Arguments = append(script.Arguments, "-l")
+		}
 	}
-
-	detectShell := `if [ -x /usr/local/bin/bash ]; then
-	exec /usr/local/bin/bash $@
-elif [ -x /usr/bin/bash ]; then
-	exec /usr/bin/bash $@
-elif [ -x /bin/bash ]; then
-	exec /bin/bash $@
-elif [ -x /usr/local/bin/sh ]; then
-	exec /usr/local/bin/sh $@
-elif [ -x /usr/bin/sh ]; then
-	exec /usr/bin/sh $@
-elif [ -x /bin/sh ]; then
-	exec /bin/sh $@
-else
-	echo shell not found
-	exit 1
-fi`
-
-	script.Arguments = append(script.Arguments, "-c", detectShell, "--")
-	if info.Type == common.LoginShell {
-		script.Arguments = append(script.Arguments, "-l")
-	}
-
 	return &script, nil
 }
 
