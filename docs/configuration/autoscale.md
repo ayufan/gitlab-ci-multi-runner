@@ -376,5 +376,5 @@ available at the [Docker Machine documentation][docker-machine-driver].
 [docker-machine-installation]: https://docs.docker.com/machine/install-machine/
 [runners-cache]: advanced-configuration.md#the-runnerscache-section
 [registry]: https://docs.docker.com/docker-trusted-registry/overview/
-[caching]: ../install/auto-scaling.md#install-the-cache-server
-[registry-server]: ../install/auto-scaling.md#install-docker-registry
+[caching]: ../install/autoscaling.md#install-the-cache-server
+[registry-server]: ../install/autoscaling.md#install-docker-registry

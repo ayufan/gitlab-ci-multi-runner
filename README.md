@@ -75,7 +75,7 @@ Supported systems by different shells:
 * [Install on OSX (preferred)](docs/install/osx.md)
 * [Install on Windows (preferred)](docs/install/windows.md)
 * [Install as Docker Service](docs/install/docker.md)
-* [Install in Auto-scaling mode](docs/install/auto-scaling.md)
+* [Install in Auto-scaling mode](docs/install/autoscaling.md)
 * [Use on FreeBSD](docs/install/freebsd.md)
 
 ### Use GitLab Runner

@@ -5,7 +5,7 @@ builds in different scenarios:
 
 - [Shell](shell.md)
 - [Docker](docker.md)
-- [Docker Machine and Docker Machine SSH (auto-scaling)](../install/auto-scaling.md)
+- [Docker Machine and Docker Machine SSH (auto-scaling)](../install/autoscaling.md)
 - [Parallels](parallels.md)
 - [VirtualBox](virtualbox.md)
 - [SSH](ssh.md)
