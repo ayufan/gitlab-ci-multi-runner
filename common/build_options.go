@@ -60,12 +60,12 @@ func convertMapToStringMap(in interface{}) (out interface{}, err error) {
 	if ok {
 		mapString := make(map[string]interface{})
 		for k, v := range mapInterface {
-			kString, ok := k.(string)
+			key, ok := k.(string)
 			if !ok {
 				return nil, fmt.Errorf("failed to convert %v to string", k)
 			}
 
-			mapString[kString], err = convertMapToStringMap(v)
+			mapString[key], err = convertMapToStringMap(v)
 			if err != nil {
 				return
 			}
