@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v1"
 	"testing"
 )
 
@@ -36,6 +37,13 @@ const exampleOptionsNoDataJSON = `{
 		"root": "value"
 	}
 }`
+
+const exampleOptionsYAML = `
+image: test:latest
+
+variables:
+    KEY: value
+`
 
 func (o *buildTest) Unmarshal(data string) error {
 	return json.Unmarshal([]byte(data), o)
@@ -82,4 +90,24 @@ func TestBuildOptionsDecodeData(t *testing.T) {
 	require.NoError(t, options.Decode(&data, "data"))
 	assert.Equal(t, "value", data.String)
 	assert.Equal(t, 1, data.Integer)
+}
+
+func TestBuildOptionsSanitizeWithYamlDecode(t *testing.T) {
+	options := make(BuildOptions)
+
+	require.NoError(t, yaml.Unmarshal([]byte(exampleOptionsYAML), options))
+	assert.Equal(t, BuildOptions{
+		"image": "test:latest",
+		"variables": map[interface{}]interface{}{
+			"KEY": "value",
+		},
+	}, options)
+
+	require.NoError(t, options.Sanitize())
+	assert.Equal(t, BuildOptions{
+		"image": "test:latest",
+		"variables": map[string]interface{}{
+			"KEY": "value",
+		},
+	}, options)
 }
