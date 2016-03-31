@@ -401,21 +401,22 @@ func TestUpdateBuild(t *testing.T) {
 		},
 	}
 
+	trace := "trace"
 	c := GitLabClient{}
 
-	state := c.UpdateBuild(config, 10, "running", "trace")
+	state := c.UpdateBuild(config, 10, "running", &trace)
 	assert.Equal(t, UpdateSucceeded, state, "Update should continue when running")
 
-	state = c.UpdateBuild(config, 10, "forbidden", "trace")
+	state = c.UpdateBuild(config, 10, "forbidden", &trace)
 	assert.Equal(t, UpdateAbort, state, "Update should if the state is forbidden")
 
-	state = c.UpdateBuild(config, 10, "other", "trace")
+	state = c.UpdateBuild(config, 10, "other", &trace)
 	assert.Equal(t, UpdateFailed, state, "Update should fail for badly formatted request")
 
-	state = c.UpdateBuild(config, 4, "state", "trace")
+	state = c.UpdateBuild(config, 4, "state", &trace)
 	assert.Equal(t, UpdateAbort, state, "Update should abort for unknown build")
 
-	state = c.UpdateBuild(brokenConfig, 4, "state", "trace")
+	state = c.UpdateBuild(brokenConfig, 4, "state", &trace)
 	assert.Equal(t, UpdateAbort, state)
 }
 

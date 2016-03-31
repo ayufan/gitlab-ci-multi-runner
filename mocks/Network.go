@@ -51,8 +51,8 @@ func (m *Network) UpdateBuild(config common.RunnerConfig, id int, state common.B
 
 	return r0
 }
-func (m *Network) SendTrace(config common.RunnerConfig, id int, trace bytes.Buffer, offset int) common.UpdateState {
-	ret := m.Called(config, id, trace)
+func (m *Network) SendTrace(config common.RunnerConfig, buildData *common.GetBuildResponse, trace bytes.Buffer, offset int) common.UpdateState {
+	ret := m.Called(config, buildData, trace, offset)
 
 	r0 := ret.Get(0).(common.UpdateState)
 
@@ -79,8 +79,8 @@ func (m *Network) UploadArtifacts(config common.BuildCredentials, artifactsFile 
 
 	return r0
 }
-func (m *Network) ProcessBuild(config common.RunnerConfig, id int) common.BuildTrace {
-	ret := m.Called(config, id)
+func (m *Network) ProcessBuild(config common.RunnerConfig, buildData *common.GetBuildResponse) common.BuildTrace {
+	ret := m.Called(config, buildData)
 
 	r0 := ret.Get(0).(common.BuildTrace)
 
