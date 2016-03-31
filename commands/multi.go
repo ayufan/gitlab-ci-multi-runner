@@ -113,7 +113,7 @@ func (mr *RunCommand) processRunner(id int, runner *runnerAcquire) (err error) {
 	}
 
 	// Make sure to always close output
-	trace := mr.network.ProcessBuild(runner.RunnerConfig, buildData.ID)
+	trace := mr.network.ProcessBuild(runner.RunnerConfig, buildData)
 	defer trace.Fail(err)
 
 	// Create a new build

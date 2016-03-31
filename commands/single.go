@@ -78,7 +78,7 @@ func (r *RunSingleCommand) processBuild(data common.ExecutorData, abortSignal ch
 		ExecutorData:     data,
 	}
 
-	trace := r.network.ProcessBuild(r.RunnerConfig, buildData.ID)
+	trace := r.network.ProcessBuild(r.RunnerConfig, buildData)
 	defer trace.Fail(err)
 
 	err = newBuild.Run(config, trace)

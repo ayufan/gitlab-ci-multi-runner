@@ -18,17 +18,21 @@ var traceFinishRetryInterval = common.UpdateRetryInterval
 type clientBuildTrace struct {
 	*io.PipeWriter
 
-	client common.Network
-	config common.RunnerConfig
-	id     int
-	limit  int64
-	abort  func()
+	client    common.Network
+	config    common.RunnerConfig
+	buildData *common.GetBuildResponse
+	id        int
+	limit     int64
+	abort     func()
+
+	incrementalAvailable bool
 
 	log      bytes.Buffer
 	lock     sync.RWMutex
 	state    common.BuildState
 	finished chan bool
 
+	sentTrace int
 	sentTime  time.Time
 	sentState common.BuildState
 }
@@ -66,6 +70,7 @@ func (c *clientBuildTrace) start() {
 	c.PipeWriter = writer
 	c.finished = make(chan bool)
 	c.state = common.Running
+	c.incrementalAvailable = true
 	go c.process(reader)
 	go c.watch()
 }
@@ -133,30 +138,74 @@ func (c *clientBuildTrace) process(pipe *io.PipeReader) {
 }
 
 func (c *clientBuildTrace) update() common.UpdateState {
+	var update common.UpdateState
+
+	if c.incrementalAvailable != false {
+		update = c.incrementalUpdate()
+
+		if update == common.UpdateNotFound {
+			c.incrementalAvailable = false
+			c.config.Log().Warningln("Incremental build update not available. Switching back to full build update")
+		}
+	}
+
+	if c.incrementalAvailable == false {
+		update = c.staleUpdate()
+	}
+
+	return update
+}
+
+func (c *clientBuildTrace) incrementalUpdate() common.UpdateState {
 	c.lock.RLock()
 	state := c.state
-	tracePart := c.log.String()
+	trace := c.log
 	c.lock.RUnlock()
 
 	if c.sentState == state &&
-		len(tracePart) == 0 &&
+		c.sentTrace == trace.Len() &&
 		time.Since(c.sentTime) < traceForceSendInterval {
 		return common.UpdateSucceeded
 	}
 
-	traceUpdate := c.client.SendTracePart(c.config, c.id, tracePart)
-	if traceUpdate == common.UpdateSucceeded {
-		c.lock.Lock()
-		c.log.Reset()
-		c.lock.Unlock()
+	if c.sentState != state {
+		c.client.UpdateBuild(c.config, c.id, state, nil)
+		c.sentState = state
 	}
 
-	stateUpdate := c.client.UpdateBuildState(c.config, c.id, state)
-	if stateUpdate == common.UpdateSucceeded {
+	update := c.client.SendTrace(c.config, c.buildData, trace, c.sentTrace)
+	if update == common.UpdateNotFound {
+		return update
+	}
+
+	if update == common.UpdateSucceeded {
+		c.sentTrace = trace.Len()
+		c.sentTime = time.Now()
+	}
+
+	return update
+}
+
+func (c *clientBuildTrace) staleUpdate() common.UpdateState {
+	c.lock.RLock()
+	state := c.state
+	trace := c.log.String()
+	c.lock.RUnlock()
+
+	if c.sentState == state &&
+		c.sentTrace == len(trace) &&
+		time.Since(c.sentTime) < traceForceSendInterval {
+		return common.UpdateSucceeded
+	}
+
+	upload := c.client.UpdateBuild(c.config, c.id, state, &trace)
+	if upload == common.UpdateSucceeded {
+		c.sentTrace = len(trace)
 		c.sentState = state
 		c.sentTime = time.Now()
 	}
-	return stateUpdate
+
+	return upload
 }
 
 func (c *clientBuildTrace) watch() {
@@ -177,10 +226,11 @@ func (c *clientBuildTrace) watch() {
 	}
 }
 
-func newBuildTrace(client common.Network, config common.RunnerConfig, id int) *clientBuildTrace {
+func newBuildTrace(client common.Network, config common.RunnerConfig, buildData *common.GetBuildResponse) *clientBuildTrace {
 	return &clientBuildTrace{
-		client: client,
-		config: config,
-		id:     id,
+		client:    client,
+		config:    config,
+		buildData: buildData,
+		id:        buildData.ID,
 	}
 }

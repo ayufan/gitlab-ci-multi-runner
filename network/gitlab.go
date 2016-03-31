@@ -1,6 +1,7 @@
 package network
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
@@ -180,7 +181,7 @@ func (n *GitLabClient) VerifyRunner(runner common.RunnerCredentials) bool {
 	}
 }
 
-func (n *GitLabClient) UpdateBuild(config common.RunnerConfig, id int, state common.BuildState, trace string) common.UpdateState {
+func (n *GitLabClient) UpdateBuild(config common.RunnerConfig, id int, state common.BuildState, trace *string) common.UpdateState {
 	request := common.UpdateBuildRequest{
 		Info:  n.getRunnerVersion(config),
 		Token: config.Token,
@@ -188,20 +189,6 @@ func (n *GitLabClient) UpdateBuild(config common.RunnerConfig, id int, state com
 		Trace: trace,
 	}
 
-	return n.updateBuild(config, id, request)
-}
-
-func (n *GitLabClient) UpdateBuildState(config common.RunnerConfig, id int, state common.BuildState) common.UpdateState {
-	request := common.UpdateBuildRequest{
-		Info:  n.getRunnerVersion(config),
-		Token: config.Token,
-		State: state,
-	}
-
-	return n.updateBuild(config, id, request)
-}
-
-func (n *GitLabClient) updateBuild(config common.RunnerConfig, id int, request common.UpdateBuildRequest) common.UpdateState {
 	result, statusText, _ := n.doJSON(config.RunnerCredentials, "PUT", fmt.Sprintf("builds/%d.json", id), 200, &request, nil)
 	switch result {
 	case 200:
@@ -222,29 +209,46 @@ func (n *GitLabClient) updateBuild(config common.RunnerConfig, id int, request c
 	}
 }
 
-func (n *GitLabClient) SendTracePart(config common.RunnerConfig, id int, tracePart string) common.UpdateState {
-	request := common.SendTracePartRequest{
-		Token:     config.Token,
-		TracePart: tracePart,
+func (n *GitLabClient) SendTrace(config common.RunnerConfig, buildData *common.GetBuildResponse, trace bytes.Buffer, offset int) common.UpdateState {
+	traceLength := trace.Len()
+	id := buildData.ID
+
+	headers := make(http.Header)
+	headers.Set("Content-Range", fmt.Sprintf("%d-%d", offset, traceLength))
+	headers.Set("BUILD-TOKEN", buildData.Token)
+	uri := fmt.Sprintf("builds/%d/trace.txt", id)
+	request := bytes.NewReader(trace.Bytes()[offset:traceLength])
+
+	response, err := n.doRaw(config.RunnerCredentials, "PATCH", uri, request, "text/plain", headers)
+
+	if err != nil {
+		config.Log().Errorln("Appending trace to coordinator...", "error", err.Error())
+		return common.UpdateFailed
 	}
 
-	result, statusText, _ := n.doJSON(config.RunnerCredentials, "PATCH", fmt.Sprintf("builds/%d/trace.txt", id), 200, &request, nil)
+	defer response.Body.Close()
+	defer io.Copy(ioutil.Discard, response.Body)
 
-	switch result {
-	case 200:
+	switch response.StatusCode {
+	case 202:
 		config.Log().Println(id, "Appending trace to coordinator...", "ok")
 		return common.UpdateSucceeded
-	case 404:
+	case 403:
 		config.Log().Warningln(id, "Appending trace to coordinator...", "aborted")
 		return common.UpdateAbort
-	case 403:
+	case 404:
+		config.Log().Warningln(id, "Appending trace to coordinator...", "not-found")
+		return common.UpdateNotFound
+	case 406:
 		config.Log().Errorln(id, "Appending trace to coordinator...", "forbidden")
 		return common.UpdateAbort
+	/*case 416:
+	TODO: handle invalid range*/
 	case clientError:
-		config.Log().WithField("status", statusText).Errorln(id, "Appending trace to coordinator...", "error")
+		config.Log().Errorln(id, "Appending trace to coordinator...", "error")
 		return common.UpdateAbort
 	default:
-		config.Log().WithField("status", statusText).Warningln(id, "Appending trace to coordinator...", "failed")
+		config.Log().Warningln(id, "Appending trace to coordinator...", "failed")
 		return common.UpdateFailed
 	}
 }
@@ -396,8 +400,8 @@ func (n *GitLabClient) DownloadArtifacts(config common.BuildCredentials, artifac
 	}
 }
 
-func (n *GitLabClient) ProcessBuild(config common.RunnerConfig, id int) common.BuildTrace {
-	trace := newBuildTrace(n, config, id)
+func (n *GitLabClient) ProcessBuild(config common.RunnerConfig, buildData *common.GetBuildResponse) common.BuildTrace {
+	trace := newBuildTrace(n, config, buildData)
 	trace.start()
 	return trace
 }
