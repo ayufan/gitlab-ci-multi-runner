@@ -6,6 +6,6 @@ docker version >/dev/null 2>/dev/null
 CONTAINERS=$(docker ps -a | grep runner | grep project | grep concurrent | grep cache)
 
 echo Clearing docker cache...
-for container in $(docker ps -a | grep runner | grep project | grep concurrent | grep cache | awk '{print $1}'); do
+for container in $(echo "$CONTAINERS" | awk '{print $1}'); do
     docker rm -v $container || :
 done
