@@ -13,7 +13,7 @@ done
 # create user if doesn't exist: it will create gitlab-runner if not found
 if ! id -u "$USER" >/dev/null 2>/dev/null; then
   echo "GitLab Runner: creating $USER..."
-  useradd --shell /bin/bash --comment 'GitLab Runner' --create-home $USER
+  useradd --system --shell /bin/bash --comment 'GitLab Runner' --create-home $USER
 fi
 
 # add user to docker group to allow Docker access (insecure)
