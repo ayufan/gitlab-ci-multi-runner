@@ -8,11 +8,6 @@ import (
 )
 
 func userModeWarning(withRun bool) {
-	logrus.WithFields(logrus.Fields{
-		"GOOS": runtime.GOOS,
-		"uid":  os.Getuid(),
-	}).Debugln("Checking runtime mode")
-
 	// everything is supported on windows
 	if runtime.GOOS == "windows" {
 		return
