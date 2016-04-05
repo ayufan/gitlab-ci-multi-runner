@@ -12,6 +12,7 @@ Bleeding Edge:
   script:
   - source ci/build
   - '[[ -z "$AWS_SECRET_ACCESS_KEY" ]] || make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"'
+  - '[[ "$CI_BUILD_REF_NAME" != "master" ]] || [[ -z "$PACKAGECLOUD_TOKEN" ]] || make packagecloud "PACKAGE_CLOUD=runner/unstable"'
   only:
   - branches
 
