@@ -184,21 +184,20 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 		PostScript:   postScript.Finish(),
 	}
 
+	if info.Type == common.LoginShell {
+		script.DetectScript = strings.Replace(bashDetectShell, "$@", "--login", -1)
+	} else {
+		script.DetectScript = strings.Replace(bashDetectShell, "$@", "", -1)
+	}
+
 	// su
 	if info.User != "" {
 		script.Command = "su"
 		script.Arguments = append(script.Arguments, info.User)
 		script.Arguments = append(script.Arguments, "-c")
-		if info.Type == common.LoginShell {
-			script.Arguments = append(script.Arguments, "/bin/sh -l")
-		} else {
-			script.Arguments = append(script.Arguments, "/bin/sh")
-		}
+		script.Arguments = append(script.Arguments, "/bin/sh")
 	} else {
 		script.Command = "sh"
-		if info.Type == common.LoginShell {
-			script.Arguments = append(script.Arguments, "-l")
-		}
 	}
 	return &script, nil
 }
