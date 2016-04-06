@@ -1,3 +1,6 @@
+v 1.1.2
+- Regression: revert shell detection mechanism and limit it only to Docker
+
 v 1.1.1
 - Fix: use different shell detection mechanism
 - Regression: support for `gitlab-runner exec`
