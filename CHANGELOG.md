@@ -1,3 +1,8 @@
+v 1.1.1
+- Fix: use different shell detection mechanism
+- Regression: support for `gitlab-runner exec`
+- Regression: support for login/non-login shell for Bash
+
 v 1.1.0
 - Use Go 1.5
 - Change license to MIT
