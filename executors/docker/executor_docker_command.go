@@ -2,6 +2,8 @@ package docker
 
 import (
 	"bytes"
+	"errors"
+
 	"github.com/fsouza/go-dockerclient"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
@@ -14,7 +16,7 @@ type commandExecutor struct {
 func (s *commandExecutor) watchContainers(preContainer, buildContainer, postContainer *docker.Container) {
 	s.Println()
 
-	err := s.watchContainer(preContainer, bytes.NewBufferString(s.BuildScript.DetectScript+s.BuildScript.PreScript))
+	err := s.watchContainer(preContainer, bytes.NewBufferString(s.BuildScript.PreScript))
 	if err != nil {
 		s.BuildFinish <- err
 		return
@@ -22,7 +24,7 @@ func (s *commandExecutor) watchContainers(preContainer, buildContainer, postCont
 
 	s.Println()
 
-	err = s.watchContainer(buildContainer, bytes.NewBufferString(s.BuildScript.DetectScript+s.BuildScript.BuildScript))
+	err = s.watchContainer(buildContainer, bytes.NewBufferString(s.BuildScript.BuildScript))
 	if err != nil {
 		s.BuildFinish <- err
 		return
@@ -30,7 +32,7 @@ func (s *commandExecutor) watchContainers(preContainer, buildContainer, postCont
 
 	s.Println()
 
-	err = s.watchContainer(postContainer, bytes.NewBufferString(s.BuildScript.DetectScript+s.BuildScript.PostScript))
+	err = s.watchContainer(postContainer, bytes.NewBufferString(s.BuildScript.PostScript))
 	if err != nil {
 		s.BuildFinish <- err
 		return
@@ -69,8 +71,12 @@ func (s *commandExecutor) Start() error {
 		return err
 	}
 
+	if len(s.BuildScript.DockerCommand) == 0 {
+		return errors.New("Script is not compatible with Docker")
+	}
+
 	// Start build container which will run actual build
-	buildContainer, err := s.createContainer("build", imageName, s.BuildScript.GetCommandWithArguments(), *options)
+	buildContainer, err := s.createContainer("build", imageName, s.BuildScript.DockerCommand, *options)
 	if err != nil {
 		return err
 	}
