@@ -67,9 +67,9 @@ deps:
 	go get -u github.com/golang/lint/golint
 	go get github.com/mitchellh/gox
 	go get golang.org/x/tools/cmd/cover
-	go get golang.org/x/tools/cmd/vet
 	go get github.com/fzipp/gocyclo
 	go get -u github.com/jteeuwen/go-bindata/...
+	go install cmd/vet
 
 out/docker/prebuilt.tar.gz: $(GO_FILES)
 	# Create directory
