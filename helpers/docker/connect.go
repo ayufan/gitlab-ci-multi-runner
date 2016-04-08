@@ -61,7 +61,7 @@ func New(c DockerCredentials, apiVersion string) (client Client, err error) {
 	}
 
 	if tlsVerify {
-		client, err = docker.NewVersionnedTLSClient(
+		client, err = docker.NewVersionedTLSClient(
 			endpoint,
 			filepath.Join(tlsCertPath, "cert.pem"),
 			filepath.Join(tlsCertPath, "key.pem"),
