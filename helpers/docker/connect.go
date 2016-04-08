@@ -19,7 +19,7 @@ var dockerDialer = &net.Dialer{
 
 func httpTransportFix(host string, client Client) {
 	dockerClient, ok := client.(*docker.Client)
-	if !ok {
+	if !ok || dockerClient == nil {
 		return
 	}
 
@@ -68,10 +68,16 @@ func New(c DockerCredentials, apiVersion string) (client Client, err error) {
 			filepath.Join(tlsCertPath, "ca.pem"),
 			apiVersion,
 		)
+		if err != nil {
+			logrus.Errorln("Error while TLS Docker client creation:", err)
+		}
 		return
 	}
 
 	client, err = docker.NewVersionedClient(endpoint, apiVersion)
+	if err != nil {
+		logrus.Errorln("Error while Docker client creation:", err)
+	}
 	return
 }
 
