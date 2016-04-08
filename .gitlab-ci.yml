@@ -1,4 +1,4 @@
-image: golang:1.5
+image: golang:1.6
 
 stages:
 - build
