@@ -13,6 +13,8 @@ func userModeWarning(withRun bool) {
 		return
 	}
 
+	systemMode := os.Getuid() == 0
+
 	// We support services on Linux, Windows and Darwin
 	noServices :=
 		runtime.GOOS != "linux" &&
@@ -20,9 +22,10 @@ func userModeWarning(withRun bool) {
 
 	// We don't support services installed as an User on Linux
 	noUserService :=
-		runtime.GOOS == "linux"
+		!systemMode &&
+			runtime.GOOS == "linux"
 
-	if os.Getuid() == 0 {
+	if systemMode {
 		logrus.Infoln("Running in system-mode.")
 	} else {
 		logrus.Warningln("Running in user-mode.")
@@ -38,7 +41,7 @@ func userModeWarning(withRun bool) {
 		}
 	}
 
-	if os.Getuid() != 0 && noUserService {
+	if !systemMode {
 		logrus.Warningln("Use sudo for system-mode:")
 		logrus.Warningln("$ sudo gitlab-runner...")
 	}
