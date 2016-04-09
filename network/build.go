@@ -18,12 +18,12 @@ var traceFinishRetryInterval = common.UpdateRetryInterval
 type clientBuildTrace struct {
 	*io.PipeWriter
 
-	client    common.Network
-	config    common.RunnerConfig
-	buildData *common.GetBuildResponse
-	id        int
-	limit     int64
-	abort     func()
+	client           common.Network
+	config           common.RunnerConfig
+	buildCredentials *common.BuildCredentials
+	id               int
+	limit            int64
+	abort            func()
 
 	incrementalAvailable bool
 
@@ -173,7 +173,7 @@ func (c *clientBuildTrace) incrementalUpdate() common.UpdateState {
 		c.sentState = state
 	}
 
-	update := c.client.SendTrace(c.config, c.buildData, trace, c.sentTrace)
+	update := c.client.SendTrace(c.config, c.buildCredentials, trace, c.sentTrace)
 	if update == common.UpdateNotFound {
 		return update
 	}
@@ -226,11 +226,11 @@ func (c *clientBuildTrace) watch() {
 	}
 }
 
-func newBuildTrace(client common.Network, config common.RunnerConfig, buildData *common.GetBuildResponse) *clientBuildTrace {
+func newBuildTrace(client common.Network, config common.RunnerConfig, buildCredentials *common.BuildCredentials) *clientBuildTrace {
 	return &clientBuildTrace{
-		client:    client,
-		config:    config,
-		buildData: buildData,
-		id:        buildData.ID,
+		client:           client,
+		config:           config,
+		buildCredentials: buildCredentials,
+		id:               buildCredentials.ID,
 	}
 }

@@ -209,13 +209,13 @@ func (n *GitLabClient) UpdateBuild(config common.RunnerConfig, id int, state com
 	}
 }
 
-func (n *GitLabClient) SendTrace(config common.RunnerConfig, buildData *common.GetBuildResponse, trace bytes.Buffer, offset int) common.UpdateState {
+func (n *GitLabClient) SendTrace(config common.RunnerConfig, buildCredentials *common.BuildCredentials, trace bytes.Buffer, offset int) common.UpdateState {
 	traceLength := trace.Len()
-	id := buildData.ID
+	id := buildCredentials.ID
 
 	headers := make(http.Header)
 	headers.Set("Content-Range", fmt.Sprintf("%d-%d", offset, traceLength))
-	headers.Set("BUILD-TOKEN", buildData.Token)
+	headers.Set("BUILD-TOKEN", buildCredentials.Token)
 	uri := fmt.Sprintf("builds/%d/trace.txt", id)
 	request := bytes.NewReader(trace.Bytes()[offset:traceLength])
 
@@ -400,8 +400,8 @@ func (n *GitLabClient) DownloadArtifacts(config common.BuildCredentials, artifac
 	}
 }
 
-func (n *GitLabClient) ProcessBuild(config common.RunnerConfig, buildData *common.GetBuildResponse) common.BuildTrace {
-	trace := newBuildTrace(n, config, buildData)
+func (n *GitLabClient) ProcessBuild(config common.RunnerConfig, buildCredentials *common.BuildCredentials) common.BuildTrace {
+	trace := newBuildTrace(n, config, buildCredentials)
 	trace.start()
 	return trace
 }

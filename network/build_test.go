@@ -53,16 +53,16 @@ func (m *updateTraceNetwork) UpdateBuild(config common.RunnerConfig, id int, sta
 	}
 }
 
-func (m *updateTraceNetwork) SendTrace(config common.RunnerConfig, buildData *common.GetBuildResponse, trace bytes.Buffer, offset int) common.UpdateState {
+func (m *updateTraceNetwork) SendTrace(config common.RunnerConfig, buildCredentials *common.BuildCredentials, trace bytes.Buffer, offset int) common.UpdateState {
 	return common.UpdateNotFound
 }
 
 func TestBuildTraceSuccess(t *testing.T) {
 	u := &updateTraceNetwork{}
-	buildData := &common.GetBuildResponse{
+	buildCredentials := &common.BuildCredentials{
 		ID: successID,
 	}
-	b := newBuildTrace(u, buildConfig, buildData)
+	b := newBuildTrace(u, buildConfig, buildCredentials)
 	b.start()
 	fmt.Fprint(b, "test content")
 	b.Success()
@@ -72,10 +72,10 @@ func TestBuildTraceSuccess(t *testing.T) {
 
 func TestBuildTraceFailure(t *testing.T) {
 	u := &updateTraceNetwork{}
-	buildData := &common.GetBuildResponse{
+	buildCredentials := &common.BuildCredentials{
 		ID: successID,
 	}
-	b := newBuildTrace(u, buildConfig, buildData)
+	b := newBuildTrace(u, buildConfig, buildCredentials)
 	b.start()
 	fmt.Fprint(b, "test content")
 	b.Fail(errors.New("test"))
@@ -85,10 +85,10 @@ func TestBuildTraceFailure(t *testing.T) {
 
 func TestIgnoreStatusChange(t *testing.T) {
 	u := &updateTraceNetwork{}
-	buildData := &common.GetBuildResponse{
+	buildCredentials := &common.BuildCredentials{
 		ID: successID,
 	}
-	b := newBuildTrace(u, buildConfig, buildData)
+	b := newBuildTrace(u, buildConfig, buildCredentials)
 	b.start()
 	b.Success()
 	b.Fail(errors.New("test"))
@@ -101,10 +101,10 @@ func TestBuildAbort(t *testing.T) {
 	abort := make(chan bool)
 
 	u := &updateTraceNetwork{}
-	buildData := &common.GetBuildResponse{
+	buildCredentials := &common.BuildCredentials{
 		ID: cancelID,
 	}
-	b := newBuildTrace(u, buildConfig, buildData)
+	b := newBuildTrace(u, buildConfig, buildCredentials)
 	b.start()
 	b.Notify(func() {
 		abort <- true
@@ -115,10 +115,10 @@ func TestBuildAbort(t *testing.T) {
 
 func TestBuildOutputLimit(t *testing.T) {
 	u := &updateTraceNetwork{}
-	buildData := &common.GetBuildResponse{
+	buildCredentials := &common.BuildCredentials{
 		ID: successID,
 	}
-	b := newBuildTrace(u, buildOutputLimit, buildData)
+	b := newBuildTrace(u, buildOutputLimit, buildCredentials)
 	b.start()
 
 	// Write 500k to the buffer
@@ -134,10 +134,10 @@ func TestBuildFinishRetry(t *testing.T) {
 	traceFinishRetryInterval = time.Microsecond
 
 	u := &updateTraceNetwork{}
-	buildData := &common.GetBuildResponse{
+	buildCredentials := &common.BuildCredentials{
 		ID: retryID,
 	}
-	b := newBuildTrace(u, buildOutputLimit, buildData)
+	b := newBuildTrace(u, buildOutputLimit, buildCredentials)
 	b.start()
 	b.Success()
 	assert.Equal(t, 5, u.count, "it should retry a few times")
@@ -149,10 +149,10 @@ func TestBuildForceSend(t *testing.T) {
 	traceForceSendInterval = time.Minute
 
 	u := &updateTraceNetwork{}
-	buildData := &common.GetBuildResponse{
+	buildCredentials := &common.BuildCredentials{
 		ID: successID,
 	}
-	b := newBuildTrace(u, buildOutputLimit, buildData)
+	b := newBuildTrace(u, buildOutputLimit, buildCredentials)
 	b.start()
 	defer b.Success()
 

@@ -14,6 +14,7 @@ const (
 	UpdateNotFound
 	UpdateAbort
 	UpdateFailed
+	UpdateInvalidRange
 )
 
 const (
@@ -136,9 +137,9 @@ type Network interface {
 	DeleteRunner(config RunnerCredentials) bool
 	VerifyRunner(config RunnerCredentials) bool
 	UpdateBuild(config RunnerConfig, id int, state BuildState, trace *string) UpdateState
-	SendTrace(config RunnerConfig, buildData *GetBuildResponse, trace bytes.Buffer, offset int) UpdateState
+	SendTrace(config RunnerConfig, buildCredentials *BuildCredentials, trace bytes.Buffer, offset int) UpdateState
 	DownloadArtifacts(config BuildCredentials, artifactsFile string) DownloadState
 	UploadRawArtifacts(config BuildCredentials, reader io.Reader, baseName string) UploadState
 	UploadArtifacts(config BuildCredentials, artifactsFile string) UploadState
-	ProcessBuild(config RunnerConfig, buildData *GetBuildResponse) BuildTrace
+	ProcessBuild(config RunnerConfig, buildCredentials *BuildCredentials) BuildTrace
 }
