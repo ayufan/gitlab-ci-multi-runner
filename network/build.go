@@ -3,6 +3,7 @@ package network
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
@@ -14,6 +15,53 @@ import (
 var traceUpdateInterval = common.UpdateInterval
 var traceForceSendInterval = common.ForceTraceSentInterval
 var traceFinishRetryInterval = common.UpdateRetryInterval
+
+type tracePatch struct {
+	trace  bytes.Buffer
+	offset int
+	limit  int
+	resent bool
+}
+
+func (tp *tracePatch) Patch() []byte {
+	return tp.trace.Bytes()[tp.offset:tp.limit]
+}
+
+func (tp *tracePatch) Offset() int {
+	return tp.offset
+}
+
+func (tp *tracePatch) Limit() int {
+	return tp.limit
+}
+
+func (tp *tracePatch) IsResent() bool {
+	return tp.resent == true
+}
+
+func (tp *tracePatch) Resend(newOffset int) {
+	tp.offset = newOffset
+	tp.resent = true
+}
+
+func (tp *tracePatch) ValidateRange() bool {
+	return tp.limit >= tp.offset
+}
+
+func newTracePatch(trace bytes.Buffer, offset int) (*tracePatch, error) {
+	patch := &tracePatch{
+		trace:  trace,
+		offset: offset,
+		limit:  trace.Len(),
+		resent: false,
+	}
+
+	if !patch.ValidateRange() {
+		return nil, errors.New("Range is invalid, limit can't be less than offset")
+	}
+
+	return patch, nil
+}
 
 type clientBuildTrace struct {
 	*io.PipeWriter
@@ -173,13 +221,18 @@ func (c *clientBuildTrace) incrementalUpdate() common.UpdateState {
 		c.sentState = state
 	}
 
-	update := c.client.SendTrace(c.config, c.buildCredentials, trace, c.sentTrace)
+	tracePatch, err := newTracePatch(trace, c.sentTrace)
+	if err != nil {
+		c.config.Log().Errorln("Error while creating a tracePatch", err.Error())
+	}
+
+	update := c.client.PatchTrace(c.config, c.buildCredentials, tracePatch)
 	if update == common.UpdateNotFound {
 		return update
 	}
 
 	if update == common.UpdateSucceeded {
-		c.sentTrace = trace.Len()
+		c.sentTrace = tracePatch.Limit()
 		c.sentTime = time.Now()
 	}
 

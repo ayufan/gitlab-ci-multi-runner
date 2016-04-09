@@ -1,7 +1,6 @@
 package network
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"github.com/stretchr/testify/assert"
@@ -53,7 +52,7 @@ func (m *updateTraceNetwork) UpdateBuild(config common.RunnerConfig, id int, sta
 	}
 }
 
-func (m *updateTraceNetwork) SendTrace(config common.RunnerConfig, buildCredentials *common.BuildCredentials, trace bytes.Buffer, offset int) common.UpdateState {
+func (m *updateTraceNetwork) PatchTrace(config common.RunnerConfig, buildCredentials *common.BuildCredentials, tracePatch common.BuildTracePatch) common.UpdateState {
 	return common.UpdateNotFound
 }
 

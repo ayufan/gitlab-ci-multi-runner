@@ -13,6 +13,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
 )
 
 const clientError = -100
@@ -209,18 +211,16 @@ func (n *GitLabClient) UpdateBuild(config common.RunnerConfig, id int, state com
 	}
 }
 
-func (n *GitLabClient) SendTrace(config common.RunnerConfig, buildCredentials *common.BuildCredentials, trace bytes.Buffer, offset int) common.UpdateState {
-	traceLength := trace.Len()
+func (n *GitLabClient) PatchTrace(config common.RunnerConfig, buildCredentials *common.BuildCredentials, tracePatch common.BuildTracePatch) common.UpdateState {
 	id := buildCredentials.ID
 
 	headers := make(http.Header)
-	headers.Set("Content-Range", fmt.Sprintf("%d-%d", offset, traceLength))
+	headers.Set("Content-Range", fmt.Sprintf("%d-%d", tracePatch.Offset(), tracePatch.Limit()))
 	headers.Set("BUILD-TOKEN", buildCredentials.Token)
 	uri := fmt.Sprintf("builds/%d/trace.txt", id)
-	request := bytes.NewReader(trace.Bytes()[offset:traceLength])
+	request := bytes.NewReader(tracePatch.Patch())
 
 	response, err := n.doRaw(config.RunnerCredentials, "PATCH", uri, request, "text/plain", headers)
-
 	if err != nil {
 		config.Log().Errorln("Appending trace to coordinator...", "error", err.Error())
 		return common.UpdateFailed
@@ -228,6 +228,8 @@ func (n *GitLabClient) SendTrace(config common.RunnerConfig, buildCredentials *c
 
 	defer response.Body.Close()
 	defer io.Copy(ioutil.Discard, response.Body)
+
+	config.Log().Debugln("Remote Range:", response.Header.Get("Range"))
 
 	switch response.StatusCode {
 	case 202:
@@ -242,8 +244,8 @@ func (n *GitLabClient) SendTrace(config common.RunnerConfig, buildCredentials *c
 	case 406:
 		config.Log().Errorln(id, "Appending trace to coordinator...", "forbidden")
 		return common.UpdateAbort
-	/*case 416:
-	TODO: handle invalid range*/
+	case 416:
+		return n.handlePatchTraceResend(response, config, buildCredentials, tracePatch)
 	case clientError:
 		config.Log().Errorln(id, "Appending trace to coordinator...", "error")
 		return common.UpdateAbort
@@ -251,6 +253,26 @@ func (n *GitLabClient) SendTrace(config common.RunnerConfig, buildCredentials *c
 		config.Log().Warningln(id, "Appending trace to coordinator...", "failed")
 		return common.UpdateFailed
 	}
+}
+func (n *GitLabClient) handlePatchTraceResend(response *http.Response, config common.RunnerConfig,
+	buildCredentials *common.BuildCredentials, tracePatch common.BuildTracePatch) common.UpdateState {
+	id := buildCredentials.ID
+	if tracePatch.IsResent() {
+		config.Log().Errorln(id, "Appending trace to coordinator...", "failed due to range missmatch")
+		return common.UpdateFailed
+	}
+
+	config.Log().Warningln(id, "Resending trace patch due to range missmatch")
+
+	remoteRange := strings.Split(response.Header.Get("Range"), "-")
+	newOffset, err := strconv.Atoi(remoteRange[2])
+	if err != nil {
+		config.Log().Errorln(id, "Resending trace patch failed:", err.Error())
+		return common.UpdateFailed
+	}
+
+	tracePatch.Resend(newOffset)
+	return n.PatchTrace(config, buildCredentials, tracePatch)
 }
 
 func (n *GitLabClient) createArtifactsForm(mpw *multipart.Writer, reader io.Reader, baseName string) error {
