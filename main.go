@@ -60,6 +60,7 @@ func main() {
 			Email: "ayufan@ayufan.eu",
 		},
 	}
+	cli_helpers.LogRuntimePlatform(app)
 	cli_helpers.SetupLogLevelOptions(app)
 	cli_helpers.SetupCPUProfile(app)
 	cli_helpers.FixHOME(app)
