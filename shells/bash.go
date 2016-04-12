@@ -177,27 +177,33 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	postScript := &BashWriter{TemporaryPath: temporaryPath}
 	b.GeneratePostBuild(postScript, info)
 
-	script := common.ShellScript{
-		DetectScript: bashDetectShell,
-		PreScript:    preScript.Finish(),
-		BuildScript:  buildScript.Finish(),
-		PostScript:   postScript.Finish(),
+	var detectScript string
+	var shellCommand string
+	if info.Type == common.LoginShell {
+		detectScript = strings.Replace(bashDetectShell, "$@", "--login", -1)
+		shellCommand = b.Shell + " --login"
+	} else {
+		detectScript = strings.Replace(bashDetectShell, "$@", "", -1)
+		shellCommand = b.Shell
 	}
 
-	if info.Type == common.LoginShell {
-		script.DetectScript = strings.Replace(bashDetectShell, "$@", "--login", -1)
-	} else {
-		script.DetectScript = strings.Replace(bashDetectShell, "$@", "", -1)
+	script := common.ShellScript{
+		PreScript:     preScript.Finish(),
+		BuildScript:   buildScript.Finish(),
+		PostScript:    postScript.Finish(),
+		DockerCommand: []string{"sh", "-c", detectScript},
 	}
 
 	// su
 	if info.User != "" {
 		script.Command = "su"
 		script.Arguments = append(script.Arguments, info.User)
-		script.Arguments = append(script.Arguments, "-c")
-		script.Arguments = append(script.Arguments, "/bin/sh")
+		script.Arguments = append(script.Arguments, "-c", shellCommand)
 	} else {
-		script.Command = "sh"
+		script.Command = b.Shell
+		if info.Type == common.LoginShell {
+			script.Arguments = append(script.Arguments, "--login")
+		}
 	}
 	return &script, nil
 }
