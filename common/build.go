@@ -135,6 +135,7 @@ func (b *Build) GetDefaultVariables() BuildVariables {
 		{"CI_BUILD_REF_NAME", b.RefName, true, true, false},
 		{"CI_BUILD_ID", strconv.Itoa(b.ID), true, true, false},
 		{"CI_BUILD_REPO", b.RepoURL, true, true, false},
+		{"CI_BUILD_TOKEN", b.Token, true, true, false},
 		{"CI_PROJECT_ID", strconv.Itoa(b.ProjectID), true, true, false},
 		{"CI_PROJECT_DIR", b.FullProjectDir(), true, true, false},
 		{"CI_SERVER", "yes", true, true, false},
