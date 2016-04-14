@@ -1,3 +1,6 @@
+v 1.1.3
+- Regression: On Linux use `sh -s /bin/bash user -c` instead of `sh user -c`. This fixes non-login for user.
+
 v 1.1.2
 - Regression: revert shell detection mechanism and limit it only to Docker
 
