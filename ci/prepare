@@ -16,5 +16,5 @@ export LANGUAGE=en_US:en
 export LC_ALL=en_US.UTF-8
 
 # Install docker
-wget -O /usr/bin/docker https://get.docker.com/builds/Linux/x86_64/docker-latest
+wget -O /usr/bin/docker https://get.docker.com/builds/Linux/x86_64/docker-1.10.3
 chmod +x /usr/bin/docker
