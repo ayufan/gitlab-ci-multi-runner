@@ -197,6 +197,9 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	// su
 	if info.User != "" {
 		script.Command = "su"
+		if runtime.GOOS == "linux" {
+			script.Arguments = append(script.Arguments, "-s", "/bin/"+b.Shell)
+		}
 		script.Arguments = append(script.Arguments, info.User)
 		script.Arguments = append(script.Arguments, "-c", shellCommand)
 	} else {
