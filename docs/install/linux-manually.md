@@ -16,11 +16,6 @@ Give it permissions to execute:
 sudo chmod +x /usr/local/bin/gitlab-ci-multi-runner
 ```
 
-Note that if gitlab-ci-multi-runner is installed and run as service (what is described in this page), 
-it will run as root, but will execute jobs as user specified by the `install` command. This means that some of the 
-job functions like cache and artifacts will need to execute `/usr/local/bin/gitlab-ci-multi-runner` command, therefore
-the user under which jobs are run, needs to have access to the executable.
-
 Optionally, if you want to use Docker, install Docker with:
 
 ```bash
@@ -44,6 +39,13 @@ Install and run as service (on Linux):
 sudo gitlab-ci-multi-runner install --user=gitlab-runner --working-directory=/home/gitlab-runner
 sudo gitlab-ci-multi-runner start
 ```
+
+> **Notice**
+
+>Note that if gitlab-ci-multi-runner is installed and run as service (what is described in this page), 
+it will run as root, but will execute jobs as user specified by the `install` command. This means that some of the 
+job functions like cache and artifacts will need to execute `/usr/local/bin/gitlab-ci-multi-runner` command, therefore
+the user under which jobs are run, needs to have access to the executable.
 
 ### Update
 
