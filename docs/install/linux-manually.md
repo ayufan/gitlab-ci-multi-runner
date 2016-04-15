@@ -40,6 +40,13 @@ sudo gitlab-ci-multi-runner install --user=gitlab-runner --working-directory=/ho
 sudo gitlab-ci-multi-runner start
 ```
 
+> **Notice**
+
+>Note that if gitlab-ci-multi-runner is installed and run as service (what is described in this page), 
+it will run as root, but will execute jobs as user specified by the `install` command. This means that some of the 
+job functions like cache and artifacts will need to execute `/usr/local/bin/gitlab-ci-multi-runner` command, therefore
+the user under which jobs are run, needs to have access to the executable.
+
 ### Update
 
 Stop the service (you need elevated command prompt as before):
