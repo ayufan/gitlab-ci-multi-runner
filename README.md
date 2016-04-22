@@ -20,7 +20,8 @@ The official repository for this project is on [GitLab.com](https://gitlab.com/g
 
 **None:** GitLab Runner is run as a single binary.
 
-This project is designed for the Linux, OS X and Windows operating systems.
+This project is designed to run on the Linux, OS X, and Windows operating systems.
+Other operating systems will probably work as long as you can compile a Go binary on them.
 
 If you want to use **Docker** make sure that you have **1.5.0** at least installed.
 
