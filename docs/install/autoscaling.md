@@ -198,7 +198,7 @@ more in [Distributed runners caching][caching].
 
 [runner-installation]: https://gitlab.com/gitlab-org/gitlab-ci-multi-runner#installation
 [docker-machine-installation]: https://docs.docker.com/machine/install-machine/
-[runner-autoscaling]: ..//configuration/autoscaling.md
+[runner-autoscaling]: ../configuration/autoscale.md
 [s3]: https://aws.amazon.com/s3/
 [minio]: https://www.minio.io/
 [caching]: ../configuration/autoscale.md#distributed-runners-caching
