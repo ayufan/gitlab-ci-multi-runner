@@ -182,7 +182,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 		return err
 	}
 
-	if status == vbox.Stopped || status == vbox.Suspended || status == vbox.Saved {
+	if !vbox.IsStatusOnlineOrTransient(status) {
 		s.Println("Starting VM...")
 		err := vbox.Start(s.vmName)
 		if err != nil {
