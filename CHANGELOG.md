@@ -1,4 +1,5 @@
 v 1.2.0 (unreleased)
+- Add `timeout` option for the `exec` command
 
 v 1.1.0
 - Use Go 1.5
@@ -23,7 +24,7 @@ v 1.1.0
 - Fix: Don't restore cache if not defined in gitlab-ci.yml
 - Fix: Always use `json-file` when starting docker containers
 - Fix: Error level checking for Windows Batch and PowerShell
- 
+
 v 1.0.4
 - Fix support for Windows PowerShell
 
