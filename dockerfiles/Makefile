@@ -20,6 +20,7 @@ service: FORCE
 	docker build -t gitlab/gitlab-runner:service service/
 
 ubuntu: FORCE
-	docker build -t gitlab/gitlab-runner:service ubuntu/
+	docker build -t gitlab/gitlab-runner:ubuntu ubuntu/
+	docker tag gitlab/gitlab-runner:ubuntu  gitlab/gitlab-runner:latest
 
 FORCE:
