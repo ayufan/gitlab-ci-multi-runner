@@ -9,7 +9,6 @@ import (
 )
 
 type VersionCommand struct {
-	configOptions
 }
 
 func (c *VersionCommand) Execute(context *cli.Context) {
