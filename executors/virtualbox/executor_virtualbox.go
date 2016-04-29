@@ -66,6 +66,11 @@ func (s *executor) createVM(vmName string) (err error) {
 		return errors.New("Missing Image setting from VirtualBox configuration")
 	}
 
+	_, err = vbox.Status(vmName)
+	if err != nil {
+		vbox.Unregister(vmName)
+	}
+
 	if !vbox.Exist(vmName) {
 		s.Debugln("Creating testing VM from VM", baseImage, "...")
 		err := vbox.CreateOsVM(baseImage, vmName)
