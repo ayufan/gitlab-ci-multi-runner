@@ -1,3 +1,5 @@
+v 1.2.0 (unreleased)
+
 v 1.1.0
 - Use Go 1.5
 - Change license to MIT
