@@ -39,6 +39,10 @@ gitlab-ci-multi-runner install --user ENTER-YOUR-USERNAME --password ENTER-YOUR-
 gitlab-ci-multi-runner start
 ```
 
+> **Notice:** If you don't have a Windows Password, Runner's service won't start. To
+> fix this please read [How to Configure the Service to Start Up with the Built-in System Account](https://support.microsoft.com/en-us/kb/327545#bookmark-6)
+> on Microsoft's support website.
+
 Voila! Runner is installed and will be run after system reboot.
 
 Logs are stored in Windows Event Log.
