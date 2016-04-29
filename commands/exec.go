@@ -24,7 +24,7 @@ import (
 type ExecCommand struct {
 	common.RunnerSettings
 	Job     string
-	Timeout int `long:"timeout" description:"Job execution timeout"`
+	Timeout int `long:"timeout" description:"Job execution timeout (in seconds)"`
 }
 
 func (c *ExecCommand) runCommand(name string, arg ...string) (string, error) {
