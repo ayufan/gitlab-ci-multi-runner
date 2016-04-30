@@ -1,4 +1,5 @@
 v 1.2.0 (unreleased)
+- Make checkout quiet
 
 v 1.1.0
 - Use Go 1.5
