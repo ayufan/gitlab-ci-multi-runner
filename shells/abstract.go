@@ -67,7 +67,7 @@ func (b *AbstractShell) writeCheckoutCmd(w ShellWriter, build *common.Build) {
 	w.Notice("Checking out %s as %s...", build.Sha[0:8], build.RefName)
 	// We remove a git index file, this is required if `git checkout` is terminated
 	w.RmFile(".git/index.lock")
-	w.Command("git", "checkout", build.Sha)
+	w.Command("git", "checkout", "-q", build.Sha)
 }
 
 func (b *AbstractShell) cacheFile(build *common.Build, userKey string) (key, file string) {
