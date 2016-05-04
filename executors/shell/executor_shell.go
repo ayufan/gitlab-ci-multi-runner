@@ -18,7 +18,6 @@ import (
 
 type executor struct {
 	executors.AbstractExecutor
-	scriptDir string
 }
 
 func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
@@ -54,63 +53,65 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 	return nil
 }
 
-func (s *executor) run(script string, abort chan interface{}) error {
+func (s *executor) Start() error {
+	s.Debugln("Starting shell command...")
+	return nil
+}
+
+func (s *executor) Run(cmd common.ExecutorCommand) error {
 	// Create execution command
-	cmd := exec.Command(s.BuildScript.Command, s.BuildScript.Arguments...)
-	if cmd == nil {
+	c := exec.Command(s.BuildScript.Command, s.BuildScript.Arguments...)
+	if c == nil {
 		return errors.New("Failed to generate execution command")
 	}
 
-	helpers.SetProcessGroup(cmd)
-	defer helpers.KillProcessGroup(cmd)
+	helpers.SetProcessGroup(c)
+	defer helpers.KillProcessGroup(c)
 
 	// Fill process environment variables
-	cmd.Env = append(os.Environ(), s.BuildScript.Environment...)
-	cmd.Stdout = s.BuildLog
-	cmd.Stderr = s.BuildLog
+	c.Env = append(os.Environ(), s.BuildScript.Environment...)
+	c.Stdout = s.BuildLog
+	c.Stderr = s.BuildLog
 
 	if s.BuildScript.PassFile {
 		scriptDir, err := ioutil.TempDir("", "build_script")
 		if err != nil {
 			return err
 		}
-		s.scriptDir = scriptDir
+		defer os.RemoveAll(scriptDir)
 
 		scriptFile := filepath.Join(scriptDir, "script."+s.BuildScript.Extension)
-		err = ioutil.WriteFile(scriptFile, []byte(script), 0700)
+		err = ioutil.WriteFile(scriptFile, []byte(cmd.Script), 0700)
 		if err != nil {
 			return err
 		}
 
-		cmd.Args = append(cmd.Args, scriptFile)
+		c.Args = append(c.Args, scriptFile)
 	} else {
-		cmd.Stdin = bytes.NewBufferString(script)
+		c.Stdin = bytes.NewBufferString(cmd.Script)
 	}
 
-	// Start process
-	err := cmd.Start()
+	// Start a process
+	err := c.Start()
 	if err != nil {
 		return fmt.Errorf("Failed to start process: %s", err)
 	}
-	return err
-}
 
-func (s *executor) Start() error {
-	s.Debugln("Starting shell command...")
-
-	// Wait for process to exit
+	// Wait for process to finish
+	waitCh := make(chan error)
 	go func() {
-		s.BuildFinish <- s.BuildScript.Run(s.run, s.BuildAbort)
+		waitCh <- c.Wait()
 	}()
-	return nil
-}
 
-func (s *executor) Cleanup() {
-	if s.scriptDir != "" {
-		os.RemoveAll(s.scriptDir)
+	// Support process abort
+	select {
+	case err = <- waitCh:
+		return err
+
+	case <-cmd.Abort:
+		helpers.KillProcessGroup(c)
+		return <- waitCh
 	}
-
-	s.AbstractExecutor.Cleanup()
 }
 
 func init() {

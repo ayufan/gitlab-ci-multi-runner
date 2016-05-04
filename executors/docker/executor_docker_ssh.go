@@ -60,20 +60,16 @@ func (s *sshExecutor) Start() error {
 	if err != nil {
 		return err
 	}
-
-	// Wait for process to exit
-	go func() {
-		err := s.BuildScript.Run(func(script string, abort chan interface{}) error {
-			return s.sshCommand.Run(ssh.Command{
-				Environment: s.BuildScript.Environment,
-				Command:     s.BuildScript.GetCommandWithArguments(),
-				Stdin:       script,
-				Abort:       abort,
-			})
-		}, s.BuildAbort)
-		s.BuildFinish <- err
-	}()
 	return nil
+}
+
+func (s *sshExecutor) Run(cmd common.ExecutorCommand) error {
+	return s.sshCommand.Run(ssh.Command{
+		Environment: s.BuildScript.Environment,
+		Command:     s.BuildScript.GetCommandWithArguments(),
+		Stdin:       cmd.Script,
+		Abort:       cmd.Abort,
+	})
 }
 
 func (s *sshExecutor) Cleanup() {

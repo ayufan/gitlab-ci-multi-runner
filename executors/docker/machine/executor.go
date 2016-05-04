@@ -46,6 +46,13 @@ func (e *machineExecutor) Start() error {
 	return e.executor.Start()
 }
 
+func (e *machineExecutor) Run(cmd common.ExecutorCommand) error {
+	if e.executor == nil {
+		return errors.New("missing executor")
+	}
+	return e.executor.Run(cmd)
+}
+
 func (e *machineExecutor) Wait() error {
 	if e.executor == nil {
 		return errors.New("missing executor")

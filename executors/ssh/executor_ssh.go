@@ -35,9 +35,9 @@ func (s *executor) Start() error {
 
 	// Create SSH command
 	s.sshCommand = ssh.Client{
-		Config:      *s.Config.SSH,
-		Stdout:      s.BuildLog,
-		Stderr:      s.BuildLog,
+		Config: *s.Config.SSH,
+		Stdout: s.BuildLog,
+		Stderr: s.BuildLog,
 	}
 
 	s.Debugln("Connecting to SSH server...")
@@ -45,20 +45,16 @@ func (s *executor) Start() error {
 	if err != nil {
 		return err
 	}
-
-	// Wait for process to exit
-	go func() {
-		err := s.BuildScript.Run(func(script string, abort chan interface{}) error {
-			return s.sshCommand.Run(ssh.Command{
-				Environment: s.BuildScript.Environment,
-				Command:     s.BuildScript.GetCommandWithArguments(),
-				Stdin:       script,
-				Abort:       abort,
-			})
-		}, s.BuildAbort)
-		s.BuildFinish <- err
-	}()
 	return nil
+}
+
+func (s *executor) Run(cmd common.ExecutorCommand) error {
+	return s.sshCommand.Run(ssh.Command{
+		Environment: s.BuildScript.Environment,
+		Command:     s.BuildScript.GetCommandWithArguments(),
+		Stdin:       cmd.Script,
+		Abort:       cmd.Abort,
+	})
 }
 
 func (s *executor) Cleanup() {

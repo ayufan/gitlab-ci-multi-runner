@@ -19,12 +19,11 @@ type ExecutorOptions struct {
 }
 
 type AbstractExecutor struct {
+	common.Executor
 	ExecutorOptions
 	Config      common.RunnerConfig
 	Build       *common.Build
 	BuildLog    common.BuildTrace
-	BuildAbort  chan interface{}
-	BuildFinish chan error
 	BuildScript *common.ShellScript
 }
 
@@ -94,8 +93,6 @@ func (e *AbstractExecutor) verifyOptions() error {
 func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
 	e.Config = *config
 	e.Build = build
-	e.BuildAbort = make(chan interface{})
-	e.BuildFinish = make(chan error, 1)
 	e.BuildLog = build.Trace
 
 	err := e.startBuild()
@@ -122,6 +119,46 @@ func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.R
 	return nil
 }
 
+func (e *AbstractExecutor) runScript(abort chan interface{}) error {
+	// Execute pre script (git clone, cache restore, artifacts download)
+	err := e.Run(common.ExecutorCommand{
+		Script:     e.BuildScript.PreScript,
+		Predefined: true,
+		Abort:      abort,
+	})
+
+	if err == nil {
+		// Execute build script (user commands)
+		err = e.Run(common.ExecutorCommand{
+			Script:     e.BuildScript.BuildScript,
+			Abort:      abort,
+		})
+
+		// Execute after script (user commands)
+		if e.BuildScript.AfterScript != "" {
+			timeoutCh := make(chan interface{})
+			go func() {
+				timeoutCh <- <- time.After(time.Minute * 5)
+			}()
+			e.Run(common.ExecutorCommand{
+				Script:     e.BuildScript.AfterScript,
+				Abort:      timeoutCh,
+			})
+		}
+	}
+
+	// Execute post script (cache store, artifacts upload)
+	if err == nil {
+		err = e.Run(common.ExecutorCommand{
+			Script:     e.BuildScript.PostScript,
+			Predefined: true,
+			Abort:      abort,
+		})
+	}
+
+	return err
+}
+
 func (e *AbstractExecutor) Wait() (err error) {
 	buildTimeout := e.Build.Timeout
 	if buildTimeout <= 0 {
@@ -129,9 +166,18 @@ func (e *AbstractExecutor) Wait() (err error) {
 	}
 
 	buildCanceled := make(chan bool)
+	buildFinish := make(chan error)
+	buildAbort := make(chan interface{})
+
+	// Wait for cancel notification
 	e.Build.Trace.Notify(func() {
 		buildCanceled <- true
 	})
+
+	// Run build script
+	go func() {
+		buildFinish <- e.runScript(buildAbort)
+	}()
 
 	// Wait for signals: cancel, timeout, abort or finish
 	e.Debugln("Waiting for signals...")
@@ -145,15 +191,15 @@ func (e *AbstractExecutor) Wait() (err error) {
 	case signal := <-e.Build.BuildAbort:
 		err = fmt.Errorf("aborted: %v", signal)
 
-	case err = <-e.BuildFinish:
+	case err = <-buildFinish:
 		return err
 	}
 
 	// Wait till we receive that build did finish
 	for {
 		select {
-		case e.BuildAbort <- true:
-		case <- e.BuildFinish:
+		case buildAbort <- true:
+		case <-buildFinish:
 			return err
 		}
 	}

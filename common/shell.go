@@ -4,7 +4,6 @@ import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"time"
 )
 
 type ShellScript struct {
@@ -39,22 +38,6 @@ func (s *ShellScript) GetCommandWithArguments() []string {
 
 func (s *ShellScript) String() string {
 	return helpers.ToYAML(s)
-}
-
-func (s *ShellScript) Run(executor ShellCommandExecutor, abort chan interface{}) error {
-	err := executor(s.PreScript, abort)
-	if err == nil {
-		err = executor(s.BuildScript, abort)
-		timeoutCh := make(chan interface{})
-		go func() {
-			timeoutCh <- <- time.After(time.Minute * 5)
-		}()
-		executor(s.AfterScript, timeoutCh)
-	}
-	if err == nil {
-		err = executor(s.PostScript, abort)
-	}
-	return err
 }
 
 type ShellScriptInfo struct {
