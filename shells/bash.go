@@ -160,7 +160,7 @@ func (b *BashShell) GetName() string {
 	return b.Shell
 }
 
-func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
+func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (script *common.ShellScript, err error) {
 	temporaryPath := info.Build.FullProjectDir() + ".tmp"
 
 	preScript := &BashWriter{TemporaryPath: temporaryPath}
@@ -169,13 +169,28 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 	} else {
 		preScript.Line("echo " + strconv.Quote("Running on $(hostname)..."))
 	}
-	b.GeneratePreBuild(preScript, info)
+	err = b.GeneratePreBuild(preScript, info)
+	if err != nil {
+		return
+	}
 
 	buildScript := &BashWriter{TemporaryPath: temporaryPath}
-	b.GenerateCommands(buildScript, info)
+	err = b.GenerateBuild(buildScript, info)
+	if err != nil {
+		return
+	}
+
+	afterScript := &BashWriter{TemporaryPath: temporaryPath}
+	err = b.GenerateAfterBuild(afterScript, info)
+	if err != nil {
+		return
+	}
 
 	postScript := &BashWriter{TemporaryPath: temporaryPath}
-	b.GeneratePostBuild(postScript, info)
+	err = b.GeneratePostBuild(postScript, info)
+	if err != nil {
+		return
+	}
 
 	var detectScript string
 	var shellCommand string
@@ -187,9 +202,10 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 		shellCommand = b.Shell
 	}
 
-	script := common.ShellScript{
+	script = &common.ShellScript{
 		PreScript:     preScript.Finish(),
 		BuildScript:   buildScript.Finish(),
+		AfterScript:   afterScript.Finish(),
 		PostScript:    postScript.Finish(),
 		DockerCommand: []string{"sh", "-c", detectScript},
 	}
@@ -208,7 +224,7 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellSc
 			script.Arguments = append(script.Arguments, "--login")
 		}
 	}
-	return &script, nil
+	return
 }
 
 func (b *BashShell) IsDefault() bool {

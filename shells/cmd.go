@@ -159,53 +159,58 @@ func (b *CmdWriter) Absolute(dir string) string {
 	return filepath.Join("%CD%", dir)
 }
 
-func (b *CmdShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
-	w := &CmdWriter{
+func newCmdWriter(info common.ShellScriptInfo) (w *CmdWriter) {
+	w = &CmdWriter{
 		TemporaryPath: info.Build.FullProjectDir() + ".tmp",
 	}
 	w.Line("@echo off")
 	w.Line("setlocal enableextensions")
 	w.Line("setlocal enableDelayedExpansion")
 	w.Line("set nl=^\r\n\r\n")
+	return
+}
 
+func (b *CmdShell) GenerateScript(info common.ShellScriptInfo) (script *common.ShellScript, err error) {
+	preScript := newCmdWriter(info)
 	if len(info.Build.Hostname) != 0 {
-		w.Line("echo Running on %COMPUTERNAME% via " + batchEscape(info.Build.Hostname) + "...")
+		preScript.Line("echo Running on %COMPUTERNAME% via " + batchEscape(info.Build.Hostname) + "...")
 	} else {
-		w.Line("echo Running on %COMPUTERNAME%...")
+		preScript.Line("echo Running on %COMPUTERNAME%...")
 	}
-	w.Line("")
+	err = b.GeneratePreBuild(preScript, info)
+	if err != nil {
+		return
+	}
 
-	w.Line("call :prescript")
-	w.checkErrorLevel()
-	w.Line("call :buildscript")
-	w.checkErrorLevel()
-	w.Line("call :postscript")
-	w.checkErrorLevel()
-	w.Line("goto :EOF")
+	buildScript := newCmdWriter(info)
+	err = b.GenerateBuild(buildScript, info)
+	if err != nil {
+		return
+	}
 
-	w.Line(":prescript")
-	b.GeneratePreBuild(w, info)
-	w.Line("goto :EOF")
-	w.Line("")
+	afterScript := newCmdWriter(info)
+	err = b.GenerateAfterBuild(afterScript, info)
+	if err != nil {
+		return
+	}
 
-	w.Line(":buildscript")
-	b.GenerateCommands(w, info)
-	w.Line("goto :EOF")
-	w.Line("")
+	postScript := newCmdWriter(info)
+	err = b.GeneratePostBuild(postScript, info)
+	if err != nil {
+		return
+	}
 
-	w.Line(":postscript")
-	b.GeneratePostBuild(w, info)
-	w.Line("goto :EOF")
-	w.Line("")
-
-	script := common.ShellScript{
-		BuildScript: w.String(),
+	script = &common.ShellScript{
+		PreScript:   preScript.String(),
+		BuildScript: buildScript.String(),
+		AfterScript: afterScript.String(),
+		PostScript:  postScript.String(),
 		Command:     "cmd",
 		Arguments:   []string{"/Q", "/C"},
 		PassFile:    true,
 		Extension:   "cmd",
 	}
-	return &script, nil
+	return
 }
 
 func (b *CmdShell) IsDefault() bool {
