@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"time"
 )
 
 type executor struct {
@@ -104,8 +105,15 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 		return err
 
 	case <-cmd.Abort:
-		helpers.KillProcessGroup(c)
-		return <-waitCh
+		s.Debugln("Aborting command...")
+		for {
+			helpers.KillProcessGroup(c)
+			select {
+			case <-time.After(time.Second):
+			case err = <-waitCh:
+				return err
+			}
+		}
 	}
 }
 
