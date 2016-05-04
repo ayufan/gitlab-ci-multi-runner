@@ -155,9 +155,9 @@ func (s *Client) Run(cmd Command) error {
 	select {
 	case <-cmd.Abort:
 		session.Signal(ssh.SIGKILL)
-		return <- waitCh
+		return <-waitCh
 
-	case err := <- waitCh:
+	case err := <-waitCh:
 		return err
 	}
 }

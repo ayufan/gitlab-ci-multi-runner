@@ -11,7 +11,7 @@ type ShellScript struct {
 	DockerCommand []string
 	PreScript     string
 	BuildScript   string
-	AfterScript	  string
+	AfterScript   string
 	PostScript    string
 	Command       string
 	Arguments     []string

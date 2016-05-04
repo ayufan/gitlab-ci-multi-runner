@@ -13,7 +13,12 @@ type sshExecutor struct {
 	sshCommand ssh.Client
 }
 
-func (s *sshExecutor) Start() error {
+func (s *sshExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
+	err := s.executor.Prepare(globalConfig, config, build)
+	if err != nil {
+		return err
+	}
+
 	if s.Config.SSH == nil {
 		return errors.New("Missing SSH configuration")
 	}

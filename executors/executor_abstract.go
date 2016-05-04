@@ -1,12 +1,9 @@
 package executors
 
 import (
-	"errors"
 	"fmt"
-	"os"
-	"time"
-
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"os"
 )
 
 type ExecutorOptions struct {
@@ -19,7 +16,6 @@ type ExecutorOptions struct {
 }
 
 type AbstractExecutor struct {
-	common.Executor
 	ExecutorOptions
 	Config      common.RunnerConfig
 	Build       *common.Build
@@ -119,90 +115,8 @@ func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.R
 	return nil
 }
 
-func (e *AbstractExecutor) runScript(abort chan interface{}) error {
-	// Execute pre script (git clone, cache restore, artifacts download)
-	err := e.Run(common.ExecutorCommand{
-		Script:     e.BuildScript.PreScript,
-		Predefined: true,
-		Abort:      abort,
-	})
-
-	if err == nil {
-		// Execute build script (user commands)
-		err = e.Run(common.ExecutorCommand{
-			Script:     e.BuildScript.BuildScript,
-			Abort:      abort,
-		})
-
-		// Execute after script (user commands)
-		if e.BuildScript.AfterScript != "" {
-			timeoutCh := make(chan interface{})
-			go func() {
-				timeoutCh <- <- time.After(time.Minute * 5)
-			}()
-			e.Run(common.ExecutorCommand{
-				Script:     e.BuildScript.AfterScript,
-				Abort:      timeoutCh,
-			})
-		}
-	}
-
-	// Execute post script (cache store, artifacts upload)
-	if err == nil {
-		err = e.Run(common.ExecutorCommand{
-			Script:     e.BuildScript.PostScript,
-			Predefined: true,
-			Abort:      abort,
-		})
-	}
-
-	return err
-}
-
-func (e *AbstractExecutor) Wait() (err error) {
-	buildTimeout := e.Build.Timeout
-	if buildTimeout <= 0 {
-		buildTimeout = common.DefaultTimeout
-	}
-
-	buildCanceled := make(chan bool)
-	buildFinish := make(chan error)
-	buildAbort := make(chan interface{})
-
-	// Wait for cancel notification
-	e.Build.Trace.Notify(func() {
-		buildCanceled <- true
-	})
-
-	// Run build script
-	go func() {
-		buildFinish <- e.runScript(buildAbort)
-	}()
-
-	// Wait for signals: cancel, timeout, abort or finish
-	e.Debugln("Waiting for signals...")
-	select {
-	case <-buildCanceled:
-		err = errors.New("canceled")
-
-	case <-time.After(time.Duration(buildTimeout) * time.Second):
-		err = fmt.Errorf("execution took longer than %v seconds", buildTimeout)
-
-	case signal := <-e.Build.BuildAbort:
-		err = fmt.Errorf("aborted: %v", signal)
-
-	case err = <-buildFinish:
-		return err
-	}
-
-	// Wait till we receive that build did finish
-	for {
-		select {
-		case buildAbort <- true:
-		case <-buildFinish:
-			return err
-		}
-	}
+func (e *AbstractExecutor) ShellScript() *common.ShellScript {
+	return e.BuildScript
 }
 
 func (e *AbstractExecutor) Finish(err error) {

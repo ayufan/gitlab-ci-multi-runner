@@ -53,11 +53,6 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 	return nil
 }
 
-func (s *executor) Start() error {
-	s.Debugln("Starting shell command...")
-	return nil
-}
-
 func (s *executor) Run(cmd common.ExecutorCommand) error {
 	// Create execution command
 	c := exec.Command(s.BuildScript.Command, s.BuildScript.Arguments...)
@@ -105,12 +100,12 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 
 	// Support process abort
 	select {
-	case err = <- waitCh:
+	case err = <-waitCh:
 		return err
 
 	case <-cmd.Abort:
 		helpers.KillProcessGroup(c)
-		return <- waitCh
+		return <-waitCh
 	}
 }
 

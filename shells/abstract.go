@@ -18,7 +18,7 @@ func (b *AbstractShell) GetFeatures(features *common.FeaturesInfo) {
 }
 
 func (b *AbstractShell) GetSupportedOptions() []string {
-	return []string{"artifacts", "cache", "dependencies"}
+	return []string{"artifacts", "cache", "dependencies", "after_script"}
 }
 
 func (b *AbstractShell) writeCdBuildDir(w ShellWriter, info common.ShellScriptInfo) {

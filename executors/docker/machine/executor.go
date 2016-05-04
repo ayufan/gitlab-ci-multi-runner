@@ -39,11 +39,11 @@ func (e *machineExecutor) Prepare(globalConfig *common.Config, config *common.Ru
 	return e.executor.Prepare(globalConfig, &e.config, build)
 }
 
-func (e *machineExecutor) Start() error {
+func (e *machineExecutor) ShellScript() *common.ShellScript {
 	if e.executor == nil {
-		return errors.New("missing executor")
+		return nil
 	}
-	return e.executor.Start()
+	return e.executor.ShellScript()
 }
 
 func (e *machineExecutor) Run(cmd common.ExecutorCommand) error {
@@ -51,13 +51,6 @@ func (e *machineExecutor) Run(cmd common.ExecutorCommand) error {
 		return errors.New("missing executor")
 	}
 	return e.executor.Run(cmd)
-}
-
-func (e *machineExecutor) Wait() error {
-	if e.executor == nil {
-		return errors.New("missing executor")
-	}
-	return e.executor.Wait()
 }
 
 func (e *machineExecutor) Finish(err error) {

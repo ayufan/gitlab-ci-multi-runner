@@ -12,10 +12,15 @@ import (
 type commandExecutor struct {
 	executor
 	predefinedContainer *docker.Container
-	buildContainer *docker.Container
+	buildContainer      *docker.Container
 }
 
-func (s *commandExecutor) Start() error {
+func (s *commandExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
+	err := s.executor.Prepare(globalConfig, config, build)
+	if err != nil {
+		return err
+	}
+
 	s.Debugln("Starting Docker command...")
 
 	if len(s.BuildScript.DockerCommand) == 0 {
@@ -59,6 +64,8 @@ func (s *commandExecutor) Run(cmd common.ExecutorCommand) error {
 	} else {
 		container = s.buildContainer
 	}
+
+	s.Debugln("Executing on", container.Name, "the", cmd.Script)
 
 	return s.watchContainer(container, bytes.NewBufferString(cmd.Script), cmd.Abort)
 }

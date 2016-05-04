@@ -666,12 +666,11 @@ func (s *executor) watchContainer(container *docker.Container, input io.Reader, 
 		InputStream:  input,
 		OutputStream: s.BuildLog,
 		ErrorStream:  s.BuildLog,
-		Logs:         true,
+		Logs:         false,
 		Stream:       true,
 		Stdin:        true,
 		Stdout:       true,
 		Stderr:       true,
-		RawTerminal:  false,
 	}
 
 	s.Debugln("Attaching to container...")
@@ -694,12 +693,14 @@ func (s *executor) watchContainer(container *docker.Container, input io.Reader, 
 
 	select {
 	case <-abort:
+		s.Debugln("Abort received")
 		s.client.KillContainer(docker.KillContainerOptions{
 			ID: container.ID,
 		})
 		err = errors.New("Aborted")
 
 	case err = <-waitCh:
+		s.Debugln("Result received", err)
 	}
 	return
 }
@@ -815,9 +816,9 @@ func (s *executor) Cleanup() {
 		remove(cache.ID)
 	}
 
-	for _, build := range s.builds {
-		remove(build.ID)
-	}
+	//	for _, build := range s.builds {
+	//		remove(build.ID)
+	//	}
 
 	wg.Wait()
 

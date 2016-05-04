@@ -9,7 +9,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"time"
 )
 
 type BuildState string
@@ -38,6 +40,10 @@ type Build struct {
 
 	// Unique ID for all running builds on this runner and this project
 	ProjectRunnerID int `json:"project_runner_id"`
+}
+
+func (b *Build) log() *logrus.Entry {
+	return b.Runner.Log().WithField("build", b.ID)
 }
 
 func (b *Build) ProjectUniqueName() string {
@@ -95,6 +101,92 @@ func (b *Build) StartBuild(rootDir, cacheDir string, sharedDir bool) {
 	b.CacheDir = path.Join(cacheDir, b.ProjectUniqueDir(false))
 }
 
+func (b *Build) executeScript(buildScript *ShellScript, executor Executor, abort chan interface{}) error {
+	// Execute pre script (git clone, cache restore, artifacts download)
+	err := executor.Run(ExecutorCommand{
+		Script:     buildScript.PreScript,
+		Predefined: true,
+		Abort:      abort,
+	})
+
+	if err == nil {
+		// Execute build script (user commands)
+		err = executor.Run(ExecutorCommand{
+			Script: buildScript.BuildScript,
+			Abort:  abort,
+		})
+
+		// Execute after script (user commands)
+		if buildScript.AfterScript != "" {
+			timeoutCh := make(chan interface{})
+			go func() {
+				timeoutCh <- <-time.After(time.Minute * 5)
+			}()
+			executor.Run(ExecutorCommand{
+				Script: buildScript.AfterScript,
+				Abort:  timeoutCh,
+			})
+		}
+	}
+
+	// Execute post script (cache store, artifacts upload)
+	if err == nil {
+		err = executor.Run(ExecutorCommand{
+			Script:     buildScript.PostScript,
+			Predefined: true,
+			Abort:      abort,
+		})
+	}
+
+	return err
+}
+
+func (b *Build) run(executor Executor) (err error) {
+	buildTimeout := b.Timeout
+	if buildTimeout <= 0 {
+		buildTimeout = DefaultTimeout
+	}
+
+	buildCanceled := make(chan bool)
+	buildFinish := make(chan error)
+	buildAbort := make(chan interface{})
+
+	// Wait for cancel notification
+	b.Trace.Notify(func() {
+		buildCanceled <- true
+	})
+
+	// Run build script
+	go func() {
+		buildFinish <- b.executeScript(executor.ShellScript(), executor, buildAbort)
+	}()
+
+	// Wait for signals: cancel, timeout, abort or finish
+	b.log().Debugln("Waiting for signals...")
+	select {
+	case <-buildCanceled:
+		err = errors.New("canceled")
+
+	case <-time.After(time.Duration(buildTimeout) * time.Second):
+		err = fmt.Errorf("execution took longer than %v seconds", buildTimeout)
+
+	case signal := <-b.BuildAbort:
+		err = fmt.Errorf("aborted: %v", signal)
+
+	case err = <-buildFinish:
+		return err
+	}
+
+	// Wait till we receive that build did finish
+	for {
+		select {
+		case buildAbort <- true:
+		case <-buildFinish:
+			return err
+		}
+	}
+}
+
 func (b *Build) Run(globalConfig *Config, trace BuildTrace) (err error) {
 	defer func() {
 		if err != nil {
@@ -114,10 +206,7 @@ func (b *Build) Run(globalConfig *Config, trace BuildTrace) (err error) {
 
 	err = executor.Prepare(globalConfig, b.Runner, b)
 	if err == nil {
-		err = executor.Start()
-	}
-	if err == nil {
-		err = executor.Wait()
+		err = b.run(executor)
 	}
 	executor.Finish(err)
 	return err

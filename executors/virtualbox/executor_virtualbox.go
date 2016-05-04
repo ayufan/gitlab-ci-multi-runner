@@ -222,21 +222,17 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 
 	s.provisioned = true
 
-	return nil
-}
-
-func (s *executor) Start() error {
 	s.Println("Starting SSH command...")
 	s.sshCommand = ssh.Client{
-		Config:      *s.Config.SSH,
-		Stdout:      s.BuildLog,
-		Stderr:      s.BuildLog,
+		Config: *s.Config.SSH,
+		Stdout: s.BuildLog,
+		Stderr: s.BuildLog,
 	}
 	s.sshCommand.Port = s.sshPort
 	s.sshCommand.Host = "localhost"
 
 	s.Debugln("Connecting to SSH server...")
-	err := s.sshCommand.Connect()
+	err = s.sshCommand.Connect()
 	if err != nil {
 		return err
 	}

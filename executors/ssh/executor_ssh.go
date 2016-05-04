@@ -23,10 +23,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 	if s.BuildScript.PassFile {
 		return errors.New("SSH doesn't support shells that require script file")
 	}
-	return nil
-}
 
-func (s *executor) Start() error {
 	if s.Config.SSH == nil {
 		return errors.New("Missing SSH configuration")
 	}
@@ -41,7 +38,7 @@ func (s *executor) Start() error {
 	}
 
 	s.Debugln("Connecting to SSH server...")
-	err := s.sshCommand.Connect()
+	err = s.sshCommand.Connect()
 	if err != nil {
 		return err
 	}

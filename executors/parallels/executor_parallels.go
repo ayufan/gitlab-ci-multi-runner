@@ -263,10 +263,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 	if err != nil {
 		return err
 	}
-	return nil
-}
 
-func (s *executor) Start() error {
 	ipAddr, err := s.waitForIPAddress(s.vmName, 60)
 	if err != nil {
 		return err
@@ -274,9 +271,9 @@ func (s *executor) Start() error {
 
 	s.Debugln("Starting SSH command...")
 	s.sshCommand = ssh.Client{
-		Config:      *s.Config.SSH,
-		Stdout:      s.BuildLog,
-		Stderr:      s.BuildLog,
+		Config: *s.Config.SSH,
+		Stdout: s.BuildLog,
+		Stderr: s.BuildLog,
 	}
 	s.sshCommand.Host = ipAddr
 
