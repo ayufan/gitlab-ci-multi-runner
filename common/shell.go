@@ -4,6 +4,7 @@ import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"time"
 )
 
 type ShellScript struct {
@@ -11,6 +12,7 @@ type ShellScript struct {
 	DockerCommand []string
 	PreScript     string
 	BuildScript   string
+	AfterScript	  string
 	PostScript    string
 	Command       string
 	Arguments     []string
@@ -43,6 +45,11 @@ func (s *ShellScript) Run(executor ShellCommandExecutor, abort chan interface{})
 	err := executor(s.PreScript, abort)
 	if err == nil {
 		err = executor(s.BuildScript, abort)
+		timeoutCh := make(chan interface{})
+		go func() {
+			timeoutCh <- <- time.After(time.Minute * 5)
+		}()
+		executor(s.AfterScript, timeoutCh)
 	}
 	if err == nil {
 		err = executor(s.PostScript, abort)

@@ -7,6 +7,7 @@ import (
 	"github.com/fsouza/go-dockerclient"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
+	"time"
 )
 
 type commandExecutor struct {
@@ -29,8 +30,15 @@ func (s *commandExecutor) watchContainers(preContainer, buildContainer, postCont
 	s.Println()
 
 	err = s.watchContainer(buildContainer, bytes.NewBufferString(s.BuildScript.BuildScript), s.BuildAbort)
-	if err != nil {
-		return
+
+	// Unconditionally execute after_script
+	if s.BuildScript.AfterScript != "" {
+		timeoutCh := make(chan interface{})
+		go func() {
+			timeoutCh <- <-time.After(time.Minute * 5)
+		}()
+
+		s.watchContainer(buildContainer, bytes.NewBufferString(s.BuildScript.AfterScript), timeoutCh)
 	}
 
 	s.Println()
