@@ -10,7 +10,7 @@ import (
 
 type executor struct {
 	executors.AbstractExecutor
-	sshCommand ssh.Command
+	sshCommand ssh.Client
 }
 
 func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
@@ -34,11 +34,8 @@ func (s *executor) Start() error {
 	s.Debugln("Starting SSH command...")
 
 	// Create SSH command
-	s.sshCommand = ssh.Command{
+	s.sshCommand = ssh.Client{
 		Config:      *s.Config.SSH,
-		Environment: s.BuildScript.Environment,
-		Command:     s.BuildScript.GetCommandWithArguments(),
-		Stdin:       s.BuildScript.GetScriptBytes(),
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,
 	}
@@ -51,9 +48,14 @@ func (s *executor) Start() error {
 
 	// Wait for process to exit
 	go func() {
-		s.Debugln("Will run SSH command...")
-		err := s.sshCommand.Run()
-		s.Debugln("SSH command finished with", err)
+		err := s.BuildScript.Run(func(script string, abort chan interface{}) error {
+			return s.sshCommand.Run(ssh.Command{
+				Environment: s.BuildScript.Environment,
+				Command:     s.BuildScript.GetCommandWithArguments(),
+				Stdin:       script,
+				Abort:       abort,
+			})
+		}, s.BuildAbort)
 		s.BuildFinish <- err
 	}()
 	return nil

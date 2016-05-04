@@ -13,7 +13,7 @@ import (
 type executor struct {
 	executors.AbstractExecutor
 	vmName          string
-	sshCommand      ssh.Command
+	sshCommand      ssh.Client
 	sshPort         string
 	provisioned     bool
 	machineVerified bool
@@ -25,9 +25,8 @@ func (s *executor) verifyMachine(vmName string, sshPort string) error {
 	}
 
 	// Create SSH command
-	sshCommand := ssh.Command{
+	sshCommand := ssh.Client{
 		Config:         *s.Config.SSH,
-		Command:        []string{"exit"},
 		Stdout:         s.BuildLog,
 		Stderr:         s.BuildLog,
 		ConnectRetries: 30,
@@ -41,7 +40,7 @@ func (s *executor) verifyMachine(vmName string, sshPort string) error {
 		return err
 	}
 	defer sshCommand.Cleanup()
-	err = sshCommand.Run()
+	err = sshCommand.Run(ssh.Command{Command: []string{"exit"}})
 	if err != nil {
 		return err
 	}
@@ -228,11 +227,8 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 
 func (s *executor) Start() error {
 	s.Println("Starting SSH command...")
-	s.sshCommand = ssh.Command{
+	s.sshCommand = ssh.Client{
 		Config:      *s.Config.SSH,
-		Environment: s.BuildScript.Environment,
-		Command:     s.BuildScript.GetCommandWithArguments(),
-		Stdin:       s.BuildScript.GetScriptBytes(),
 		Stdout:      s.BuildLog,
 		Stderr:      s.BuildLog,
 	}
@@ -247,9 +243,14 @@ func (s *executor) Start() error {
 
 	// Wait for process to exit
 	go func() {
-		s.Debugln("Will run SSH command...")
-		err := s.sshCommand.Run()
-		s.Debugln("SSH command finished with", err)
+		err := s.BuildScript.Run(func(script string, abort chan interface{}) error {
+			return s.sshCommand.Run(ssh.Command{
+				Environment: s.BuildScript.Environment,
+				Command:     s.BuildScript.GetCommandWithArguments(),
+				Stdin:       script,
+				Abort:       abort,
+			})
+		}, s.BuildAbort)
 		s.BuildFinish <- err
 	}()
 	return nil

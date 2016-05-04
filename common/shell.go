@@ -18,6 +18,8 @@ type ShellScript struct {
 	Extension     string
 }
 
+type ShellCommandExecutor func(script string, abort chan interface{}) error
+
 type ShellType int
 
 const (
@@ -33,12 +35,19 @@ func (s *ShellScript) GetCommandWithArguments() []string {
 	return parts
 }
 
-func (s *ShellScript) GetScriptBytes() []byte {
-	return []byte(s.PreScript + s.BuildScript + s.PostScript)
-}
-
 func (s *ShellScript) String() string {
 	return helpers.ToYAML(s)
+}
+
+func (s *ShellScript) Run(executor ShellCommandExecutor, abort chan interface{}) error {
+	err := executor(s.PreScript, abort)
+	if err == nil {
+		err = executor(s.BuildScript, abort)
+	}
+	if err == nil {
+		err = executor(s.PostScript, abort)
+	}
+	return err
 }
 
 type ShellScriptInfo struct {

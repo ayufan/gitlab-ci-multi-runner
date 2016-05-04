@@ -23,6 +23,7 @@ type AbstractExecutor struct {
 	Config      common.RunnerConfig
 	Build       *common.Build
 	BuildLog    common.BuildTrace
+	BuildAbort  chan interface{}
 	BuildFinish chan error
 	BuildScript *common.ShellScript
 }
@@ -93,6 +94,7 @@ func (e *AbstractExecutor) verifyOptions() error {
 func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
 	e.Config = *config
 	e.Build = build
+	e.BuildAbort = make(chan interface{})
 	e.BuildFinish = make(chan error, 1)
 	e.BuildLog = build.Trace
 
@@ -120,7 +122,7 @@ func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.R
 	return nil
 }
 
-func (e *AbstractExecutor) Wait() error {
+func (e *AbstractExecutor) Wait() (err error) {
 	buildTimeout := e.Build.Timeout
 	if buildTimeout <= 0 {
 		buildTimeout = common.DefaultTimeout
@@ -135,16 +137,25 @@ func (e *AbstractExecutor) Wait() error {
 	e.Debugln("Waiting for signals...")
 	select {
 	case <-buildCanceled:
-		return errors.New("canceled")
+		err = errors.New("canceled")
 
 	case <-time.After(time.Duration(buildTimeout) * time.Second):
-		return fmt.Errorf("execution took longer than %v seconds", buildTimeout)
+		err = fmt.Errorf("execution took longer than %v seconds", buildTimeout)
 
 	case signal := <-e.Build.BuildAbort:
-		return fmt.Errorf("aborted: %v", signal)
+		err = fmt.Errorf("aborted: %v", signal)
 
-	case err := <-e.BuildFinish:
+	case err = <-e.BuildFinish:
 		return err
+	}
+
+	// Wait till we receive that build did finish
+	for {
+		select {
+		case e.BuildAbort <- true:
+		case <- e.BuildFinish:
+			return err
+		}
 	}
 }
 

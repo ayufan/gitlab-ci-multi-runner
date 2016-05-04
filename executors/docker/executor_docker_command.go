@@ -16,29 +16,29 @@ type commandExecutor struct {
 func (s *commandExecutor) watchContainers(preContainer, buildContainer, postContainer *docker.Container) {
 	s.Println()
 
-	err := s.watchContainer(preContainer, bytes.NewBufferString(s.BuildScript.PreScript))
-	if err != nil {
+	var err error
+	defer func() {
 		s.BuildFinish <- err
+	}()
+
+	err = s.watchContainer(preContainer, bytes.NewBufferString(s.BuildScript.PreScript), s.BuildAbort)
+	if err != nil {
 		return
 	}
 
 	s.Println()
 
-	err = s.watchContainer(buildContainer, bytes.NewBufferString(s.BuildScript.BuildScript))
+	err = s.watchContainer(buildContainer, bytes.NewBufferString(s.BuildScript.BuildScript), s.BuildAbort)
 	if err != nil {
-		s.BuildFinish <- err
 		return
 	}
 
 	s.Println()
 
-	err = s.watchContainer(postContainer, bytes.NewBufferString(s.BuildScript.PostScript))
+	err = s.watchContainer(postContainer, bytes.NewBufferString(s.BuildScript.PostScript), s.BuildAbort)
 	if err != nil {
-		s.BuildFinish <- err
 		return
 	}
-
-	s.BuildFinish <- nil
 }
 
 func (s *commandExecutor) Start() error {

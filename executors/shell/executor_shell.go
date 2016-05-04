@@ -18,7 +18,6 @@ import (
 
 type executor struct {
 	executors.AbstractExecutor
-	cmd       *exec.Cmd
 	scriptDir string
 }
 
@@ -55,21 +54,20 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 	return nil
 }
 
-func (s *executor) Start() error {
-	s.Debugln("Starting shell command...")
-
+func (s *executor) run(script string, abort chan interface{}) error {
 	// Create execution command
-	s.cmd = exec.Command(s.BuildScript.Command, s.BuildScript.Arguments...)
-	if s.cmd == nil {
+	cmd := exec.Command(s.BuildScript.Command, s.BuildScript.Arguments...)
+	if cmd == nil {
 		return errors.New("Failed to generate execution command")
 	}
 
-	helpers.SetProcessGroup(s.cmd)
+	helpers.SetProcessGroup(cmd)
+	defer helpers.KillProcessGroup(cmd)
 
 	// Fill process environment variables
-	s.cmd.Env = append(os.Environ(), s.BuildScript.Environment...)
-	s.cmd.Stdout = s.BuildLog
-	s.cmd.Stderr = s.BuildLog
+	cmd.Env = append(os.Environ(), s.BuildScript.Environment...)
+	cmd.Stdout = s.BuildLog
+	cmd.Stderr = s.BuildLog
 
 	if s.BuildScript.PassFile {
 		scriptDir, err := ioutil.TempDir("", "build_script")
@@ -79,32 +77,35 @@ func (s *executor) Start() error {
 		s.scriptDir = scriptDir
 
 		scriptFile := filepath.Join(scriptDir, "script."+s.BuildScript.Extension)
-		err = ioutil.WriteFile(scriptFile, s.BuildScript.GetScriptBytes(), 0700)
+		err = ioutil.WriteFile(scriptFile, []byte(script), 0700)
 		if err != nil {
 			return err
 		}
 
-		s.cmd.Args = append(s.cmd.Args, scriptFile)
+		cmd.Args = append(cmd.Args, scriptFile)
 	} else {
-		s.cmd.Stdin = bytes.NewReader(s.BuildScript.GetScriptBytes())
+		cmd.Stdin = bytes.NewBufferString(script)
 	}
 
 	// Start process
-	err := s.cmd.Start()
+	err := cmd.Start()
 	if err != nil {
 		return fmt.Errorf("Failed to start process: %s", err)
 	}
+	return err
+}
+
+func (s *executor) Start() error {
+	s.Debugln("Starting shell command...")
 
 	// Wait for process to exit
 	go func() {
-		s.BuildFinish <- s.cmd.Wait()
+		s.BuildFinish <- s.BuildScript.Run(s.run, s.BuildAbort)
 	}()
 	return nil
 }
 
 func (s *executor) Cleanup() {
-	helpers.KillProcessGroup(s.cmd)
-
 	if s.scriptDir != "" {
 		os.RemoveAll(s.scriptDir)
 	}
