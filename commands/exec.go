@@ -55,7 +55,7 @@ func (c *ExecCommand) getCommands(commands interface{}) (string, error) {
 
 func (c *ExecCommand) supportedOption(key string, _ interface{}) bool {
 	switch key {
-	case "image", "services", "artifacts", "cache":
+	case "image", "services", "artifacts", "cache", "after_script":
 		return true
 	default:
 		return false
