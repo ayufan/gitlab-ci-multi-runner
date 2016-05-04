@@ -230,18 +230,22 @@ func (n *GitLabClient) PatchTrace(config common.RunnerConfig, buildCredentials *
 	defer response.Body.Close()
 	defer io.Copy(ioutil.Discard, response.Body)
 
+	remoteState := response.Header.Get("Build-Status")
 	log := config.Log().WithFields(logrus.Fields{
 		"SentRange":   contentRange,
 		"RemoteRange": response.Header.Get("Range"),
+		"RemoteState": remoteState,
 	})
+
+	if remoteState == "canceled" {
+		log.Warningln(id, "Appending trace to coordinator", "aborted")
+		return common.UpdateAbort
+	}
 
 	switch response.StatusCode {
 	case 202:
 		log.Println(id, "Appending trace to coordinator...", "ok")
 		return common.UpdateSucceeded
-	case 403:
-		log.Warningln(id, "Appending trace to coordinator...", "aborted")
-		return common.UpdateAbort
 	case 404:
 		log.Warningln(id, "Appending trace to coordinator...", "not-found")
 		return common.UpdateNotFound
@@ -258,6 +262,7 @@ func (n *GitLabClient) PatchTrace(config common.RunnerConfig, buildCredentials *
 		return common.UpdateFailed
 	}
 }
+
 func (n *GitLabClient) handlePatchTraceResend(response *http.Response, config common.RunnerConfig,
 	buildCredentials *common.BuildCredentials, tracePatch common.BuildTracePatch) common.UpdateState {
 	id := buildCredentials.ID

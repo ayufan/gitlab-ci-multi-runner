@@ -129,7 +129,7 @@ func (c *clientBuildTrace) finish() {
 
 	// Do final upload of build trace
 	for {
-		if c.update() != common.UpdateFailed {
+		if c.staleUpdate() != common.UpdateFailed {
 			return
 		}
 		time.Sleep(traceFinishRetryInterval)
