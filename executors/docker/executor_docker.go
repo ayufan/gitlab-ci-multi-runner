@@ -671,6 +671,7 @@ func (s *executor) watchContainer(container *docker.Container, input io.Reader, 
 		Stdin:        true,
 		Stdout:       true,
 		Stderr:       true,
+		RawTerminal:  false,
 	}
 
 	s.Debugln("Attaching to container...")
@@ -816,9 +817,9 @@ func (s *executor) Cleanup() {
 		remove(cache.ID)
 	}
 
-	//	for _, build := range s.builds {
-	//		remove(build.ID)
-	//	}
+	for _, build := range s.builds {
+		remove(build.ID)
+	}
 
 	wg.Wait()
 
