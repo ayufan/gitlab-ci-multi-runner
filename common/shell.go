@@ -19,8 +19,6 @@ type ShellScript struct {
 	Extension     string
 }
 
-type ShellCommandExecutor func(script string, abort chan interface{}) error
-
 type ShellType int
 
 const (

@@ -13,11 +13,6 @@ import (
 	"strings"
 )
 
-var ErrAborted = errors.New("command aborted")
-var ErrTimedout = errors.New("command timedout")
-
-const MaxCommandTime = 31 * 24 * time.Hour
-
 type Client struct {
 	Config
 
@@ -33,7 +28,6 @@ type Command struct {
 	Command     []string
 	Stdin       string
 	Abort       chan interface{}
-	Timeout     time.Duration
 }
 
 func (s *Client) getSSHKey(identityFile string) (key ssh.Signer, err error) {
@@ -158,18 +152,10 @@ func (s *Client) Run(cmd Command) error {
 		waitCh <- session.Wait()
 	}()
 
-	if cmd.Timeout == 0 {
-		cmd.Timeout = MaxCommandTime
-	}
-
 	select {
-	case <-time.After(cmd.Timeout):
-		session.Signal(ssh.SIGKILL)
-		return ErrTimedout
-
 	case <-cmd.Abort:
 		session.Signal(ssh.SIGKILL)
-		return ErrAborted
+		return <- waitCh
 
 	case err := <- waitCh:
 		return err
