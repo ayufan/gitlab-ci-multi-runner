@@ -674,15 +674,16 @@ func (s *executor) watchContainer(container *docker.Container, input io.Reader, 
 		RawTerminal:  false,
 	}
 
-	s.Debugln("Attaching to container...")
-	err = s.client.AttachToContainer(options)
-	if err != nil {
-		return
-	}
-
 	waitCh := make(chan error)
 	go func() {
-		s.Debugln("Waiting for container...")
+		s.Debugln("Attaching to container", container.ID, "...")
+		err = s.client.AttachToContainer(options)
+		if err != nil {
+			waitCh <- err
+			return
+		}
+
+		s.Debugln("Waiting for container", container.ID, "...")
 		exitCode, err := s.client.WaitContainer(container.ID)
 		if err == nil {
 			if exitCode != 0 {
@@ -694,14 +695,14 @@ func (s *executor) watchContainer(container *docker.Container, input io.Reader, 
 
 	select {
 	case <-abort:
-		s.Debugln("Abort received")
+		s.Debugln("Killing container", container.ID, "...")
 		s.client.KillContainer(docker.KillContainerOptions{
 			ID: container.ID,
 		})
 		err = errors.New("Aborted")
 
 	case err = <-waitCh:
-		s.Debugln("Result received", err)
+		s.Debugln("Container", container.ID, "finished with", err)
 	}
 	return
 }

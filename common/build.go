@@ -177,6 +177,8 @@ func (b *Build) run(executor Executor) (err error) {
 		return err
 	}
 
+	b.log().Debugln("Waiting for build to finish...", err)
+
 	// Wait till we receive that build did finish
 	for {
 		select {
