@@ -117,6 +117,13 @@ func (m *machineCommand) Status(name string) (string, error) {
 	return m.get("status", name)
 }
 
+func (m *machineCommand) Exist(name string) bool {
+	cmd := exec.Command("docker-machine", "inspect", name)
+	cmd.Env = os.Environ()
+	cmd.Stderr = os.Stderr
+	return cmd.Run() == nil
+}
+
 func (m *machineCommand) CanConnect(name string) bool {
 	// Execute docker-machine config which actively ask the machine if it is up and online
 	cmd := exec.Command("docker-machine", "config", name)
