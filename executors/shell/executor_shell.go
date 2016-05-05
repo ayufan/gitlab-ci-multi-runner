@@ -54,6 +54,18 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 	return nil
 }
 
+func (s *executor) killAndWait(cmd *exec.Cmd, waitCh chan error) error {
+	for {
+		s.Debugln("Aborting command...")
+		helpers.KillProcessGroup(cmd)
+		select {
+		case <-time.After(time.Second):
+		case err := <-waitCh:
+			return err
+		}
+	}
+}
+
 func (s *executor) Run(cmd common.ExecutorCommand) error {
 	// Create execution command
 	c := exec.Command(s.BuildScript.Command, s.BuildScript.Arguments...)
@@ -105,15 +117,7 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 		return err
 
 	case <-cmd.Abort:
-		s.Debugln("Aborting command...")
-		for {
-			helpers.KillProcessGroup(c)
-			select {
-			case <-time.After(time.Second):
-			case err = <-waitCh:
-				return err
-			}
-		}
+		return s.killAndWait(c, waitCh)
 	}
 }
 

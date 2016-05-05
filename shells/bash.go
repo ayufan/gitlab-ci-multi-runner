@@ -160,6 +160,35 @@ func (b *BashShell) GetName() string {
 	return b.Shell
 }
 
+func (b *BashShell) setCommands(info common.ShellScriptInfo, script *common.ShellScript) {
+	var detectScript string
+	var shellCommand string
+	if info.Type == common.LoginShell {
+		detectScript = strings.Replace(bashDetectShell, "$@", "--login", -1)
+		shellCommand = b.Shell + " --login"
+	} else {
+		detectScript = strings.Replace(bashDetectShell, "$@", "", -1)
+		shellCommand = b.Shell
+	}
+
+	script.DockerCommand = []string{"sh", "-c", detectScript}
+
+	// su
+	if info.User != "" {
+		script.Command = "su"
+		if runtime.GOOS == "linux" {
+			script.Arguments = append(script.Arguments, "-s", "/bin/"+b.Shell)
+		}
+		script.Arguments = append(script.Arguments, info.User)
+		script.Arguments = append(script.Arguments, "-c", shellCommand)
+	} else {
+		script.Command = b.Shell
+		if info.Type == common.LoginShell {
+			script.Arguments = append(script.Arguments, "--login")
+		}
+	}
+}
+
 func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (script *common.ShellScript, err error) {
 	temporaryPath := info.Build.FullProjectDir() + ".tmp"
 
@@ -192,38 +221,14 @@ func (b *BashShell) GenerateScript(info common.ShellScriptInfo) (script *common.
 		return
 	}
 
-	var detectScript string
-	var shellCommand string
-	if info.Type == common.LoginShell {
-		detectScript = strings.Replace(bashDetectShell, "$@", "--login", -1)
-		shellCommand = b.Shell + " --login"
-	} else {
-		detectScript = strings.Replace(bashDetectShell, "$@", "", -1)
-		shellCommand = b.Shell
-	}
-
 	script = &common.ShellScript{
-		PreScript:     preScript.Finish(),
-		BuildScript:   buildScript.Finish(),
-		AfterScript:   afterScript.Finish(),
-		PostScript:    postScript.Finish(),
-		DockerCommand: []string{"sh", "-c", detectScript},
+		PreScript:   preScript.Finish(),
+		BuildScript: buildScript.Finish(),
+		AfterScript: afterScript.Finish(),
+		PostScript:  postScript.Finish(),
 	}
+	b.setCommands(info, script)
 
-	// su
-	if info.User != "" {
-		script.Command = "su"
-		if runtime.GOOS == "linux" {
-			script.Arguments = append(script.Arguments, "-s", "/bin/"+b.Shell)
-		}
-		script.Arguments = append(script.Arguments, info.User)
-		script.Arguments = append(script.Arguments, "-c", shellCommand)
-	} else {
-		script.Command = b.Shell
-		if info.Type == common.LoginShell {
-			script.Arguments = append(script.Arguments, "--login")
-		}
-	}
 	return
 }
 
