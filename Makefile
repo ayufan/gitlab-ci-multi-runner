@@ -25,6 +25,7 @@ RPM_ARCHS ?= x86_64 i686 arm armhf
 GO_LDFLAGS ?= -X main.NAME $(PACKAGE_NAME) -X main.VERSION $(VERSION) -X main.REVISION $(REVISION)
 GO_FILES ?= $(shell find . -name '*.go')
 export GO15VENDOREXPERIMENT := 1
+export CGO_ENABLED := 0
 
 all: deps verify build
 
