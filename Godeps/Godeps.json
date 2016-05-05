@@ -1,6 +1,7 @@
 {
 	"ImportPath": "gitlab.com/gitlab-org/gitlab-ci-multi-runner",
 	"GoVersion": "go1.6.0",
+	"GodepVersion": "v60",
 	"Packages": [
 		"./..."
 	],
@@ -17,7 +18,7 @@
 		},
 		{
 			"ImportPath": "github.com/ayufan/golang-kardianos-service",
-			"Rev": "25fd515b53c6063a1f70673c8ad2a1992c73850f"
+			"Rev": "0c8eb6d8fff2e2fb884a7bfd23e183fb63c0eff3"
 		},
 		{
 			"ImportPath": "github.com/codegangsta/cli",

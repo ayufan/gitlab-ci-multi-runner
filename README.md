@@ -16,6 +16,24 @@ The official repository for this project is on [GitLab.com](https://gitlab.com/g
 * [Merge Requests](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/merge_requests)
 * [Prepare development environment](docs/development/README.md)
 
+#### Closing issues and merge requests
+
+GitLab is growing very fast and we have a limited resources to deal with reported issues
+and merge requests opened by the community volunteers. We appreciate all the contributions
+coming from our community. But to help all of us with issues and merge requests management
+we need to create some closing policy.
+
+If an issue or merge request has a ~"waiting for feedback" label and the response from the
+reporter has not been received for 14 days, we can close it using the following response
+template:
+
+```
+We haven't received an update for more than 14 days so we will assume that the
+problem is fixed or is no longer valid. If you still experience the same problem
+try upgrading to the latest version. If the issue persists, reopen this issue
+or merge request with the relevant information.
+```
+
 ### Requirements
 
 **None:** GitLab Runner is run as a single binary.

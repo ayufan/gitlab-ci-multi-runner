@@ -1,5 +1,6 @@
 v 1.2.0 (unreleased)
 - Add `timeout` option for the `exec` command
+- Make checkout quiet
 
 v 1.1.0
 - Use Go 1.5

@@ -11,6 +11,8 @@ RUN echo "deb https://packages.gitlab.com/runner/gitlab-ci-multi-runner/ubuntu/ 
     apt-get update -y && \
     apt-get install -y gitlab-ci-multi-runner && \
     apt-get clean && \
+    mkdir -p /etc/gitlab-runner/certs && \
+    chmod -R 700 /etc/gitlab-runner && \
     rm -rf /var/lib/apt/lists/*
 
 ADD entrypoint /
