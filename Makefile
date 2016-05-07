@@ -5,6 +5,7 @@ REVISION := $(shell git rev-parse --short HEAD || echo unknown)
 LAST_TAG := $(shell git describe --tags --abbrev=0)
 COMMITS := $(shell echo `git log --oneline $(LAST_TAG)..HEAD | wc -l`)
 VERSION := $(shell (cat VERSION || echo dev) | sed -e 's/^v//g')
+BUILT := $(shell date +%Y-%m-%dT%H:%M:%S%:z)
 ifneq ($(RELEASE),true)
     VERSION := $(shell echo $(VERSION)~beta.$(COMMITS).g$(REVISION))
 endif
@@ -22,7 +23,7 @@ RPM_PLATFORMS ?= el/6 el/7 \
     ol/6 ol/7 \
     fedora/20 fedora/21 fedora/22 fedora/23
 RPM_ARCHS ?= x86_64 i686 arm armhf
-GO_LDFLAGS ?= -X main.NAME $(PACKAGE_NAME) -X main.VERSION $(VERSION) -X main.REVISION $(REVISION)
+GO_LDFLAGS ?= -X main.NAME=$(PACKAGE_NAME) -X main.VERSION=$(VERSION) -X main.REVISION=$(REVISION) -X main.BUILT=$(BUILT)
 GO_FILES ?= $(shell find . -name '*.go')
 export GO15VENDOREXPERIMENT := 1
 
