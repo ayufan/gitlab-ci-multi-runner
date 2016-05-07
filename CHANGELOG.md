@@ -1,5 +1,6 @@
 v 1.2.0 (unreleased)
 - Add `version` command with extended version information
+- Make checkout quiet
 
 v 1.1.0
 - Use Go 1.5
