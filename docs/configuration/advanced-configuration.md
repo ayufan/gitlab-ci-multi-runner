@@ -359,12 +359,15 @@ Example:
 ```bash
 [runners.cache]
   Type = "s3"
-  ServerAddress = "s3-eu-west-1.amazonaws.com"
+  ServerAddress = "s3.amazonaws.com"
   AccessKey = "AMAZON_S3_ACCESS_KEY"
   SecretKey = "AMAZON_S3_SECRET_KEY"
   BucketName = "runners"
   Insecure = false
 ```
+
+> **Note:** For Amazon's S3 service the `ServerAddress` should always be `s3.amazonaws.com`. Minio S3 client will
+> get bucket metadata and modify the URL to point to the valid region (eg. `s3-eu-west-1.amazonaws.com`) itself.
 
 ## Note
 
