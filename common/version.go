@@ -1,6 +1,37 @@
 package common
 
+import (
+	"fmt"
+	"runtime"
+	"time"
+
+	"github.com/codegangsta/cli"
+)
+
 var NAME = "gitlab-ci-multi-runner"
 var VERSION = "dev"
 var REVISION = "HEAD"
 var BUILT = "now"
+
+func VersionPrinter(c *cli.Context) {
+	fmt.Print(ExtendedVersion())
+}
+
+func VersionLine() string {
+	return fmt.Sprintf("%s %s (%s)", NAME, VERSION, REVISION)
+}
+
+func ExtendedVersion() string {
+	built := time.Now()
+	if BUILT != "now" {
+		built, _ = time.Parse(time.RFC3339, BUILT)
+	}
+
+	version := fmt.Sprintf("Version:      %s\n", VERSION)
+	version += fmt.Sprintf("Git revision: %s\n", REVISION)
+	version += fmt.Sprintf("GO version:   %s\n", runtime.Version())
+	version += fmt.Sprintf("Built:        %s\n", built.Format(time.RFC1123Z))
+	version += fmt.Sprintf("OS/Arch:      %s/%s\n", runtime.GOOS, runtime.GOARCH)
+
+	return version
+}

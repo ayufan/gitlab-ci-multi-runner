@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path"
 
@@ -55,7 +54,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = path.Base(os.Args[0])
 	app.Usage = "a GitLab Runner"
-	app.Version = fmt.Sprintf("%s (%s)", common.VERSION, common.REVISION)
+	cli.VersionPrinter = common.VersionPrinter
 	app.Authors = []cli.Author{
 		cli.Author{
 			Name:  "Kamil Trzciński",
