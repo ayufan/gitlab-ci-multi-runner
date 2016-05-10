@@ -117,10 +117,16 @@ executors/docker/bindata.go: out/docker/prebuilt.tar.gz
 docker: executors/docker/bindata.go
 
 build: executors/docker/bindata.go
-	# Building gitlab-ci-multi-runner for $(BUILD_PLATFORMS)
+	# Building $(NAME) in version $(VERSION) for $(BUILD_PLATFORMS)
 	gox $(BUILD_PLATFORMS) \
 		-ldflags "$(GO_LDFLAGS)" \
 		-output="out/binaries/$(NAME)-{{.OS}}-{{.Arch}}"
+
+build_current: executors/docker/bindata.go
+	# Building $(NAME) in version $(VERSION) for current platform
+	go build \
+		-ldflags "$(GO_LDFLAGS)" \
+		-o "out/binaries/$(NAME)"
 
 fmt:
 	# Checking project code formatting...
