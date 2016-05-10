@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path"
 
@@ -26,11 +25,13 @@ import (
 var NAME = "gitlab-ci-multi-runner"
 var VERSION = "dev"
 var REVISION = "HEAD"
+var BUILT = "now"
 
 func init() {
 	common.NAME = NAME
 	common.VERSION = VERSION
 	common.REVISION = REVISION
+	common.BUILT = BUILT
 }
 
 func main() {
@@ -53,7 +54,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = path.Base(os.Args[0])
 	app.Usage = "a GitLab Runner"
-	app.Version = fmt.Sprintf("%s (%s)", common.VERSION, common.REVISION)
+	cli.VersionPrinter = common.VersionPrinter
 	app.Authors = []cli.Author{
 		cli.Author{
 			Name:  "Kamil Trzciński",

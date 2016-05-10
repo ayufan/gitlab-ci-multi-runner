@@ -101,7 +101,7 @@ func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.R
 		return err
 	}
 
-	e.Infoln(fmt.Sprintf("%s %s (%s)", common.NAME, common.VERSION, common.REVISION))
+	e.Infoln(common.VersionLine())
 
 	err = e.updateShell()
 	if err != nil {

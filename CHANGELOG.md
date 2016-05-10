@@ -1,4 +1,5 @@
 v 1.2.0 (unreleased)
+- Extend version information when using `--version` flag
 - Make checkout quiet
 
 v 1.1.0
