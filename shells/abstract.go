@@ -182,6 +182,7 @@ func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptI
 	b.writeTLSCAInfo(w, info.Build, "GIT_SSL_CAINFO")
 	b.writeTLSCAInfo(w, info.Build, "CI_SERVER_TLS_CA_FILE")
 
+	w.Command("git", "config", "--global", "fetch.recurseSubmodules", "false")
 	if build.AllowGitFetch {
 		b.writeFetchCmd(w, build, projectDir, gitDir)
 	} else {
