@@ -18,7 +18,7 @@ func (b *AbstractShell) GetFeatures(features *common.FeaturesInfo) {
 }
 
 func (b *AbstractShell) GetSupportedOptions() []string {
-	return []string{"artifacts", "cache", "dependencies"}
+	return []string{"artifacts", "cache", "dependencies", "after_script"}
 }
 
 func (b *AbstractShell) writeCdBuildDir(w ShellWriter, info common.ShellScriptInfo) {
@@ -172,7 +172,7 @@ func (b *AbstractShell) downloadAllArtifacts(w ShellWriter, dependencies *depend
 	}
 }
 
-func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptInfo) {
+func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptInfo) (err error) {
 	b.writeExports(w, info)
 
 	build := info.Build
@@ -193,18 +193,24 @@ func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptI
 
 	// Parse options
 	var options shellOptions
-	info.Build.Options.Decode(&options)
+	err = info.Build.Options.Decode(&options)
+	if err != nil {
+		return
+	}
 
 	// Try to restore from main cache, if not found cache for master
 	b.cacheExtractor(w, options.Cache, info)
 
 	// Process all artifacts
 	b.downloadAllArtifacts(w, options.Dependencies, info)
+	return nil
 }
 
-func (b *AbstractShell) GenerateCommands(w ShellWriter, info common.ShellScriptInfo) {
+func (b *AbstractShell) GenerateBuild(w ShellWriter, info common.ShellScriptInfo) (err error) {
 	b.writeExports(w, info)
 	b.writeCdBuildDir(w, info)
+
+	w.Notice("Running build script...")
 
 	commands := info.Build.Commands
 	commands = strings.TrimSpace(commands)
@@ -218,6 +224,8 @@ func (b *AbstractShell) GenerateCommands(w ShellWriter, info common.ShellScriptI
 		w.Line(command)
 		w.CheckForErrors()
 	}
+
+	return nil
 }
 
 func (b *AbstractShell) cacheArchiver(w ShellWriter, options *archivingOptions, info common.ShellScriptInfo) {
@@ -297,18 +305,50 @@ func (b *AbstractShell) uploadArtifacts(w ShellWriter, options *archivingOptions
 	w.Command(info.RunnerCommand, args...)
 }
 
-func (b *AbstractShell) GeneratePostBuild(w ShellWriter, info common.ShellScriptInfo) {
+func (b *AbstractShell) GenerateAfterBuild(w ShellWriter, info common.ShellScriptInfo) error {
+	shellOptions := struct {
+		AfterScript []string `json:"after_script"`
+	}{}
+	err := info.Build.Options.Decode(&shellOptions)
+	if err != nil {
+		return err
+	}
+
+	b.writeExports(w, info)
+	b.writeCdBuildDir(w, info)
+
+	w.Notice("Running after script...")
+
+	for _, command := range shellOptions.AfterScript {
+		command = strings.TrimSpace(command)
+		if command != "" {
+			w.Notice("$ %s", command)
+		} else {
+			w.EmptyLine()
+		}
+		w.Line(command)
+		w.CheckForErrors()
+	}
+
+	return nil
+}
+
+func (b *AbstractShell) GeneratePostBuild(w ShellWriter, info common.ShellScriptInfo) (err error) {
 	b.writeExports(w, info)
 	b.writeCdBuildDir(w, info)
 	b.writeTLSCAInfo(w, info.Build, "CI_SERVER_TLS_CA_FILE")
 
 	// Parse options
 	var options shellOptions
-	info.Build.Options.Decode(&options)
+	err = info.Build.Options.Decode(&options)
+	if err != nil {
+		return
+	}
 
 	// Find cached files and archive them
 	b.cacheArchiver(w, options.Cache, info)
 
 	// Upload artifacts
 	b.uploadArtifacts(w, options.Artifacts, info)
+	return
 }

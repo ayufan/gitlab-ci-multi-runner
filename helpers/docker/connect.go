@@ -71,6 +71,7 @@ func New(c DockerCredentials, apiVersion string) (client Client, err error) {
 		if err != nil {
 			logrus.Errorln("Error while TLS Docker client creation:", err)
 		}
+
 		return
 	}
 

@@ -11,38 +11,21 @@ import (
 
 type commandExecutor struct {
 	executor
+	predefinedContainer *docker.Container
+	buildContainer      *docker.Container
 }
 
-func (s *commandExecutor) watchContainers(preContainer, buildContainer, postContainer *docker.Container) {
-	s.Println()
-
-	err := s.watchContainer(preContainer, bytes.NewBufferString(s.BuildScript.PreScript))
+func (s *commandExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
+	err := s.executor.Prepare(globalConfig, config, build)
 	if err != nil {
-		s.BuildFinish <- err
-		return
+		return err
 	}
 
-	s.Println()
-
-	err = s.watchContainer(buildContainer, bytes.NewBufferString(s.BuildScript.BuildScript))
-	if err != nil {
-		s.BuildFinish <- err
-		return
-	}
-
-	s.Println()
-
-	err = s.watchContainer(postContainer, bytes.NewBufferString(s.BuildScript.PostScript))
-	if err != nil {
-		s.BuildFinish <- err
-		return
-	}
-
-	s.BuildFinish <- nil
-}
-
-func (s *commandExecutor) Start() error {
 	s.Debugln("Starting Docker command...")
+
+	if len(s.BuildScript.DockerCommand) == 0 {
+		return errors.New("Script is not compatible with Docker")
+	}
 
 	imageName, err := s.getImageName()
 	if err != nil {
@@ -60,30 +43,31 @@ func (s *commandExecutor) Start() error {
 	}
 
 	// Start pre-build container which will git clone changes
-	preContainer, err := s.createContainer("pre", buildImage.ID, nil, *options)
+	s.predefinedContainer, err = s.createContainer("predefined", buildImage.ID, nil, *options)
 	if err != nil {
 		return err
-	}
-
-	// Start post-build container which will upload artifacts
-	postContainer, err := s.createContainer("post", buildImage.ID, nil, *options)
-	if err != nil {
-		return err
-	}
-
-	if len(s.BuildScript.DockerCommand) == 0 {
-		return errors.New("Script is not compatible with Docker")
 	}
 
 	// Start build container which will run actual build
-	buildContainer, err := s.createContainer("build", imageName, s.BuildScript.DockerCommand, *options)
+	s.buildContainer, err = s.createContainer("build", imageName, s.BuildScript.DockerCommand, *options)
 	if err != nil {
 		return err
 	}
-
-	// Wait for process to exit
-	go s.watchContainers(preContainer, buildContainer, postContainer)
 	return nil
+}
+
+func (s *commandExecutor) Run(cmd common.ExecutorCommand) error {
+	var container *docker.Container
+
+	if cmd.Predefined {
+		container = s.predefinedContainer
+	} else {
+		container = s.buildContainer
+	}
+
+	s.Debugln("Executing on", container.Name, "the", cmd.Script)
+
+	return s.watchContainer(container, bytes.NewBufferString(cmd.Script), cmd.Abort)
 }
 
 func init() {

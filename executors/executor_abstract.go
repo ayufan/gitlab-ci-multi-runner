@@ -1,12 +1,9 @@
 package executors
 
 import (
-	"errors"
 	"fmt"
-	"os"
-	"time"
-
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"os"
 )
 
 type ExecutorOptions struct {
@@ -23,7 +20,6 @@ type AbstractExecutor struct {
 	Config      common.RunnerConfig
 	Build       *common.Build
 	BuildLog    common.BuildTrace
-	BuildFinish chan error
 	BuildScript *common.ShellScript
 }
 
@@ -93,7 +89,6 @@ func (e *AbstractExecutor) verifyOptions() error {
 func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
 	e.Config = *config
 	e.Build = build
-	e.BuildFinish = make(chan error, 1)
 	e.BuildLog = build.Trace
 
 	err := e.startBuild()
@@ -120,32 +115,8 @@ func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.R
 	return nil
 }
 
-func (e *AbstractExecutor) Wait() error {
-	buildTimeout := e.Build.Timeout
-	if buildTimeout <= 0 {
-		buildTimeout = common.DefaultTimeout
-	}
-
-	buildCanceled := make(chan bool)
-	e.Build.Trace.Notify(func() {
-		buildCanceled <- true
-	})
-
-	// Wait for signals: cancel, timeout, abort or finish
-	e.Debugln("Waiting for signals...")
-	select {
-	case <-buildCanceled:
-		return errors.New("canceled")
-
-	case <-time.After(time.Duration(buildTimeout) * time.Second):
-		return fmt.Errorf("execution took longer than %v seconds", buildTimeout)
-
-	case signal := <-e.Build.BuildAbort:
-		return fmt.Errorf("aborted: %v", signal)
-
-	case err := <-e.BuildFinish:
-		return err
-	}
+func (e *AbstractExecutor) ShellScript() *common.ShellScript {
+	return e.BuildScript
 }
 
 func (e *AbstractExecutor) Finish(err error) {

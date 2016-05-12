@@ -13,21 +13,24 @@ import (
 	"strings"
 )
 
-type Command struct {
+type Client struct {
 	Config
 
-	Environment []string
-	Command     []string
-	Stdin       []byte
-	Stdout      io.Writer
-	Stderr      io.Writer
-
+	Stdout         io.Writer
+	Stderr         io.Writer
 	ConnectRetries int
 
 	client *ssh.Client
 }
 
-func (s *Command) getSSHKey(identityFile string) (key ssh.Signer, err error) {
+type Command struct {
+	Environment []string
+	Command     []string
+	Stdin       string
+	Abort       chan interface{}
+}
+
+func (s *Client) getSSHKey(identityFile string) (key ssh.Signer, err error) {
 	buf, err := ioutil.ReadFile(identityFile)
 	if err != nil {
 		return nil, err
@@ -36,7 +39,7 @@ func (s *Command) getSSHKey(identityFile string) (key ssh.Signer, err error) {
 	return key, err
 }
 
-func (s *Command) getSSHAuthMethods() ([]ssh.AuthMethod, error) {
+func (s *Client) getSSHAuthMethods() ([]ssh.AuthMethod, error) {
 	var methods []ssh.AuthMethod
 	methods = append(methods, ssh.Password(s.Password))
 
@@ -51,7 +54,7 @@ func (s *Command) getSSHAuthMethods() ([]ssh.AuthMethod, error) {
 	return methods, nil
 }
 
-func (s *Command) Connect() error {
+func (s *Client) Connect() error {
 	if s.Host == "" {
 		s.Host = "localhost"
 	}
@@ -92,7 +95,7 @@ func (s *Command) Connect() error {
 	return finalError
 }
 
-func (s *Command) Exec(cmd string) error {
+func (s *Client) Exec(cmd string) error {
 	if s.client == nil {
 		return errors.New("Not connected")
 	}
@@ -117,7 +120,7 @@ func (s *Command) fullCommand() string {
 	return strings.Join(arguments, " ")
 }
 
-func (s *Command) Run() error {
+func (s *Client) Run(cmd Command) error {
 	if s.client == nil {
 		return errors.New("Not connected")
 	}
@@ -128,22 +131,38 @@ func (s *Command) Run() error {
 	}
 
 	var envVariables bytes.Buffer
-	for _, keyValue := range s.Environment {
+	for _, keyValue := range cmd.Environment {
 		envVariables.WriteString("export " + helpers.ShellEscape(keyValue) + "\n")
 	}
 
 	session.Stdin = io.MultiReader(
 		&envVariables,
-		bytes.NewBuffer(s.Stdin),
+		bytes.NewBufferString(cmd.Stdin),
 	)
 	session.Stdout = s.Stdout
 	session.Stderr = s.Stderr
-	err = session.Run(s.fullCommand())
-	session.Close()
-	return err
+	err = session.Start(cmd.fullCommand())
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	waitCh := make(chan error)
+	go func() {
+		waitCh <- session.Wait()
+	}()
+
+	select {
+	case <-cmd.Abort:
+		session.Signal(ssh.SIGKILL)
+		return <-waitCh
+
+	case err := <-waitCh:
+		return err
+	}
 }
 
-func (s *Command) Cleanup() {
+func (s *Client) Cleanup() {
 	if s.client != nil {
 		s.client.Close()
 	}

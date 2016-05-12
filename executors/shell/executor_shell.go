@@ -14,12 +14,11 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"time"
 )
 
 type executor struct {
 	executors.AbstractExecutor
-	cmd       *exec.Cmd
-	scriptDir string
 }
 
 func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
@@ -55,61 +54,71 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 	return nil
 }
 
-func (s *executor) Start() error {
-	s.Debugln("Starting shell command...")
+func (s *executor) killAndWait(cmd *exec.Cmd, waitCh chan error) error {
+	for {
+		s.Debugln("Aborting command...")
+		helpers.KillProcessGroup(cmd)
+		select {
+		case <-time.After(time.Second):
+		case err := <-waitCh:
+			return err
+		}
+	}
+}
 
+func (s *executor) Run(cmd common.ExecutorCommand) error {
 	// Create execution command
-	s.cmd = exec.Command(s.BuildScript.Command, s.BuildScript.Arguments...)
-	if s.cmd == nil {
+	c := exec.Command(s.BuildScript.Command, s.BuildScript.Arguments...)
+	if c == nil {
 		return errors.New("Failed to generate execution command")
 	}
 
-	helpers.SetProcessGroup(s.cmd)
+	helpers.SetProcessGroup(c)
+	defer helpers.KillProcessGroup(c)
 
 	// Fill process environment variables
-	s.cmd.Env = append(os.Environ(), s.BuildScript.Environment...)
-	s.cmd.Stdout = s.BuildLog
-	s.cmd.Stderr = s.BuildLog
+	c.Env = append(os.Environ(), s.BuildScript.Environment...)
+	c.Stdout = s.BuildLog
+	c.Stderr = s.BuildLog
 
 	if s.BuildScript.PassFile {
 		scriptDir, err := ioutil.TempDir("", "build_script")
 		if err != nil {
 			return err
 		}
-		s.scriptDir = scriptDir
+		defer os.RemoveAll(scriptDir)
 
 		scriptFile := filepath.Join(scriptDir, "script."+s.BuildScript.Extension)
-		err = ioutil.WriteFile(scriptFile, s.BuildScript.GetScriptBytes(), 0700)
+		err = ioutil.WriteFile(scriptFile, []byte(cmd.Script), 0700)
 		if err != nil {
 			return err
 		}
 
-		s.cmd.Args = append(s.cmd.Args, scriptFile)
+		c.Args = append(c.Args, scriptFile)
 	} else {
-		s.cmd.Stdin = bytes.NewReader(s.BuildScript.GetScriptBytes())
+		c.Stdin = bytes.NewBufferString(cmd.Script)
 	}
 
-	// Start process
-	err := s.cmd.Start()
+	// Start a process
+	err := c.Start()
 	if err != nil {
 		return fmt.Errorf("Failed to start process: %s", err)
 	}
 
-	// Wait for process to exit
+	// Wait for process to finish
+	waitCh := make(chan error)
 	go func() {
-		s.BuildFinish <- s.cmd.Wait()
+		waitCh <- c.Wait()
 	}()
-	return nil
-}
 
-func (s *executor) Cleanup() {
-	helpers.KillProcessGroup(s.cmd)
+	// Support process abort
+	select {
+	case err = <-waitCh:
+		return err
 
-	if s.scriptDir != "" {
-		os.RemoveAll(s.scriptDir)
+	case <-cmd.Abort:
+		return s.killAndWait(c, waitCh)
 	}
-
-	s.AbstractExecutor.Cleanup()
 }
 
 func init() {

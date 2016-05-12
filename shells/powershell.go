@@ -182,49 +182,56 @@ func (b *PowerShell) GetName() string {
 	return "powershell"
 }
 
-func (b *PowerShell) GenerateScript(info common.ShellScriptInfo) (*common.ShellScript, error) {
-	w := &PsWriter{
+func newPsWriter(info common.ShellScriptInfo) (w *PsWriter) {
+	w = &PsWriter{
 		TemporaryPath: info.Build.FullProjectDir() + ".tmp",
 	}
 	w.Line("$ErrorActionPreference = \"Stop\"")
 	w.Line("")
+	return
+}
 
+func (b *PowerShell) GenerateScript(info common.ShellScriptInfo) (script *common.ShellScript, err error) {
+	preScript := newPsWriter(info)
 	if len(info.Build.Hostname) != 0 {
-		w.Line("echo \"Running on $env:computername via " + psQuoteVariable(info.Build.Hostname) + "...\"")
+		preScript.Line("echo \"Running on $env:computername via " + psQuoteVariable(info.Build.Hostname) + "...\"")
 	} else {
-		w.Line("echo \"Running on $env:computername...\"")
+		preScript.Line("echo \"Running on $env:computername...\"")
 	}
-	w.Line("")
+	err = b.GeneratePreBuild(preScript, info)
+	if err != nil {
+		return
+	}
 
-	w.Line("& {")
-	w.Indent()
-	b.GeneratePreBuild(w, info)
-	w.Unindent()
-	w.Line("}")
-	w.checkErrorLevel()
+	buildScript := newPsWriter(info)
+	err = b.GenerateBuild(buildScript, info)
+	if err != nil {
+		return
+	}
 
-	w.Line("& {")
-	w.Indent()
-	b.GenerateCommands(w, info)
-	w.Unindent()
-	w.Line("}")
-	w.checkErrorLevel()
+	afterScript := newPsWriter(info)
+	err = b.GenerateAfterBuild(afterScript, info)
+	if err != nil {
+		return
+	}
 
-	w.Line("& {")
-	w.Indent()
-	b.GeneratePostBuild(w, info)
-	w.Unindent()
-	w.Line("}")
-	w.checkErrorLevel()
+	postScript := newPsWriter(info)
+	err = b.GeneratePostBuild(postScript, info)
+	if err != nil {
+		return
+	}
 
-	script := common.ShellScript{
-		BuildScript: w.String(),
+	script = &common.ShellScript{
+		PreScript:   preScript.String(),
+		BuildScript: buildScript.String(),
+		AfterScript: afterScript.String(),
+		PostScript:  postScript.String(),
 		Command:     "powershell",
 		Arguments:   []string{"-noprofile", "-noninteractive", "-executionpolicy", "Bypass", "-command"},
 		PassFile:    true,
 		Extension:   "ps1",
 	}
-	return &script, nil
+	return
 }
 
 func (b *PowerShell) IsDefault() bool {

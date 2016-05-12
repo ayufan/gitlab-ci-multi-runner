@@ -11,6 +11,7 @@ type ShellScript struct {
 	DockerCommand []string
 	PreScript     string
 	BuildScript   string
+	AfterScript   string
 	PostScript    string
 	Command       string
 	Arguments     []string
@@ -31,10 +32,6 @@ func (s *ShellScript) GetCommandWithArguments() []string {
 		parts = append(parts, arg)
 	}
 	return parts
-}
-
-func (s *ShellScript) GetScriptBytes() []byte {
-	return []byte(s.PreScript + s.BuildScript + s.PostScript)
 }
 
 func (s *ShellScript) String() string {

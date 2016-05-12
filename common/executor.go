@@ -6,10 +6,16 @@ import (
 
 type ExecutorData interface{}
 
+type ExecutorCommand struct {
+	Script     string
+	Predefined bool
+	Abort      chan interface{}
+}
+
 type Executor interface {
 	Prepare(globalConfig *Config, config *RunnerConfig, build *Build) error
-	Start() error
-	Wait() error
+	ShellScript() *ShellScript
+	Run(cmd ExecutorCommand) error
 	Finish(err error)
 	Cleanup()
 }

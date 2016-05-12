@@ -17,7 +17,7 @@ type executor struct {
 	executors.AbstractExecutor
 	cmd             *exec.Cmd
 	vmName          string
-	sshCommand      ssh.Command
+	sshCommand      ssh.Client
 	provisioned     bool
 	ipAddress       string
 	machineVerified bool
@@ -61,9 +61,8 @@ func (s *executor) verifyMachine(vmName string) error {
 	}
 
 	// Create SSH command
-	sshCommand := ssh.Command{
+	sshCommand := ssh.Client{
 		Config:         *s.Config.SSH,
-		Command:        []string{"exit"},
 		Stdout:         s.BuildLog,
 		Stderr:         s.BuildLog,
 		ConnectRetries: 30,
@@ -76,7 +75,7 @@ func (s *executor) verifyMachine(vmName string) error {
 		return err
 	}
 	defer sshCommand.Cleanup()
-	err = sshCommand.Run()
+	err = sshCommand.Run(ssh.Command{Command: []string{"exit"}})
 	if err != nil {
 		return err
 	}
@@ -264,23 +263,17 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 	if err != nil {
 		return err
 	}
-	return nil
-}
 
-func (s *executor) Start() error {
 	ipAddr, err := s.waitForIPAddress(s.vmName, 60)
 	if err != nil {
 		return err
 	}
 
 	s.Debugln("Starting SSH command...")
-	s.sshCommand = ssh.Command{
-		Config:      *s.Config.SSH,
-		Environment: s.BuildScript.Environment,
-		Command:     s.BuildScript.GetCommandWithArguments(),
-		Stdin:       s.BuildScript.GetScriptBytes(),
-		Stdout:      s.BuildLog,
-		Stderr:      s.BuildLog,
+	s.sshCommand = ssh.Client{
+		Config: *s.Config.SSH,
+		Stdout: s.BuildLog,
+		Stderr: s.BuildLog,
 	}
 	s.sshCommand.Host = ipAddr
 
@@ -289,15 +282,16 @@ func (s *executor) Start() error {
 	if err != nil {
 		return err
 	}
-
-	// Wait for process to exit
-	go func() {
-		s.Debugln("Will run SSH command...")
-		err := s.sshCommand.Run()
-		s.Debugln("SSH command finished with", err)
-		s.BuildFinish <- err
-	}()
 	return nil
+}
+
+func (s *executor) Run(cmd common.ExecutorCommand) error {
+	return s.sshCommand.Run(ssh.Command{
+		Environment: s.BuildScript.Environment,
+		Command:     s.BuildScript.GetCommandWithArguments(),
+		Stdin:       cmd.Script,
+		Abort:       cmd.Abort,
+	})
 }
 
 func (s *executor) Cleanup() {

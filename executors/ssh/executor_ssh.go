@@ -10,7 +10,7 @@ import (
 
 type executor struct {
 	executors.AbstractExecutor
-	sshCommand ssh.Command
+	sshCommand ssh.Client
 }
 
 func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
@@ -23,10 +23,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 	if s.BuildScript.PassFile {
 		return errors.New("SSH doesn't support shells that require script file")
 	}
-	return nil
-}
 
-func (s *executor) Start() error {
 	if s.Config.SSH == nil {
 		return errors.New("Missing SSH configuration")
 	}
@@ -34,29 +31,27 @@ func (s *executor) Start() error {
 	s.Debugln("Starting SSH command...")
 
 	// Create SSH command
-	s.sshCommand = ssh.Command{
-		Config:      *s.Config.SSH,
-		Environment: s.BuildScript.Environment,
-		Command:     s.BuildScript.GetCommandWithArguments(),
-		Stdin:       s.BuildScript.GetScriptBytes(),
-		Stdout:      s.BuildLog,
-		Stderr:      s.BuildLog,
+	s.sshCommand = ssh.Client{
+		Config: *s.Config.SSH,
+		Stdout: s.BuildLog,
+		Stderr: s.BuildLog,
 	}
 
 	s.Debugln("Connecting to SSH server...")
-	err := s.sshCommand.Connect()
+	err = s.sshCommand.Connect()
 	if err != nil {
 		return err
 	}
-
-	// Wait for process to exit
-	go func() {
-		s.Debugln("Will run SSH command...")
-		err := s.sshCommand.Run()
-		s.Debugln("SSH command finished with", err)
-		s.BuildFinish <- err
-	}()
 	return nil
+}
+
+func (s *executor) Run(cmd common.ExecutorCommand) error {
+	return s.sshCommand.Run(ssh.Command{
+		Environment: s.BuildScript.Environment,
+		Command:     s.BuildScript.GetCommandWithArguments(),
+		Stdin:       cmd.Script,
+		Abort:       cmd.Abort,
+	})
 }
 
 func (s *executor) Cleanup() {

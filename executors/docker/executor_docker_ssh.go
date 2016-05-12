@@ -10,10 +10,15 @@ import (
 
 type sshExecutor struct {
 	executor
-	sshCommand ssh.Command
+	sshCommand ssh.Client
 }
 
-func (s *sshExecutor) Start() error {
+func (s *sshExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
+	err := s.executor.Prepare(globalConfig, config, build)
+	if err != nil {
+		return err
+	}
+
 	if s.Config.SSH == nil {
 		return errors.New("Missing SSH configuration")
 	}
@@ -48,13 +53,10 @@ func (s *sshExecutor) Start() error {
 	}
 
 	// Create SSH command
-	s.sshCommand = ssh.Command{
-		Config:      *s.Config.SSH,
-		Environment: s.BuildScript.Environment,
-		Command:     s.BuildScript.GetCommandWithArguments(),
-		Stdin:       s.BuildScript.GetScriptBytes(),
-		Stdout:      s.BuildLog,
-		Stderr:      s.BuildLog,
+	s.sshCommand = ssh.Client{
+		Config: *s.Config.SSH,
+		Stdout: s.BuildLog,
+		Stderr: s.BuildLog,
 	}
 	s.sshCommand.Host = containerData.NetworkSettings.IPAddress
 
@@ -63,15 +65,16 @@ func (s *sshExecutor) Start() error {
 	if err != nil {
 		return err
 	}
-
-	// Wait for process to exit
-	go func() {
-		s.Debugln("Will run SSH command...")
-		err := s.sshCommand.Run()
-		s.Debugln("SSH command finished with", err)
-		s.BuildFinish <- err
-	}()
 	return nil
+}
+
+func (s *sshExecutor) Run(cmd common.ExecutorCommand) error {
+	return s.sshCommand.Run(ssh.Command{
+		Environment: s.BuildScript.Environment,
+		Command:     s.BuildScript.GetCommandWithArguments(),
+		Stdin:       cmd.Script,
+		Abort:       cmd.Abort,
+	})
 }
 
 func (s *sshExecutor) Cleanup() {

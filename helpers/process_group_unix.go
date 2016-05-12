@@ -22,10 +22,10 @@ func KillProcessGroup(cmd *exec.Cmd) {
 	process := cmd.Process
 	if process != nil {
 		if process.Pid > 0 {
-			syscall.Kill(-process.Pid, syscall.SIGABRT)
+			syscall.Kill(-process.Pid, syscall.SIGKILL)
+		} else {
+			// doing normal kill
+			process.Kill()
 		}
-
-		// doing normal kill
-		process.Kill()
 	}
 }

@@ -654,7 +654,7 @@ func (s *executor) createContainer(containerType, imageName string, cmd []string
 	return
 }
 
-func (s *executor) watchContainer(container *docker.Container, input io.Reader) (err error) {
+func (s *executor) watchContainer(container *docker.Container, input io.Reader, abort chan interface{}) (err error) {
 	s.Debugln("Starting container", container.ID, "...")
 	err = s.client.StartContainer(container.ID, nil)
 	if err != nil {
@@ -666,7 +666,7 @@ func (s *executor) watchContainer(container *docker.Container, input io.Reader) 
 		InputStream:  input,
 		OutputStream: s.BuildLog,
 		ErrorStream:  s.BuildLog,
-		Logs:         true,
+		Logs:         false,
 		Stream:       true,
 		Stdin:        true,
 		Stdout:       true,
@@ -674,20 +674,35 @@ func (s *executor) watchContainer(container *docker.Container, input io.Reader) 
 		RawTerminal:  false,
 	}
 
-	s.Debugln("Attaching to container...")
-	err = s.client.AttachToContainer(options)
-	if err != nil {
-		return
-	}
+	waitCh := make(chan error)
+	go func() {
+		s.Debugln("Attaching to container", container.ID, "...")
+		err = s.client.AttachToContainer(options)
+		if err != nil {
+			waitCh <- err
+			return
+		}
 
-	s.Debugln("Waiting for container...")
-	exitCode, err := s.client.WaitContainer(container.ID)
-	if err != nil {
-		return
-	}
+		s.Debugln("Waiting for container", container.ID, "...")
+		exitCode, err := s.client.WaitContainer(container.ID)
+		if err == nil {
+			if exitCode != 0 {
+				err = fmt.Errorf("exit code %d", exitCode)
+			}
+		}
+		waitCh <- err
+	}()
 
-	if exitCode != 0 {
-		err = fmt.Errorf("exit code %d", exitCode)
+	select {
+	case <-abort:
+		s.Debugln("Killing container", container.ID, "...")
+		s.client.KillContainer(docker.KillContainerOptions{
+			ID: container.ID,
+		})
+		err = errors.New("Aborted")
+
+	case err = <-waitCh:
+		s.Debugln("Container", container.ID, "finished with", err)
 	}
 	return
 }

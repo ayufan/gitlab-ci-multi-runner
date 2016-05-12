@@ -59,6 +59,13 @@ func (m *Client) WaitContainer(id string) (int, error) {
 
 	return r0, r1
 }
+func (m *Client) KillContainer(opts docker.KillContainerOptions) error {
+	ret := m.Called(opts)
+
+	r0 := ret.Error(0)
+
+	return r0
+}
 func (m *Client) InspectContainer(id string) (*docker.Container, error) {
 	ret := m.Called(id)
 
