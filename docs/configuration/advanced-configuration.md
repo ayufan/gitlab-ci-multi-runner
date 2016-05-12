@@ -95,6 +95,9 @@ This defines the Docker Container parameters.
 | `hostname`                  | specify custom hostname for Docker container |
 | `tls_cert_path`             | when set it will use `ca.pem`, `cert.pem` and `key.pem` from that folder to make secure TLS connection to Docker (useful in boot2docker) |
 | `image`                     | use this image to run builds |
+| `cpuset_cpus`               | string value containing the cgroups CpusetCpus to use |
+| `dns`                       | a list of DNS servers for the container to use |
+| `dns_search`                | a list of DNS search domains |
 | `privileged`                | make container run in Privileged mode (insecure) |
 | `cap_add`                   | add additional Linux capabilities to the container |
 | `cap_drop`                  | drop additional Linux capabilities from the container |
@@ -118,6 +121,9 @@ Example:
   hostname = ""
   tls_cert_path = "/Users/ayufan/.boot2docker/certs"
   image = "ruby:2.1"
+  cpuset_cpus = "0,1"
+  dns = ["8.8.8.8"]
+  dns_search = [""]
   privileged = false
   cap_add = ["NET_ADMIN"]
   cap_drop = ["DAC_OVERRIDE"]

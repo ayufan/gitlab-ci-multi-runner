@@ -581,6 +581,9 @@ func (s *executor) prepareBuildContainer() (options *docker.CreateContainerOptio
 			Env:          append(s.Build.GetAllVariables().StringList(), s.BuildScript.Environment...),
 		},
 		HostConfig: &docker.HostConfig{
+			CPUSetCPUs:    s.Config.Docker.CPUSetCPUs,
+			DNS:           s.Config.Docker.DNS,
+			DNSSearch:     s.Config.Docker.DNSSearch,
 			Privileged:    s.Config.Docker.Privileged,
 			CapAdd:        s.Config.Docker.CapAdd,
 			CapDrop:       s.Config.Docker.CapDrop,
