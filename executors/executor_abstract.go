@@ -1,7 +1,6 @@
 package executors
 
 import (
-	"fmt"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"os"
 )
