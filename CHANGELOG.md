@@ -1,6 +1,7 @@
 v 1.2.0 (unreleased)
 - Extend version information when using `--version` flag
 - Make checkout quiet
+- Make variables to work at job level in exec mode
 
 v 1.1.0
 - Use Go 1.5
