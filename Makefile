@@ -305,7 +305,4 @@ s3-upload:
 		--target-paths "$(S3_UPLOAD_PATH)/" \
 		$(shell cd out/; find . -type f)
 
-linux_amd64_build: BUILD_PLATFORMS := -os=linux -arch=amd64
-linux_amd64_build: build
-
 FORCE:
