@@ -1,7 +1,7 @@
 // +build ignore
 
 /*
- * Minio Go Library for Amazon S3 Compatible Cloud Storage (C) 2015 Minio, Inc.
+ * Minio Go Library for Amazon S3 Compatible Cloud Storage (C) 2016 Minio, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,9 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/minio/minio-go"
-	"github.com/minio/pb"
 )
 
 func main() {
@@ -39,26 +39,29 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	reader, err := s3Client.GetObject("my-bucketname", "my-objectname")
+	// Enable trace.
+	// s3Client.TraceOn(os.Stderr)
+
+	// All following conditions are allowed and can be combined together.
+
+	// Set copy conditions.
+	var copyConds = minio.NewCopyConditions()
+	// Set modified condition, copy object modified since 2014 April.
+	copyConds.SetModified(time.Date(2014, time.April, 0, 0, 0, 0, 0, time.UTC))
+
+	// Set unmodified condition, copy object unmodified since 2014 April.
+	// copyConds.SetUnmodified(time.Date(2014, time.April, 0, 0, 0, 0, 0, time.UTC))
+
+	// Set matching ETag condition, copy object which matches the following ETag.
+	// copyConds.SetMatchETag("31624deb84149d2f8ef9c385918b653a")
+
+	// Set matching ETag except condition, copy object which does not match the following ETag.
+	// copyConds.SetMatchETagExcept("31624deb84149d2f8ef9c385918b653a")
+
+	// Initiate copy object.
+	err = s3Client.CopyObject("my-bucketname", "my-objectname", "/my-sourcebucketname/my-sourceobjectname", copyConds)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer reader.Close()
-
-	objectInfo, err := reader.Stat()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	// progress reader is notified as PutObject makes progress with
-	// the read. For partial resume put object, progress reader is
-	// appropriately advanced.
-	progress := pb.New64(objectInfo.Size)
-	progress.Start()
-
-	n, err := s3Client.PutObjectWithProgress("my-bucketname", "my-objectname-progress", reader, "application/octet-stream", progress)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	log.Println("Uploaded", "my-objectname", " of size: ", n, "Successfully.")
+	log.Println("Copied source object /my-sourcebucketname/my-sourceobjectname to destination /my-bucketname/my-objectname Successfully.")
 }
