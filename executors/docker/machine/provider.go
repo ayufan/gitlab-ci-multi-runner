@@ -124,6 +124,15 @@ func (m *machineProvider) retryUseMachine(config *common.RunnerConfig) (details 
 
 func (m *machineProvider) finalizeRemoval(details *machineDetails) {
 	for {
+		if !m.machine.Exist(details.Name) {
+			logrus.WithField("name", details.Name).
+				WithField("created", time.Since(details.Created)).
+				WithField("used", time.Since(details.Used)).
+				WithField("reason", details.Reason).
+				Warningln("Skipping machine removal, because it doesn't exist")
+			break
+		}
+
 		err := m.machine.Remove(details.Name)
 		if err == nil {
 			break
