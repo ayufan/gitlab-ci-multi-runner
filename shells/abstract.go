@@ -131,8 +131,8 @@ func (b *AbstractShell) cacheExtractor(w ShellWriter, options *archivingOptions,
 	}
 
 	// Generate cache download address
-	if url := getCacheDownloadURL(info.Build, cacheKey); url != "" {
-		args = append(args, "--url", url)
+	if url := getCacheDownloadURL(info.Build, cacheKey); url != nil {
+		args = append(args, "--url", url.String())
 	}
 
 	// Execute archive command
@@ -257,8 +257,8 @@ func (b *AbstractShell) cacheArchiver(w ShellWriter, options *archivingOptions, 
 	args = append(args, archiverArgs...)
 
 	// Generate cache upload address
-	if url := getCacheUploadURL(info.Build, cacheKey); url != "" {
-		args = append(args, "--url", url)
+	if url := getCacheUploadURL(info.Build, cacheKey); url != nil {
+		args = append(args, "--url", url.String())
 	}
 
 	// Execute archive command

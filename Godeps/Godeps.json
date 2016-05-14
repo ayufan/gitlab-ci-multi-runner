@@ -1,7 +1,6 @@
 {
 	"ImportPath": "gitlab.com/gitlab-org/gitlab-ci-multi-runner",
 	"GoVersion": "go1.6.0",
-	"GodepVersion": "v60",
 	"Packages": [
 		"./..."
 	],
@@ -44,8 +43,8 @@
 		},
 		{
 			"ImportPath": "github.com/minio/minio-go",
-			"Comment": "v1.0.0-2-g1fe1145",
-			"Rev": "1fe1145a231e36743b79939742debafaed1cd5d0"
+			"Comment": "1.0.1-38-ge9fd7b8",
+			"Rev": "e9fd7b820d9a87122e159439ca034472040a43ce"
 		},
 		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer/user",

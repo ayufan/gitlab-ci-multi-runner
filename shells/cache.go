@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"path"
 	"strconv"
 	"time"
@@ -47,7 +48,7 @@ func getCacheStorageClient(cache *common.CacheConfig) (scl *minio.Client, err er
 	return
 }
 
-func getS3DownloadURL(build *common.Build, key string) (url string) {
+func getS3DownloadURL(build *common.Build, key string) (url *url.URL) {
 	cache := build.Runner.Cache
 	objectName := getCacheObjectName(build, cache, key)
 	if objectName == "" {
@@ -68,7 +69,7 @@ func getS3DownloadURL(build *common.Build, key string) (url string) {
 	return
 }
 
-func getCacheDownloadURL(build *common.Build, key string) (url string) {
+func getCacheDownloadURL(build *common.Build, key string) (url *url.URL) {
 	cache := build.Runner.Cache
 	if cache == nil {
 		return
@@ -81,7 +82,7 @@ func getCacheDownloadURL(build *common.Build, key string) (url string) {
 	return
 }
 
-func getS3UploadURL(build *common.Build, key string) (url string) {
+func getS3UploadURL(build *common.Build, key string) (url *url.URL) {
 	cache := build.Runner.Cache
 	objectName := getCacheObjectName(build, cache, key)
 	if objectName == "" {
@@ -102,7 +103,7 @@ func getS3UploadURL(build *common.Build, key string) (url string) {
 	return
 }
 
-func getCacheUploadURL(build *common.Build, key string) (url string) {
+func getCacheUploadURL(build *common.Build, key string) (url *url.URL) {
 	cache := build.Runner.Cache
 	if cache == nil {
 		return
