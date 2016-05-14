@@ -30,6 +30,10 @@ func (b *bucketLocationTripper) RoundTrip(req *http.Request) (res *http.Response
 	return
 }
 
+func (b *bucketLocationTripper) CancelRequest(req *http.Request) {
+	// Do nothing
+}
+
 func getCacheObjectName(build *common.Build, cache *common.CacheConfig, key string) string {
 	if key == "" {
 		return ""
