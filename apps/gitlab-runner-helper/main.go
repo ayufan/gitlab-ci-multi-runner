@@ -17,12 +17,14 @@ var NAME = "gitlab-ci-multi-runner"
 var VERSION = "dev"
 var REVISION = "HEAD"
 var BUILT = "new"
+var BRANCH = "HEAD"
 
 func init() {
 	common.NAME = NAME
 	common.VERSION = VERSION
 	common.REVISION = REVISION
 	common.BUILT = BUILT
+	common.BRANCH = BRANCH
 }
 
 func main() {

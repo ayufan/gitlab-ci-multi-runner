@@ -9,6 +9,7 @@ BUILT := $(shell date +%Y-%m-%dT%H:%M:%S%:z)
 ifneq ($(RELEASE),true)
     VERSION := $(shell echo $(VERSION)~beta.$(COMMITS).g$(REVISION))
 endif
+BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 ITTERATION := $(shell date +%s)
 PACKAGE_CLOUD ?= ayufan/gitlab-ci-multi-runner
 PACKAGE_CLOUD_URL ?= https://packagecloud.io/
@@ -23,7 +24,7 @@ RPM_PLATFORMS ?= el/6 el/7 \
     ol/6 ol/7 \
     fedora/20 fedora/21 fedora/22 fedora/23
 RPM_ARCHS ?= x86_64 i686 arm armhf
-GO_LDFLAGS ?= -X main.NAME=$(PACKAGE_NAME) -X main.VERSION=$(VERSION) -X main.REVISION=$(REVISION) -X main.BUILT=$(BUILT)
+GO_LDFLAGS ?= -X main.NAME=$(PACKAGE_NAME) -X main.VERSION=$(VERSION) -X main.REVISION=$(REVISION) -X main.BUILT=$(BUILT) -X main.BRANCH=$(BRANCH)
 GO_FILES ?= $(shell find . -name '*.go')
 export GO15VENDOREXPERIMENT := 1
 export CGO_ENABLED := 0
