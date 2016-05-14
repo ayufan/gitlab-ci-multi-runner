@@ -1,3 +1,10 @@
+v 1.1.4
+- Create /etc/gitlab-runner/certs
+- Exclude architectures from GOX, rather then including
+- Update mimio-go to a newest version
+- Regression: Implement CancelRequest to fix S3 caching support
+- Fix: Skip removal of machine that doesn't exist (autoscaling)
+
 v 1.1.3
 - Regression: On Linux use `sh -s /bin/bash user -c` instead of `sh user -c`. This fixes non-login for user.
 - Regression: Fix user mode warning
