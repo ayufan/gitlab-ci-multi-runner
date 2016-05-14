@@ -101,6 +101,21 @@ func (c *ExecCommand) buildVariables(configVariables interface{}) (buildVariable
 	return
 }
 
+func (c *ExecCommand) buildGlobalAndJobVariables(global, job interface{}) (buildVariables common.BuildVariables, err error) {
+	buildVariables, err = c.buildVariables(global)
+	if err != nil {
+		return
+	}
+
+	jobVariables, err := c.buildVariables(job)
+	if err != nil {
+		return
+	}
+
+	buildVariables = append(buildVariables, jobVariables...)
+	return
+}
+
 func (c *ExecCommand) buildOptions(config, jobConfig common.BuildOptions) (options common.BuildOptions, err error) {
 	options = make(common.BuildOptions)
 
@@ -151,7 +166,7 @@ func (c *ExecCommand) parseYaml(job string, build *common.GetBuildResponse) erro
 		return err
 	}
 
-	build.Variables, err = c.buildVariables(config["variables"])
+	build.Variables, err = c.buildGlobalAndJobVariables(config["variables"], jobConfig["variables"])
 	if err != nil {
 		return err
 	}
