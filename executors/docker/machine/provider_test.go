@@ -105,6 +105,15 @@ func (m *testMachine) Remove(name string) error {
 	return nil
 }
 
+func (m *testMachine) Exist(name string) bool {
+	for _, machine := range m.machines {
+		if machine == name {
+			return true
+		}
+	}
+	return false
+}
+
 func (m *testMachine) List(nodeFilter string) (machines []string, err error) {
 	return m.machines, nil
 }
