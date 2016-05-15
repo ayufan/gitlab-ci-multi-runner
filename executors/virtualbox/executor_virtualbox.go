@@ -133,7 +133,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 
 	version, err := vbox.Version()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	s.Println("Using VirtualBox version", version, "executor...")
