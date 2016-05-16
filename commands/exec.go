@@ -23,7 +23,8 @@ import (
 
 type ExecCommand struct {
 	common.RunnerSettings
-	Job string
+	Job     string
+	Timeout int `long:"timeout" description:"Job execution timeout (in seconds)"`
 }
 
 func (c *ExecCommand) runCommand(name string, arg ...string) (string, error) {
@@ -218,7 +219,7 @@ func (c *ExecCommand) createBuild(repoURL string, abortSignal chan os.Signal) (b
 			RefName:       strings.TrimSpace(refName),
 			BeforeSha:     strings.TrimSpace(beforeSha),
 			AllowGitFetch: false,
-			Timeout:       30 * 60,
+			Timeout:       c.getTimeout(),
 			Token:         "",
 			Name:          "",
 			Stage:         "",
@@ -230,6 +231,14 @@ func (c *ExecCommand) createBuild(repoURL string, abortSignal chan os.Signal) (b
 		BuildAbort: abortSignal,
 	}
 	return
+}
+
+func (c *ExecCommand) getTimeout() int {
+	if c.Timeout > 0 {
+		return c.Timeout
+	}
+
+	return common.DefaultExecTimeout
 }
 
 func (c *ExecCommand) Execute(context *cli.Context) {
