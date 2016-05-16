@@ -320,7 +320,7 @@ func (n *GitLabClient) DownloadArtifacts(config common.BuildCredentials, artifac
 	})
 
 	if err != nil {
-		log.Errorln("Uploading artifacts from coordinator...", "error", err.Error())
+		log.Errorln("Downloading artifacts from coordinator...", "error", err.Error())
 		return common.DownloadFailed
 	}
 	defer res.Body.Close()
@@ -336,7 +336,7 @@ func (n *GitLabClient) DownloadArtifacts(config common.BuildCredentials, artifac
 		if err != nil {
 			file.Close()
 			os.Remove(file.Name())
-			log.Errorln("Uploading artifacts from coordinator...", "error", err.Error())
+			log.Errorln("Downloading artifacts from coordinator...", "error", err.Error())
 			return common.DownloadFailed
 		}
 		log.Println("Downloading artifacts from coordinator...", "ok")
