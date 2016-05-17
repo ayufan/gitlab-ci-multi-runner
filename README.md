@@ -14,7 +14,6 @@ The official repository for this project is on [GitLab.com](https://gitlab.com/g
 * [Development](docs/development/README.md)
 * [Issues](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues)
 * [Merge Requests](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/merge_requests)
-* [Prepare development environment](docs/development/README.md)
 
 #### Closing issues and merge requests
 
