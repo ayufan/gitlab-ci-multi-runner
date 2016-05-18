@@ -352,6 +352,7 @@ in the [runners autoscale documentation](autoscale.md#distributed-runners-cachin
 | `AccessKey`      | string           | The access key specified for your S3 instance. |
 | `SecretKey`      | string           | The secret key specified for your S3 instance. |
 | `BucketName`     | string           | Name of the bucket where cache will be stored. |
+| `BucketLocation` | string           | Name of S3 region. |
 | `Insecure`       | boolean          | Set to `true` if the S3 service is available by `HTTP`. Is set to `false` by default. |
 
 Example:
@@ -363,6 +364,7 @@ Example:
   AccessKey = "AMAZON_S3_ACCESS_KEY"
   SecretKey = "AMAZON_S3_SECRET_KEY"
   BucketName = "runners"
+  BucketLocation = "eu-west-1"
   Insecure = false
 ```
 
