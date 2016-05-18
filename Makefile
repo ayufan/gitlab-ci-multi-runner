@@ -33,7 +33,7 @@ all: deps verify build
 
 help:
 	# Commands:
-	# make all => deps verify toolchain build
+	# make all => deps verify build
 	# make version - show information about current version
 	#
 	# Development commands:
