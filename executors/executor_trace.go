@@ -51,7 +51,7 @@ func (e *AbstractExecutor) Infoln(args ...interface{}) {
 
 func (e *AbstractExecutor) Warningln(args ...interface{}) {
 	if e.BuildLog != nil {
-		fmt.Fprint(e.BuildLog, helpers.ANSI_BOLD_YELLOW+"WARNING: "+fmt.Sprintln(args...)+helpers.ANSI_RESET)
+		fmt.Fprint(e.BuildLog, helpers.ANSI_YELLOW+"WARNING: "+fmt.Sprintln(args...)+helpers.ANSI_RESET)
 
 		if e.BuildLog.IsStdout() {
 			return

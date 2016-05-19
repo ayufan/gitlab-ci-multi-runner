@@ -889,7 +889,7 @@ func (s *executor) waitForServiceContainer(container *docker.Container, timeout 
 
 	var buffer bytes.Buffer
 	buffer.WriteString("\n")
-	buffer.WriteString(helpers.ANSI_BOLD_YELLOW + "*** WARNING:" + helpers.ANSI_RESET + " Service " + container.Name + " probably didn't start properly.\n")
+	buffer.WriteString(helpers.ANSI_YELLOW + "*** WARNING:" + helpers.ANSI_RESET + " Service " + container.Name + " probably didn't start properly.\n")
 	buffer.WriteString("\n")
 	buffer.WriteString(strings.TrimSpace(err.Error()) + "\n")
 
@@ -914,7 +914,7 @@ func (s *executor) waitForServiceContainer(container *docker.Container, timeout 
 	}
 
 	buffer.WriteString("\n")
-	buffer.WriteString(helpers.ANSI_BOLD_YELLOW + "*********" + helpers.ANSI_RESET + "\n")
+	buffer.WriteString(helpers.ANSI_YELLOW + "*********" + helpers.ANSI_RESET + "\n")
 	buffer.WriteString("\n")
 	io.Copy(s.BuildLog, &buffer)
 	return err

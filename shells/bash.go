@@ -133,7 +133,7 @@ func (b *BashWriter) Notice(format string, arguments ...interface{}) {
 }
 
 func (b *BashWriter) Warning(format string, arguments ...interface{}) {
-	coloredText := helpers.ANSI_BOLD_YELLOW + fmt.Sprintf(format, arguments...) + helpers.ANSI_RESET
+	coloredText := helpers.ANSI_YELLOW + fmt.Sprintf(format, arguments...) + helpers.ANSI_RESET
 	b.Line("echo " + helpers.ShellEscape(coloredText))
 }
 
