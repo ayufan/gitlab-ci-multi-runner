@@ -41,7 +41,7 @@ func (f *RunnerTextFormatter) printColored(b *bytes.Buffer, entry *logrus.Entry,
 	case logrus.DebugLevel:
 		levelColor = helpers.ANSI_BOLD_WHITE
 	case logrus.WarnLevel:
-		levelColor = helpers.ANSI_BOLD_YELLOW
+		levelColor = helpers.ANSI_YELLOW
 		levelText = "WARNING: "
 	case logrus.ErrorLevel:
 		levelColor = helpers.ANSI_BOLD_RED
