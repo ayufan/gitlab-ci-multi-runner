@@ -65,8 +65,8 @@ func (s *executor) createVM(vmName string) (err error) {
 		return errors.New("Missing Image setting from VirtualBox configuration")
 	}
 
-	vmStatus, _ := vbox.Status(vmName)
-	if vmStatus == vbox.Invalid {
+	_, err = vbox.Status(vmName)
+	if err != nil {
 		vbox.Unregister(vmName)
 	}
 
@@ -138,11 +138,6 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 
 	s.Println("Using VirtualBox version", version, "executor...")
 
-	vmStatus, _ := vbox.Status(s.vmName)
-	if vmStatus == vbox.Invalid {
-		vbox.Unregister(s.vmName)
-	}
-
 	if s.Config.VirtualBox.DisableSnapshots {
 		s.vmName = s.Config.VirtualBox.BaseName + "-" + s.Build.ProjectUniqueName()
 		if vbox.Exist(s.vmName) {
@@ -191,7 +186,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 		return err
 	}
 
-	if status == vbox.Stopped || status == vbox.Suspended || status == vbox.Saved {
+	if !vbox.IsStatusOnlineOrTransient(status) {
 		s.Println("Starting VM...")
 		err := vbox.Start(s.vmName)
 		if err != nil {

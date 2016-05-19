@@ -16,14 +16,60 @@ import (
 type StatusType string
 
 const (
-	NotFound  StatusType = "notfound"
-	Invalid              = "invalid"
-	Stopped              = "stopped"
-	Suspended            = "suspended"
-	Running              = "running"
-	Saved                = "saved"
-	// TODO: more statuses
+	NotFound               StatusType = "notfound"
+	PoweredOff                        = "poweroff"
+	Saved                             = "saved"
+	Teleported                        = "teleported"
+	Aborted                           = "aborted"
+	Running                           = "running"
+	Paused                            = "paused"
+	Stuck                             = "gurumeditation"
+	Teleporting                       = "teleporting"
+	LiveSnapshotting                  = "livesnapshotting"
+	Starting                          = "starting"
+	Stopping                          = "stopping"
+	Saving                            = "saving"
+	Restoring                         = "restoring"
+	TeleportingPausedVM               = "teleportingpausedvm"
+	TeleportingIn                     = "teleportingin"
+	FaultTolerantSyncing              = "faulttolerantsyncing"
+	DeletingSnapshotOnline            = "deletingsnapshotlive"
+	DeletingSnapshotPaused            = "deletingsnapshotlivepaused"
+	OnlineSnapshotting                = "onlinesnapshotting"
+	RestoringSnapshot                 = "restoringsnapshot"
+	DeletingSnapshot                  = "deletingsnapshot"
+	SettingUp                         = "settingup"
+	Snapshotting                      = "snapshotting"
+	Unknown                           = "unknown"
+	// TODO: update as new VM states are added
 )
+
+func IsStatusOnlineOrTransient(vmStatus StatusType) bool {
+	switch vmStatus {
+	case Running,
+		Paused,
+		Stuck,
+		Teleporting,
+		LiveSnapshotting,
+		Starting,
+		Stopping,
+		Saving,
+		Restoring,
+		TeleportingPausedVM,
+		TeleportingIn,
+		FaultTolerantSyncing,
+		DeletingSnapshotOnline,
+		DeletingSnapshotPaused,
+		OnlineSnapshotting,
+		RestoringSnapshot,
+		DeletingSnapshot,
+		SettingUp,
+		Snapshotting:
+		return true
+	}
+
+	return false
+}
 
 func VboxManageOutput(exe string, args ...string) (string, error) {
 	var stdout, stderr bytes.Buffer
