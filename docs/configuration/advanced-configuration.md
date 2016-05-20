@@ -245,7 +245,7 @@ which comes from your private docker registry. In that case set
 ```bash
 [runners.docker]
   …
-  allowed_images = ["my.registry.tld:500/*:*"]
+  allowed_images = ["my.registry.tld:5000/*:*"]
 ```
 
 ## The [runners.parallels] section
