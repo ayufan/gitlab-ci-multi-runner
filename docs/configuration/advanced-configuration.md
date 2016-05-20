@@ -106,8 +106,8 @@ This defines the Docker Container parameters.
 | `extra_hosts`               | specify hosts that should be defined in container environment |
 | `links`                     | specify containers which should be linked with building container |
 | `services`                  | specify additional services that should be run with build. Please visit [Docker Registry](https://registry.hub.docker.com/) for list of available applications. Each service will be run in separate container and linked to the build. |
-| `allowed_images`            | specify wildcard list of images that can be specified in .gitlab-ci.yml |
-| `allowed_services`          | specify wildcard list of services that can be specified in .gitlab-ci.yml |
+| `allowed_images`            | specify wildcard list of images that can be specified in .gitlab-ci.yml. If not present all images are allowed (equivalent to `["*/*:*"]`) |
+| `allowed_services`          | specify wildcard list of services that can be specified in .gitlab-ci.yml. If not present all images are allowed (equivalent to `["*/*:*"]`) |
 | `pull_policy`               | specify the image pull policy: never, if-not-present or always (default) |
 
 Example:
@@ -237,6 +237,16 @@ the `docker` group use: `sudo usermod -aG user docker`.
 
 For reference, if you want to set up your own personal registry you might want
 to have a look at <https://docs.docker.com/registry/deploying/>.
+
+### Restrict `allowed_images` to private registry
+For certain setups you will restrict access of the build jobs to docker images
+which comes from your private docker registry. In that case set
+
+```bash
+[runners.docker]
+  …
+  allowed_images = ["my.registry.tld:5000/*:*"]
+```
 
 ## The [runners.parallels] section
 
