@@ -210,8 +210,6 @@ func (b *AbstractShell) GenerateBuild(w ShellWriter, info common.ShellScriptInfo
 	b.writeExports(w, info)
 	b.writeCdBuildDir(w, info)
 
-	w.Notice("Running build script...")
-
 	commands := info.Build.Commands
 	commands = strings.TrimSpace(commands)
 	for _, command := range strings.Split(commands, "\n") {
@@ -312,6 +310,10 @@ func (b *AbstractShell) GenerateAfterBuild(w ShellWriter, info common.ShellScrip
 	err := info.Build.Options.Decode(&shellOptions)
 	if err != nil {
 		return err
+	}
+
+	if len(shellOptions.AfterScript) == 0 {
+		return nil
 	}
 
 	b.writeExports(w, info)
