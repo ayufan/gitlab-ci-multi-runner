@@ -20,7 +20,7 @@ type tracePatch struct {
 	trace  bytes.Buffer
 	offset int
 	limit  int
-	resent bool
+	resent int
 }
 
 func (tp *tracePatch) Patch() []byte {
@@ -36,16 +36,20 @@ func (tp *tracePatch) Limit() int {
 }
 
 func (tp *tracePatch) IsResent() bool {
-	return tp.resent == true
+	return tp.resent > 0
 }
 
 func (tp *tracePatch) Resend(newOffset int) {
 	tp.offset = newOffset
-	tp.resent = true
+	tp.resent++
 }
 
-func (tp *tracePatch) ValidateRange() bool {
-	return tp.limit >= tp.offset
+func (tp *tracePatch) validateRange() bool {
+	if tp.limit >= tp.offset {
+		return true
+	}
+
+	return false
 }
 
 func newTracePatch(trace bytes.Buffer, offset int) (*tracePatch, error) {
@@ -53,10 +57,10 @@ func newTracePatch(trace bytes.Buffer, offset int) (*tracePatch, error) {
 		trace:  trace,
 		offset: offset,
 		limit:  trace.Len(),
-		resent: false,
+		resent: 0,
 	}
 
-	if !patch.ValidateRange() {
+	if !patch.validateRange() {
 		return nil, errors.New("Range is invalid, limit can't be less than offset")
 	}
 
@@ -236,7 +240,23 @@ func (c *clientBuildTrace) incrementalUpdate() common.UpdateState {
 		c.sentTime = time.Now()
 	}
 
+	if update == common.UpdateRangeMissmatch {
+		update = c.resendPatch(c.buildCredentials.ID, c.config, c.buildCredentials, tracePatch)
+	}
+
 	return update
+}
+
+func (c *clientBuildTrace) resendPatch(id int, config common.RunnerConfig, buildCredentials *common.BuildCredentials, tracePatch common.BuildTracePatch) (update common.UpdateState) {
+	config.Log().Warningln(id, "Resending trace patch due to range missmatch")
+
+	update = c.client.PatchTrace(config, buildCredentials, tracePatch)
+	if update == common.UpdateRangeMissmatch {
+		config.Log().Errorln(id, "Appending trace to coordinator...", "failed due to range missmatch")
+		update = common.UpdateFailed
+	}
+
+	return
 }
 
 func (c *clientBuildTrace) staleUpdate() common.UpdateState {

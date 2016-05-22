@@ -13,7 +13,7 @@ const (
 	UpdateNotFound
 	UpdateAbort
 	UpdateFailed
-	UpdateInvalidRange
+	UpdateRangeMissmatch
 )
 
 const (

@@ -253,7 +253,13 @@ func (n *GitLabClient) PatchTrace(config common.RunnerConfig, buildCredentials *
 		log.Errorln(id, "Appending trace to coordinator...", "forbidden")
 		return common.UpdateAbort
 	case 416:
-		return n.handlePatchTraceResend(response, config, buildCredentials, tracePatch)
+		log.Warningln(id, "Appending trace to coordinator...", "range missmatch")
+
+		remoteRange := strings.Split(response.Header.Get("Range"), "-")
+		newOffset, _ := strconv.Atoi(remoteRange[2])
+		tracePatch.Resend(newOffset)
+
+		return common.UpdateRangeMissmatch
 	case clientError:
 		log.Errorln(id, "Appending trace to coordinator...", "error")
 		return common.UpdateAbort
@@ -261,27 +267,6 @@ func (n *GitLabClient) PatchTrace(config common.RunnerConfig, buildCredentials *
 		log.Warningln(id, "Appending trace to coordinator...", "failed")
 		return common.UpdateFailed
 	}
-}
-
-func (n *GitLabClient) handlePatchTraceResend(response *http.Response, config common.RunnerConfig,
-	buildCredentials *common.BuildCredentials, tracePatch common.BuildTracePatch) common.UpdateState {
-	id := buildCredentials.ID
-	if tracePatch.IsResent() {
-		config.Log().Errorln(id, "Appending trace to coordinator...", "failed due to range missmatch")
-		return common.UpdateFailed
-	}
-
-	config.Log().Warningln(id, "Resending trace patch due to range missmatch")
-
-	remoteRange := strings.Split(response.Header.Get("Range"), "-")
-	newOffset, err := strconv.Atoi(remoteRange[2])
-	if err != nil {
-		config.Log().Errorln(id, "Resending trace patch failed:", err.Error())
-		return common.UpdateFailed
-	}
-
-	tracePatch.Resend(newOffset)
-	return n.PatchTrace(config, buildCredentials, tracePatch)
 }
 
 func (n *GitLabClient) createArtifactsForm(mpw *multipart.Writer, reader io.Reader, baseName string) error {
