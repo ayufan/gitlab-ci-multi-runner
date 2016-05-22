@@ -20,7 +20,6 @@ type tracePatch struct {
 	trace  bytes.Buffer
 	offset int
 	limit  int
-	resent int
 }
 
 func (tp *tracePatch) Patch() []byte {
@@ -35,13 +34,8 @@ func (tp *tracePatch) Limit() int {
 	return tp.limit
 }
 
-func (tp *tracePatch) IsResent() bool {
-	return tp.resent > 0
-}
-
-func (tp *tracePatch) Resend(newOffset int) {
+func (tp *tracePatch) SetNewOffset(newOffset int) {
 	tp.offset = newOffset
-	tp.resent++
 }
 
 func (tp *tracePatch) validateRange() bool {
@@ -57,7 +51,6 @@ func newTracePatch(trace bytes.Buffer, offset int) (*tracePatch, error) {
 		trace:  trace,
 		offset: offset,
 		limit:  trace.Len(),
-		resent: 0,
 	}
 
 	if !patch.validateRange() {

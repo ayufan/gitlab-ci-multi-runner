@@ -134,8 +134,7 @@ type BuildTracePatch interface {
 	Patch() []byte
 	Offset() int
 	Limit() int
-	IsResent() bool
-	Resend(newOffset int)
+	SetNewOffset(newOffset int)
 }
 
 type Network interface {

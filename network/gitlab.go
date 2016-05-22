@@ -257,7 +257,7 @@ func (n *GitLabClient) PatchTrace(config common.RunnerConfig, buildCredentials *
 
 		remoteRange := strings.Split(response.Header.Get("Range"), "-")
 		newOffset, _ := strconv.Atoi(remoteRange[2])
-		tracePatch.Resend(newOffset)
+		tracePatch.SetNewOffset(newOffset)
 
 		return common.UpdateRangeMissmatch
 	case clientError:
