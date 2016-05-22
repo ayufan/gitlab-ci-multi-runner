@@ -232,9 +232,11 @@ func (n *GitLabClient) PatchTrace(config common.RunnerConfig, buildCredentials *
 
 	remoteState := response.Header.Get("Build-Status")
 	log := config.Log().WithFields(logrus.Fields{
-		"SentRange":   contentRange,
-		"RemoteRange": response.Header.Get("Range"),
-		"RemoteState": remoteState,
+		"SentRange":          contentRange,
+		"RemoteRange":        response.Header.Get("Range"),
+		"RemoteState":        remoteState,
+		"ResponseStatusCode": response.StatusCode,
+		"ResponseMessage":    response.Status,
 	})
 
 	if remoteState == "canceled" {
