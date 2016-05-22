@@ -1,8 +1,29 @@
 v 1.2.0 (unreleased)
+- Use Go 1.6
 - Add `timeout` option for the `exec` command
+- Add runtime platform informations to debug log
+- Add `docker-machine` binary to Runner's official docker images
+- Add `build_current` target to Makefile - to build only a binary for used architecture
+- Add support for `after_script`
 - Extend version information when using `--version` flag
+- Extend artifacts download/upload logs with more response data
+- Extend unregister command to accept runner name
+- Update shell detection mechanism
+- Update the github.com/ayufan/golag-kardianos-service dependency
+- Replace ANSI_BOLD_YELLOW with ANSI_YELLOW color for logging
+- Reconcile VirtualBox status constants with VBoxManage output values
 - Make checkout quiet
 - Make variables to work at job level in exec mode
+- Remove "user mode" warning when running in a system mode
+- Create `gitlab-runner` user as a system account
+- Properly create `/etc/gitlab-runer/certs` in Runner's official docker images
+- Disable recursive submodule fetchin on fetching changes
+- Fix nil casting issue on docker client creation
+- Fix used build platforms for `gox`
+- Fix a limit problems when trying to remove a non-existing machines
+- Fix S3 caching issues
+- Fix logging messages on artifacts dowloading
+- Fix binary panic while using VirtualBox executor with no `vboxmanage` binary available
 
 v 1.1.0
 - Use Go 1.5
