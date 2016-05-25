@@ -1,5 +1,8 @@
 FROM alpine
 
+ADD https://github.com/Yelp/dumb-init/releases/download/v1.0.2/dumb-init_1.0.2_amd64 /usr/bin/dumb-init
+RUN chmod +x /usr/bin/dumb-init
+
 RUN apk add --update \
 		bash \
 		ca-certificates \
@@ -21,5 +24,5 @@ RUN wget -O /usr/bin/gitlab-ci-multi-runner https://gitlab-ci-multi-runner-downl
 	chmod -R 700 /etc/gitlab-runner
 
 VOLUME ["/etc/gitlab-runner"]
-ENTRYPOINT ["gitlab-ci-multi-runner"]
+ENTRYPOINT ["/usr/bin/dumb-init", "gitlab-ci-multi-runner"]
 CMD ["run"]
