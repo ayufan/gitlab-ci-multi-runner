@@ -7,7 +7,6 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/cli"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/formatter"
 
@@ -48,10 +47,6 @@ func main() {
 	}()
 
 	formatter.SetRunnerFormatter()
-
-	// Start background reaping of orphaned child processes.
-	// It allows the gitlab-runner to act as `init` process
-	go helpers.Reap()
 
 	app := cli.NewApp()
 	app.Name = path.Base(os.Args[0])
