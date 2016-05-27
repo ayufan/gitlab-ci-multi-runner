@@ -66,34 +66,20 @@ func (a *AttachOptions) Run() error {
 	if tty && !containerToAttach.TTY {
 		tty = false
 	}
-	if a.In != nil {
-		t.In = a.In
-		if tty && !t.IsTerminal() {
-			tty = false
-		}
-	}
-	t.Raw = tty
 
-	fn := func() error {
-		req := a.Client.RESTClient.Post().
-			Resource("pods").
-			Name(a.Pod.Name).
-			Namespace(a.Pod.Namespace).
-			SubResource("attach")
-		req.VersionedParams(&api.PodAttachOptions{
-			Container: containerToAttach.Name,
-			Stdin:     a.In != nil,
-			Stdout:    a.Out != nil,
-			Stderr:    a.Err != nil,
-			TTY:       tty,
-		}, api.ParameterCodec)
+	req := a.Client.RESTClient.Post().
+		Resource("pods").
+		Name(a.Pod.Name).
+		Namespace(a.Pod.Namespace).
+		SubResource("attach")
 
-		return a.Attach.Attach("POST", req.URL(), a.Config, a.In, a.Out, a.Err, tty)
-	}
+	req.VersionedParams(&api.PodAttachOptions{
+		Container: containerToAttach.Name,
+		Stdin:     a.In != nil,
+		Stdout:    a.Out != nil,
+		Stderr:    a.Err != nil,
+		TTY:       tty,
+	}, api.ParameterCodec)
 
-	if err := t.Safe(fn); err != nil {
-		return err
-	}
-
-	return nil
+	return a.Attach.Attach("POST", req.URL(), a.Config, a.In, a.Out, a.Err, tty)
 }
