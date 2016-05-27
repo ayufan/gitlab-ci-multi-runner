@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
@@ -21,14 +20,15 @@ type kubernetesOptions struct {
 	Image    string   `json:"image"`
 	Services []string `json:"services"`
 	// TODO: Support a whitelist of images that can be privileged?
-	Privileged bool `json:"privileged"`
+	Privileged bool `json:"pivileged"`
 }
 
 type executor struct {
 	executors.AbstractExecutor
 
-	pod     *api.Pod
-	options *kubernetesOptions
+	pod             *api.Pod
+	scriptConfigMap *api.ConfigMap
+	options         *kubernetesOptions
 }
 
 func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
@@ -39,15 +39,13 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 
 	fmt.Printf("Got runner config: %s\n", config)
 	fmt.Printf("Got build: %s\n", build)
-	var proxyURL string
 	var allowPrivileged bool
 	if config.Kubernetes != nil {
-		proxyURL = config.Kubernetes.ProxyURL
 		allowPrivileged = config.Kubernetes.AllowPrivileged
 	}
 
 	if kubeClient == nil {
-		kubeClient, err = getKubeClient(proxyURL)
+		kubeClient, err = getKubeClient(config.Kubernetes)
 		if err != nil {
 			return err
 		}
@@ -85,113 +83,104 @@ func (s *executor) Cleanup() {
 func (s *executor) Run(cmd common.ExecutorCommand) error {
 	s.Debugln("Starting Kubernetes command...")
 
-	var err error
-	s.pod, err = kubeClient.Pods(s.Config.Kubernetes.Namespace).Create(&api.Pod{
-		ObjectMeta: api.ObjectMeta{
-			GenerateName: s.Build.ProjectUniqueName(),
-			Namespace:    s.Config.Kubernetes.Namespace,
-		},
-		Spec: api.PodSpec{
-			Volumes: []api.Volume{
-				api.Volume{
-					Name: "repo",
-					VolumeSource: api.VolumeSource{
-						GitRepo: &api.GitRepoVolumeSource{
-							Repository: s.Shell.Build.RepoURL,
+	if cmd.Predefined {
+		// We don't currently use the pre/post containers
+		return nil
+	}
+
+	if s.pod == nil {
+		var err error
+		s.pod, err = kubeClient.Pods(s.Config.Kubernetes.Namespace).Create(&api.Pod{
+			ObjectMeta: api.ObjectMeta{
+				GenerateName: s.Build.ProjectUniqueName(),
+				Namespace:    s.Config.Kubernetes.Namespace,
+			},
+			Spec: api.PodSpec{
+				Volumes: []api.Volume{
+					api.Volume{
+						Name: "repo",
+						VolumeSource: api.VolumeSource{
+							GitRepo: &api.GitRepoVolumeSource{
+								Repository: s.Shell.Build.RepoURL,
+							},
 						},
 					},
 				},
-			},
-			RestartPolicy: api.RestartPolicyNever,
-			Containers: []api.Container{
-				api.Container{
-					Name: "build",
-					// TODO: clean image name
-					Image: s.options.Image,
-					VolumeMounts: []api.VolumeMount{
-						api.VolumeMount{
-							Name:      "repo",
-							MountPath: s.Shell.Build.BuildDir,
+				RestartPolicy: api.RestartPolicyNever,
+				Containers: []api.Container{
+					api.Container{
+						Name: "build",
+						// TODO: clean image name
+						Command: []string{"bash"},
+						Image:   s.options.Image,
+						VolumeMounts: []api.VolumeMount{
+							api.VolumeMount{
+								Name:      "repo",
+								MountPath: s.Shell.Build.BuildDir,
+							},
 						},
+						SecurityContext: &api.SecurityContext{
+							Privileged: &s.options.Privileged,
+						},
+						Stdin: true,
 					},
-					SecurityContext: &api.SecurityContext{
-						Privileged: &s.options.Privileged,
-					},
-					ImagePullPolicy: api.PullAlways,
-					Stdin:           true,
-					TTY:             true,
 				},
 			},
-		},
-	})
+		})
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
-	status, err := waitForPodRunning(kubeClient, s.pod, s.BuildLog)
-
-	if err != nil {
-		return err
-	}
-
-	if status != api.PodRunning {
-		return fmt.Errorf("pod failed to enter running state")
-	}
-
-	config, err := getKubeClientConfig(s.Config.Kubernetes.ProxyURL)
-
-	if err != nil {
-		return err
-	}
-
-	logErrc := func() <-chan error {
+	errc := func() <-chan error {
 		errc := make(chan error, 1)
 		go func() {
 			defer close(errc)
-			readCloser, err := kubeClient.Pods(s.pod.Namespace).GetLogs(s.pod.Name, &api.PodLogOptions{
-				Container: "build",
-				Follow:    true,
-			}).Stream()
+
+			status, err := waitForPodRunning(kubeClient, s.pod, s.BuildLog)
 
 			if err != nil {
 				errc <- err
 				return
 			}
 
-			defer readCloser.Close()
-
-			_, err = io.Copy(s.BuildLog, readCloser)
-			errc <- err
-		}()
-		return errc
-	}()
-
-	attachErrc := func() <-chan error {
-		errc := make(chan error, 1)
-		go func() {
-			defer close(errc)
-
-			attach := AttachOptions{
-				Pod:           s.pod,
-				ContainerName: "build",
-				In:            strings.NewReader(s.BuildScript.BuildScript),
-				Out:           s.BuildLog,
-				Config:        config,
-				Client:        kubeClient,
-				Attach:        &DefaultRemoteAttach{},
+			if status != api.PodRunning {
+				errc <- fmt.Errorf("pod failed to enter running state: %s", status)
+				return
 			}
 
-			errc <- attach.Run()
+			config, err := getKubeClientConfig(s.Config.Kubernetes)
+
+			if err != nil {
+				errc <- err
+				return
+			}
+
+			exec := ExecOptions{
+				PodName:       s.pod.Name,
+				Namespace:     s.pod.Namespace,
+				ContainerName: "build",
+				Command:       []string{"bash"},
+				In:            strings.NewReader(cmd.Script),
+				Out:           s.BuildLog,
+				Err:           s.BuildLog,
+				Stdin:         true,
+				Config:        config,
+				Client:        kubeClient,
+				Executor:      &DefaultRemoteExecutor{},
+			}
+
+			errc <- exec.Run()
 		}()
 		return errc
 	}()
 
 	select {
-	case err := <-logErrc:
+	case err := <-errc:
 		return err
-	case err := <-attachErrc:
-		return err
+	case _ = <-cmd.Abort:
+		return fmt.Errorf("build aborted")
 	}
 }
 

@@ -88,7 +88,10 @@ type VirtualBoxConfig struct {
 }
 
 type KubernetesConfig struct {
-	ProxyURL        string `toml:"proxy_url" json:"proxy-url" long:"proxy-url" env:"KUBERNETES_PROXY_URL" description:"Optional Kubernetes master proxy URL (auto-discovery attempted if not specified)"`
+	Host            string `toml:"host" json:"host-url" long:"host-url" env:"KUBERNETES_HOST" description:"Optional Kubernetes master host URL (auto-discovery attempted if not specified)"`
+	CertFile        string `toml:"cert_file" json:"cert-file" long:"cert-file" env:"KUBERNETES_CERT_FILE" description:"Optional Kubernetes master auth certificate"`
+	KeyFile         string `toml:"key_file" json:"key-file" long:"key-file" env:"KUBERNETES_KEY_FILE" description:"Optional Kubernetes master auth private key"`
+	CAFile          string `toml:"ca_file" json:"ca-file" long:"ca-file" env:"KUBERNETES_CA_FILE" description:"Optional Kubernetes master auth ca certificate"`
 	Namespace       string `toml:"namespace" json:"namespace" long:"namespace" env:"KUBERNETES_NAMESPACE" description:"Namespace to run Kubernetes jobs in"`
 	AllowPrivileged bool   `toml:"allow_privileged,omitzero" json:"allow-privileged" long:"allow-privileged" env:"KUBERNETES_ALLOW_PRIVILEGED" description:"Allow containers to be run with the privileged flag"`
 }

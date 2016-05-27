@@ -5,27 +5,54 @@ import (
 	"io"
 	"time"
 
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 )
 
-func getKubeClientConfig(proxyURL string) (*restclient.Config, error) {
-	if proxyURL != "" {
-		return &restclient.Config{
-			Host: proxyURL,
-		}, nil
-	}
-	return restclient.InClusterConfig()
+// Stderr implements io.Reader and calls ErrFn on Write
+type Stderr struct {
+	ErrFn func(...interface{})
 }
 
-func getKubeClient(proxyURL string) (*client.Client, error) {
-	config, err := getKubeClientConfig(proxyURL)
+// Write calls ErrFn with p
+func (s Stderr) Write(p []byte) (int, error) {
+	s.ErrFn(string(p))
+	return len(p), nil
+}
+
+func getKubeClientConfig(config *common.KubernetesConfig) (*restclient.Config, error) {
+	switch {
+	case len(config.CertFile) > 0:
+		if len(config.KeyFile) == 0 || len(config.CAFile) == 0 {
+			return nil, fmt.Errorf("ca file, cert file and key file must be specified when using file based auth")
+		}
+		return &restclient.Config{
+			Host: config.Host,
+			TLSClientConfig: restclient.TLSClientConfig{
+				CertFile: config.CertFile,
+				KeyFile:  config.KeyFile,
+				CAFile:   config.CAFile,
+			},
+		}, nil
+	case len(config.Host) > 0:
+		return &restclient.Config{
+			Host: config.Host,
+		}, nil
+	default:
+		return restclient.InClusterConfig()
+	}
+}
+
+func getKubeClient(config *common.KubernetesConfig) (*client.Client, error) {
+	restConfig, err := getKubeClientConfig(config)
 	if err != nil {
 		return nil, err
 	}
 
-	return client.New(config)
+	return client.New(restConfig)
 }
 
 func waitForPodRunning(c *client.Client, pod *api.Pod, out io.Writer) (status api.PodPhase, err error) {
@@ -51,7 +78,7 @@ func waitForPodRunning(c *client.Client, pod *api.Pod, out io.Writer) (status ap
 			return pod.Status.Phase, nil
 		}
 		fmt.Fprintf(out, "Waiting for pod %s/%s to be running, status is %s, pod ready: %v\n", pod.Namespace, pod.Name, pod.Status.Phase, ready)
-		time.Sleep(2 * time.Second)
+		time.Sleep(1 * time.Second)
 		continue
 	}
 }
