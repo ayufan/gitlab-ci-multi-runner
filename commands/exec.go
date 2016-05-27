@@ -3,18 +3,19 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"github.com/Sirupsen/logrus"
-	"github.com/codegangsta/cli"
-	"gitlab.com/ayufan/golang-cli-helpers"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"gopkg.in/yaml.v1"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 
+	"github.com/Sirupsen/logrus"
+	"github.com/codegangsta/cli"
+	"gitlab.com/ayufan/golang-cli-helpers"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gopkg.in/yaml.v1"
+
 	// Force to load all executors, executes init() on them
-	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/docker"
+	//_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/docker"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/parallels"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/shell"
 	_ "gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/ssh"

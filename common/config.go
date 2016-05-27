@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"fmt"
+	"path/filepath"
+
 	"github.com/BurntSushi/toml"
 	log "github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/docker"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/ssh"
-	"path/filepath"
 )
 
 type DockerPullPolicy string
@@ -86,6 +87,12 @@ type VirtualBoxConfig struct {
 	DisableSnapshots bool   `toml:"disable_snapshots,omitzero" json:"disable_snapshots" long:"disable-snapshots" env:"VIRTUALBOX_DISABLE_SNAPSHOTS" description:"Disable snapshoting to speedup VM creation"`
 }
 
+type KubernetesConfig struct {
+	ProxyURL        string `toml:"proxy_url" json:"proxy-url" long:"proxy-url" env:"KUBERNETES_PROXY_URL" description:"Optional Kubernetes master proxy URL (auto-discovery attempted if not specified)"`
+	Namespace       string `toml:"namespace" json:"namespace" long:"namespace" env:"KUBERNETES_NAMESPACE" description:"Namespace to run Kubernetes jobs in"`
+	AllowPrivileged bool   `toml:"allow_privileged" json:"allow-privileged" long:"allow-privileged" env:"KUBERNETES_ALLOW_PRIVILEGED" description:"Allow containers to be run with the privileged flag`
+}
+
 type RunnerCredentials struct {
 	URL       string `toml:"url" json:"url" short:"u" long:"url" env:"CI_SERVER_URL" required:"true" description:"Runner URL"`
 	Token     string `toml:"token" json:"token" short:"t" long:"token" env:"CI_SERVER_TOKEN" required:"true" description:"Runner token"`
@@ -117,6 +124,7 @@ type RunnerSettings struct {
 	VirtualBox *VirtualBoxConfig `toml:"virtualbox" json:"virtualbox" group:"virtualbox executor" namespace:"virtualbox"`
 	Cache      *CacheConfig      `toml:"cache" json:"cache" group:"cache configuration" namespace:"cache"`
 	Machine    *DockerMachine    `toml:"machine" json:"machine" group:"docker machine provider" namespace:"machine"`
+	Kubernetes *KubernetesConfig `toml:"kubernetes": json:"kubernetes" group:"kubernetes executor" namespace:"kubernetes"`
 }
 
 type RunnerConfig struct {
