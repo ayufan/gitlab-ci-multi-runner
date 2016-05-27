@@ -82,7 +82,7 @@ func (s *executor) Cleanup() {
 	s.AbstractExecutor.Cleanup()
 }
 
-func (s *executor) Start() error {
+func (s *executor) Run(cmd common.ExecutorCommand) error {
 	s.Debugln("Starting Kubernetes command...")
 
 	var err error
