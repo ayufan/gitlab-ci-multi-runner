@@ -245,7 +245,7 @@ func init() {
 		Shell: common.ShellScriptInfo{
 			Shell:         "bash",
 			Type:          common.NormalShell,
-			RunnerCommand: "/gitlab-runner-helper",
+			RunnerCommand: "/usr/bin/gitlab-runner-helper",
 		},
 		ShowHostname:     true,
 		SupportedOptions: []string{"image", "services", "artifacts", "cache"},
