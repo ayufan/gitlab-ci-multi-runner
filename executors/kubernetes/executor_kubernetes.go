@@ -8,6 +8,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/resource"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 )
 
@@ -27,6 +28,9 @@ type executor struct {
 	pod          *api.Pod
 	options      *kubernetesOptions
 	extraOptions Options
+
+	buildLimits   api.ResourceList
+	serviceLimits api.ResourceList
 }
 
 func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
@@ -57,6 +61,33 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 		return fmt.Errorf("Runner does not allow privileged containers")
 	}
 
+	parse := func(s string) (resource.Quantity, error) {
+		q := new(resource.Quantity)
+		if len(s) == 0 {
+			return *q, nil
+		}
+		if q, err = resource.ParseQuantity(s); err != nil {
+			return *q, fmt.Errorf("error parsing resource limit: %s", err.Error())
+		}
+		return *q, nil
+	}
+
+	if s.serviceLimits[api.ResourceCPU], err = parse(s.Config.Kubernetes.ServiceCPUs); err != nil {
+		return err
+	}
+
+	if s.serviceLimits[api.ResourceMemory], err = parse(s.Config.Kubernetes.ServiceMemory); err != nil {
+		return err
+	}
+
+	if s.buildLimits[api.ResourceCPU], err = parse(s.Config.Kubernetes.CPUs); err != nil {
+		return err
+	}
+
+	if s.buildLimits[api.ResourceMemory], err = parse(s.Config.Kubernetes.Memory); err != nil {
+		return err
+	}
+
 	s.Println("Using Kubernetes executor with image", s.options.Image, "...")
 
 	return nil
@@ -84,7 +115,7 @@ func buildVariables(bv common.BuildVariables) []api.EnvVar {
 	return e
 }
 
-func (s *executor) buildContainer(name, image string, command ...string) api.Container {
+func (s *executor) buildContainer(name, image string, limits api.ResourceList, command ...string) api.Container {
 	path := strings.Split(s.Shell.Build.BuildDir, "/")
 	path = path[:len(path)-1]
 
@@ -95,6 +126,9 @@ func (s *executor) buildContainer(name, image string, command ...string) api.Con
 		Image:   image,
 		Command: command,
 		Env:     buildVariables(s.Build.GetAllVariables().PublicOrInternal()),
+		Resources: api.ResourceRequirements{
+			Limits: limits,
+		},
 		VolumeMounts: []api.VolumeMount{
 			api.VolumeMount{
 				Name:      "repo",
@@ -159,7 +193,7 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 	if s.pod == nil {
 		services := make([]api.Container, len(s.options.Services))
 		for i, image := range s.options.Services {
-			services[i] = s.buildContainer(fmt.Sprintf("svc-%d", i), image)
+			services[i] = s.buildContainer(fmt.Sprintf("svc-%d", i), image, s.serviceLimits)
 		}
 
 		s.pod, err = kubeClient.Pods(s.Config.Kubernetes.Namespace).Create(&api.Pod{
@@ -178,8 +212,8 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 				},
 				RestartPolicy: api.RestartPolicyNever,
 				Containers: append([]api.Container{
-					s.buildContainer("build", s.options.Image, s.BuildScript.DockerCommand...),
-					s.buildContainer("pre", "munnerz/gitlab-runner-helper", s.BuildScript.DockerCommand...),
+					s.buildContainer("build", s.options.Image, s.buildLimits, s.BuildScript.DockerCommand...),
+					s.buildContainer("pre", "munnerz/gitlab-runner-helper", s.serviceLimits, s.BuildScript.DockerCommand...),
 				}, services...),
 			},
 		})

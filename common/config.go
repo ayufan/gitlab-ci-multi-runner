@@ -94,6 +94,10 @@ type KubernetesConfig struct {
 	CAFile          string `toml:"ca_file" json:"ca-file" long:"ca-file" env:"KUBERNETES_CA_FILE" description:"Optional Kubernetes master auth ca certificate"`
 	Namespace       string `toml:"namespace" json:"namespace" long:"namespace" env:"KUBERNETES_NAMESPACE" description:"Namespace to run Kubernetes jobs in"`
 	AllowPrivileged bool   `toml:"allow_privileged,omitzero" json:"allow-privileged" long:"allow-privileged" env:"KUBERNETES_ALLOW_PRIVILEGED" description:"Allow containers to be run with the privileged flag"`
+	CPUs            string `toml:"cpus" json:"cpus" long:"cpus" env:"KUBERNETES_CPUS" description:"The CPU allocation given to build containers"`
+	Memory          string `toml:"memory" json:"memory" long:"memory" env:"KUBERNETES_MEMORY" description:"The amount of memory allocated to build containers"`
+	ServiceCPUs     string `toml:"service_cpus" json:"service-cpus" long:"service-cpus" env:"KUBERNETES_SERVICE_CPUS" description:"The CPU allocation given to build service containers"`
+	ServiceMemory   string `toml:"service_memory" json:"service-memory" long:"service-memory" env:"KUBERNETES_SERVICE_MEMORY" description:"The amount of memory allocated to build service containers"`
 }
 
 type RunnerCredentials struct {
