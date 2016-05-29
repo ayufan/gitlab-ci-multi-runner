@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -19,29 +18,21 @@ var (
 type kubernetesOptions struct {
 	Image    string   `json:"image"`
 	Services []string `json:"services"`
-	// TODO: Support a whitelist of images that can be privileged?
-	Privileged bool `json:"pivileged"`
 }
 
 type executor struct {
 	executors.AbstractExecutor
 
-	pod             *api.Pod
-	scriptConfigMap *api.ConfigMap
-	options         *kubernetesOptions
+	prepod       *api.Pod
+	pod          *api.Pod
+	options      *kubernetesOptions
+	extraOptions Options
 }
 
 func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
 	err := s.AbstractExecutor.Prepare(globalConfig, config, build)
 	if err != nil {
 		return err
-	}
-
-	fmt.Printf("Got runner config: %s\n", config)
-	fmt.Printf("Got build: %s\n", build)
-	var allowPrivileged bool
-	if config.Kubernetes != nil {
-		allowPrivileged = config.Kubernetes.AllowPrivileged
 	}
 
 	if kubeClient == nil {
@@ -52,7 +43,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 	}
 
 	if s.BuildScript.PassFile {
-		return errors.New("Kubernetes doesn't support shells that require script file")
+		return fmt.Errorf("Kubernetes doesn't support shells that require script file")
 	}
 
 	err = build.Options.Decode(&s.options)
@@ -60,8 +51,10 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 		return err
 	}
 
-	if !allowPrivileged && s.options.Privileged {
-		return errors.New("Attempting to run privileged container but runner config does not allow it")
+	s.extraOptions = DefaultOptions{s.Build.GetAllVariables()}
+
+	if !s.Config.Kubernetes.AllowPrivileged && s.extraOptions.Privileged() {
+		return fmt.Errorf("Runner does not allow privileged containers")
 	}
 
 	s.Println("Using Kubernetes executor with image", s.options.Image, "...")
@@ -80,16 +73,51 @@ func (s *executor) Cleanup() {
 	s.AbstractExecutor.Cleanup()
 }
 
+func buildVariables(bv common.BuildVariables) []api.EnvVar {
+	e := make([]api.EnvVar, len(bv))
+	for i, b := range bv {
+		e[i] = api.EnvVar{
+			Name:  b.Key,
+			Value: b.Value,
+		}
+	}
+	return e
+}
+
+func (s *executor) buildContainer(name, image string, command ...string) api.Container {
+	path := strings.Split(s.Shell.Build.BuildDir, "/")
+	path = path[:len(path)-1]
+
+	privileged := s.extraOptions.Privileged()
+
+	return api.Container{
+		Name:    name,
+		Image:   image,
+		Command: command,
+		Env:     buildVariables(s.Build.GetAllVariables().PublicOrInternal()),
+		VolumeMounts: []api.VolumeMount{
+			api.VolumeMount{
+				Name:      "repo",
+				MountPath: strings.Join(path, "/"),
+			},
+		},
+		SecurityContext: &api.SecurityContext{
+			Privileged: &privileged,
+		},
+		Stdin: true,
+	}
+}
+
 func (s *executor) Run(cmd common.ExecutorCommand) error {
+	var err error
 	s.Debugln("Starting Kubernetes command...")
 
-	if cmd.Predefined {
-		// We don't currently use the pre/post containers
-		return nil
-	}
-
 	if s.pod == nil {
-		var err error
+		services := make([]api.Container, len(s.options.Services))
+		for i, image := range s.options.Services {
+			services[i] = s.buildContainer(fmt.Sprintf("svc-%d", i), image)
+		}
+
 		s.pod, err = kubeClient.Pods(s.Config.Kubernetes.Namespace).Create(&api.Pod{
 			ObjectMeta: api.ObjectMeta{
 				GenerateName: s.Build.ProjectUniqueName(),
@@ -100,31 +128,15 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 					api.Volume{
 						Name: "repo",
 						VolumeSource: api.VolumeSource{
-							GitRepo: &api.GitRepoVolumeSource{
-								Repository: s.Shell.Build.RepoURL,
-							},
+							EmptyDir: &api.EmptyDirVolumeSource{},
 						},
 					},
 				},
 				RestartPolicy: api.RestartPolicyNever,
-				Containers: []api.Container{
-					api.Container{
-						Name: "build",
-						// TODO: clean image name
-						Command: []string{"bash"},
-						Image:   s.options.Image,
-						VolumeMounts: []api.VolumeMount{
-							api.VolumeMount{
-								Name:      "repo",
-								MountPath: s.Shell.Build.BuildDir,
-							},
-						},
-						SecurityContext: &api.SecurityContext{
-							Privileged: &s.options.Privileged,
-						},
-						Stdin: true,
-					},
-				},
+				Containers: append([]api.Container{
+					s.buildContainer("build", s.options.Image, s.BuildScript.DockerCommand...),
+					s.buildContainer("pre", "munnerz/gitlab-runner-helper", s.BuildScript.DockerCommand...),
+				}, services...),
 			},
 		})
 
@@ -157,11 +169,19 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 				return
 			}
 
+			var containerName string
+			switch {
+			case cmd.Predefined:
+				containerName = "pre"
+			default:
+				containerName = "build"
+			}
+
 			exec := ExecOptions{
 				PodName:       s.pod.Name,
 				Namespace:     s.pod.Namespace,
-				ContainerName: "build",
-				Command:       []string{"bash"},
+				ContainerName: containerName,
+				Command:       s.BuildScript.DockerCommand,
 				In:            strings.NewReader(cmd.Script),
 				Out:           s.BuildLog,
 				Err:           s.BuildLog,
@@ -173,6 +193,7 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 
 			errc <- exec.Run()
 		}()
+
 		return errc
 	}()
 
@@ -188,11 +209,12 @@ func init() {
 	options := executors.ExecutorOptions{
 		SharedBuildsDir: false,
 		Shell: common.ShellScriptInfo{
-			Shell: "bash",
-			Type:  common.NormalShell,
+			Shell:         "bash",
+			Type:          common.NormalShell,
+			RunnerCommand: "/gitlab-runner-helper",
 		},
 		ShowHostname:     true,
-		SupportedOptions: []string{"image", "services"},
+		SupportedOptions: []string{"image", "services", "artifacts", "cache"},
 	}
 
 	creator := func() common.Executor {
@@ -207,6 +229,8 @@ func init() {
 		features.Variables = true
 		features.Image = true
 		features.Services = true
+		features.Artifacts = true
+		features.Cache = true
 	}
 
 	common.RegisterExecutor("kubernetes", executors.DefaultExecutorProvider{
