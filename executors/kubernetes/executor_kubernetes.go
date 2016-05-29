@@ -108,6 +108,50 @@ func (s *executor) buildContainer(name, image string, command ...string) api.Con
 	}
 }
 
+func (s *executor) runInContainer(name, command string) <-chan error {
+	errc := make(chan error, 1)
+	go func() {
+		defer close(errc)
+
+		status, err := waitForPodRunning(kubeClient, s.pod, s.BuildLog)
+
+		if err != nil {
+			errc <- err
+			return
+		}
+
+		if status != api.PodRunning {
+			errc <- fmt.Errorf("pod failed to enter running state: %s", status)
+			return
+		}
+
+		config, err := getKubeClientConfig(s.Config.Kubernetes)
+
+		if err != nil {
+			errc <- err
+			return
+		}
+
+		exec := ExecOptions{
+			PodName:       s.pod.Name,
+			Namespace:     s.pod.Namespace,
+			ContainerName: name,
+			Command:       s.BuildScript.DockerCommand,
+			In:            strings.NewReader(command),
+			Out:           s.BuildLog,
+			Err:           s.BuildLog,
+			Stdin:         true,
+			Config:        config,
+			Client:        kubeClient,
+			Executor:      &DefaultRemoteExecutor{},
+		}
+
+		errc <- exec.Run()
+	}()
+
+	return errc
+}
+
 func (s *executor) Run(cmd common.ExecutorCommand) error {
 	var err error
 	s.Debugln("Starting Kubernetes command...")
@@ -145,60 +189,16 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 		}
 	}
 
-	errc := func() <-chan error {
-		errc := make(chan error, 1)
-		go func() {
-			defer close(errc)
-
-			status, err := waitForPodRunning(kubeClient, s.pod, s.BuildLog)
-
-			if err != nil {
-				errc <- err
-				return
-			}
-
-			if status != api.PodRunning {
-				errc <- fmt.Errorf("pod failed to enter running state: %s", status)
-				return
-			}
-
-			config, err := getKubeClientConfig(s.Config.Kubernetes)
-
-			if err != nil {
-				errc <- err
-				return
-			}
-
-			var containerName string
-			switch {
-			case cmd.Predefined:
-				containerName = "pre"
-			default:
-				containerName = "build"
-			}
-
-			exec := ExecOptions{
-				PodName:       s.pod.Name,
-				Namespace:     s.pod.Namespace,
-				ContainerName: containerName,
-				Command:       s.BuildScript.DockerCommand,
-				In:            strings.NewReader(cmd.Script),
-				Out:           s.BuildLog,
-				Err:           s.BuildLog,
-				Stdin:         true,
-				Config:        config,
-				Client:        kubeClient,
-				Executor:      &DefaultRemoteExecutor{},
-			}
-
-			errc <- exec.Run()
-		}()
-
-		return errc
-	}()
+	var containerName string
+	switch {
+	case cmd.Predefined:
+		containerName = "pre"
+	default:
+		containerName = "build"
+	}
 
 	select {
-	case err := <-errc:
+	case err := <-s.runInContainer(containerName, cmd.Script):
 		return err
 	case _ = <-cmd.Abort:
 		return fmt.Errorf("build aborted")
