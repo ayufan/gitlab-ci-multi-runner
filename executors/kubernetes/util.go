@@ -47,6 +47,10 @@ func getKubeClientConfig(config *common.KubernetesConfig) (*restclient.Config, e
 }
 
 func getKubeClient(config *common.KubernetesConfig) (*client.Client, error) {
+	if kubeClient != nil {
+		return kubeClient, nil
+	}
+
 	restConfig, err := getKubeClientConfig(config)
 	if err != nil {
 		return nil, err

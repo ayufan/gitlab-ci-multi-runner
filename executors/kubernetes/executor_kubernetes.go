@@ -33,17 +33,41 @@ type executor struct {
 	serviceLimits api.ResourceList
 }
 
+func (s *executor) limits(cpu, memory string) (api.ResourceList, error) {
+	var err error
+	l := make(api.ResourceList)
+
+	parse := func(s string) (resource.Quantity, error) {
+		q := new(resource.Quantity)
+		if len(s) == 0 {
+			return *q, nil
+		}
+		if q, err = resource.ParseQuantity(s); err != nil {
+			return *q, fmt.Errorf("error parsing resource limit: %s", err.Error())
+		}
+		return *q, nil
+	}
+
+	if l[api.ResourceCPU], err = parse(s.Config.Kubernetes.ServiceCPUs); err != nil {
+		return l, err
+	}
+
+	if l[api.ResourceMemory], err = parse(s.Config.Kubernetes.ServiceMemory); err != nil {
+		return l, err
+	}
+
+	return l, nil
+}
+
 func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
 	err := s.AbstractExecutor.Prepare(globalConfig, config, build)
 	if err != nil {
 		return err
 	}
 
-	if kubeClient == nil {
-		kubeClient, err = getKubeClient(config.Kubernetes)
-		if err != nil {
-			return err
-		}
+	kubeClient, err = getKubeClient(config.Kubernetes)
+	if err != nil {
+		return err
 	}
 
 	if s.BuildScript.PassFile {
@@ -61,30 +85,11 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 		return fmt.Errorf("Runner does not allow privileged containers")
 	}
 
-	parse := func(s string) (resource.Quantity, error) {
-		q := new(resource.Quantity)
-		if len(s) == 0 {
-			return *q, nil
-		}
-		if q, err = resource.ParseQuantity(s); err != nil {
-			return *q, fmt.Errorf("error parsing resource limit: %s", err.Error())
-		}
-		return *q, nil
-	}
-
-	if s.serviceLimits[api.ResourceCPU], err = parse(s.Config.Kubernetes.ServiceCPUs); err != nil {
+	if s.serviceLimits, err = s.limits(s.Config.Kubernetes.ServiceCPUs, s.Config.Kubernetes.ServiceMemory); err != nil {
 		return err
 	}
 
-	if s.serviceLimits[api.ResourceMemory], err = parse(s.Config.Kubernetes.ServiceMemory); err != nil {
-		return err
-	}
-
-	if s.buildLimits[api.ResourceCPU], err = parse(s.Config.Kubernetes.CPUs); err != nil {
-		return err
-	}
-
-	if s.buildLimits[api.ResourceMemory], err = parse(s.Config.Kubernetes.Memory); err != nil {
+	if s.buildLimits, err = s.limits(s.Config.Kubernetes.CPUs, s.Config.Kubernetes.Memory); err != nil {
 		return err
 	}
 
