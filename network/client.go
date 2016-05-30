@@ -144,6 +144,7 @@ func (n *client) do(uri, method string, request io.Reader, requestType string, h
 
 	if request != nil {
 		req.Header.Set("Content-Type", requestType)
+		req.Header.Set("User-Agent", common.VersionUserAgent())
 	}
 
 	n.ensureTLSConfig()
