@@ -89,7 +89,7 @@ existing image and run it as an additional container than install `mysql` every
 time the project is built.
 
 You can see some widely used services examples in the relevant documentation of
-[CI services examples](../services/README.md).
+[CI services examples](https://gitlab.com/gitlab-org/gitlab-ce/tree/master/doc/ci/services/README.md).
 
 ### How is service linked to the build
 
@@ -221,12 +221,12 @@ Secure variables are only passed to the build container.
 ### PostgreSQL service example
 
 See the specific documentation for
-[using PostgreSQL as a service](../services/postgres.md).
+[using PostgreSQL as a service](https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/ci/services/postgres.md).
 
 ### MySQL service example
 
 See the specific documentation for
-[using MySQL as a service](../services/mysql.md).
+[using MySQL as a service](https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/ci/services/mysql.md).
 
 ### The services health check
 
