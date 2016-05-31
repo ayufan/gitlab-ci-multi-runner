@@ -9,7 +9,7 @@ BUILT := $(shell date +%Y-%m-%dT%H:%M:%S%:z)
 ifneq ($(RELEASE),true)
     VERSION := $(shell echo $(VERSION)~beta.$(COMMITS).g$(REVISION))
 endif
-BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+BRANCH := $(shell git show-ref | grep "$(REVISION)" | awk '{print $$2}' | sed -r 's/refs\/(remotes\/origin|heads)\///' | sort | head -n 1)
 ITTERATION := $(shell date +%s)
 PACKAGE_CLOUD ?= ayufan/gitlab-ci-multi-runner
 PACKAGE_CLOUD_URL ?= https://packagecloud.io/
@@ -59,6 +59,8 @@ version: FORCE
 	@echo Current version: $(VERSION)
 	@echo Current iteration: $(ITTERATION)
 	@echo Current revision: $(REVISION)
+	@echo Current branch: $(BRANCH)
+	@echo Build platforms: $(BUILD_PLATFORMS)
 	@echo DEB platforms: $(DEB_PLATFORMS)
 	@echo RPM platforms: $(RPM_PLATFORMS)
 	bash -c 'echo TEST: ${GO15VENDOREXPERIMENT}'
