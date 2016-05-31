@@ -180,6 +180,9 @@ complexity:
 	@gocyclo -over 9 $(shell find . -name '*.go' | grep -v \
 	    -e "/Godeps" \
 	    -e "/helpers/shell_escape.go" \
+			-e "/executors/kubernetes/executor_kubernetes_test.go" \
+			-e "/executors/kubernetes/util_test.go" \
+			-e "/executors/kubernetes/exec_test.go" \
 	    -e "/executors/parallels/" \
 	    -e "/executors/virtualbox/")
 
