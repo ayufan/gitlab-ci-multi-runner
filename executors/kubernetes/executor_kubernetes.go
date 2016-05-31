@@ -12,10 +12,6 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 )
 
-var (
-	kubeClient *client.Client
-)
-
 type kubernetesOptions struct {
 	Image    string   `json:"image"`
 	Services []string `json:"services"`
@@ -24,6 +20,7 @@ type kubernetesOptions struct {
 type executor struct {
 	executors.AbstractExecutor
 
+	kubeClient   *client.Client
 	prepod       *api.Pod
 	pod          *api.Pod
 	options      *kubernetesOptions
@@ -33,27 +30,36 @@ type executor struct {
 	serviceLimits api.ResourceList
 }
 
-func (s *executor) limits(cpu, memory string) (api.ResourceList, error) {
+func limits(cpu, memory string) (api.ResourceList, error) {
+	var rCPU, rMem *resource.Quantity
 	var err error
-	l := make(api.ResourceList)
 
-	parse := func(s string) (resource.Quantity, error) {
-		q := new(resource.Quantity)
+	parse := func(s string) (*resource.Quantity, error) {
+		var q *resource.Quantity
 		if len(s) == 0 {
-			return *q, nil
+			return q, nil
 		}
 		if q, err = resource.ParseQuantity(s); err != nil {
-			return *q, fmt.Errorf("error parsing resource limit: %s", err.Error())
+			return nil, fmt.Errorf("error parsing resource limit: %s", err.Error())
 		}
-		return *q, nil
+		return q, nil
 	}
 
-	if l[api.ResourceCPU], err = parse(s.Config.Kubernetes.ServiceCPUs); err != nil {
-		return l, err
+	if rCPU, err = parse(cpu); err != nil {
+		return api.ResourceList{}, nil
 	}
 
-	if l[api.ResourceMemory], err = parse(s.Config.Kubernetes.ServiceMemory); err != nil {
-		return l, err
+	if rMem, err = parse(memory); err != nil {
+		return api.ResourceList{}, nil
+	}
+
+	l := make(api.ResourceList)
+
+	if rCPU != nil {
+		l[api.ResourceLimitsCPU] = *rCPU
+	}
+	if rMem != nil {
+		l[api.ResourceLimitsMemory] = *rMem
 	}
 
 	return l, nil
@@ -61,11 +67,6 @@ func (s *executor) limits(cpu, memory string) (api.ResourceList, error) {
 
 func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
 	err := s.AbstractExecutor.Prepare(globalConfig, config, build)
-	if err != nil {
-		return err
-	}
-
-	kubeClient, err = getKubeClient(config.Kubernetes)
 	if err != nil {
 		return err
 	}
@@ -85,12 +86,20 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 		return fmt.Errorf("Runner does not allow privileged containers")
 	}
 
-	if s.serviceLimits, err = s.limits(s.Config.Kubernetes.ServiceCPUs, s.Config.Kubernetes.ServiceMemory); err != nil {
+	if s.serviceLimits, err = limits(s.Config.Kubernetes.ServiceCPUs, s.Config.Kubernetes.ServiceMemory); err != nil {
 		return err
 	}
 
-	if s.buildLimits, err = s.limits(s.Config.Kubernetes.CPUs, s.Config.Kubernetes.Memory); err != nil {
+	if s.buildLimits, err = limits(s.Config.Kubernetes.CPUs, s.Config.Kubernetes.Memory); err != nil {
 		return err
+	}
+
+	if s.kubeClient == nil {
+		s.kubeClient, err = getKubeClient(config.Kubernetes)
+
+		if err != nil {
+			return fmt.Errorf("Error connecting to Kubernetes: %s", err.Error())
+		}
 	}
 
 	s.Println("Using Kubernetes executor with image", s.options.Image, "...")
@@ -100,7 +109,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 
 func (s *executor) Cleanup() {
 	if s.pod != nil {
-		err := kubeClient.Pods(s.pod.Namespace).Delete(s.pod.Name, nil)
+		err := s.kubeClient.Pods(s.pod.Namespace).Delete(s.pod.Name, nil)
 
 		if err != nil {
 			s.Errorln("Error cleaning up pod: %s", err.Error())
@@ -152,7 +161,7 @@ func (s *executor) runInContainer(name, command string) <-chan error {
 	go func() {
 		defer close(errc)
 
-		status, err := waitForPodRunning(kubeClient, s.pod, s.BuildLog)
+		status, err := waitForPodRunning(s.kubeClient, s.pod, s.BuildLog)
 
 		if err != nil {
 			errc <- err
@@ -181,7 +190,7 @@ func (s *executor) runInContainer(name, command string) <-chan error {
 			Err:           s.BuildLog,
 			Stdin:         true,
 			Config:        config,
-			Client:        kubeClient,
+			Client:        s.kubeClient,
 			Executor:      &DefaultRemoteExecutor{},
 		}
 
@@ -201,7 +210,7 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 			services[i] = s.buildContainer(fmt.Sprintf("svc-%d", i), image, s.serviceLimits)
 		}
 
-		s.pod, err = kubeClient.Pods(s.Config.Kubernetes.Namespace).Create(&api.Pod{
+		s.pod, err = s.kubeClient.Pods(s.Config.Kubernetes.Namespace).Create(&api.Pod{
 			ObjectMeta: api.ObjectMeta{
 				GenerateName: s.Build.ProjectUniqueName(),
 				Namespace:    s.Config.Kubernetes.Namespace,
@@ -245,35 +254,29 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 }
 
 func init() {
-	options := executors.ExecutorOptions{
-		SharedBuildsDir: false,
-		Shell: common.ShellScriptInfo{
-			Shell:         "bash",
-			Type:          common.NormalShell,
-			RunnerCommand: "/usr/bin/gitlab-runner-helper",
-		},
-		ShowHostname:     true,
-		SupportedOptions: []string{"image", "services", "artifacts", "cache"},
-	}
-
-	creator := func() common.Executor {
-		return &executor{
-			AbstractExecutor: executors.AbstractExecutor{
-				ExecutorOptions: options,
-			},
-		}
-	}
-
-	featuresUpdater := func(features *common.FeaturesInfo) {
-		features.Variables = true
-		features.Image = true
-		features.Services = true
-		features.Artifacts = true
-		features.Cache = true
-	}
-
 	common.RegisterExecutor("kubernetes", executors.DefaultExecutorProvider{
-		Creator:         creator,
-		FeaturesUpdater: featuresUpdater,
+		Creator: func() common.Executor {
+			return &executor{
+				AbstractExecutor: executors.AbstractExecutor{
+					ExecutorOptions: executors.ExecutorOptions{
+						SharedBuildsDir: false,
+						Shell: common.ShellScriptInfo{
+							Shell:         "bash",
+							Type:          common.NormalShell,
+							RunnerCommand: "/usr/bin/gitlab-runner-helper",
+						},
+						ShowHostname:     true,
+						SupportedOptions: []string{"image", "services", "artifacts", "cache"},
+					},
+				},
+			}
+		},
+		FeaturesUpdater: func(features *common.FeaturesInfo) {
+			features.Variables = true
+			features.Image = true
+			features.Services = true
+			features.Artifacts = true
+			features.Cache = true
+		},
 	})
 }

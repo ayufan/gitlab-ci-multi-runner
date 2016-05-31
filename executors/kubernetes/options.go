@@ -1,6 +1,8 @@
 package kubernetes
 
 import (
+	"strings"
+
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 )
 
@@ -13,5 +15,5 @@ type DefaultOptions struct {
 }
 
 func (o DefaultOptions) Privileged() bool {
-	return o.Get("privileged") == "true"
+	return strings.ToLower(o.Get("privileged")) == "true"
 }

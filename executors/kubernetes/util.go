@@ -12,17 +12,6 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 )
 
-// Stderr implements io.Reader and calls ErrFn on Write
-type Stderr struct {
-	ErrFn func(...interface{})
-}
-
-// Write calls ErrFn with p
-func (s Stderr) Write(p []byte) (int, error) {
-	s.ErrFn(string(p))
-	return len(p), nil
-}
-
 func getKubeClientConfig(config *common.KubernetesConfig) (*restclient.Config, error) {
 	switch {
 	case len(config.CertFile) > 0:
@@ -47,10 +36,6 @@ func getKubeClientConfig(config *common.KubernetesConfig) (*restclient.Config, e
 }
 
 func getKubeClient(config *common.KubernetesConfig) (*client.Client, error) {
-	if kubeClient != nil {
-		return kubeClient, nil
-	}
-
 	restConfig, err := getKubeClientConfig(config)
 	if err != nil {
 		return nil, err

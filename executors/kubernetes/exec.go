@@ -17,11 +17,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"os"
-	"os/signal"
-	"syscall"
 
-	"github.com/docker/docker/pkg/term"
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/restclient"
@@ -51,7 +47,6 @@ type ExecOptions struct {
 	PodName       string
 	ContainerName string
 	Stdin         bool
-	TTY           bool
 	Command       []string
 
 	In  io.Reader
@@ -82,39 +77,8 @@ func (p *ExecOptions) Run() error {
 
 	// TODO: refactor with terminal helpers from the edit utility once that is merged
 	var stdin io.Reader
-	tty := p.TTY
 	if p.Stdin {
 		stdin = p.In
-		if tty {
-			if file, ok := stdin.(*os.File); ok {
-				inFd := file.Fd()
-				if term.IsTerminal(inFd) {
-					oldState, err := term.SetRawTerminal(inFd)
-					if err != nil {
-						glog.Fatal(err)
-					}
-					// this handles a clean exit, where the command finished
-					defer term.RestoreTerminal(inFd, oldState)
-
-					// SIGINT is handled by term.SetRawTerminal (it runs a goroutine that listens
-					// for SIGINT and restores the terminal before exiting)
-
-					// this handles SIGTERM
-					sigChan := make(chan os.Signal, 1)
-					signal.Notify(sigChan, syscall.SIGTERM)
-					go func() {
-						<-sigChan
-						term.RestoreTerminal(inFd, oldState)
-						os.Exit(0)
-					}()
-				} else {
-					fmt.Fprintln(p.Err, "STDIN is not a terminal")
-				}
-			} else {
-				tty = false
-				fmt.Fprintln(p.Err, "Unable to use a TTY - input is not the right kind of file")
-			}
-		}
 	}
 
 	// TODO: consider abstracting into a client invocation or client helper
@@ -130,8 +94,7 @@ func (p *ExecOptions) Run() error {
 		Stdin:     stdin != nil,
 		Stdout:    p.Out != nil,
 		Stderr:    p.Err != nil,
-		TTY:       tty,
 	}, api.ParameterCodec)
 
-	return p.Executor.Execute("POST", req.URL(), p.Config, stdin, p.Out, p.Err, tty)
+	return p.Executor.Execute("POST", req.URL(), p.Config, stdin, p.Out, p.Err, false)
 }
