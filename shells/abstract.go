@@ -43,10 +43,18 @@ func (b *AbstractShell) writeTLSCAInfo(w ShellWriter, build *common.Build, key s
 	}
 }
 
+func (b *AbstractShell) getGitDepth(build *common.Build) string {
+	return build.GetAllVariables().ExpandValue("GIT_DEPTH")
+}
+
 func (b *AbstractShell) writeCloneCmd(w ShellWriter, build *common.Build, projectDir string) {
 	w.Notice("Cloning repository...")
 	w.RmDir(projectDir)
-	w.Command("git", "clone", build.RepoURL, projectDir)
+	if depth := b.getGitDepth(build); depth != "" {
+		w.Command("git", "clone", build.RepoURL, projectDir, "--depth", depth, "--branch", build.RefName)
+	} else {
+		w.Command("git", "clone", build.RepoURL, projectDir)
+	}
 	w.Cd(projectDir)
 }
 
@@ -57,7 +65,17 @@ func (b *AbstractShell) writeFetchCmd(w ShellWriter, build *common.Build, projec
 	w.Command("git", "clean", "-ffdx")
 	w.Command("git", "reset", "--hard")
 	w.Command("git", "remote", "set-url", "origin", build.RepoURL)
-	w.Command("git", "fetch", "origin", "--prune", "+refs/heads/*:refs/remotes/origin/*", "+refs/tags/*:refs/tags/*")
+	if depth := b.getGitDepth(build); depth != "" {
+		var refspec string
+		if build.Tag {
+			refspec = "+refs/tags/" + build.RefName + ":refs/tags/" + build.RefName
+		} else {
+			refspec = "+refs/heads/" + build.RefName + ":refs/remotes/origin/" + build.RefName
+		}
+		w.Command("git", "fetch", "--depth", depth, "origin", "--prune", refspec)
+	} else {
+		w.Command("git", "fetch", "origin", "--prune", "+refs/heads/*:refs/remotes/origin/*", "+refs/tags/*:refs/tags/*")
+	}
 	w.Else()
 	b.writeCloneCmd(w, build, projectDir)
 	w.EndIf()
