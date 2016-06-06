@@ -369,7 +369,7 @@ func (s *executor) createVolumes() ([]string, []string, error) {
 	parentDir := path.Dir(s.Build.FullProjectDir())
 
 	// Caching is supported only for absolute and non-root paths
-	if path.IsAbs(parentDir) && parentDir != "/" {
+	if path.IsAbs(parentDir) && parentDir != "/" && !isMountedOnHost(s.Build.RootDir, s.Config.Docker.Volumes) {
 		if s.Build.GetGitStrategy() == common.GitFetch && !s.Config.Docker.DisableCache {
 			// create persistent cache container
 			s.addVolume(&binds, &volumesFrom, parentDir)
@@ -384,6 +384,17 @@ func (s *executor) createVolumes() ([]string, []string, error) {
 	}
 
 	return binds, volumesFrom, nil
+}
+
+func isMountedOnHost(dir string, volumes []string) bool {
+	dir = path.Clean(dir)
+	for _, volume := range volumes {
+		hostVolume := strings.SplitN(volume, ":", 2)
+		if len(hostVolume) == 2 && path.Clean(hostVolume[1]) == dir {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *executor) parseDeviceString(deviceString string) (device docker.Device, err error) {
@@ -819,7 +830,12 @@ func (s *executor) getImageName() (string, error) {
 }
 
 func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
-	err := s.AbstractExecutor.Prepare(globalConfig, config, build)
+	err := s.prepareBuildsDir(config)
+	if err != nil {
+		return err
+	}
+
+	err = s.AbstractExecutor.Prepare(globalConfig, config, build)
 	if err != nil {
 		return err
 	}
@@ -853,6 +869,17 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 	s.info, err = client.Info()
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func (s *executor) prepareBuildsDir(config *common.RunnerConfig) error {
+	rootDir := config.BuildsDir
+	if rootDir == "" {
+		rootDir = s.DefaultBuildsDir
+	}
+	if isMountedOnHost(rootDir, config.Docker.Volumes) {
+		s.SharedBuildsDir = true
 	}
 	return nil
 }
