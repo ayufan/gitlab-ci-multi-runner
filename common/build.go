@@ -131,6 +131,28 @@ func (b *Build) executeShellScript(scriptType ShellScriptType, executor Executor
 	return executor.Run(cmd)
 }
 
+func (b *Build) executeUploadArtifacts(state error, executor Executor, abort chan interface{}) (err error) {
+	when, _ := b.Options.GetString("artifacts", "when")
+
+	if state == nil {
+		// Previous stages were successful
+		if when == "" || when == "on_success" || when == "always" {
+			err = b.executeShellScript(ShellUploadArtifacts, executor, abort)
+		}
+	} else {
+		// Previous stage did fail
+		if when == "on_failure" || when == "always" {
+			err = b.executeShellScript(ShellUploadArtifacts, executor, abort)
+		}
+	}
+
+	// Use previous error if set
+	if state != nil {
+		err = state
+	}
+	return
+}
+
 func (b *Build) executeScript(executor Executor, abort chan interface{}) error {
 	// Execute pre script (git clone, cache restore, artifacts download)
 	err := b.executeShellScript(ShellPrepareScript, executor, abort)
@@ -151,9 +173,7 @@ func (b *Build) executeScript(executor Executor, abort chan interface{}) error {
 	if err == nil {
 		err = b.executeShellScript(ShellArchiveCache, executor, abort)
 	}
-	if err == nil {
-		err = b.executeShellScript(ShellUploadArtifacts, executor, abort)
-	}
+	err = b.executeUploadArtifacts(err, executor, abort)
 	return err
 }
 
