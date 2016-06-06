@@ -300,8 +300,8 @@ func (b *AbstractShell) uploadArtifacts(w ShellWriter, options *archivingOptions
 	}
 
 	// Get artifacts:expire_in
-	if expire_in, ok := info.Build.Options.GetString("artifacts", "expire_in"); ok && expire_in != "" {
-		args = append(args, "--expire-in", expire_in)
+	if expireIn, ok := info.Build.Options.GetString("artifacts", "expire_in"); ok && expireIn != "" {
+		args = append(args, "--expire-in", expireIn)
 	}
 
 	w.Notice("Uploading artifacts...")
