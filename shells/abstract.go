@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"errors"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 )
 
@@ -172,7 +173,7 @@ func (b *AbstractShell) downloadAllArtifacts(w ShellWriter, dependencies *depend
 	}
 }
 
-func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptInfo) (err error) {
+func (b *AbstractShell) writePrepareScript(w ShellWriter, info common.ShellScriptInfo) (err error) {
 	b.writeExports(w, info)
 
 	build := info.Build
@@ -206,7 +207,7 @@ func (b *AbstractShell) GeneratePreBuild(w ShellWriter, info common.ShellScriptI
 	return nil
 }
 
-func (b *AbstractShell) GenerateBuild(w ShellWriter, info common.ShellScriptInfo) (err error) {
+func (b *AbstractShell) writeBuildScript(w ShellWriter, info common.ShellScriptInfo) (err error) {
 	b.writeExports(w, info)
 	b.writeCdBuildDir(w, info)
 
@@ -303,7 +304,7 @@ func (b *AbstractShell) uploadArtifacts(w ShellWriter, options *archivingOptions
 	w.Command(info.RunnerCommand, args...)
 }
 
-func (b *AbstractShell) GenerateAfterBuild(w ShellWriter, info common.ShellScriptInfo) error {
+func (b *AbstractShell) writeAfterScript(w ShellWriter, info common.ShellScriptInfo) error {
 	shellOptions := struct {
 		AfterScript []string `json:"after_script"`
 	}{}
@@ -335,11 +336,7 @@ func (b *AbstractShell) GenerateAfterBuild(w ShellWriter, info common.ShellScrip
 	return nil
 }
 
-func (b *AbstractShell) GeneratePostBuild(w ShellWriter, info common.ShellScriptInfo) (err error) {
-	b.writeExports(w, info)
-	b.writeCdBuildDir(w, info)
-	b.writeTLSCAInfo(w, info.Build, "CI_SERVER_TLS_CA_FILE")
-
+func (b *AbstractShell) writeArchiveCacheScript(w ShellWriter, info common.ShellScriptInfo) (err error) {
 	// Parse options
 	var options shellOptions
 	err = info.Build.Options.Decode(&options)
@@ -347,10 +344,50 @@ func (b *AbstractShell) GeneratePostBuild(w ShellWriter, info common.ShellScript
 		return
 	}
 
+	b.writeExports(w, info)
+	b.writeCdBuildDir(w, info)
+	b.writeTLSCAInfo(w, info.Build, "CI_SERVER_TLS_CA_FILE")
+
 	// Find cached files and archive them
 	b.cacheArchiver(w, options.Cache, info)
+	return
+}
+
+func (b *AbstractShell) writeUploadArtifactsScript(w ShellWriter, info common.ShellScriptInfo) (err error) {
+	// Parse options
+	var options shellOptions
+	err = info.Build.Options.Decode(&options)
+	if err != nil {
+		return
+	}
+
+	b.writeExports(w, info)
+	b.writeCdBuildDir(w, info)
+	b.writeTLSCAInfo(w, info.Build, "CI_SERVER_TLS_CA_FILE")
 
 	// Upload artifacts
 	b.uploadArtifacts(w, options.Artifacts, info)
 	return
+}
+
+func (b *AbstractShell) writeScript(w ShellWriter, scriptType common.ShellScriptType, info common.ShellScriptInfo) (err error) {
+	switch scriptType {
+	case common.ShellPrepareScript:
+		return b.writePrepareScript(w, info)
+
+	case common.ShellBuildScript:
+		return b.writeBuildScript(w, info)
+
+	case common.ShellAfterScript:
+		return b.writeAfterScript(w, info)
+
+	case common.ShellArchiveCache:
+		return b.writeArchiveCacheScript(w, info)
+
+	case common.ShellUploadArtifacts:
+		return b.writeUploadArtifactsScript(w, info)
+
+	default:
+		return errors.New("Not supported script type: " + string(scriptType))
+	}
 }

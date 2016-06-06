@@ -46,8 +46,8 @@ func (s *executor) getServiceVariables() []string {
 
 func (s *executor) getAuthConfig(imageName string) (docker.AuthConfiguration, error) {
 	homeDir := homedir.Get()
-	if s.Shell.User != "" {
-		u, err := user.Lookup(s.Shell.User)
+	if s.Shell().User != "" {
+		u, err := user.Lookup(s.Shell().User)
 		if err != nil {
 			return docker.AuthConfiguration{}, err
 		}
@@ -578,7 +578,7 @@ func (s *executor) prepareBuildContainer() (options *docker.CreateContainerOptio
 			AttachStderr: true,
 			OpenStdin:    true,
 			StdinOnce:    true,
-			Env:          append(s.Build.GetAllVariables().StringList(), s.BuildScript.Environment...),
+			Env:          append(s.Build.GetAllVariables().StringList(), s.BuildShell.Environment...),
 		},
 		HostConfig: &docker.HostConfig{
 			Privileged:    s.Config.Docker.Privileged,
@@ -771,7 +771,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 		return err
 	}
 
-	if s.BuildScript.PassFile {
+	if s.BuildShell.PassFile {
 		return errors.New("Docker doesn't support shells that require script file")
 	}
 
