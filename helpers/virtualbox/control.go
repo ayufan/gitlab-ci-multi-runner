@@ -123,8 +123,12 @@ func Exist(vmName string) bool {
 	return true
 }
 
-func CreateOsVM(vmName string, templateName string) error {
-	_, err := VBoxManage("clonevm", vmName, "--mode", "machine", "--name", templateName, "--register")
+func CreateOsVM(vmName string, templateName string, templateSnapshot string) error {
+	args := []string{"clonevm", vmName, "--mode", "machine", "--name", templateName, "--register"}
+	if templateSnapshot != "" {
+		args = append(args, "--snapshot", templateSnapshot, "--options", "link")
+	}
+	_, err := VBoxManage(args...)
 	return err
 }
 
@@ -195,6 +199,29 @@ func CreateSnapshot(vmName string, snapshotName string) error {
 func RevertToSnapshot(vmName string) error {
 	_, err := VBoxManage("snapshot", vmName, "restorecurrent")
 	return err
+}
+
+func HasSnapshot(vmName string, snapshotName string) bool {
+	output, err := VBoxManage("snapshot", vmName, "list", "--machinereadable")
+	if err != nil {
+		return false
+	}
+	snapshotRe := regexp.MustCompile(fmt.Sprintf(`(?m)^Snapshot(Name|UUID)[^=]*="%s"$`, regexp.QuoteMeta(snapshotName)))
+	snapshot := snapshotRe.FindStringSubmatch(output)
+	return snapshot != nil
+}
+
+func GetCurrentSnapshot(vmName string) (string, error) {
+	output, err := VBoxManage("snapshot", vmName, "list", "--machinereadable")
+	if err != nil {
+		return "", err
+	}
+	snapshotRe := regexp.MustCompile(`(?m)^CurrentSnapshotName="([^"]*)"$`)
+	snapshot := snapshotRe.FindStringSubmatch(output)
+	if snapshot == nil {
+		return "", errors.New("Failed to match current snapshot name")
+	}
+	return snapshot[1], nil
 }
 
 func Start(vmName string) error {

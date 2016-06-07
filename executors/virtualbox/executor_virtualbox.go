@@ -58,6 +58,38 @@ func (s *executor) restoreFromSnapshot() error {
 	return nil
 }
 
+func (s *executor) determineBaseSnapshot(baseImage string) string {
+	var err error
+	baseSnapshot := s.Config.VirtualBox.BaseSnapshot
+	if baseSnapshot == "" {
+		baseSnapshot, err = vbox.GetCurrentSnapshot(baseImage)
+		if err != nil {
+			if s.Config.VirtualBox.DisableSnapshots {
+				s.Debugln("No snapshots found for base VM", baseImage)
+				return ""
+			}
+
+			baseSnapshot = "Base State"
+		}
+	}
+
+	if baseSnapshot != "" && !vbox.HasSnapshot(baseImage, baseSnapshot) {
+		if s.Config.VirtualBox.DisableSnapshots {
+			s.Warningln("Snapshot", baseSnapshot, "not found in base VM", baseImage)
+			return ""
+		}
+
+		s.Debugln("Creating snapshot", baseSnapshot, "from current base VM", baseImage, "state...")
+		err = vbox.CreateSnapshot(baseImage, baseSnapshot)
+		if err != nil {
+			s.Warningln("Failed to create snapshot", baseSnapshot, "from base VM", baseImage)
+			return ""
+		}
+	}
+
+	return baseSnapshot
+}
+
 // virtualbox doesn't support templates
 func (s *executor) createVM(vmName string) (err error) {
 	baseImage := s.Config.VirtualBox.BaseName
@@ -71,8 +103,14 @@ func (s *executor) createVM(vmName string) (err error) {
 	}
 
 	if !vbox.Exist(vmName) {
-		s.Debugln("Creating testing VM from VM", baseImage, "...")
-		err := vbox.CreateOsVM(baseImage, vmName)
+		baseSnapshot := s.determineBaseSnapshot(baseImage)
+		if baseSnapshot == "" {
+			s.Debugln("Creating testing VM from VM", baseImage, "...")
+		} else {
+			s.Debugln("Creating testing VM from VM", baseImage, "snapshot", baseSnapshot, "...")
+		}
+
+		err = vbox.CreateOsVM(baseImage, vmName, baseSnapshot)
 		if err != nil {
 			return err
 		}
