@@ -9,7 +9,7 @@ BUILT := $(shell date +%Y-%m-%dT%H:%M:%S%:z)
 ifneq ($(RELEASE),true)
     VERSION := $(shell echo $(VERSION)~beta.$(COMMITS).g$(REVISION))
 endif
-BRANCH := $(shell git show-ref | grep "$(REVISION)" | grep -v HEAD | awk '{print $$2}' | sed -r 's/refs\/(remotes\/origin|heads)\///' | sort | head -n 1)
+BRANCH := $(shell git show-ref | grep "$(REVISION)" | grep -v HEAD | awk '{print $$2}' | sed 's|refs/remotes/origin/||' | sed 's|refs/heads/||' | sort | head -n 1)
 ITTERATION := $(shell date +%s)
 PACKAGE_CLOUD ?= ayufan/gitlab-ci-multi-runner
 PACKAGE_CLOUD_URL ?= https://packagecloud.io/
