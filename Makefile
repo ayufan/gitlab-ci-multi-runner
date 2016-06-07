@@ -110,7 +110,7 @@ out/docker/prebuilt-arm.tar.gz: $(GO_FILES)
 
 ifneq (, $(shell docker info))
 	# Building gitlab-runner-helper
-	gox -osarch=linux/amd64 \
+	gox -osarch=linux/arm \
 		-ldflags "$(GO_LDFLAGS)" \
 		-output="dockerfiles/build/gitlab-runner-helper" \
 		./apps/gitlab-runner-helper
