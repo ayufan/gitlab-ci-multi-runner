@@ -5,7 +5,7 @@ import "github.com/fsouza/go-dockerclient"
 type Client interface {
 	InspectImage(name string) (*docker.Image, error)
 	PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error
-	LoadImage(opts docker.LoadImageOptions) error
+	ImportImage(opts docker.ImportImageOptions) error
 
 	CreateContainer(opts docker.CreateContainerOptions) (*docker.Container, error)
 	StartContainer(id string, hostConfig *docker.HostConfig) error

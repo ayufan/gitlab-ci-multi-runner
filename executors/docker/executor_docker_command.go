@@ -37,7 +37,7 @@ func (s *commandExecutor) Prepare(globalConfig *common.Config, config *common.Ru
 		return err
 	}
 
-	buildImage, err := s.getPrebuiltImage("build")
+	buildImage, err := s.getPrebuiltImage()
 	if err != nil {
 		return err
 	}

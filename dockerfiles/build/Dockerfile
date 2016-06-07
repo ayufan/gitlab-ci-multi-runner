@@ -7,6 +7,5 @@ RUN wget -O /tmp/glibc.apk "https://circle-artifacts.com/gh/andyshinn/alpine-pkg
  	/usr/glibc/usr/bin/ldconfig /lib /usr/glibc/usr/lib && \
  	rm /tmp/glibc.apk
 
-COPY ./gitlab-runner-helper /usr/bin/
-COPY ./docker-entrypoint.sh /
-ENTRYPOINT ["/docker-entrypoint.sh"]
+COPY ./ /usr/bin/
+ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]

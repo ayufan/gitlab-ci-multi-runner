@@ -88,13 +88,11 @@ ifneq (, $(shell docker info))
 		./apps/gitlab-runner-helper
 
 	# Build docker images
-	docker build -t gitlab-runner-build:$(REVISION) dockerfiles/build
-	docker build -t gitlab-runner-cache:$(REVISION) dockerfiles/cache
-	docker build -t gitlab-runner-service:$(REVISION) dockerfiles/service
-	docker save -o out/docker/prebuilt.tar \
-		gitlab-runner-build:$(REVISION) \
-		gitlab-runner-service:$(REVISION) \
-		gitlab-runner-cache:$(REVISION)
+	docker build -t gitlab-runner-prebuild:$(REVISION) dockerfiles/build
+	-docker rm -f gitlab-runner-prebuild-$(REVISION)
+	docker create --name=gitlab-runner-prebuild-$(REVISION) gitlab-runner-prebuild:$(REVISION)
+	docker export -o out/docker/prebuilt.tar gitlab-runner-prebuild-$(REVISION)
+	docker rm -f gitlab-runner-prebuild-$(REVISION)
 	gzip -f -9 out/docker/prebuilt.tar
 else
 	$(warning =============================================)

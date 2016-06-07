@@ -26,7 +26,7 @@ func (m *Client) PullImage(opts docker.PullImageOptions, auth docker.AuthConfigu
 
 	return r0
 }
-func (m *Client) LoadImage(opts docker.LoadImageOptions) error {
+func (m *Client) ImportImage(opts docker.ImportImageOptions) error {
 	ret := m.Called(opts)
 
 	r0 := ret.Error(0)
