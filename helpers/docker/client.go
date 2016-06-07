@@ -15,4 +15,6 @@ type Client interface {
 	AttachToContainer(opts docker.AttachToContainerOptions) error
 	RemoveContainer(opts docker.RemoveContainerOptions) error
 	Logs(opts docker.LogsOptions) error
+
+	Info() (*docker.Env, error)
 }

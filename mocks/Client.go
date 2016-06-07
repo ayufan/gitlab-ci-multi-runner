@@ -98,3 +98,14 @@ func (m *Client) Logs(opts docker.LogsOptions) error {
 
 	return r0
 }
+func (m *Client) Info() (*docker.Env, error) {
+	ret := m.Called()
+
+	var r0 *docker.Env
+	if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*docker.Env)
+	}
+	r1 := ret.Error(1)
+
+	return r0, r1
+}
