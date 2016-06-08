@@ -231,9 +231,10 @@ func (n *GitLabClient) PatchTrace(config common.RunnerConfig, buildCredentials *
 	defer io.Copy(ioutil.Discard, response.Body)
 
 	remoteState := response.Header.Get("Build-Status")
+	remoteRange := response.Header.Get("Range")
 	log := config.Log().WithFields(logrus.Fields{
 		"SentRange":          contentRange,
-		"RemoteRange":        response.Header.Get("Range"),
+		"RemoteRange":        remoteRange,
 		"RemoteState":        remoteState,
 		"ResponseStatusCode": response.StatusCode,
 		"ResponseMessage":    response.Status,
@@ -257,8 +258,8 @@ func (n *GitLabClient) PatchTrace(config common.RunnerConfig, buildCredentials *
 	case 416:
 		log.Warningln(id, "Appending trace to coordinator...", "range missmatch")
 
-		remoteRange := strings.Split(response.Header.Get("Range"), "-")
-		newOffset, _ := strconv.Atoi(remoteRange[2])
+		remoteRange := strings.Split(remoteRange, "-")
+		newOffset, _ := strconv.Atoi(remoteRange[1])
 		tracePatch.SetNewOffset(newOffset)
 
 		return common.UpdateRangeMissmatch

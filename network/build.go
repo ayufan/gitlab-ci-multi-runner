@@ -228,13 +228,13 @@ func (c *clientBuildTrace) incrementalUpdate() common.UpdateState {
 		return update
 	}
 
+	if update == common.UpdateRangeMissmatch {
+		update = c.resendPatch(c.buildCredentials.ID, c.config, c.buildCredentials, tracePatch)
+	}
+
 	if update == common.UpdateSucceeded {
 		c.sentTrace = tracePatch.Limit()
 		c.sentTime = time.Now()
-	}
-
-	if update == common.UpdateRangeMissmatch {
-		update = c.resendPatch(c.buildCredentials.ID, c.config, c.buildCredentials, tracePatch)
 	}
 
 	return update
