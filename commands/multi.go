@@ -93,7 +93,7 @@ func (mr *RunCommand) feedRunners(runners chan *runnerAcquire) {
 			mr.feedRunner(runner, runners)
 		}
 		if config.CheckInterval > 0 {
-			time.Sleep(config.CheckInterval * time.Second)
+			time.Sleep(time.Duration(config.CheckInterval) * time.Second)
 		} else {
 			time.Sleep(common.CheckInterval * time.Second)
 		}
