@@ -16,7 +16,8 @@ This defines global settings of multi-runner.
 
 | Setting | Description |
 | ------- | ----------- |
-| `concurrent` | limits how many jobs globally can be run concurrently. The most upper limit of jobs using all defined runners |
+| `concurrent`     | limits how many jobs globally can be run concurrently. The most upper limit of jobs using all defined runners |
+| `check_interval` | defines in seconds how often to check GitLab for a new builds |
 
 Example:
 

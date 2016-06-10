@@ -92,7 +92,11 @@ func (mr *RunCommand) feedRunners(runners chan *runnerAcquire) {
 		for _, runner := range config.Runners {
 			mr.feedRunner(runner, runners)
 		}
-		time.Sleep(common.CheckInterval * time.Second)
+		if config.CheckInterval > 0 {
+			time.Sleep(config.CheckInterval * time.Second)
+		} else {
+			time.Sleep(common.CheckInterval * time.Second)
+		}
 	}
 }
 
