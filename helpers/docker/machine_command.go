@@ -31,7 +31,7 @@ func (m *machineCommand) ls() (data []byte, err error) {
 	}
 
 	if m.lsCmd == nil {
-		m.lsCmd := exec.Command("docker-machine", "ls", "-q")
+		m.lsCmd = exec.Command("docker-machine", "ls", "-q")
 		m.lsCmd.Env = os.Environ()
 		go func() {
 			m.lsData, m.lsError = m.lsCmd.Output()

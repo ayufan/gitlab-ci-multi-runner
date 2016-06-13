@@ -120,8 +120,11 @@ func (mr *RunCommand) processRunner(id int, runner *common.RunnerConfig, runners
 	// Process the same runner by different worker again
 	// to speed up taking the builds
 	select {
-	case runners <- runners:
+	case runners <- runner:
+		mr.log().Debugln("Requeued the runner: ", runner.ShortDescription())
+
 	default:
+		mr.log().Debugln("Failed to requeue the runner: ", runner.ShortDescription())
 	}
 
 	// Process a build
