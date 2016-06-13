@@ -11,9 +11,38 @@ import (
 	"strings"
 
 	"github.com/Sirupsen/logrus"
+	"sync"
 )
 
 type machineCommand struct {
+	lsCmd   *exec.Cmd
+	lsLock  sync.Mutex
+	lsCond  *sync.Cond
+	lsData  []byte
+	lsError error
+}
+
+func (m *machineCommand) ls() (data []byte, err error) {
+	m.lsLock.Lock()
+	defer m.lsLock.Unlock()
+
+	if m.lsCond == nil {
+		m.lsCond = sync.NewCond(&m.lsLock)
+	}
+
+	if m.lsCmd == nil {
+		m.lsCmd := exec.Command("docker-machine", "ls", "-q")
+		m.lsCmd.Env = os.Environ()
+		go func() {
+			m.lsData, m.lsError = m.lsCmd.Output()
+			m.lsCmd = nil
+			m.lsCond.Broadcast()
+		}()
+	}
+
+	m.lsCond.Wait()
+
+	return m.lsData, m.lsError
 }
 
 func (m *machineCommand) Create(driver, name string, opts ...string) error {
@@ -51,9 +80,7 @@ func (m *machineCommand) Remove(name string) error {
 }
 
 func (m *machineCommand) List(nodeFilter string) (machines []string, err error) {
-	cmd := exec.Command("docker-machine", "ls", "-q")
-	cmd.Env = os.Environ()
-	data, err := cmd.Output()
+	data, err := m.ls()
 	if err != nil {
 		return
 	}
