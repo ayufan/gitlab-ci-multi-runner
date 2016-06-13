@@ -75,7 +75,7 @@ func (mr *RunCommand) feedRunners(runners chan *common.RunnerConfig) {
 	}
 }
 
-func (mr *RunCommand) processRunner(id int, runner *common.RunnerConfig) (err error) {
+func (mr *RunCommand) processRunner(id int, runner *common.RunnerConfig, runners chan *common.RunnerConfig) (err error) {
 	provider := common.GetExecutor(runner.Executor)
 	if provider == nil {
 		return
@@ -117,6 +117,13 @@ func (mr *RunCommand) processRunner(id int, runner *common.RunnerConfig) (err er
 	mr.buildsHelper.addBuild(build)
 	defer mr.buildsHelper.removeBuild(build)
 
+	// Process the same runner by different worker again
+	// to speed up taking the builds
+	select {
+	case runners <- runners:
+	default:
+	}
+
 	// Process a build
 	return build.Run(mr.config, trace)
 }
@@ -126,7 +133,7 @@ func (mr *RunCommand) processRunners(id int, stopWorker chan bool, runners chan 
 	for mr.stopSignal == nil {
 		select {
 		case runner := <-runners:
-			mr.processRunner(id, runner)
+			mr.processRunner(id, runner, runners)
 
 			// force GC cycle after processing build
 			runtime.GC()
