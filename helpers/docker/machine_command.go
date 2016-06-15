@@ -9,9 +9,9 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 
 	"github.com/Sirupsen/logrus"
-	"sync"
 )
 
 type machineCommand struct {
