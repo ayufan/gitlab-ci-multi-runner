@@ -118,7 +118,8 @@ func (b *Build) executeShellScript(scriptType ShellScriptType, executor Executor
 	}
 
 	cmd := ExecutorCommand{
-		Abort: abort,
+		Script: script,
+		Abort:  abort,
 	}
 
 	switch scriptType {
