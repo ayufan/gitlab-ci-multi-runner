@@ -159,57 +159,35 @@ func (b *CmdWriter) Absolute(dir string) string {
 	return filepath.Join("%CD%", dir)
 }
 
-func newCmdWriter(info common.ShellScriptInfo) (w *CmdWriter) {
-	w = &CmdWriter{
+func (b *CmdShell) GetConfiguration(info common.ShellScriptInfo) (script *common.ShellConfiguration, err error) {
+	script = &common.ShellConfiguration{
+		Command:   "cmd",
+		Arguments: []string{"/Q", "/C"},
+		PassFile:  true,
+		Extension: "cmd",
+	}
+	return
+}
+
+func (b *CmdShell) GenerateScript(scriptType common.ShellScriptType, info common.ShellScriptInfo) (script string, err error) {
+	w := &CmdWriter{
 		TemporaryPath: info.Build.FullProjectDir() + ".tmp",
 	}
 	w.Line("@echo off")
 	w.Line("setlocal enableextensions")
 	w.Line("setlocal enableDelayedExpansion")
 	w.Line("set nl=^\r\n\r\n")
-	return
-}
 
-func (b *CmdShell) GenerateScript(info common.ShellScriptInfo) (script *common.ShellScript, err error) {
-	preScript := newCmdWriter(info)
-	if len(info.Build.Hostname) != 0 {
-		preScript.Line("echo Running on %COMPUTERNAME% via " + batchEscape(info.Build.Hostname) + "...")
-	} else {
-		preScript.Line("echo Running on %COMPUTERNAME%...")
-	}
-	err = b.GeneratePreBuild(preScript, info)
-	if err != nil {
-		return
+	if scriptType == common.ShellPrepareScript {
+		if len(info.Build.Hostname) != 0 {
+			w.Line("echo Running on %COMPUTERNAME% via " + batchEscape(info.Build.Hostname) + "...")
+		} else {
+			w.Line("echo Running on %COMPUTERNAME%...")
+		}
 	}
 
-	buildScript := newCmdWriter(info)
-	err = b.GenerateBuild(buildScript, info)
-	if err != nil {
-		return
-	}
-
-	afterScript := newCmdWriter(info)
-	err = b.GenerateAfterBuild(afterScript, info)
-	if err != nil {
-		return
-	}
-
-	postScript := newCmdWriter(info)
-	err = b.GeneratePostBuild(postScript, info)
-	if err != nil {
-		return
-	}
-
-	script = &common.ShellScript{
-		PreScript:   preScript.String(),
-		BuildScript: buildScript.String(),
-		AfterScript: afterScript.String(),
-		PostScript:  postScript.String(),
-		Command:     "cmd",
-		Arguments:   []string{"/Q", "/C"},
-		PassFile:    true,
-		Extension:   "cmd",
-	}
+	err = b.writeScript(w, scriptType, info)
+	script = w.String()
 	return
 }
 

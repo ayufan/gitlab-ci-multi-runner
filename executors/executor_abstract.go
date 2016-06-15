@@ -16,14 +16,14 @@ type ExecutorOptions struct {
 
 type AbstractExecutor struct {
 	ExecutorOptions
-	Config      common.RunnerConfig
-	Build       *common.Build
-	BuildLog    common.BuildTrace
-	BuildScript *common.ShellScript
+	Config     common.RunnerConfig
+	Build      *common.Build
+	BuildLog   common.BuildTrace
+	BuildShell *common.ShellConfiguration
 }
 
 func (e *AbstractExecutor) updateShell() error {
-	script := &e.Shell
+	script := e.Shell()
 	script.Build = e.Build
 	if e.Config.Shell != "" {
 		script.Shell = e.Config.Shell
@@ -31,13 +31,13 @@ func (e *AbstractExecutor) updateShell() error {
 	return nil
 }
 
-func (e *AbstractExecutor) generateShellScript() error {
-	shellScript, err := common.GenerateShellScript(e.Shell)
+func (e *AbstractExecutor) generateShellConfiguration() error {
+	shellConfiguration, err := common.GetShellConfiguration(*e.Shell())
 	if err != nil {
 		return err
 	}
-	e.BuildScript = shellScript
-	e.Debugln("Shell script:", shellScript)
+	e.BuildShell = shellConfiguration
+	e.Debugln("Shell configuration:", shellConfiguration)
 	return nil
 }
 
@@ -62,7 +62,7 @@ func (e *AbstractExecutor) startBuild() error {
 
 func (e *AbstractExecutor) verifyOptions() error {
 	supportedOptions := e.SupportedOptions
-	if shell := common.GetShell(e.Shell.Shell); shell != nil {
+	if shell := common.GetShell(e.Shell().Shell); shell != nil {
 		supportedOptions = append(supportedOptions, shell.GetSupportedOptions()...)
 	}
 
@@ -83,6 +83,10 @@ func (e *AbstractExecutor) verifyOptions() error {
 		}
 	}
 	return nil
+}
+
+func (e *AbstractExecutor) Shell() *common.ShellScriptInfo {
+	return &e.ExecutorOptions.Shell
 }
 
 func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
@@ -107,15 +111,11 @@ func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.R
 		return err
 	}
 
-	err = e.generateShellScript()
+	err = e.generateShellConfiguration()
 	if err != nil {
 		return err
 	}
 	return nil
-}
-
-func (e *AbstractExecutor) ShellScript() *common.ShellScript {
-	return e.BuildScript
 }
 
 func (e *AbstractExecutor) Finish(err error) {

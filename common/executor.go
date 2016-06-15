@@ -13,8 +13,8 @@ type ExecutorCommand struct {
 }
 
 type Executor interface {
+	Shell() *ShellScriptInfo
 	Prepare(globalConfig *Config, config *RunnerConfig, build *Build) error
-	ShellScript() *ShellScript
 	Run(cmd ExecutorCommand) error
 	Finish(err error)
 	Cleanup()
