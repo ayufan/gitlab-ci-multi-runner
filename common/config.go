@@ -127,11 +127,12 @@ type RunnerConfig struct {
 }
 
 type Config struct {
-	Concurrent int             `toml:"concurrent" json:"concurrent"`
-	User       string          `toml:"user,omitempty" json:"user"`
-	Runners    []*RunnerConfig `toml:"runners" json:"runners"`
-	ModTime    time.Time       `toml:"-"`
-	Loaded     bool            `toml:"-"`
+	Concurrent    int             `toml:"concurrent" json:"concurrent"`
+	CheckInterval int             `toml:"check_interval" json:"check_interval" description:"Define active checking interval of jobs"`
+	User          string          `toml:"user,omitempty" json:"user"`
+	Runners       []*RunnerConfig `toml:"runners" json:"runners"`
+	ModTime       time.Time       `toml:"-"`
+	Loaded        bool            `toml:"-"`
 }
 
 func (c *RunnerCredentials) ShortDescription() string {
@@ -222,4 +223,11 @@ func (c *Config) SaveConfig(configFile string) error {
 
 	c.Loaded = true
 	return nil
+}
+
+func (c *Config) GetCheckInterval() time.Duration {
+	if c.CheckInterval > 0 {
+		return time.Duration(c.CheckInterval) * time.Second
+	}
+	return CheckInterval
 }

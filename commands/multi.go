@@ -89,10 +89,20 @@ func (mr *RunCommand) feedRunners(runners chan *runnerAcquire) {
 	for mr.stopSignal == nil {
 		mr.log().Debugln("Feeding runners to channel")
 		config := mr.config
+
+		// If no runners wait full interval to test again
+		if len(config.Runners) == 0 {
+			time.Sleep(config.GetCheckInterval())
+			continue
+		}
+
+		interval := config.GetCheckInterval() / time.Duration(len(config.Runners))
+
+		// Feed runner with waiting exact amount of time
 		for _, runner := range config.Runners {
 			mr.feedRunner(runner, runners)
+			time.Sleep(interval)
 		}
-		time.Sleep(common.CheckInterval * time.Second)
 	}
 }
 
