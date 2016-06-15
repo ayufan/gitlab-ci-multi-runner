@@ -232,4 +232,3 @@ func (c *Config) GetCheckInterval() time.Duration {
 		return CheckInterval
 	}
 }
-
