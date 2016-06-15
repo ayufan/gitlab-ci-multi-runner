@@ -228,7 +228,6 @@ func (c *Config) SaveConfig(configFile string) error {
 func (c *Config) GetCheckInterval() time.Duration {
 	if c.CheckInterval > 0 {
 		return time.Duration(c.CheckInterval) * time.Second
-	} else {
-		return CheckInterval
 	}
+	return CheckInterval
 }
