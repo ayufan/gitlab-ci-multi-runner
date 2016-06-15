@@ -89,13 +89,22 @@ func (mr *RunCommand) feedRunners(runners chan *runnerAcquire) {
 	for mr.stopSignal == nil {
 		mr.log().Debugln("Feeding runners to channel")
 		config := mr.config
+
+		interval := common.CheckInterval * time.Second
+		if config.CheckInterval > 0 {
+			interval = time.Duration(config.CheckInterval) * time.Second
+		}
+
+		// If no runners wait full interval to test again
+		if len(config.Runners) == 0 {
+			time.Sleep(interval)
+			continue
+		}
+
+		// Feed runner with waiting exact amount of time
 		for _, runner := range config.Runners {
 			mr.feedRunner(runner, runners)
-		}
-		if config.CheckInterval > 0 {
-			time.Sleep(time.Duration(config.CheckInterval) * time.Second)
-		} else {
-			time.Sleep(common.CheckInterval * time.Second)
+			time.Sleep(interval / len(config.Runners))
 		}
 	}
 }
