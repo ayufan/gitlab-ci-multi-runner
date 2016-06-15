@@ -70,8 +70,8 @@ func (s *sshExecutor) Prepare(globalConfig *common.Config, config *common.Runner
 
 func (s *sshExecutor) Run(cmd common.ExecutorCommand) error {
 	return s.sshCommand.Run(ssh.Command{
-		Environment: s.BuildScript.Environment,
-		Command:     s.BuildScript.GetCommandWithArguments(),
+		Environment: s.BuildShell.Environment,
+		Command:     s.BuildShell.GetCommandWithArguments(),
 		Stdin:       cmd.Script,
 		Abort:       cmd.Abort,
 	})

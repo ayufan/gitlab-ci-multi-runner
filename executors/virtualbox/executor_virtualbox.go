@@ -115,7 +115,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 		return err
 	}
 
-	if s.BuildScript.PassFile {
+	if s.BuildShell.PassFile {
 		return errors.New("virtualbox doesn't support shells that require script file")
 	}
 
@@ -236,8 +236,8 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 
 func (s *executor) Run(cmd common.ExecutorCommand) error {
 	return s.sshCommand.Run(ssh.Command{
-		Environment: s.BuildScript.Environment,
-		Command:     s.BuildScript.GetCommandWithArguments(),
+		Environment: s.BuildShell.Environment,
+		Command:     s.BuildShell.GetCommandWithArguments(),
 		Stdin:       cmd.Script,
 		Abort:       cmd.Abort,
 	})

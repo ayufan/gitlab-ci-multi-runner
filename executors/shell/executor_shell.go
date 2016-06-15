@@ -23,7 +23,7 @@ type executor struct {
 
 func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
 	if globalConfig != nil {
-		s.Shell.User = globalConfig.User
+		s.Shell().User = globalConfig.User
 	}
 
 	// expand environment variables to have current directory
@@ -68,7 +68,7 @@ func (s *executor) killAndWait(cmd *exec.Cmd, waitCh chan error) error {
 
 func (s *executor) Run(cmd common.ExecutorCommand) error {
 	// Create execution command
-	c := exec.Command(s.BuildScript.Command, s.BuildScript.Arguments...)
+	c := exec.Command(s.BuildShell.Command, s.BuildShell.Arguments...)
 	if c == nil {
 		return errors.New("Failed to generate execution command")
 	}
@@ -77,18 +77,18 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 	defer helpers.KillProcessGroup(c)
 
 	// Fill process environment variables
-	c.Env = append(os.Environ(), s.BuildScript.Environment...)
+	c.Env = append(os.Environ(), s.BuildShell.Environment...)
 	c.Stdout = s.BuildLog
 	c.Stderr = s.BuildLog
 
-	if s.BuildScript.PassFile {
+	if s.BuildShell.PassFile {
 		scriptDir, err := ioutil.TempDir("", "build_script")
 		if err != nil {
 			return err
 		}
 		defer os.RemoveAll(scriptDir)
 
-		scriptFile := filepath.Join(scriptDir, "script."+s.BuildScript.Extension)
+		scriptFile := filepath.Join(scriptDir, "script."+s.BuildShell.Extension)
 		err = ioutil.WriteFile(scriptFile, []byte(cmd.Script), 0700)
 		if err != nil {
 			return err
