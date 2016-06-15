@@ -37,13 +37,13 @@ func (s *commandExecutor) Prepare(globalConfig *common.Config, config *common.Ru
 		return err
 	}
 
-	buildImage, err := s.getPrebuiltImage("build")
+	buildImage, err := s.getPrebuiltImage()
 	if err != nil {
 		return err
 	}
 
 	// Start pre-build container which will git clone changes
-	s.predefinedContainer, err = s.createContainer("predefined", buildImage.ID, nil, *options)
+	s.predefinedContainer, err = s.createContainer("predefined", buildImage.ID, []string{"gitlab-runner-build"}, *options)
 	if err != nil {
 		return err
 	}
