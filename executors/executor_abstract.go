@@ -31,7 +31,7 @@ func (e *AbstractExecutor) updateShell() error {
 	return nil
 }
 
-func (e *AbstractExecutor) generateShellScript() error {
+func (e *AbstractExecutor) generateShellConfiguration() error {
 	shellConfiguration, err := common.GetShellConfiguration(*e.Shell())
 	if err != nil {
 		return err
@@ -111,7 +111,7 @@ func (e *AbstractExecutor) Prepare(globalConfig *common.Config, config *common.R
 		return err
 	}
 
-	err = e.generateShellScript()
+	err = e.generateShellConfiguration()
 	if err != nil {
 		return err
 	}
