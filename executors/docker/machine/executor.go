@@ -3,6 +3,8 @@ package machine
 import (
 	"errors"
 
+	"github.com/Sirupsen/logrus"
+	
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 
 	// Force to load docker executor
@@ -12,8 +14,24 @@ import (
 type machineExecutor struct {
 	provider *machineProvider
 	executor common.Executor
+	build    *common.Build
 	data     common.ExecutorData
 	config   common.RunnerConfig
+}
+
+func (e *machineExecutor) log() (log *logrus.Entry) {
+	log = e.build.Log()
+
+	if details, _ := e.data.(*machineDetails); details != nil {
+		log = log.WithFields(logrus.Fields{
+			"docker":    e.config.Docker.DockerCredentials.Host,
+			"name":      details.Name,
+			"usedcount": details.UsedCount,
+			"created":   details.Created,
+		})
+	}
+
+	return
 }
 
 func (e *machineExecutor) Shell() *common.ShellScriptInfo {
@@ -24,6 +42,8 @@ func (e *machineExecutor) Shell() *common.ShellScriptInfo {
 }
 
 func (e *machineExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) (err error) {
+	e.build = build
+
 	// Use the machine
 	e.config, e.data, err = e.provider.Use(config, build.ExecutorData)
 	if err != nil {
@@ -32,11 +52,11 @@ func (e *machineExecutor) Prepare(globalConfig *common.Config, config *common.Ru
 
 	// TODO: Currently the docker-machine doesn't support multiple builds
 	build.ProjectRunnerID = 0
-	if details, _ := build.ExecutorData.(*machineDetails); details != nil {
-		build.Hostname = details.Name
-	} else if details, _ := e.data.(*machineDetails); details != nil {
+	if details, _ := e.data.(*machineDetails); details != nil {
 		build.Hostname = details.Name
 	}
+
+	e.log().Infoln("Starting docker-machine build...")
 
 	// Create original executor
 	e.executor = e.provider.provider.Create()
@@ -57,6 +77,7 @@ func (e *machineExecutor) Finish(err error) {
 	if e.executor != nil {
 		e.executor.Finish(err)
 	}
+	e.log().Infoln("Finished docker-machine build:", err)
 }
 
 func (e *machineExecutor) Cleanup() {

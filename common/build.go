@@ -42,7 +42,7 @@ type Build struct {
 	ProjectRunnerID int `json:"project_runner_id"`
 }
 
-func (b *Build) log() *logrus.Entry {
+func (b *Build) Log() *logrus.Entry {
 	return b.Runner.Log().WithField("build", b.ID)
 }
 
@@ -199,7 +199,7 @@ func (b *Build) run(executor Executor) (err error) {
 	}()
 
 	// Wait for signals: cancel, timeout, abort or finish
-	b.log().Debugln("Waiting for signals...")
+	b.Log().Debugln("Waiting for signals...")
 	select {
 	case <-buildCanceled:
 		err = errors.New("canceled")
@@ -214,7 +214,7 @@ func (b *Build) run(executor Executor) (err error) {
 		return err
 	}
 
-	b.log().Debugln("Waiting for build to finish...", err)
+	b.Log().Debugln("Waiting for build to finish...", err)
 
 	// Wait till we receive that build did finish
 	for {
