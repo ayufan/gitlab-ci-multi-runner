@@ -224,3 +224,12 @@ func (c *Config) SaveConfig(configFile string) error {
 	c.Loaded = true
 	return nil
 }
+
+func (c *Config) GetCheckInterval() time.Duration {
+	if c.CheckInterval > 0 {
+		return time.Duration(c.CheckInterval) * time.Second
+	} else {
+		return CheckInterval
+	}
+}
+
