@@ -45,20 +45,41 @@ func (b *AbstractShell) writeTLSCAInfo(w ShellWriter, build *common.Build, key s
 }
 
 func (b *AbstractShell) writeCloneCmd(w ShellWriter, build *common.Build, projectDir string) {
-	w.Notice("Cloning repository...")
 	w.RmDir(projectDir)
-	w.Command("git", "clone", build.RepoURL, projectDir)
+	if depth := build.GetGitDepth(); depth != "" {
+		w.Notice("Cloning repository for %s with git depth set to %s...", build.RefName, depth)
+		w.Command("git", "clone", build.RepoURL, projectDir, "--depth", depth, "--branch", build.RefName)
+	} else {
+		w.Notice("Cloning repository...")
+		w.Command("git", "clone", build.RepoURL, projectDir)
+	}
 	w.Cd(projectDir)
 }
 
 func (b *AbstractShell) writeFetchCmd(w ShellWriter, build *common.Build, projectDir string, gitDir string) {
+	depth := build.GetGitDepth()
+
 	w.IfDirectory(gitDir)
-	w.Notice("Fetching changes...")
+	if depth != "" {
+		w.Notice("Fetching changes for %s with git depth set to %s...", build.RefName, depth)
+	} else {
+		w.Notice("Fetching changes...")
+	}
 	w.Cd(projectDir)
 	w.Command("git", "clean", "-ffdx")
 	w.Command("git", "reset", "--hard")
 	w.Command("git", "remote", "set-url", "origin", build.RepoURL)
-	w.Command("git", "fetch", "origin", "--prune", "+refs/heads/*:refs/remotes/origin/*", "+refs/tags/*:refs/tags/*")
+	if depth != "" {
+		var refspec string
+		if build.Tag {
+			refspec = "+refs/tags/" + build.RefName + ":refs/tags/" + build.RefName
+		} else {
+			refspec = "+refs/heads/" + build.RefName + ":refs/remotes/origin/" + build.RefName
+		}
+		w.Command("git", "fetch", "--depth", depth, "origin", "--prune", refspec)
+	} else {
+		w.Command("git", "fetch", "origin", "--prune", "+refs/heads/*:refs/remotes/origin/*", "+refs/tags/*:refs/tags/*")
+	}
 	w.Else()
 	b.writeCloneCmd(w, build, projectDir)
 	w.EndIf()
@@ -184,10 +205,15 @@ func (b *AbstractShell) writePrepareScript(w ShellWriter, info common.ShellScrip
 	b.writeTLSCAInfo(w, info.Build, "CI_SERVER_TLS_CA_FILE")
 
 	w.Command("git", "config", "--global", "fetch.recurseSubmodules", "false")
-	if build.AllowGitFetch {
+	switch info.Build.GetGitStrategy() {
+	case common.GitFetch:
 		b.writeFetchCmd(w, build, projectDir, gitDir)
-	} else {
+
+	case common.GitClone:
 		b.writeCloneCmd(w, build, projectDir)
+
+	default:
+		return errors.New("unknown GIT_STRATEGY")
 	}
 
 	b.writeCheckoutCmd(w, build)

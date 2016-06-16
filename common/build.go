@@ -16,6 +16,13 @@ import (
 
 type BuildState string
 
+type GitStrategy int
+
+const (
+	GitClone GitStrategy = iota
+	GitFetch
+)
+
 const (
 	Pending BuildState = "pending"
 	Running            = "running"
@@ -279,4 +286,25 @@ func (b *Build) GetAllVariables() BuildVariables {
 	variables = append(variables, b.GetDefaultVariables()...)
 	variables = append(variables, b.Variables...)
 	return variables.Expand()
+}
+
+func (b *Build) GetGitDepth() string {
+	return b.GetAllVariables().Get("GIT_DEPTH")
+}
+
+func (b *Build) GetGitStrategy() GitStrategy {
+	switch b.GetAllVariables().Get("GIT_STRATEGY") {
+	case "clone":
+		return GitClone
+
+	case "fetch":
+		return GitFetch
+
+	default:
+		if b.AllowGitFetch {
+			return GitFetch
+		}
+
+		return GitClone
+	}
 }
