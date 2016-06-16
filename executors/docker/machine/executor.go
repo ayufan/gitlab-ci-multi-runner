@@ -52,7 +52,9 @@ func (e *machineExecutor) Prepare(globalConfig *common.Config, config *common.Ru
 
 	// TODO: Currently the docker-machine doesn't support multiple builds
 	build.ProjectRunnerID = 0
-	if details, _ := e.data.(*machineDetails); details != nil {
+	if details, _ := build.ExecutorData.(*machineDetails); details != nil {
+		build.Hostname = details.Name
+	} else if details, _ := e.data.(*machineDetails); details != nil {
 		build.Hostname = details.Name
 	}
 
