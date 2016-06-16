@@ -280,3 +280,7 @@ func (b *Build) GetAllVariables() BuildVariables {
 	variables = append(variables, b.Variables...)
 	return variables.Expand()
 }
+
+func (b *Build) GetGitDepth() string {
+	return b.GetAllVariables().Get("GIT_DEPTH")
+}
