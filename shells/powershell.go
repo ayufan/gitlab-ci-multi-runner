@@ -182,55 +182,33 @@ func (b *PowerShell) GetName() string {
 	return "powershell"
 }
 
-func newPsWriter(info common.ShellScriptInfo) (w *PsWriter) {
-	w = &PsWriter{
+func (b *PowerShell) GetConfiguration(info common.ShellScriptInfo) (script *common.ShellConfiguration, err error) {
+	script = &common.ShellConfiguration{
+		Command:   "powershell",
+		Arguments: []string{"-noprofile", "-noninteractive", "-executionpolicy", "Bypass", "-command"},
+		PassFile:  true,
+		Extension: "ps1",
+	}
+	return
+}
+
+func (b *PowerShell) GenerateScript(scriptType common.ShellScriptType, info common.ShellScriptInfo) (script string, err error) {
+	w := &PsWriter{
 		TemporaryPath: info.Build.FullProjectDir() + ".tmp",
 	}
 	w.Line("$ErrorActionPreference = \"Stop\"")
 	w.Line("")
-	return
-}
 
-func (b *PowerShell) GenerateScript(info common.ShellScriptInfo) (script *common.ShellScript, err error) {
-	preScript := newPsWriter(info)
-	if len(info.Build.Hostname) != 0 {
-		preScript.Line("echo \"Running on $env:computername via " + psQuoteVariable(info.Build.Hostname) + "...\"")
-	} else {
-		preScript.Line("echo \"Running on $env:computername...\"")
-	}
-	err = b.GeneratePreBuild(preScript, info)
-	if err != nil {
-		return
+	if scriptType == common.ShellPrepareScript {
+		if len(info.Build.Hostname) != 0 {
+			w.Line("echo \"Running on $env:computername via " + psQuoteVariable(info.Build.Hostname) + "...\"")
+		} else {
+			w.Line("echo \"Running on $env:computername...\"")
+		}
 	}
 
-	buildScript := newPsWriter(info)
-	err = b.GenerateBuild(buildScript, info)
-	if err != nil {
-		return
-	}
-
-	afterScript := newPsWriter(info)
-	err = b.GenerateAfterBuild(afterScript, info)
-	if err != nil {
-		return
-	}
-
-	postScript := newPsWriter(info)
-	err = b.GeneratePostBuild(postScript, info)
-	if err != nil {
-		return
-	}
-
-	script = &common.ShellScript{
-		PreScript:   preScript.String(),
-		BuildScript: buildScript.String(),
-		AfterScript: afterScript.String(),
-		PostScript:  postScript.String(),
-		Command:     "powershell",
-		Arguments:   []string{"-noprofile", "-noninteractive", "-executionpolicy", "Bypass", "-command"},
-		PassFile:    true,
-		Extension:   "ps1",
-	}
+	err = b.writeScript(w, scriptType, info)
+	script = w.String()
 	return
 }
 

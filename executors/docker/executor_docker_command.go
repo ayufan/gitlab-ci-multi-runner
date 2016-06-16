@@ -23,7 +23,7 @@ func (s *commandExecutor) Prepare(globalConfig *common.Config, config *common.Ru
 
 	s.Debugln("Starting Docker command...")
 
-	if len(s.BuildScript.DockerCommand) == 0 {
+	if len(s.BuildShell.DockerCommand) == 0 {
 		return errors.New("Script is not compatible with Docker")
 	}
 
@@ -37,19 +37,19 @@ func (s *commandExecutor) Prepare(globalConfig *common.Config, config *common.Ru
 		return err
 	}
 
-	buildImage, err := s.getPrebuiltImage("build")
+	buildImage, err := s.getPrebuiltImage()
 	if err != nil {
 		return err
 	}
 
 	// Start pre-build container which will git clone changes
-	s.predefinedContainer, err = s.createContainer("predefined", buildImage.ID, nil, *options)
+	s.predefinedContainer, err = s.createContainer("predefined", buildImage.ID, []string{"gitlab-runner-build"}, *options)
 	if err != nil {
 		return err
 	}
 
 	// Start build container which will run actual build
-	s.buildContainer, err = s.createContainer("build", imageName, s.BuildScript.DockerCommand, *options)
+	s.buildContainer, err = s.createContainer("build", imageName, s.BuildShell.DockerCommand, *options)
 	if err != nil {
 		return err
 	}

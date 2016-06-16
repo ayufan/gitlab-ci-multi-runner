@@ -22,7 +22,8 @@ type ArtifactsUploaderCommand struct {
 	retryHelper
 	network common.Network
 
-	Name string `long:"name" description:"The name of the archive"`
+	Name     string `long:"name" description:"The name of the archive"`
+	ExpireIn string `long:"expire-in" description:"When to expire artifacts"`
 }
 
 func (c *ArtifactsUploaderCommand) createAndUpload() (bool, error) {
@@ -38,7 +39,7 @@ func (c *ArtifactsUploaderCommand) createAndUpload() (bool, error) {
 	artifactsName := path.Base(c.Name) + ".zip"
 
 	// Upload the data
-	switch c.network.UploadRawArtifacts(c.BuildCredentials, pr, artifactsName) {
+	switch c.network.UploadRawArtifacts(c.BuildCredentials, pr, artifactsName, c.ExpireIn) {
 	case common.UploadSucceeded:
 		return false, nil
 	case common.UploadForbidden:

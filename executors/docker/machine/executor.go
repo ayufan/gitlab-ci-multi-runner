@@ -16,6 +16,13 @@ type machineExecutor struct {
 	config   common.RunnerConfig
 }
 
+func (e *machineExecutor) Shell() *common.ShellScriptInfo {
+	if e.executor == nil {
+		return nil
+	}
+	return e.executor.Shell()
+}
+
 func (e *machineExecutor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) (err error) {
 	// Use the machine
 	e.config, e.data, err = e.provider.Use(config, build.ExecutorData)
@@ -37,13 +44,6 @@ func (e *machineExecutor) Prepare(globalConfig *common.Config, config *common.Ru
 		return errors.New("failed to create an executor")
 	}
 	return e.executor.Prepare(globalConfig, &e.config, build)
-}
-
-func (e *machineExecutor) ShellScript() *common.ShellScript {
-	if e.executor == nil {
-		return nil
-	}
-	return e.executor.ShellScript()
 }
 
 func (e *machineExecutor) Run(cmd common.ExecutorCommand) error {

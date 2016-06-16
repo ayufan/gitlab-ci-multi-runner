@@ -22,6 +22,14 @@ func VersionLine() string {
 	return fmt.Sprintf("%s %s (%s)", NAME, VERSION, REVISION)
 }
 
+func VersionShortLine() string {
+	return fmt.Sprintf("%s (%s)", VERSION, REVISION)
+}
+
+func VersionUserAgent() string {
+	return fmt.Sprintf("%s %s (%s; %s; %s/%s)", NAME, VERSION, BRANCH, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+}
+
 func ExtendedVersion() string {
 	built := time.Now()
 	if BUILT != "now" {

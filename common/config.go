@@ -44,6 +44,9 @@ type DockerConfig struct {
 	docker_helpers.DockerCredentials
 	Hostname               string           `toml:"hostname,omitempty" json:"hostname" long:"hostname" env:"DOCKER_HOSTNAME" description:"Custom container hostname"`
 	Image                  string           `toml:"image" json:"image" long:"image" env:"DOCKER_IMAGE" description:"Docker image to be used"`
+	CPUSetCPUs             string           `toml:"cpuset_cpus,omitempty" json:"cpuset_cpus" long:"cpuset-cpus" env:"DOCKER_CPUSET_CPUS" description:"String value containing the cgroups CpusetCpus to use"`
+	DNS                    []string         `toml:"dns,omitempty" json:"dns" long:"dns" env:"DOCKER_DNS" description:"A list of DNS servers for the container to use"`
+	DNSSearch              []string         `toml:"dns_search,omitempty" json:"dns_search" long:"dns-search" env:"DOCKER_DNS_SEARCH" description:"A list of DNS search domains"`
 	Privileged             bool             `toml:"privileged,omitzero" json:"privileged" long:"privileged" env:"DOCKER_PRIVILEGED" description:"Give extended privileges to container"`
 	CapAdd                 []string         `toml:"cap_add" json:"cap_add" long:"cap-add" env:"DOCKER_CAP_ADD" description:"Add Linux capabilities"`
 	CapDrop                []string         `toml:"cap_drop" json:"cap_drop" long:"cap-drop" env:"DOCKER_CAP_DROP" description:"Drop Linux capabilities"`
@@ -124,11 +127,12 @@ type RunnerConfig struct {
 }
 
 type Config struct {
-	Concurrent int             `toml:"concurrent" json:"concurrent"`
-	User       string          `toml:"user,omitempty" json:"user"`
-	Runners    []*RunnerConfig `toml:"runners" json:"runners"`
-	ModTime    time.Time       `toml:"-"`
-	Loaded     bool            `toml:"-"`
+	Concurrent    int             `toml:"concurrent" json:"concurrent"`
+	CheckInterval int             `toml:"check_interval" json:"check_interval" description:"Define active checking interval of jobs"`
+	User          string          `toml:"user,omitempty" json:"user"`
+	Runners       []*RunnerConfig `toml:"runners" json:"runners"`
+	ModTime       time.Time       `toml:"-"`
+	Loaded        bool            `toml:"-"`
 }
 
 func (c *RunnerCredentials) ShortDescription() string {
@@ -219,4 +223,11 @@ func (c *Config) SaveConfig(configFile string) error {
 
 	c.Loaded = true
 	return nil
+}
+
+func (c *Config) GetCheckInterval() time.Duration {
+	if c.CheckInterval > 0 {
+		return time.Duration(c.CheckInterval) * time.Second
+	}
+	return CheckInterval
 }

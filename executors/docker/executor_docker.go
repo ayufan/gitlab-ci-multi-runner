@@ -36,8 +36,10 @@ type executor struct {
 	services []*docker.Container
 	caches   []*docker.Container
 	options  dockerOptions
+	info     *docker.Env
 }
 
+const prebuiltImageName = "gitlab-runner-prebuilt"
 const PrebuiltArchive = "prebuilt.tar.gz"
 
 func (s *executor) getServiceVariables() []string {
@@ -46,8 +48,8 @@ func (s *executor) getServiceVariables() []string {
 
 func (s *executor) getAuthConfig(imageName string) (docker.AuthConfiguration, error) {
 	homeDir := homedir.Get()
-	if s.Shell.User != "" {
-		u, err := user.Lookup(s.Shell.User)
+	if s.Shell().User != "" {
+		u, err := user.Lookup(s.Shell().User)
 		if err != nil {
 			return docker.AuthConfiguration{}, err
 		}
@@ -140,17 +142,26 @@ func (s *executor) getDockerImage(imageName string) (*docker.Image, error) {
 	return newImage, nil
 }
 
-func (s *executor) getPrebuiltImage(imageType string) (image *docker.Image, err error) {
-	imageName := "gitlab-runner-" + imageType + ":" + common.REVISION
+func (s *executor) getArchitecture() string {
+	architecture := s.info.Get("Architecture")
+	if architecture == "armv7l" || architecture == "aarch64" {
+		architecture = "arm"
+	}
+	return architecture
+}
+
+func (s *executor) getPrebuiltImage() (image *docker.Image, err error) {
+	architecture := s.getArchitecture()
+	imageName := prebuiltImageName + "-" + architecture + ":" + common.REVISION
 	s.Debugln("Looking for prebuilt image", imageName, "...")
 	image, err = s.client.InspectImage(imageName)
 	if err == nil {
 		return
 	}
 
-	data, err := Asset(PrebuiltArchive)
+	data, err := Asset("prebuilt-" + architecture + ".tar.gz")
 	if err != nil {
-		return
+		return nil, fmt.Errorf("Unsupported architecture: %s: %q", architecture, err.Error())
 	}
 
 	gz, err := gzip.NewReader(bytes.NewReader(data))
@@ -160,7 +171,10 @@ func (s *executor) getPrebuiltImage(imageType string) (image *docker.Image, err 
 	defer gz.Close()
 
 	s.Debugln("Loading prebuilt image...")
-	err = s.client.LoadImage(docker.LoadImageOptions{
+	err = s.client.ImportImage(docker.ImportImageOptions{
+		Repository:  prebuiltImageName + "-" + architecture,
+		Tag:         common.REVISION,
+		Source:      "-",
 		InputStream: gz,
 	})
 	if err != nil {
@@ -205,7 +219,7 @@ func (s *executor) getLabels(containerType string, otherLabels ...string) map[st
 
 func (s *executor) createCacheVolume(containerName, containerPath string) (*docker.Container, error) {
 	// get busybox image
-	cacheImage, err := s.getPrebuiltImage("cache")
+	cacheImage, err := s.getPrebuiltImage()
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +229,7 @@ func (s *executor) createCacheVolume(containerName, containerPath string) (*dock
 		Config: &docker.Config{
 			Image: cacheImage.ID,
 			Cmd: []string{
-				containerPath,
+				"gitlab-runner-cache", containerPath,
 			},
 			Volumes: map[string]struct{}{
 				containerPath: {},
@@ -578,9 +592,12 @@ func (s *executor) prepareBuildContainer() (options *docker.CreateContainerOptio
 			AttachStderr: true,
 			OpenStdin:    true,
 			StdinOnce:    true,
-			Env:          append(s.Build.GetAllVariables().StringList(), s.BuildScript.Environment...),
+			Env:          append(s.Build.GetAllVariables().StringList(), s.BuildShell.Environment...),
 		},
 		HostConfig: &docker.HostConfig{
+			CPUSetCPUs:    s.Config.Docker.CPUSetCPUs,
+			DNS:           s.Config.Docker.DNS,
+			DNSSearch:     s.Config.Docker.DNSSearch,
 			Privileged:    s.Config.Docker.Privileged,
 			CapAdd:        s.Config.Docker.CapAdd,
 			CapDrop:       s.Config.Docker.CapDrop,
@@ -771,7 +788,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 		return err
 	}
 
-	if s.BuildScript.PassFile {
+	if s.BuildShell.PassFile {
 		return errors.New("Docker doesn't support shells that require script file")
 	}
 
@@ -796,6 +813,11 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 		return err
 	}
 	s.client = client
+
+	s.info, err = client.Info()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -832,7 +854,7 @@ func (s *executor) Cleanup() {
 }
 
 func (s *executor) runServiceHealthCheckContainer(container *docker.Container, timeout time.Duration) error {
-	waitImage, err := s.getPrebuiltImage("service")
+	waitImage, err := s.getPrebuiltImage()
 	if err != nil {
 		return err
 	}
@@ -840,6 +862,7 @@ func (s *executor) runServiceHealthCheckContainer(container *docker.Container, t
 	waitContainerOpts := docker.CreateContainerOptions{
 		Name: container.Name + "-wait-for-service",
 		Config: &docker.Config{
+			Cmd:    []string{"gitlab-runner-service"},
 			Image:  waitImage.ID,
 			Labels: s.getLabels("wait", "wait="+container.ID),
 		},

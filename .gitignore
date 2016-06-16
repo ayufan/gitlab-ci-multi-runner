@@ -4,3 +4,4 @@ config.toml
 out
 executors/docker/bindata.go
 dockerfiles/build/gitlab-runner-helper
+.idea/

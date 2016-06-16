@@ -11,7 +11,7 @@ type buildsHelper struct {
 	lock   sync.Mutex
 }
 
-func (b *buildsHelper) acquire(runner *runnerAcquire) bool {
+func (b *buildsHelper) acquire(runner *common.RunnerConfig) bool {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
@@ -30,7 +30,7 @@ func (b *buildsHelper) acquire(runner *runnerAcquire) bool {
 	return true
 }
 
-func (b *buildsHelper) release(runner *runnerAcquire) bool {
+func (b *buildsHelper) release(runner *common.RunnerConfig) bool {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 

@@ -101,43 +101,80 @@ func (b *Build) StartBuild(rootDir, cacheDir string, sharedDir bool) {
 	b.CacheDir = path.Join(cacheDir, b.ProjectUniqueDir(false))
 }
 
-func (b *Build) executeScript(buildScript *ShellScript, executor Executor, abort chan interface{}) error {
+func (b *Build) executeShellScript(scriptType ShellScriptType, executor Executor, abort chan interface{}) error {
+	shell := executor.Shell()
+	if shell == nil {
+		return errors.New("No shell defined")
+	}
+
+	script, err := GenerateShellScript(scriptType, *shell)
+	if err != nil {
+		return err
+	}
+
+	// Nothing to execute
+	if script == "" {
+		return nil
+	}
+
+	cmd := ExecutorCommand{
+		Script: script,
+		Abort:  abort,
+	}
+
+	switch scriptType {
+	case ShellBuildScript, ShellAfterScript: // use custom build environment
+		cmd.Predefined = false
+	default: // all other stages use a predefined build environment
+		cmd.Predefined = true
+	}
+
+	return executor.Run(cmd)
+}
+
+func (b *Build) executeUploadArtifacts(state error, executor Executor, abort chan interface{}) (err error) {
+	when, _ := b.Options.GetString("artifacts", "when")
+
+	if state == nil {
+		// Previous stages were successful
+		if when == "" || when == "on_success" || when == "always" {
+			err = b.executeShellScript(ShellUploadArtifacts, executor, abort)
+		}
+	} else {
+		// Previous stage did fail
+		if when == "on_failure" || when == "always" {
+			err = b.executeShellScript(ShellUploadArtifacts, executor, abort)
+		}
+	}
+
+	// Use previous error if set
+	if state != nil {
+		err = state
+	}
+	return
+}
+
+func (b *Build) executeScript(executor Executor, abort chan interface{}) error {
 	// Execute pre script (git clone, cache restore, artifacts download)
-	err := executor.Run(ExecutorCommand{
-		Script:     buildScript.PreScript,
-		Predefined: true,
-		Abort:      abort,
-	})
+	err := b.executeShellScript(ShellPrepareScript, executor, abort)
 
 	if err == nil {
-		// Execute build script (user commands)
-		err = executor.Run(ExecutorCommand{
-			Script: buildScript.BuildScript,
-			Abort:  abort,
-		})
+		// Execute user build script (before_script + script)
+		err = b.executeShellScript(ShellBuildScript, executor, abort)
 
-		// Execute after script (user commands)
-		if buildScript.AfterScript != "" {
-			timeoutCh := make(chan interface{})
-			go func() {
-				timeoutCh <- <-time.After(time.Minute * 5)
-			}()
-			executor.Run(ExecutorCommand{
-				Script: buildScript.AfterScript,
-				Abort:  timeoutCh,
-			})
-		}
+		// Execute after script (after_script)
+		timeoutCh := make(chan interface{})
+		go func() {
+			timeoutCh <- <-time.After(time.Minute * 5)
+		}()
+		b.executeShellScript(ShellAfterScript, executor, timeoutCh)
 	}
 
 	// Execute post script (cache store, artifacts upload)
 	if err == nil {
-		err = executor.Run(ExecutorCommand{
-			Script:     buildScript.PostScript,
-			Predefined: true,
-			Abort:      abort,
-		})
+		err = b.executeShellScript(ShellArchiveCache, executor, abort)
 	}
-
+	err = b.executeUploadArtifacts(err, executor, abort)
 	return err
 }
 
@@ -158,7 +195,7 @@ func (b *Build) run(executor Executor) (err error) {
 
 	// Run build script
 	go func() {
-		buildFinish <- b.executeScript(executor.ShellScript(), executor, buildAbort)
+		buildFinish <- b.executeScript(executor, buildAbort)
 	}()
 
 	// Wait for signals: cancel, timeout, abort or finish
