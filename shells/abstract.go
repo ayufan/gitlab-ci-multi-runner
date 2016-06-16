@@ -205,10 +205,15 @@ func (b *AbstractShell) writePrepareScript(w ShellWriter, info common.ShellScrip
 	b.writeTLSCAInfo(w, info.Build, "CI_SERVER_TLS_CA_FILE")
 
 	w.Command("git", "config", "--global", "fetch.recurseSubmodules", "false")
-	if build.AllowGitFetch {
+	switch info.Build.GetGitStrategy() {
+	case common.GitFetch:
 		b.writeFetchCmd(w, build, projectDir, gitDir)
-	} else {
+
+	case common.GitClone:
 		b.writeCloneCmd(w, build, projectDir)
+
+	default:
+		return errors.New("unknown GIT_STRATEGY")
 	}
 
 	b.writeCheckoutCmd(w, build)
