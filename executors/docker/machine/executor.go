@@ -22,7 +22,11 @@ type machineExecutor struct {
 func (e *machineExecutor) log() (log *logrus.Entry) {
 	log = e.build.Log()
 
-	if details, _ := e.data.(*machineDetails); details != nil {
+	details, _ := e.build.ExecutorData.(*machineDetails)
+	if details == nil {
+		details, _ = e.data.(*machineDetails)
+	}
+	if details != nil {
 		log = log.WithFields(logrus.Fields{
 			"docker":    e.config.Docker.DockerCredentials.Host,
 			"name":      details.Name,
