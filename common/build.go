@@ -171,10 +171,11 @@ func (b *Build) executeScript(executor Executor, abort chan interface{}) error {
 
 		// Execute after script (after_script)
 		timeoutCh := make(chan interface{}, 1)
-		go func() {
-			timeoutCh <- <-time.After(time.Minute * 5)
-		}()
+		timeout := time.AfterFunc(time.Minute*5, func() {
+			close(timeoutCh)
+		})
 		b.executeShellScript(ShellAfterScript, executor, timeoutCh)
+		timeout.Stop()
 	}
 
 	// Execute post script (cache store, artifacts upload)
