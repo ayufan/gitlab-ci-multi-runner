@@ -100,7 +100,7 @@ else
 	$(warning WARNING: to use images compiled from your code install Docker Engine)
 	$(warning WARNING: and remove out/docker/prebuilt-x86_64.tar.gz)
 	$(warning =============================================)
-	curl -o out/docker/prebuilt_x86_64.tar.gz \
+	curl -o out/docker/prebuilt-x86_64.tar.gz \
 		https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/docker/prebuilt_x86_64.tar.gz
 endif
 
@@ -128,7 +128,7 @@ else
 	$(warning WARNING: to use images compiled from your code install Docker Engine)
 	$(warning WARNING: and remove out/docker/prebuilt-arm.tar.gz)
 	$(warning =============================================)
-	curl -o out/docker/prebuilt_arm.tar.gz \
+	curl -o out/docker/prebuilt-arm.tar.gz \
 		https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/docker/prebuilt_arm.tar.gz
 endif
 
