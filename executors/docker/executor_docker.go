@@ -671,6 +671,24 @@ func (s *executor) createContainer(containerType, imageName string, cmd []string
 	return
 }
 
+func (s *executor) killContainer(container *docker.Container, waitCh chan error) (err error) {
+	for {
+		s.Debugln("Killing container", container.ID, "...")
+		s.client.KillContainer(docker.KillContainerOptions{
+			ID: container.ID,
+		})
+
+		// Wait for signal that container were killed
+		// or retry after some time
+		select {
+		case err = <-waitCh:
+			return
+
+		case <-time.After(time.Second):
+		}
+	}
+}
+
 func (s *executor) watchContainer(container *docker.Container, input io.Reader, abort chan interface{}) (err error) {
 	s.Debugln("Starting container", container.ID, "...")
 	err = s.client.StartContainer(container.ID, nil)
@@ -691,7 +709,7 @@ func (s *executor) watchContainer(container *docker.Container, input io.Reader, 
 		RawTerminal:  false,
 	}
 
-	waitCh := make(chan error)
+	waitCh := make(chan error, 1)
 	go func() {
 		s.Debugln("Attaching to container", container.ID, "...")
 		err = s.client.AttachToContainer(options)
@@ -712,10 +730,7 @@ func (s *executor) watchContainer(container *docker.Container, input io.Reader, 
 
 	select {
 	case <-abort:
-		s.Debugln("Killing container", container.ID, "...")
-		s.client.KillContainer(docker.KillContainerOptions{
-			ID: container.ID,
-		})
+		s.killContainer(container, waitCh)
 		err = errors.New("Aborted")
 
 	case err = <-waitCh:

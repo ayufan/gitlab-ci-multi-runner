@@ -170,7 +170,7 @@ func (b *Build) executeScript(executor Executor, abort chan interface{}) error {
 		err = b.executeShellScript(ShellBuildScript, executor, abort)
 
 		// Execute after script (after_script)
-		timeoutCh := make(chan interface{})
+		timeoutCh := make(chan interface{}, 1)
 		go func() {
 			timeoutCh <- <-time.After(time.Minute * 5)
 		}()
