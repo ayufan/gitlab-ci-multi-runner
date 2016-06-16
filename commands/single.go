@@ -63,7 +63,7 @@ func (r *RunSingleCommand) processBuild(data common.ExecutorData, abortSignal ch
 
 	if buildData == nil {
 		select {
-		case <-time.After(common.CheckInterval * time.Second):
+		case <-time.After(common.CheckInterval):
 		case <-abortSignal:
 		}
 		return

@@ -6,13 +6,9 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 )
 
-type ShellScript struct {
+type ShellConfiguration struct {
 	Environment   []string
 	DockerCommand []string
-	PreScript     string
-	BuildScript   string
-	AfterScript   string
-	PostScript    string
 	Command       string
 	Arguments     []string
 	PassFile      bool
@@ -26,7 +22,17 @@ const (
 	LoginShell
 )
 
-func (s *ShellScript) GetCommandWithArguments() []string {
+type ShellScriptType string
+
+const (
+	ShellPrepareScript   ShellScriptType = "prepare_script"
+	ShellBuildScript                     = "build_script"
+	ShellAfterScript                     = "after_script"
+	ShellArchiveCache                    = "archive_cache"
+	ShellUploadArtifacts                 = "upload_artifacts"
+)
+
+func (s *ShellConfiguration) GetCommandWithArguments() []string {
 	parts := []string{s.Command}
 	for _, arg := range s.Arguments {
 		parts = append(parts, arg)
@@ -34,7 +40,7 @@ func (s *ShellScript) GetCommandWithArguments() []string {
 	return parts
 }
 
-func (s *ShellScript) String() string {
+func (s *ShellConfiguration) String() string {
 	return helpers.ToYAML(s)
 }
 
@@ -49,9 +55,11 @@ type ShellScriptInfo struct {
 type Shell interface {
 	GetName() string
 	GetSupportedOptions() []string
-	GenerateScript(info ShellScriptInfo) (*ShellScript, error)
 	GetFeatures(features *FeaturesInfo)
 	IsDefault() bool
+
+	GetConfiguration(info ShellScriptInfo) (*ShellConfiguration, error)
+	GenerateScript(scriptType ShellScriptType, info ShellScriptInfo) (string, error)
 }
 
 var shells map[string]Shell
@@ -86,13 +94,22 @@ func GetShells() []string {
 	return names
 }
 
-func GenerateShellScript(info ShellScriptInfo) (*ShellScript, error) {
+func GetShellConfiguration(info ShellScriptInfo) (*ShellConfiguration, error) {
 	shell := GetShell(info.Shell)
 	if shell == nil {
 		return nil, fmt.Errorf("shell %s not found", info.Shell)
 	}
 
-	return shell.GenerateScript(info)
+	return shell.GetConfiguration(info)
+}
+
+func GenerateShellScript(scriptType ShellScriptType, info ShellScriptInfo) (string, error) {
+	shell := GetShell(info.Shell)
+	if shell == nil {
+		return "", fmt.Errorf("shell %s not found", info.Shell)
+	}
+
+	return shell.GenerateScript(scriptType, info)
 }
 
 func GetDefaultShell() string {

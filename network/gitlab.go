@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -285,7 +286,7 @@ func (n *GitLabClient) createArtifactsForm(mpw *multipart.Writer, reader io.Read
 	return nil
 }
 
-func (n *GitLabClient) UploadRawArtifacts(config common.BuildCredentials, reader io.Reader, baseName string) common.UploadState {
+func (n *GitLabClient) UploadRawArtifacts(config common.BuildCredentials, reader io.Reader, baseName string, expireIn string) common.UploadState {
 	pr, pw := io.Pipe()
 	defer pr.Close()
 
@@ -307,9 +308,14 @@ func (n *GitLabClient) UploadRawArtifacts(config common.BuildCredentials, reader
 		TLSCAFile: config.TLSCAFile,
 	}
 
+	query := url.Values{}
+	if expireIn != "" {
+		query.Set("expire_in", expireIn)
+	}
+
 	headers := make(http.Header)
 	headers.Set("BUILD-TOKEN", config.Token)
-	res, err := n.doRaw(mappedConfig, "POST", fmt.Sprintf("builds/%d/artifacts", config.ID), pr, mpw.FormDataContentType(), headers)
+	res, err := n.doRaw(mappedConfig, "POST", fmt.Sprintf("builds/%d/artifacts?%s", config.ID, query.Encode()), pr, mpw.FormDataContentType(), headers)
 
 	log := logrus.WithFields(logrus.Fields{
 		"id":             config.ID,
@@ -364,7 +370,7 @@ func (n *GitLabClient) UploadArtifacts(config common.BuildCredentials, artifacts
 	}
 
 	baseName := filepath.Base(artifactsFile)
-	return n.UploadRawArtifacts(config, file, baseName)
+	return n.UploadRawArtifacts(config, file, baseName, "")
 }
 
 func (n *GitLabClient) DownloadArtifacts(config common.BuildCredentials, artifactsFile string) common.DownloadState {

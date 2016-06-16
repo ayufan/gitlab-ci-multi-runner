@@ -145,7 +145,7 @@ type Network interface {
 	UpdateBuild(config RunnerConfig, id int, state BuildState, trace *string) UpdateState
 	PatchTrace(config RunnerConfig, buildCredentials *BuildCredentials, tracePart BuildTracePatch) UpdateState
 	DownloadArtifacts(config BuildCredentials, artifactsFile string) DownloadState
-	UploadRawArtifacts(config BuildCredentials, reader io.Reader, baseName string) UploadState
+	UploadRawArtifacts(config BuildCredentials, reader io.Reader, baseName string, expireIn string) UploadState
 	UploadArtifacts(config BuildCredentials, artifactsFile string) UploadState
 	ProcessBuild(config RunnerConfig, buildCredentials *BuildCredentials) BuildTrace
 }

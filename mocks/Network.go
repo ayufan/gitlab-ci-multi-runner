@@ -64,8 +64,8 @@ func (m *Network) DownloadArtifacts(config common.BuildCredentials, artifactsFil
 
 	return r0
 }
-func (m *Network) UploadRawArtifacts(config common.BuildCredentials, reader io.Reader, baseName string) common.UploadState {
-	ret := m.Called(config, reader, baseName)
+func (m *Network) UploadRawArtifacts(config common.BuildCredentials, reader io.Reader, baseName string, expireIn string) common.UploadState {
+	ret := m.Called(config, reader, baseName, expireIn)
 
 	r0 := ret.Get(0).(common.UploadState)
 

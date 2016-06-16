@@ -56,6 +56,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = path.Base(os.Args[0])
 	app.Usage = "a GitLab Runner"
+	app.Version = common.VersionShortLine()
 	cli.VersionPrinter = common.VersionPrinter
 	app.Authors = []cli.Author{
 		cli.Author{
