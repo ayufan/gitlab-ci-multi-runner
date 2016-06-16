@@ -10,8 +10,10 @@ type DownloadState int
 
 const (
 	UpdateSucceeded UpdateState = iota
+	UpdateNotFound
 	UpdateAbort
 	UpdateFailed
+	UpdateRangeMissmatch
 )
 
 const (
@@ -110,7 +112,7 @@ type UpdateBuildRequest struct {
 	Info  VersionInfo `json:"info,omitempty"`
 	Token string      `json:"token,omitempty"`
 	State BuildState  `json:"state,omitempty"`
-	Trace string      `json:"trace,omitempty"`
+	Trace *string     `json:"trace,omitempty"`
 }
 
 type BuildCredentials struct {
@@ -128,14 +130,22 @@ type BuildTrace interface {
 	IsStdout() bool
 }
 
+type BuildTracePatch interface {
+	Patch() []byte
+	Offset() int
+	Limit() int
+	SetNewOffset(newOffset int)
+}
+
 type Network interface {
 	GetBuild(config RunnerConfig) (*GetBuildResponse, bool)
 	RegisterRunner(config RunnerCredentials, description, tags string) *RegisterRunnerResponse
 	DeleteRunner(config RunnerCredentials) bool
 	VerifyRunner(config RunnerCredentials) bool
-	UpdateBuild(config RunnerConfig, id int, state BuildState, trace string) UpdateState
+	UpdateBuild(config RunnerConfig, id int, state BuildState, trace *string) UpdateState
+	PatchTrace(config RunnerConfig, buildCredentials *BuildCredentials, tracePart BuildTracePatch) UpdateState
 	DownloadArtifacts(config BuildCredentials, artifactsFile string) DownloadState
 	UploadRawArtifacts(config BuildCredentials, reader io.Reader, baseName string, expireIn string) UploadState
 	UploadArtifacts(config BuildCredentials, artifactsFile string) UploadState
-	ProcessBuild(config RunnerConfig, id int) BuildTrace
+	ProcessBuild(config RunnerConfig, buildCredentials *BuildCredentials) BuildTrace
 }

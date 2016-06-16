@@ -3,6 +3,7 @@ package network
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
@@ -15,14 +16,61 @@ var traceUpdateInterval = common.UpdateInterval
 var traceForceSendInterval = common.ForceTraceSentInterval
 var traceFinishRetryInterval = common.UpdateRetryInterval
 
+type tracePatch struct {
+	trace  bytes.Buffer
+	offset int
+	limit  int
+}
+
+func (tp *tracePatch) Patch() []byte {
+	return tp.trace.Bytes()[tp.offset:tp.limit]
+}
+
+func (tp *tracePatch) Offset() int {
+	return tp.offset
+}
+
+func (tp *tracePatch) Limit() int {
+	return tp.limit
+}
+
+func (tp *tracePatch) SetNewOffset(newOffset int) {
+	tp.offset = newOffset
+}
+
+func (tp *tracePatch) validateRange() bool {
+	if tp.limit >= tp.offset {
+		return true
+	}
+
+	return false
+}
+
+func newTracePatch(trace bytes.Buffer, offset int) (*tracePatch, error) {
+	patch := &tracePatch{
+		trace:  trace,
+		offset: offset,
+		limit:  trace.Len(),
+	}
+
+	if !patch.validateRange() {
+		return nil, errors.New("Range is invalid, limit can't be less than offset")
+	}
+
+	return patch, nil
+}
+
 type clientBuildTrace struct {
 	*io.PipeWriter
 
-	client common.Network
-	config common.RunnerConfig
-	id     int
-	limit  int64
-	abort  func()
+	client           common.Network
+	config           common.RunnerConfig
+	buildCredentials *common.BuildCredentials
+	id               int
+	limit            int64
+	abort            func()
+
+	incrementalAvailable bool
 
 	log      bytes.Buffer
 	lock     sync.RWMutex
@@ -67,6 +115,7 @@ func (c *clientBuildTrace) start() {
 	c.PipeWriter = writer
 	c.finished = make(chan bool)
 	c.state = common.Running
+	c.incrementalAvailable = true
 	go c.process(reader)
 	go c.watch()
 }
@@ -77,7 +126,7 @@ func (c *clientBuildTrace) finish() {
 
 	// Do final upload of build trace
 	for {
-		if c.update() != common.UpdateFailed {
+		if c.staleUpdate() != common.UpdateFailed {
 			return
 		}
 		time.Sleep(traceFinishRetryInterval)
@@ -134,6 +183,76 @@ func (c *clientBuildTrace) process(pipe *io.PipeReader) {
 }
 
 func (c *clientBuildTrace) update() common.UpdateState {
+	var update common.UpdateState
+
+	if c.incrementalAvailable != false {
+		update = c.incrementalUpdate()
+
+		if update == common.UpdateNotFound {
+			c.incrementalAvailable = false
+			c.config.Log().Warningln("Incremental build update not available. Switching back to full build update")
+		}
+	}
+
+	if c.incrementalAvailable == false {
+		update = c.staleUpdate()
+	}
+
+	return update
+}
+
+func (c *clientBuildTrace) incrementalUpdate() common.UpdateState {
+	c.lock.RLock()
+	state := c.state
+	trace := c.log
+	c.lock.RUnlock()
+
+	if c.sentState == state &&
+		c.sentTrace == trace.Len() &&
+		time.Since(c.sentTime) < traceForceSendInterval {
+		return common.UpdateSucceeded
+	}
+
+	if c.sentState != state {
+		c.client.UpdateBuild(c.config, c.id, state, nil)
+		c.sentState = state
+	}
+
+	tracePatch, err := newTracePatch(trace, c.sentTrace)
+	if err != nil {
+		c.config.Log().Errorln("Error while creating a tracePatch", err.Error())
+	}
+
+	update := c.client.PatchTrace(c.config, c.buildCredentials, tracePatch)
+	if update == common.UpdateNotFound {
+		return update
+	}
+
+	if update == common.UpdateRangeMissmatch {
+		update = c.resendPatch(c.buildCredentials.ID, c.config, c.buildCredentials, tracePatch)
+	}
+
+	if update == common.UpdateSucceeded {
+		c.sentTrace = tracePatch.Limit()
+		c.sentTime = time.Now()
+	}
+
+	return update
+}
+
+func (c *clientBuildTrace) resendPatch(id int, config common.RunnerConfig, buildCredentials *common.BuildCredentials, tracePatch common.BuildTracePatch) (update common.UpdateState) {
+	config.Log().Warningln(id, "Resending trace patch due to range missmatch")
+
+	update = c.client.PatchTrace(config, buildCredentials, tracePatch)
+	if update == common.UpdateRangeMissmatch {
+		config.Log().Errorln(id, "Appending trace to coordinator...", "failed due to range missmatch")
+		update = common.UpdateFailed
+	}
+
+	return
+}
+
+func (c *clientBuildTrace) staleUpdate() common.UpdateState {
 	c.lock.RLock()
 	state := c.state
 	trace := c.log.String()
@@ -145,13 +264,13 @@ func (c *clientBuildTrace) update() common.UpdateState {
 		return common.UpdateSucceeded
 	}
 
-	upload := c.client.UpdateBuild(c.config, c.id, state, trace)
-
+	upload := c.client.UpdateBuild(c.config, c.id, state, &trace)
 	if upload == common.UpdateSucceeded {
 		c.sentTrace = len(trace)
 		c.sentState = state
 		c.sentTime = time.Now()
 	}
+
 	return upload
 }
 
@@ -173,10 +292,11 @@ func (c *clientBuildTrace) watch() {
 	}
 }
 
-func newBuildTrace(client common.Network, config common.RunnerConfig, id int) *clientBuildTrace {
+func newBuildTrace(client common.Network, config common.RunnerConfig, buildCredentials *common.BuildCredentials) *clientBuildTrace {
 	return &clientBuildTrace{
-		client: client,
-		config: config,
-		id:     id,
+		client:           client,
+		config:           config,
+		buildCredentials: buildCredentials,
+		id:               buildCredentials.ID,
 	}
 }

@@ -1,6 +1,7 @@
 package network
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
@@ -13,6 +14,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
 )
 
 const clientError = -100
@@ -181,7 +184,7 @@ func (n *GitLabClient) VerifyRunner(runner common.RunnerCredentials) bool {
 	}
 }
 
-func (n *GitLabClient) UpdateBuild(config common.RunnerConfig, id int, state common.BuildState, trace string) common.UpdateState {
+func (n *GitLabClient) UpdateBuild(config common.RunnerConfig, id int, state common.BuildState, trace *string) common.UpdateState {
 	request := common.UpdateBuildRequest{
 		Info:  n.getRunnerVersion(config),
 		Token: config.Token,
@@ -205,6 +208,67 @@ func (n *GitLabClient) UpdateBuild(config common.RunnerConfig, id int, state com
 		return common.UpdateAbort
 	default:
 		config.Log().WithField("status", statusText).Warningln(id, "Submitting build to coordinator...", "failed")
+		return common.UpdateFailed
+	}
+}
+
+func (n *GitLabClient) PatchTrace(config common.RunnerConfig, buildCredentials *common.BuildCredentials, tracePatch common.BuildTracePatch) common.UpdateState {
+	id := buildCredentials.ID
+
+	contentRange := fmt.Sprintf("%d-%d", tracePatch.Offset(), tracePatch.Limit())
+	headers := make(http.Header)
+	headers.Set("Content-Range", contentRange)
+	headers.Set("BUILD-TOKEN", buildCredentials.Token)
+	uri := fmt.Sprintf("builds/%d/trace.txt", id)
+	request := bytes.NewReader(tracePatch.Patch())
+
+	response, err := n.doRaw(config.RunnerCredentials, "PATCH", uri, request, "text/plain", headers)
+	if err != nil {
+		config.Log().Errorln("Appending trace to coordinator...", "error", err.Error())
+		return common.UpdateFailed
+	}
+
+	defer response.Body.Close()
+	defer io.Copy(ioutil.Discard, response.Body)
+
+	remoteState := response.Header.Get("Build-Status")
+	remoteRange := response.Header.Get("Range")
+	log := config.Log().WithFields(logrus.Fields{
+		"SentRange":          contentRange,
+		"RemoteRange":        remoteRange,
+		"RemoteState":        remoteState,
+		"ResponseStatusCode": response.StatusCode,
+		"ResponseMessage":    response.Status,
+	})
+
+	if remoteState == "canceled" {
+		log.Warningln(id, "Appending trace to coordinator", "aborted")
+		return common.UpdateAbort
+	}
+
+	switch response.StatusCode {
+	case 202:
+		log.Println(id, "Appending trace to coordinator...", "ok")
+		return common.UpdateSucceeded
+	case 404:
+		log.Warningln(id, "Appending trace to coordinator...", "not-found")
+		return common.UpdateNotFound
+	case 406:
+		log.Errorln(id, "Appending trace to coordinator...", "forbidden")
+		return common.UpdateAbort
+	case 416:
+		log.Warningln(id, "Appending trace to coordinator...", "range missmatch")
+
+		remoteRange := strings.Split(remoteRange, "-")
+		newOffset, _ := strconv.Atoi(remoteRange[1])
+		tracePatch.SetNewOffset(newOffset)
+
+		return common.UpdateRangeMissmatch
+	case clientError:
+		log.Errorln(id, "Appending trace to coordinator...", "error")
+		return common.UpdateAbort
+	default:
+		log.Warningln(id, "Appending trace to coordinator...", "failed")
 		return common.UpdateFailed
 	}
 }
@@ -361,8 +425,8 @@ func (n *GitLabClient) DownloadArtifacts(config common.BuildCredentials, artifac
 	}
 }
 
-func (n *GitLabClient) ProcessBuild(config common.RunnerConfig, id int) common.BuildTrace {
-	trace := newBuildTrace(n, config, id)
+func (n *GitLabClient) ProcessBuild(config common.RunnerConfig, buildCredentials *common.BuildCredentials) common.BuildTrace {
+	trace := newBuildTrace(n, config, buildCredentials)
 	trace.start()
 	return trace
 }

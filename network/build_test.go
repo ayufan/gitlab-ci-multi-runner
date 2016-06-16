@@ -20,11 +20,11 @@ var buildOutputLimit = common.RunnerConfig{OutputLimit: 1}
 type updateTraceNetwork struct {
 	mocks.Network
 	state common.BuildState
-	trace string
+	trace *string
 	count int
 }
 
-func (m *updateTraceNetwork) UpdateBuild(config common.RunnerConfig, id int, state common.BuildState, trace string) common.UpdateState {
+func (m *updateTraceNetwork) UpdateBuild(config common.RunnerConfig, id int, state common.BuildState, trace *string) common.UpdateState {
 	switch id {
 	case successID:
 		m.count++
@@ -52,29 +52,42 @@ func (m *updateTraceNetwork) UpdateBuild(config common.RunnerConfig, id int, sta
 	}
 }
 
+func (m *updateTraceNetwork) PatchTrace(config common.RunnerConfig, buildCredentials *common.BuildCredentials, tracePatch common.BuildTracePatch) common.UpdateState {
+	return common.UpdateNotFound
+}
+
 func TestBuildTraceSuccess(t *testing.T) {
 	u := &updateTraceNetwork{}
-	b := newBuildTrace(u, buildConfig, successID)
+	buildCredentials := &common.BuildCredentials{
+		ID: successID,
+	}
+	b := newBuildTrace(u, buildConfig, buildCredentials)
 	b.start()
 	fmt.Fprint(b, "test content")
 	b.Success()
-	assert.Equal(t, "test content", u.trace)
+	assert.Equal(t, "test content", *u.trace)
 	assert.Equal(t, common.Success, u.state)
 }
 
 func TestBuildTraceFailure(t *testing.T) {
 	u := &updateTraceNetwork{}
-	b := newBuildTrace(u, buildConfig, successID)
+	buildCredentials := &common.BuildCredentials{
+		ID: successID,
+	}
+	b := newBuildTrace(u, buildConfig, buildCredentials)
 	b.start()
 	fmt.Fprint(b, "test content")
 	b.Fail(errors.New("test"))
-	assert.Equal(t, "test content", u.trace)
+	assert.Equal(t, "test content", *u.trace)
 	assert.Equal(t, common.Failed, u.state)
 }
 
 func TestIgnoreStatusChange(t *testing.T) {
 	u := &updateTraceNetwork{}
-	b := newBuildTrace(u, buildConfig, successID)
+	buildCredentials := &common.BuildCredentials{
+		ID: successID,
+	}
+	b := newBuildTrace(u, buildConfig, buildCredentials)
 	b.start()
 	b.Success()
 	b.Fail(errors.New("test"))
@@ -87,7 +100,10 @@ func TestBuildAbort(t *testing.T) {
 	abort := make(chan bool)
 
 	u := &updateTraceNetwork{}
-	b := newBuildTrace(u, buildConfig, cancelID)
+	buildCredentials := &common.BuildCredentials{
+		ID: cancelID,
+	}
+	b := newBuildTrace(u, buildConfig, buildCredentials)
 	b.start()
 	b.Notify(func() {
 		abort <- true
@@ -98,7 +114,10 @@ func TestBuildAbort(t *testing.T) {
 
 func TestBuildOutputLimit(t *testing.T) {
 	u := &updateTraceNetwork{}
-	b := newBuildTrace(u, buildOutputLimit, successID)
+	buildCredentials := &common.BuildCredentials{
+		ID: successID,
+	}
+	b := newBuildTrace(u, buildOutputLimit, buildCredentials)
 	b.start()
 
 	// Write 500k to the buffer
@@ -106,15 +125,18 @@ func TestBuildOutputLimit(t *testing.T) {
 		fmt.Fprint(b, "abcde")
 	}
 	b.Success()
-	assert.True(t, len(u.trace) < 2000, "the output should be less than 2000 bytes")
-	assert.Contains(t, u.trace, "Build log exceeded limit")
+	assert.True(t, len(*u.trace) < 2000, "the output should be less than 2000 bytes")
+	assert.Contains(t, *u.trace, "Build log exceeded limit")
 }
 
 func TestBuildFinishRetry(t *testing.T) {
 	traceFinishRetryInterval = time.Microsecond
 
 	u := &updateTraceNetwork{}
-	b := newBuildTrace(u, buildOutputLimit, retryID)
+	buildCredentials := &common.BuildCredentials{
+		ID: retryID,
+	}
+	b := newBuildTrace(u, buildOutputLimit, buildCredentials)
 	b.start()
 	b.Success()
 	assert.Equal(t, 5, u.count, "it should retry a few times")
@@ -126,7 +148,10 @@ func TestBuildForceSend(t *testing.T) {
 	traceForceSendInterval = time.Minute
 
 	u := &updateTraceNetwork{}
-	b := newBuildTrace(u, buildOutputLimit, successID)
+	buildCredentials := &common.BuildCredentials{
+		ID: successID,
+	}
+	b := newBuildTrace(u, buildOutputLimit, buildCredentials)
 	b.start()
 	defer b.Success()
 
@@ -134,7 +159,8 @@ func TestBuildForceSend(t *testing.T) {
 
 	started := time.Now()
 	for time.Since(started) < time.Second {
-		if u.trace == "test" {
+		if u.trace != nil &&
+			*u.trace == "test" {
 			u.count = 0
 			break
 		}
@@ -151,6 +177,6 @@ func TestBuildForceSend(t *testing.T) {
 		}
 	}
 	assert.True(t, u.count > 0, "it forcefully update trace more then once")
-	assert.Equal(t, "test", u.trace)
+	assert.Equal(t, "test", *u.trace)
 	assert.Equal(t, common.Running, u.state)
 }

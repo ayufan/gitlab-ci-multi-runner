@@ -112,7 +112,11 @@ func (mr *RunCommand) processRunner(id int, runner *common.RunnerConfig, runners
 	}
 
 	// Make sure to always close output
-	trace := mr.network.ProcessBuild(*runner, buildData.ID)
+	buildCredentials := &common.BuildCredentials{
+		ID:    buildData.ID,
+		Token: buildData.Token,
+	}
+	trace := mr.network.ProcessBuild(*runner, buildCredentials)
 	defer trace.Fail(err)
 
 	// Create a new build
