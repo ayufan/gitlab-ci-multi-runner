@@ -43,7 +43,7 @@ type Build struct {
 }
 
 func (b *Build) Log() *logrus.Entry {
-	return b.Runner.Log().WithField("build", b.ID)
+	return b.Runner.Log().WithField("build", b.ID).WithField("project", b.ProjectID)
 }
 
 func (b *Build) ProjectUniqueName() string {
