@@ -28,11 +28,13 @@ func (e *machineExecutor) log() (log *logrus.Entry) {
 	}
 	if details != nil {
 		log = log.WithFields(logrus.Fields{
-			"docker":    e.config.Docker.DockerCredentials.Host,
 			"name":      details.Name,
 			"usedcount": details.UsedCount,
 			"created":   details.Created,
 		})
+	}
+	if e.config.Docker != nil {
+		log.WithField("docker", e.config.Docker.Host)
 	}
 
 	return
