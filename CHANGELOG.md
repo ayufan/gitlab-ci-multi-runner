@@ -4,7 +4,7 @@ v 1.3.0 (unreleased)
 v 1.2.0
 - Use Go 1.6
 - Add `timeout` option for the `exec` command
-- Add runtime platform informations to debug log
+- Add runtime platform information to debug log
 - Add `docker-machine` binary to Runner's official docker images
 - Add `build_current` target to Makefile - to build only a binary for used architecture
 - Add support for `after_script`
