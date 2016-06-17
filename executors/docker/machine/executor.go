@@ -34,7 +34,7 @@ func (e *machineExecutor) log() (log *logrus.Entry) {
 		})
 	}
 	if e.config.Docker != nil {
-		log.WithField("docker", e.config.Docker.Host)
+		log = log.WithField("docker", e.config.Docker.Host)
 	}
 
 	return
