@@ -1,5 +1,21 @@
-v 1.3.0 (unreleased)
+v 1.3.0
 - Add incremental build trace update
+- Add posibility to specify CpusetCpus, Dns and DnsSearch for docker containers created by runners
+- Add a custom `User-Agent` header with version number and runtime information (go version, platform, os)
+- Add artifacts expiration handling
+- Add artifacts handling for failed builds
+- Add customizable `check_interval` to set how often to check GitLab for a new builds
+- Add docker Machine IP address logging
+- Make Docker Executor ARM compatible
+- Refactor script generation to make it fully on-demand
+- Refactor runnsers Acquire method to improve performance
+- Fix branch name setting at compile time
+- Fix panic when generating log message if provision of node fails
+- Fix docker host logging
+- Prevent leaking of goroutines when aborting builds
+- Restore valid version info in --help message
+- [Experimental] Add `GIT_STRATEGY` handling - clone/fetch strategy configurable per job
+- [Experimental] Add `GIT_DEPTH` handling - `--depth` parameter for `git fetch` and `git clone`
 
 v 1.2.0
 - Use Go 1.6
