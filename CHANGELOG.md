@@ -20,7 +20,7 @@ v 1.3.0
 v 1.2.0
 - Use Go 1.6
 - Add `timeout` option for the `exec` command
-- Add runtime platform informations to debug log
+- Add runtime platform information to debug log
 - Add `docker-machine` binary to Runner's official docker images
 - Add `build_current` target to Makefile - to build only a binary for used architecture
 - Add support for `after_script`
@@ -35,7 +35,7 @@ v 1.2.0
 - Make variables to work at job level in exec mode
 - Remove "user mode" warning when running in a system mode
 - Create `gitlab-runner` user as a system account
-- Properly create `/etc/gitlab-runer/certs` in Runner's official docker images
+- Properly create `/etc/gitlab-runner/certs` in Runner's official docker images
 - Disable recursive submodule fetchin on fetching changes
 - Fix nil casting issue on docker client creation
 - Fix used build platforms for `gox`
