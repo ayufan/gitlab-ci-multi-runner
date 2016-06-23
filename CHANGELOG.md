@@ -1,10 +1,26 @@
-v 1.3.0 (unreleased)
+v 1.3.0
 - Add incremental build trace update
+- Add posibility to specify CpusetCpus, Dns and DnsSearch for docker containers created by runners
+- Add a custom `User-Agent` header with version number and runtime information (go version, platform, os)
+- Add artifacts expiration handling
+- Add artifacts handling for failed builds
+- Add customizable `check_interval` to set how often to check GitLab for a new builds
+- Add docker Machine IP address logging
+- Make Docker Executor ARM compatible
+- Refactor script generation to make it fully on-demand
+- Refactor runnsers Acquire method to improve performance
+- Fix branch name setting at compile time
+- Fix panic when generating log message if provision of node fails
+- Fix docker host logging
+- Prevent leaking of goroutines when aborting builds
+- Restore valid version info in --help message
+- [Experimental] Add `GIT_STRATEGY` handling - clone/fetch strategy configurable per job
+- [Experimental] Add `GIT_DEPTH` handling - `--depth` parameter for `git fetch` and `git clone`
 
 v 1.2.0
 - Use Go 1.6
 - Add `timeout` option for the `exec` command
-- Add runtime platform informations to debug log
+- Add runtime platform information to debug log
 - Add `docker-machine` binary to Runner's official docker images
 - Add `build_current` target to Makefile - to build only a binary for used architecture
 - Add support for `after_script`
@@ -19,7 +35,7 @@ v 1.2.0
 - Make variables to work at job level in exec mode
 - Remove "user mode" warning when running in a system mode
 - Create `gitlab-runner` user as a system account
-- Properly create `/etc/gitlab-runer/certs` in Runner's official docker images
+- Properly create `/etc/gitlab-runner/certs` in Runner's official docker images
 - Disable recursive submodule fetchin on fetching changes
 - Fix nil casting issue on docker client creation
 - Fix used build platforms for `gox`
