@@ -1,3 +1,6 @@
+v 1.3.1
+- Detect architecture if not given by Docker Engine (versions before 1.9.0)
+
 v 1.3.0
 - Add incremental build trace update
 - Add posibility to specify CpusetCpus, Dns and DnsSearch for docker containers created by runners
