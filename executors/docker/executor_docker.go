@@ -11,6 +11,7 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -144,14 +145,32 @@ func (s *executor) getDockerImage(imageName string) (*docker.Image, error) {
 
 func (s *executor) getArchitecture() string {
 	architecture := s.info.Get("Architecture")
-	if architecture == "armv7l" || architecture == "aarch64" {
+	switch architecture {
+	case "armv7l":
+	case "aarch64":
 		architecture = "arm"
+	case "amd64":
+		architecture = "x86_64"
 	}
-	return architecture
+
+	if architecture != "" {
+		return architecture
+	}
+
+	switch runtime.GOARCH {
+	case "amd64":
+		return "x86_64"
+	default:
+		return runtime.GOARCH
+	}
 }
 
 func (s *executor) getPrebuiltImage() (image *docker.Image, err error) {
 	architecture := s.getArchitecture()
+	if architecture == "" {
+		return nil, errors.New("unsupported docker architecture")
+	}
+
 	imageName := prebuiltImageName + "-" + architecture + ":" + common.REVISION
 	s.Debugln("Looking for prebuilt image", imageName, "...")
 	image, err = s.client.InspectImage(imageName)
