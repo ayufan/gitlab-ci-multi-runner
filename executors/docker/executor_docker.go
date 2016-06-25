@@ -146,8 +146,7 @@ func (s *executor) getDockerImage(imageName string) (*docker.Image, error) {
 func (s *executor) getArchitecture() string {
 	architecture := s.info.Get("Architecture")
 	switch architecture {
-	case "armv7l":
-	case "aarch64":
+	case "armv7l", "aarch64":
 		architecture = "arm"
 	case "amd64":
 		architecture = "x86_64"
