@@ -1,3 +1,6 @@
+v 1.3.2
+- Fix architecture detection bug introduced in 1.3.1
+
 v 1.3.1
 - Detect architecture if not given by Docker Engine (versions before 1.9.0)
 
