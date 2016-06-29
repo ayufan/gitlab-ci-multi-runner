@@ -7,25 +7,33 @@ stages:
 before_script:
 - source ci/prepare
 
-Bleeding Edge:
+.build: &build-template
   stage: build
   script:
   - source ci/build
-  - '[[ -z "$AWS_SECRET_ACCESS_KEY" ]] || make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"'
-  - '[[ "$CI_BUILD_REF_NAME" != "master" ]] || [[ -z "$PACKAGECLOUD_TOKEN" ]] || make packagecloud "PACKAGE_CLOUD=runner/unstable" DEB_PLATFORMS="debian/jessie ubuntu/trusty" RPM_PLATFORMS="el/7 fedora/23"'
+  - source ci/deploy "$CI_BUILD_NAME"
+
+Development:
+  <<: *build-template
   only:
   - branches
+  except:
+  - master@gitlab-org/gitlab-ci-multi-runner
+  - tags@gitlab-org/gitlab-ci-multi-runner
+
+Bleeding Edge:
+  <<: *build-template
+  only:
+  - master@gitlab-org/gitlab-ci-multi-runner
+  environment: bleeding_edge
 
 Stable Release:
-  stage: build
-  script:
-  - export RELEASE=true
-  - source ci/build
-  - '[[ -z "$AWS_SECRET_ACCESS_KEY" ]] || make s3-upload "S3_UPLOAD_PATH=$CI_BUILD_REF_NAME"'
-  - '[[ -z "$AWS_SECRET_ACCESS_KEY" ]] || make s3-upload "S3_UPLOAD_PATH=latest"'
-  - '[[ -z "$PACKAGECLOUD_TOKEN" ]] || make packagecloud'
+  <<: *build-template
+  variables:
+    RELEASE: "true"
   only:
   - tags@gitlab-org/gitlab-ci-multi-runner
+  environment: stable_release
 
 Mirror:
   stage: mirror
