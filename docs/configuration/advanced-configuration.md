@@ -102,6 +102,7 @@ This defines the Docker Container parameters.
 | `privileged`                | make container run in Privileged mode (insecure) |
 | `cap_add`                   | add additional Linux capabilities to the container |
 | `cap_drop`                  | drop additional Linux capabilities from the container |
+| `security_opt`              | set security options (--security-opt in docker run), takes a list of ':' separated key/values |
 | `devices`                   | share additional host devices with the container |
 | `disable_cache`             | disable automatic |
 | `wait_for_services_timeout` | specify how long to wait for docker services, set to 0 to disable, default: 30 |

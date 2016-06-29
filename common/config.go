@@ -50,6 +50,7 @@ type DockerConfig struct {
 	Privileged             bool             `toml:"privileged,omitzero" json:"privileged" long:"privileged" env:"DOCKER_PRIVILEGED" description:"Give extended privileges to container"`
 	CapAdd                 []string         `toml:"cap_add" json:"cap_add" long:"cap-add" env:"DOCKER_CAP_ADD" description:"Add Linux capabilities"`
 	CapDrop                []string         `toml:"cap_drop" json:"cap_drop" long:"cap-drop" env:"DOCKER_CAP_DROP" description:"Drop Linux capabilities"`
+	SecurityOpt            []string         `toml:"security_opt" json:"security_opt" long:"security-opt" env:"DOCKER_SECURITY_OPT" description:"Security Options"`
 	Devices                []string         `toml:"devices" json:"devices" long:"devices" env:"DOCKER_DEVICES" description:"Add a host device to the container"`
 	DisableCache           bool             `toml:"disable_cache,omitzero" json:"disable_cache" long:"disable-cache" env:"DOCKER_DISABLE_CACHE" description:"Disable all container caching"`
 	Volumes                []string         `toml:"volumes,omitempty" json:"volumes" long:"volumes" env:"DOCKER_VOLUMES" description:"Bind mount a volumes"`
