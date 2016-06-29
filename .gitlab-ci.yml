@@ -25,6 +25,7 @@ Bleeding Edge:
   <<: *build-template
   only:
   - master@gitlab-org/gitlab-ci-multi-runner
+  environment: bleeding_edge
 
 Stable Release:
   <<: *build-template
@@ -32,6 +33,7 @@ Stable Release:
     RELEASE: "true"
   only:
   - tags@gitlab-org/gitlab-ci-multi-runner
+  environment: stable_release
 
 Mirror:
   stage: mirror
