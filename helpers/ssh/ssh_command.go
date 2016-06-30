@@ -162,7 +162,7 @@ func (s *Client) Run(cmd Command) error {
 	go func() {
 		err := session.Wait()
 		if _, ok := err.(*ssh.ExitError); ok {
-			err = &ExitError{err}
+			err = &ExitError{Inner: err}
 		}
 		waitCh <- err
 	}()

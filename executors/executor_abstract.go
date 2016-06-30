@@ -17,7 +17,7 @@ type ExecutorOptions struct {
 
 type AbstractExecutor struct {
 	ExecutorOptions
-	*common.BuildLogger
+	common.BuildLogger
 	Config     common.RunnerConfig
 	Build      *common.Build
 	BuildTrace common.BuildTrace

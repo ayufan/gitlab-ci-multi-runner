@@ -76,7 +76,7 @@ func (s *sshExecutor) Run(cmd common.ExecutorCommand) error {
 		Abort:       cmd.Abort,
 	})
 	if _, ok := err.(*ssh.ExitError); ok {
-		err = &common.BuildError{err}
+		err = &common.BuildError{Inner: err}
 	}
 	return err
 }

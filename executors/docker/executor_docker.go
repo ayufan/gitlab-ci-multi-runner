@@ -741,7 +741,7 @@ func (s *executor) watchContainer(container *docker.Container, input io.Reader, 
 		if err == nil {
 			if exitCode != 0 {
 				err = &common.BuildError{
-					fmt.Errorf("exit code %d", exitCode),
+					Inner: fmt.Errorf("exit code %d", exitCode),
 				}
 			}
 		}

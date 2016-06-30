@@ -110,7 +110,7 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 	go func() {
 		err := c.Wait()
 		if _, ok := err.(*exec.ExitError); ok {
-			err = &common.BuildError{err}
+			err = &common.BuildError{Inner: err}
 		}
 		waitCh <- err
 	}()
