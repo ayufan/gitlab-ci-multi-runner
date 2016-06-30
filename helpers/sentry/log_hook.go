@@ -1,10 +1,10 @@
 package sentry
 
 import (
-	"fmt"
 	"errors"
-	"runtime"
+	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/getsentry/raven-go"
