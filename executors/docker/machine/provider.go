@@ -57,13 +57,17 @@ func (m *machineProvider) create(config *common.RunnerConfig, state machineState
 		started := time.Now()
 		err := m.machine.Create(config.Machine.MachineDriver, details.Name, config.Machine.MachineOptions...)
 		for i := 0; i < 3 && err != nil; i++ {
-			logrus.WithField("name", details.Name).
-				Warningln("Machine creation failed, trying to provision", err)
+			logrus.WithField("name", details.Name).WithError(err).
+				Warningln("Machine creation failed, trying to provision")
 			time.Sleep(provisionRetryInterval)
 			err = m.machine.Provision(details.Name)
 		}
 
 		if err != nil {
+			logrus.WithField("name", details.Name).
+				WithField("time", time.Since(started)).
+				WithError(err).
+				Errorln("Machine creation failed")
 			m.remove(details.Name, "Failed to create")
 		} else {
 			details.State = state
@@ -149,6 +153,12 @@ func (m *machineProvider) finalizeRemoval(details *machineDetails) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	delete(m.details, details.Name)
+
+	logrus.WithField("name", details.Name).
+		WithField("created", time.Since(details.Created)).
+		WithField("used", time.Since(details.Used)).
+		WithField("reason", details.Reason).
+		Infoln("Machine removed")
 }
 
 func (m *machineProvider) remove(machineName string, reason ...interface{}) {

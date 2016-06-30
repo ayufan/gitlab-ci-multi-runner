@@ -192,22 +192,24 @@ func (n *GitLabClient) UpdateBuild(config common.RunnerConfig, id int, state com
 		Trace: trace,
 	}
 
+	log := config.Log().WithField("id", id)
+
 	result, statusText, _ := n.doJSON(config.RunnerCredentials, "PUT", fmt.Sprintf("builds/%d.json", id), 200, &request, nil)
 	switch result {
 	case 200:
-		config.Log().Println(id, "Submitting build to coordinator...", "ok")
+		log.Debugln("Submitting build to coordinator...", "ok")
 		return common.UpdateSucceeded
 	case 404:
-		config.Log().Warningln(id, "Submitting build to coordinator...", "aborted")
+		log.Warningln("Submitting build to coordinator...", "aborted")
 		return common.UpdateAbort
 	case 403:
-		config.Log().Errorln(id, "Submitting build to coordinator...", "forbidden")
+		log.WithField("status", statusText).Errorln("Submitting build to coordinator...", "forbidden")
 		return common.UpdateAbort
 	case clientError:
-		config.Log().WithField("status", statusText).Errorln(id, "Submitting build to coordinator...", "error")
+		log.WithField("status", statusText).Errorln("Submitting build to coordinator...", "error")
 		return common.UpdateAbort
 	default:
-		config.Log().WithField("status", statusText).Warningln(id, "Submitting build to coordinator...", "failed")
+		log.WithField("status", statusText).Warningln("Submitting build to coordinator...", "failed")
 		return common.UpdateFailed
 	}
 }
@@ -234,30 +236,31 @@ func (n *GitLabClient) PatchTrace(config common.RunnerConfig, buildCredentials *
 	remoteState := response.Header.Get("Build-Status")
 	remoteRange := response.Header.Get("Range")
 	log := config.Log().WithFields(logrus.Fields{
-		"SentRange":          contentRange,
-		"RemoteRange":        remoteRange,
-		"RemoteState":        remoteState,
-		"ResponseStatusCode": response.StatusCode,
-		"ResponseMessage":    response.Status,
+		"id":           id,
+		"sent-log":     contentRange,
+		"build-log":    remoteRange,
+		"build-status": remoteState,
+		"code":         response.StatusCode,
+		"status":       response.Status,
 	})
 
 	if remoteState == "canceled" {
-		log.Warningln(id, "Appending trace to coordinator", "aborted")
+		log.Warningln("Appending trace to coordinator", "aborted")
 		return common.UpdateAbort
 	}
 
 	switch response.StatusCode {
 	case 202:
-		log.Println(id, "Appending trace to coordinator...", "ok")
+		log.Debugln("Appending trace to coordinator...", "ok")
 		return common.UpdateSucceeded
 	case 404:
-		log.Warningln(id, "Appending trace to coordinator...", "not-found")
+		log.Warningln("Appending trace to coordinator...", "not-found")
 		return common.UpdateNotFound
 	case 406:
-		log.Errorln(id, "Appending trace to coordinator...", "forbidden")
+		log.Errorln("Appending trace to coordinator...", "forbidden")
 		return common.UpdateAbort
 	case 416:
-		log.Warningln(id, "Appending trace to coordinator...", "range missmatch")
+		log.Warningln("Appending trace to coordinator...", "range missmatch")
 
 		remoteRange := strings.Split(remoteRange, "-")
 		newOffset, _ := strconv.Atoi(remoteRange[1])
@@ -265,10 +268,10 @@ func (n *GitLabClient) PatchTrace(config common.RunnerConfig, buildCredentials *
 
 		return common.UpdateRangeMissmatch
 	case clientError:
-		log.Errorln(id, "Appending trace to coordinator...", "error")
+		log.Errorln("Appending trace to coordinator...", "error")
 		return common.UpdateAbort
 	default:
-		log.Warningln(id, "Appending trace to coordinator...", "failed")
+		log.Warningln("Appending trace to coordinator...", "failed")
 		return common.UpdateFailed
 	}
 }
@@ -324,7 +327,7 @@ func (n *GitLabClient) UploadRawArtifacts(config common.BuildCredentials, reader
 	})
 
 	if err != nil {
-		log.Errorln("Uploading artifacts to coordinator...", "error", err.Error())
+		log.WithError(err).Errorln("Uploading artifacts to coordinator...", "error")
 		return common.UploadFailed
 	}
 	defer res.Body.Close()
@@ -335,13 +338,13 @@ func (n *GitLabClient) UploadRawArtifacts(config common.BuildCredentials, reader
 		log.Println("Uploading artifacts to coordinator...", "ok")
 		return common.UploadSucceeded
 	case 403:
-		log.Errorln("Uploading artifacts to coordinator...", "forbidden")
+		log.WithField("status", res.Status).Errorln("Uploading artifacts to coordinator...", "forbidden")
 		return common.UploadForbidden
 	case 413:
-		log.Errorln("Uploading artifacts to coordinator...", "too large archive")
+		log.WithField("status", res.Status).Errorln("Uploading artifacts to coordinator...", "too large archive")
 		return common.UploadTooLarge
 	default:
-		log.Warningln("Uploading artifacts to coordinator...", "failed", res.Status)
+		log.WithField("status", res.Status).Warningln("Uploading artifacts to coordinator...", "failed")
 		return common.UploadFailed
 	}
 }
@@ -354,18 +357,18 @@ func (n *GitLabClient) UploadArtifacts(config common.BuildCredentials, artifacts
 
 	file, err := os.Open(artifactsFile)
 	if err != nil {
-		log.Errorln("Uploading artifacts to coordinator...", "error", err.Error())
+		log.WithError(err).Errorln("Uploading artifacts to coordinator...", "error")
 		return common.UploadFailed
 	}
 	defer file.Close()
 
 	fi, err := file.Stat()
 	if err != nil {
-		log.Errorln("Uploading artifacts to coordinator...", "error", err.Error())
+		log.WithError(err).Errorln("Uploading artifacts to coordinator...", "error")
 		return common.UploadFailed
 	}
 	if fi.IsDir() {
-		log.Errorln("Uploading artifacts to coordinator...", "error", "cannot upload directories")
+		log.WithField("error", "cannot upload directories").Errorln("Uploading artifacts to coordinator...", "error")
 		return common.UploadFailed
 	}
 
@@ -386,9 +389,8 @@ func (n *GitLabClient) DownloadArtifacts(config common.BuildCredentials, artifac
 	res, err := n.doRaw(mappedConfig, "GET", fmt.Sprintf("builds/%d/artifacts", config.ID), nil, "", headers)
 
 	log := logrus.WithFields(logrus.Fields{
-		"id":             config.ID,
-		"token":          helpers.ShortenToken(config.Token),
-		"responseStatus": res.Status,
+		"id":    config.ID,
+		"token": helpers.ShortenToken(config.Token),
 	})
 
 	if err != nil {
@@ -408,19 +410,19 @@ func (n *GitLabClient) DownloadArtifacts(config common.BuildCredentials, artifac
 		if err != nil {
 			file.Close()
 			os.Remove(file.Name())
-			log.Errorln("Downloading artifacts from coordinator...", "error", err.Error())
+			log.WithError(err).Errorln("Downloading artifacts from coordinator...", "error")
 			return common.DownloadFailed
 		}
 		log.Println("Downloading artifacts from coordinator...", "ok")
 		return common.DownloadSucceeded
 	case 403:
-		log.Errorln("Downloading artifacts from coordinator...", "forbidden")
+		log.WithField("status", res.Status).Errorln("Downloading artifacts from coordinator...", "forbidden")
 		return common.DownloadForbidden
 	case 404:
 		log.Errorln("Downloading artifacts from coordinator...", "not found")
 		return common.DownloadNotFound
 	default:
-		log.Warningln("Downloading artifacts from coordinator...", "failed", res.Status)
+		log.WithField("status", res.Status).Warningln("Downloading artifacts from coordinator...", "failed")
 		return common.DownloadFailed
 	}
 }
