@@ -420,7 +420,7 @@ func (mr *RunCommand) Execute(context *cli.Context) {
 		log.SetFormatter(new(log.TextFormatter))
 		logger, err := service.SystemLogger(nil)
 		if err == nil {
-			log.AddHook(&ServiceLogHook{logger})
+			log.AddHook(&ServiceLogHook{logger, log.InfoLevel})
 		} else {
 			log.Errorln(err)
 		}
