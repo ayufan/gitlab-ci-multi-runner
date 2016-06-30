@@ -34,6 +34,10 @@
 			"Rev": "0099401a7342ad77e71ca9f9a57c5e72fb80f6b2"
 		},
 		{
+			"ImportPath": "github.com/getsentry/raven-go",
+			"Rev": "dffeb57df75d6a911f00232155194e43d79d38d7"
+		},
+		{
 			"ImportPath": "github.com/golang/mock/gomock",
 			"Rev": "06883d979f10cc178f2716846215c8cf90f9e363"
 		},
