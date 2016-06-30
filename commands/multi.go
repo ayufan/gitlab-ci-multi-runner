@@ -189,7 +189,11 @@ func (mr *RunCommand) loadConfig() error {
 
 	// initialize sentry
 	if mr.config.SentryDSN != nil {
-		mr.sentryLogHook = *sentry.NewLogHook(*mr.config.SentryDSN)
+		var err error
+		mr.sentryLogHook, err = sentry.NewLogHook(*mr.config.SentryDSN)
+		if err != nil {
+			mr.log().WithError(err).Errorln("Sentry failure")
+		}
 	} else {
 		mr.sentryLogHook = sentry.LogHook{}
 	}

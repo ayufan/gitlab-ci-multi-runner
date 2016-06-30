@@ -3,13 +3,13 @@ package sentry
 import (
 	"fmt"
 	"errors"
+	"runtime"
+	"os"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/getsentry/raven-go"
-	"time"
+
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"runtime"
-	"os"
 )
 
 type LogHook struct {
@@ -21,13 +21,12 @@ func (s *LogHook) Levels() []logrus.Level {
 		logrus.PanicLevel,
 		logrus.FatalLevel,
 		logrus.ErrorLevel,
-		logrus.WarnLevel,
 	}
 }
 
 func (s *LogHook) Fire(entry *logrus.Entry) error {
 	if s.client == nil {
-		return
+		return nil
 	}
 
 	tags := make(map[string]string)
@@ -44,15 +43,12 @@ func (s *LogHook) Fire(entry *logrus.Entry) error {
 
 	case logrus.ErrorLevel:
 		s.client.CaptureError(errors.New(entry.Message), tags)
-
-	case logrus.WarnLevel:
-		s.client.CaptureMessage(entry.Message, tags)
 	}
+	return nil
 }
 
-func NewLogHook(dsn string) *LogHook {
+func NewLogHook(dsn string) (lh LogHook, err error) {
 	tags := make(map[string]string)
-
 	tags["built"] = common.BUILT
 	tags["version"] = common.VERSION
 	tags["revision"] = common.REVISION
@@ -61,8 +57,10 @@ func NewLogHook(dsn string) *LogHook {
 	tags["go-os"] = runtime.GOOS
 	tags["go-arch"] = runtime.GOARCH
 	tags["hostname"], _ = os.Hostname()
-
-	return &LogHook{
-		client: raven.NewWithTags(dsn, tags)
+	client, err := raven.NewWithTags(dsn, tags)
+	if err != nil {
+		return
 	}
+	lh.client = client
+	return
 }
