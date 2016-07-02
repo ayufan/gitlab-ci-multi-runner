@@ -8,6 +8,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 )
@@ -44,6 +45,11 @@ func getKubeClient(config *common.KubernetesConfig) (*client.Client, error) {
 	return client.New(restConfig)
 }
 
+// waitForPodRunning will use client c to detect when pod reaches the PodRunning
+// state. It will check every second, and will return the final PodPhase once
+// either PodRunning, PodSucceeded or PodFailed has been reached. In the case of
+// PodRunning, it will also wait until all containers within the pod are also Ready
+// Returns error if the call to retreive pod details fails
 func waitForPodRunning(c *client.Client, pod *api.Pod, out io.Writer) (status api.PodPhase, err error) {
 	for {
 		pod, err := c.Pods(pod.Namespace).Get(pod.Name)
@@ -70,4 +76,56 @@ func waitForPodRunning(c *client.Client, pod *api.Pod, out io.Writer) (status ap
 		time.Sleep(1 * time.Second)
 		continue
 	}
+}
+
+// limits takes a string representing CPU & memory limits,
+// and returns a ResourceList with appropriately scaled Quantity
+// values for Kubernetes. This allows users to write "500m" for CPU,
+// and "50Mi" for memory (etc.)
+func limits(cpu, memory string) (api.ResourceList, error) {
+	var rCPU, rMem *resource.Quantity
+	var err error
+
+	parse := func(s string) (*resource.Quantity, error) {
+		var q *resource.Quantity
+		if len(s) == 0 {
+			return q, nil
+		}
+		if q, err = resource.ParseQuantity(s); err != nil {
+			return nil, fmt.Errorf("error parsing resource limit: %s", err.Error())
+		}
+		return q, nil
+	}
+
+	if rCPU, err = parse(cpu); err != nil {
+		return api.ResourceList{}, nil
+	}
+
+	if rMem, err = parse(memory); err != nil {
+		return api.ResourceList{}, nil
+	}
+
+	l := make(api.ResourceList)
+
+	if rCPU != nil {
+		l[api.ResourceLimitsCPU] = *rCPU
+	}
+	if rMem != nil {
+		l[api.ResourceLimitsMemory] = *rMem
+	}
+
+	return l, nil
+}
+
+// buildVariables converts a common.BuildVariables into a list of
+// kubernetes EnvVar objects
+func buildVariables(bv common.BuildVariables) []api.EnvVar {
+	e := make([]api.EnvVar, len(bv))
+	for i, b := range bv {
+		e[i] = api.EnvVar{
+			Name:  b.Key,
+			Value: b.Value,
+		}
+	}
+	return e
 }

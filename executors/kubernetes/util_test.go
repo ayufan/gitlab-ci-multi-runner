@@ -100,7 +100,7 @@ func TestWaitForPodRunning(t *testing.T) {
 						},
 					}
 
-					if retries > 2 {
+					if retries > 1 {
 						pod.Status.Phase = api.PodRunning
 						pod.Status.ContainerStatuses = []api.ContainerStatus{
 							{
@@ -109,7 +109,7 @@ func TestWaitForPodRunning(t *testing.T) {
 						}
 					}
 
-					if retries > 3 {
+					if retries > 2 {
 						pod.Status.ContainerStatuses = []api.ContainerStatus{
 							{
 								Ready: true,
@@ -125,7 +125,7 @@ func TestWaitForPodRunning(t *testing.T) {
 				}
 			},
 			PodEndPhase: api.PodRunning,
-			Retries:     3,
+			Retries:     2,
 		},
 		{
 			Pod: &api.Pod{

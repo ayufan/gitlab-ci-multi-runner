@@ -233,6 +233,121 @@ func TestCleanup(t *testing.T) {
 	}
 }
 
+func TestPrepare(t *testing.T) {
+	tests := []struct {
+		GlobalConfig *common.Config
+		RunnerConfig *common.RunnerConfig
+		Build        *common.Build
+
+		Expected *executor
+		Error    bool
+	}{
+		{
+			GlobalConfig: &common.Config{},
+			RunnerConfig: &common.RunnerConfig{
+				RunnerSettings: common.RunnerSettings{
+					Kubernetes: &common.KubernetesConfig{
+						Host:            "test-server",
+						ServiceCPUs:     "0.5",
+						ServiceMemory:   "200Mi",
+						CPUs:            "1.5",
+						Memory:          "4Gi",
+						AllowPrivileged: true,
+					},
+				},
+			},
+			Build: &common.Build{
+				GetBuildResponse: common.GetBuildResponse{
+					Sha: "1234567890",
+					Options: common.BuildOptions{
+						"image": "test-image",
+					},
+					Variables: common.BuildVariables{
+						{Key: "privileged", Value: "true"},
+					},
+				},
+				Runner: &common.RunnerConfig{},
+			},
+			Expected: &executor{
+				options: &kubernetesOptions{
+					Image: "test-image",
+				},
+				extraOptions: DefaultOptions{
+					BuildVariables: common.BuildVariables{
+						{Key: "privileged", Value: "true"},
+					},
+				},
+				serviceLimits: api.ResourceList{
+					api.ResourceLimitsCPU:    resource.MustParse("0.5"),
+					api.ResourceLimitsMemory: resource.MustParse("200Mi"),
+				},
+				buildLimits: api.ResourceList{
+					api.ResourceLimitsCPU:    resource.MustParse("1.5"),
+					api.ResourceLimitsMemory: resource.MustParse("4Gi"),
+				},
+			},
+		},
+		{
+			GlobalConfig: &common.Config{},
+			RunnerConfig: &common.RunnerConfig{
+				RunnerSettings: common.RunnerSettings{
+					Kubernetes: &common.KubernetesConfig{
+						Host:            "test-server",
+						ServiceCPUs:     "0.5",
+						ServiceMemory:   "200Mi",
+						CPUs:            "1.5",
+						Memory:          "4Gi",
+						AllowPrivileged: false,
+					},
+				},
+			},
+			Build: &common.Build{
+				GetBuildResponse: common.GetBuildResponse{
+					Sha: "1234567890",
+					Options: common.BuildOptions{
+						"image": "test-image",
+					},
+					Variables: common.BuildVariables{
+						{Key: "privileged", Value: "true"},
+					},
+				},
+				Runner: &common.RunnerConfig{},
+			},
+			Error: true,
+		},
+	}
+
+	for _, test := range tests {
+		e := &executor{
+			AbstractExecutor: executors.AbstractExecutor{
+				ExecutorOptions: executorOptions,
+			},
+		}
+
+		err := e.Prepare(test.GlobalConfig, test.RunnerConfig, test.Build)
+
+		if err != nil {
+			if !test.Error {
+				t.Errorf("Got error. Expected: %v", test.Expected)
+			}
+			continue
+		}
+
+		// Set this to nil so we aren't testing the functionality of the
+		// base AbstractExecutor's Prepare method
+		e.AbstractExecutor = executors.AbstractExecutor{}
+
+		// TODO: Improve this so we don't have to nil-ify the kubeClient.
+		// It currently contains some moving parts that are failing, meaning
+		// we'll need to mock _something_
+		e.kubeClient = nil
+		if !reflect.DeepEqual(e, test.Expected) {
+			t.Errorf("Got executor '%+v' but expected '%+v'", e, test.Expected)
+			continue
+		}
+	}
+}
+
 type FakeReadCloser struct {
 	io.Reader
 }
