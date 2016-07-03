@@ -48,7 +48,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 		return err
 	}
 
-	if s.BuildScript.PassFile {
+	if s.BuildShell.PassFile {
 		return fmt.Errorf("Kubernetes doesn't support shells that require script file")
 	}
 
@@ -107,8 +107,8 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 				},
 				RestartPolicy: api.RestartPolicyNever,
 				Containers: append([]api.Container{
-					s.buildContainer("build", s.options.Image, s.buildLimits, s.BuildScript.DockerCommand...),
-					s.buildContainer("pre", "munnerz/gitlab-runner-helper", s.serviceLimits, s.BuildScript.DockerCommand...),
+					s.buildContainer("build", s.options.Image, s.buildLimits, s.BuildShell.DockerCommand...),
+					s.buildContainer("pre", "munnerz/gitlab-runner-helper", s.serviceLimits, s.BuildShell.DockerCommand...),
 				}, services...),
 			},
 		})
@@ -129,7 +129,7 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 	select {
 	case err := <-s.runInContainer(containerName, cmd.Script):
 		return err
-	case _ = <-cmd.Abort:
+	case <-cmd.Abort:
 		return fmt.Errorf("build aborted")
 	}
 }
@@ -146,7 +146,7 @@ func (s *executor) Cleanup() {
 }
 
 func (s *executor) buildContainer(name, image string, limits api.ResourceList, command ...string) api.Container {
-	path := strings.Split(s.Shell.Build.BuildDir, "/")
+	path := strings.Split(s.Build.BuildDir, "/")
 	path = path[:len(path)-1]
 
 	privileged := s.extraOptions.Privileged()
@@ -200,7 +200,7 @@ func (s *executor) runInContainer(name, command string) <-chan error {
 			PodName:       s.pod.Name,
 			Namespace:     s.pod.Namespace,
 			ContainerName: name,
-			Command:       s.BuildScript.DockerCommand,
+			Command:       s.BuildShell.DockerCommand,
 			In:            strings.NewReader(command),
 			Out:           s.BuildLog,
 			Err:           s.BuildLog,
