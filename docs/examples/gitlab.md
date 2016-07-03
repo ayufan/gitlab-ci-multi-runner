@@ -9,7 +9,7 @@ You can export it as a variable and run the command below as is:
 gitlab-ci-multi-runner register \
 --non-interactive \
 --url "https://ci.gitlab.com/" \
---registration-token "REGISTRATION_TOKEN" \
+--registration-token "$REGISTRATION_TOKEN" \
 --description "gitlab-ce-ruby-2.1" \
 --executor "docker" \
 --docker-image ruby:2.1 --docker-mysql latest \
