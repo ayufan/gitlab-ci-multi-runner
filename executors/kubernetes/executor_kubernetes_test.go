@@ -262,8 +262,8 @@ func TestPrepare(t *testing.T) {
 					Options: common.BuildOptions{
 						"image": "test-image",
 					},
-					Variables: common.BuildVariables{
-						{Key: "privileged", Value: "true"},
+					Variables: []common.BuildVariable{
+						common.BuildVariable{Key: "privileged", Value: "true"},
 					},
 				},
 				Runner: &common.RunnerConfig{},
@@ -273,8 +273,8 @@ func TestPrepare(t *testing.T) {
 					Image: "test-image",
 				},
 				extraOptions: DefaultOptions{
-					BuildVariables: common.BuildVariables{
-						{Key: "privileged", Value: "true"},
+					BuildVariables: []common.BuildVariable{
+						common.BuildVariable{Key: "privileged", Value: "true"},
 					},
 				},
 				serviceLimits: api.ResourceList{
@@ -307,8 +307,8 @@ func TestPrepare(t *testing.T) {
 					Options: common.BuildOptions{
 						"image": "test-image",
 					},
-					Variables: common.BuildVariables{
-						{Key: "privileged", Value: "true"},
+					Variables: []common.BuildVariable{
+						common.BuildVariable{Key: "privileged", Value: "true"},
 					},
 				},
 				Runner: &common.RunnerConfig{},
