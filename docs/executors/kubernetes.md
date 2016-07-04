@@ -81,10 +81,10 @@ concurrent = 4
   token = "......"
   executor = "kubernetes"
   [runners.kubernetes]
-		host = "https://45.67.34.123:4892"
-		cert_file = "/etc/ssl/kubernetes/api.crt"
-		key_file = "/etc/ssl/kubernetes/api.key"
-		ca_file = "/etc/ssl/kubernetes/ca.crt"
+    host = "https://45.67.34.123:4892"
+    cert_file = "/etc/ssl/kubernetes/api.crt"
+    key_file = "/etc/ssl/kubernetes/api.key"
+    ca_file = "/etc/ssl/kubernetes/ca.crt"
     namespace = "gitlab"
     allow_privileged = true
     cpus = "750m"
