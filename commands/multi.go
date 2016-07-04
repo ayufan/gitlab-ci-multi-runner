@@ -16,6 +16,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/sentry"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/service"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/network"
 )
@@ -31,6 +32,8 @@ type RunCommand struct {
 	WorkingDirectory string `short:"d" long:"working-directory" description:"Specify custom working directory"`
 	User             string `short:"u" long:"user" description:"Use specific user to execute shell scripts"`
 	Syslog           bool   `long:"syslog" description:"Log to syslog"`
+
+	sentryLogHook sentry.LogHook
 
 	// abortBuilds is used to abort running builds
 	abortBuilds chan os.Signal
@@ -183,6 +186,18 @@ func (mr *RunCommand) loadConfig() error {
 
 	mr.healthy = nil
 	mr.log().Println("Config loaded:", helpers.ToYAML(mr.config))
+
+	// initialize sentry
+	if mr.config.SentryDSN != nil {
+		var err error
+		mr.sentryLogHook, err = sentry.NewLogHook(*mr.config.SentryDSN)
+		if err != nil {
+			mr.log().WithError(err).Errorln("Sentry failure")
+		}
+	} else {
+		mr.sentryLogHook = sentry.LogHook{}
+	}
+
 	return nil
 }
 
@@ -410,6 +425,8 @@ func (mr *RunCommand) Execute(context *cli.Context) {
 			log.Errorln(err)
 		}
 	}
+
+	log.AddHook(&mr.sentryLogHook)
 
 	err = service.Run()
 	if err != nil {

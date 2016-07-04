@@ -131,6 +131,7 @@ type Config struct {
 	CheckInterval int             `toml:"check_interval" json:"check_interval" description:"Define active checking interval of jobs"`
 	User          string          `toml:"user,omitempty" json:"user"`
 	Runners       []*RunnerConfig `toml:"runners" json:"runners"`
+	SentryDSN     *string         `toml:"sentry_dsn"`
 	ModTime       time.Time       `toml:"-"`
 	Loaded        bool            `toml:"-"`
 }
