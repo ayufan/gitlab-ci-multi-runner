@@ -72,7 +72,7 @@ Each of the keywords can be defined in the `config.toml` for the gitlab runner.
 
 Here is an example `config.toml`:
 
-```
+```toml
 concurrent = 4
 
 [[runners]]
