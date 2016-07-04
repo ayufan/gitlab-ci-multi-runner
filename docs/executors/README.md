@@ -9,6 +9,7 @@ builds in different scenarios:
 - [Parallels](parallels.md)
 - [VirtualBox](virtualbox.md)
 - [SSH](ssh.md)
+- [Kubernetes](kubernetes.md)
 
 ## Select the executor
 
@@ -16,13 +17,13 @@ The executors support different platforms and methodologies for building a
 project. The table below shows the key facts for each executor which will help
 you decide.
 
-| Executor                                          | Shell   | Docker | Docker-SSH | VirtualBox | Parallels | SSH  |
-|---------------------------------------------------|---------|--------|------------|------------|-----------|------|
-| Clean build environment for every build           | no      | ✓      | ✓          | ✓          | ✓         | no   |
-| Migrate runner machine                            | no      | ✓      | ✓          | partial    | partial   | no   |
-| Zero-configuration support for concurrent builds  | no (1)  | ✓      | ✓          | ✓          | ✓         | no   |
-| Complicated build environments                    | no (2)  | ✓      | ✓          | ✓ (3)      | ✓ (3)     | no   |
-| Debugging build problems                          | easy    | medium | medium     | hard       | hard      | easy |
+| Executor                                          | Shell   | Docker | Docker-SSH | VirtualBox | Parallels | SSH  | Kubernetes |
+|---------------------------------------------------|---------|--------|------------|------------|-----------|------|------------|
+| Clean build environment for every build           | no      | ✓      | ✓          | ✓          | ✓         | no   | ✓          |
+| Migrate runner machine                            | no      | ✓      | ✓          | partial    | partial   | no   | ✓          |
+| Zero-configuration support for concurrent builds  | no (1)  | ✓      | ✓          | ✓          | ✓         | no   | ✓          |
+| Complicated build environments                    | no (2)  | ✓      | ✓          | ✓ (3)      | ✓ (3)     | no   | ✓          |
+| Debugging build problems                          | easy    | medium | medium     | hard       | hard      | easy | medium     |
 
 1. it's possible, but in most cases it is problematic if the build uses services
    installed on the build machine
