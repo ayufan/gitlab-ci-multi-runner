@@ -235,21 +235,25 @@ func (b *Build) run(executor Executor) (err error) {
 }
 
 func (b *Build) Run(globalConfig *Config, trace BuildTrace) (err error) {
+	var executor Executor
+
 	defer func() {
 		if err != nil {
 			trace.Fail(err)
 		} else {
 			trace.Success()
 		}
+		if executor != nil {
+			executor.Cleanup()
+		}
 	}()
-	b.Trace = trace
 
-	executor := NewExecutor(b.Runner.Executor)
+	b.Trace = trace
+	executor = NewExecutor(b.Runner.Executor)
 	if executor == nil {
 		fmt.Fprint(trace, "Executor not found:", b.Runner.Executor)
 		return errors.New("executor not found")
 	}
-	defer executor.Cleanup()
 
 	err = executor.Prepare(globalConfig, b.Runner, b)
 	if err == nil {
