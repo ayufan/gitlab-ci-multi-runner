@@ -101,7 +101,7 @@ resources that you can then push to the cluster with kubectl.
 A recommended approach to this is to create a `ConfigMap` in kubernetes such as
 the following:
 
-```
+```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -124,7 +124,7 @@ data:
 Then create a `Deployment` or `ReplicationController` which uses the `ConfigMap`.
 This is an example of a `Deployment`:
 
-```
+```yaml
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
