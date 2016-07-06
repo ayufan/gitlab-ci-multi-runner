@@ -90,7 +90,7 @@ func (n *GitLabClient) GetBuild(config common.RunnerConfig) (*common.GetBuildRes
 
 	switch result {
 	case 201:
-		config.Log().Println("Checking for builds...", "received")
+		config.Log().WithField("build", strconv.Itoa(response.ID)).Println("Checking for builds...", "received")
 		response.TLSCAChain = certificates
 		return &response, true
 	case 403:
@@ -192,7 +192,7 @@ func (n *GitLabClient) UpdateBuild(config common.RunnerConfig, id int, state com
 		Trace: trace,
 	}
 
-	log := config.Log().WithField("id", id)
+	log := config.Log().WithField("build", id)
 
 	result, statusText, _ := n.doJSON(config.RunnerCredentials, "PUT", fmt.Sprintf("builds/%d.json", id), 200, &request, nil)
 	switch result {
@@ -236,7 +236,7 @@ func (n *GitLabClient) PatchTrace(config common.RunnerConfig, buildCredentials *
 	remoteState := response.Header.Get("Build-Status")
 	remoteRange := response.Header.Get("Range")
 	log := config.Log().WithFields(logrus.Fields{
-		"id":           id,
+		"build":        id,
 		"sent-log":     contentRange,
 		"build-log":    remoteRange,
 		"build-status": remoteState,
