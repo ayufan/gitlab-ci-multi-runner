@@ -55,8 +55,8 @@ func (s *sshExecutor) Prepare(globalConfig *common.Config, config *common.Runner
 	// Create SSH command
 	s.sshCommand = ssh.Client{
 		Config: *s.Config.SSH,
-		Stdout: s.BuildLog,
-		Stderr: s.BuildLog,
+		Stdout: s.BuildTrace,
+		Stderr: s.BuildTrace,
 	}
 	s.sshCommand.Host = containerData.NetworkSettings.IPAddress
 
@@ -69,12 +69,16 @@ func (s *sshExecutor) Prepare(globalConfig *common.Config, config *common.Runner
 }
 
 func (s *sshExecutor) Run(cmd common.ExecutorCommand) error {
-	return s.sshCommand.Run(ssh.Command{
+	err := s.sshCommand.Run(ssh.Command{
 		Environment: s.BuildShell.Environment,
 		Command:     s.BuildShell.GetCommandWithArguments(),
 		Stdin:       cmd.Script,
 		Abort:       cmd.Abort,
 	})
+	if _, ok := err.(*ssh.ExitError); ok {
+		err = &common.BuildError{Inner: err}
+	}
+	return err
 }
 
 func (s *sshExecutor) Cleanup() {

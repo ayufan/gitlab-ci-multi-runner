@@ -78,8 +78,8 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 
 	// Fill process environment variables
 	c.Env = append(os.Environ(), s.BuildShell.Environment...)
-	c.Stdout = s.BuildLog
-	c.Stderr = s.BuildLog
+	c.Stdout = s.BuildTrace
+	c.Stderr = s.BuildTrace
 
 	if s.BuildShell.PassFile {
 		scriptDir, err := ioutil.TempDir("", "build_script")
@@ -108,7 +108,11 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 	// Wait for process to finish
 	waitCh := make(chan error)
 	go func() {
-		waitCh <- c.Wait()
+		err := c.Wait()
+		if _, ok := err.(*exec.ExitError); ok {
+			err = &common.BuildError{Inner: err}
+		}
+		waitCh <- err
 	}()
 
 	// Support process abort

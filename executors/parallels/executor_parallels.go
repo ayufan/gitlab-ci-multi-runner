@@ -63,8 +63,8 @@ func (s *executor) verifyMachine(vmName string) error {
 	// Create SSH command
 	sshCommand := ssh.Client{
 		Config:         *s.Config.SSH,
-		Stdout:         s.BuildLog,
-		Stderr:         s.BuildLog,
+		Stdout:         s.BuildTrace,
+		Stderr:         s.BuildTrace,
 		ConnectRetries: 30,
 	}
 	sshCommand.Host = ipAddr
@@ -272,8 +272,8 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 	s.Debugln("Starting SSH command...")
 	s.sshCommand = ssh.Client{
 		Config: *s.Config.SSH,
-		Stdout: s.BuildLog,
-		Stderr: s.BuildLog,
+		Stdout: s.BuildTrace,
+		Stderr: s.BuildTrace,
 	}
 	s.sshCommand.Host = ipAddr
 
@@ -286,12 +286,16 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 }
 
 func (s *executor) Run(cmd common.ExecutorCommand) error {
-	return s.sshCommand.Run(ssh.Command{
+	err := s.sshCommand.Run(ssh.Command{
 		Environment: s.BuildShell.Environment,
 		Command:     s.BuildShell.GetCommandWithArguments(),
 		Stdin:       cmd.Script,
 		Abort:       cmd.Abort,
 	})
+	if _, ok := err.(*ssh.ExitError); ok {
+		err = &common.BuildError{Inner: err}
+	}
+	return err
 }
 
 func (s *executor) Cleanup() {

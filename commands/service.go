@@ -2,14 +2,15 @@ package commands
 
 import (
 	"fmt"
+	"os"
+	"runtime"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/ayufan/golang-kardianos-service"
 	"github.com/codegangsta/cli"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/service"
-	"os"
-	"runtime"
 )
 
 const (
@@ -20,6 +21,7 @@ const (
 
 type ServiceLogHook struct {
 	service.Logger
+	Level logrus.Level
 }
 
 func (s *ServiceLogHook) Levels() []logrus.Level {
@@ -32,14 +34,18 @@ func (s *ServiceLogHook) Levels() []logrus.Level {
 	}
 }
 
-func (s *ServiceLogHook) Fire(e *logrus.Entry) error {
-	switch e.Level {
+func (s *ServiceLogHook) Fire(entry *logrus.Entry) error {
+	if entry.Level > s.Level {
+		return nil
+	}
+
+	switch entry.Level {
 	case logrus.PanicLevel, logrus.FatalLevel, logrus.ErrorLevel:
-		s.Error(e.Message)
+		s.Error(entry.String())
 	case logrus.WarnLevel:
-		s.Warning(e.Message)
+		s.Warning(entry.String())
 	case logrus.InfoLevel:
-		s.Info(e.Message)
+		s.Info(entry.String())
 	}
 	return nil
 }

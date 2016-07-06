@@ -717,8 +717,8 @@ func (s *executor) watchContainer(container *docker.Container, input io.Reader, 
 	options := docker.AttachToContainerOptions{
 		Container:    container.ID,
 		InputStream:  input,
-		OutputStream: s.BuildLog,
-		ErrorStream:  s.BuildLog,
+		OutputStream: s.BuildTrace,
+		ErrorStream:  s.BuildTrace,
 		Logs:         false,
 		Stream:       true,
 		Stdin:        true,
@@ -740,7 +740,9 @@ func (s *executor) watchContainer(container *docker.Container, input io.Reader, 
 		exitCode, err := s.client.WaitContainer(container.ID)
 		if err == nil {
 			if exitCode != 0 {
-				err = fmt.Errorf("exit code %d", exitCode)
+				err = &common.BuildError{
+					Inner: fmt.Errorf("exit code %d", exitCode),
+				}
 			}
 		}
 		waitCh <- err
@@ -972,6 +974,6 @@ func (s *executor) waitForServiceContainer(container *docker.Container, timeout 
 	buffer.WriteString("\n")
 	buffer.WriteString(helpers.ANSI_YELLOW + "*********" + helpers.ANSI_RESET + "\n")
 	buffer.WriteString("\n")
-	io.Copy(s.BuildLog, &buffer)
+	io.Copy(s.BuildTrace, &buffer)
 	return err
 }

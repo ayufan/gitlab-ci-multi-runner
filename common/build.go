@@ -222,7 +222,7 @@ func (b *Build) run(executor Executor) (err error) {
 		return err
 	}
 
-	b.Log().Debugln("Waiting for build to finish...", err)
+	b.Log().WithError(err).Debugln("Waiting for build to finish...")
 
 	// Wait till we receive that build did finish
 	for {
@@ -237,10 +237,18 @@ func (b *Build) run(executor Executor) (err error) {
 func (b *Build) Run(globalConfig *Config, trace BuildTrace) (err error) {
 	var executor Executor
 
+	logger := NewBuildLogger(trace, b.Log())
+	logger.Infoln(VersionLine() + helpers.ANSI_RESET)
+
 	defer func() {
-		if err != nil {
+		if _, ok := err.(*BuildError); ok {
+			logger.SoftErrorln("Build failed:", err)
+			trace.Fail(err)
+		} else if err != nil {
+			logger.Errorln("Build failed (system failure):", err)
 			trace.Fail(err)
 		} else {
+			logger.Infoln("Build succeeded")
 			trace.Success()
 		}
 		if executor != nil {
@@ -251,7 +259,6 @@ func (b *Build) Run(globalConfig *Config, trace BuildTrace) (err error) {
 	b.Trace = trace
 	executor = NewExecutor(b.Runner.Executor)
 	if executor == nil {
-		fmt.Fprint(trace, "Executor not found:", b.Runner.Executor)
 		return errors.New("executor not found")
 	}
 
