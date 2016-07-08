@@ -68,8 +68,9 @@ func init() {
 		DefaultBuildsDir: "builds",
 		SharedBuildsDir:  true,
 		Shell: common.ShellScriptInfo{
-			Shell: "bash",
-			Type:  common.LoginShell,
+			Shell:         "bash",
+			Type:          common.LoginShell,
+			RunnerCommand: "gitlab-runner",
 		},
 		ShowHostname: true,
 	}

@@ -91,6 +91,11 @@ func (b *BashWriter) IfFile(path string) {
 	b.Indent()
 }
 
+func (b *BashWriter) IfCmd(cmd string, arguments ...string) {
+	b.Line(fmt.Sprintf("if %q %s >/dev/null 2>/dev/null; then", cmd, strings.Join(arguments, " ")))
+	b.Indent()
+}
+
 func (b *BashWriter) Else() {
 	b.Unindent()
 	b.Line("else")

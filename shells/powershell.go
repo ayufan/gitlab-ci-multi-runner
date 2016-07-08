@@ -101,6 +101,12 @@ func (b *PsWriter) IfFile(path string) {
 	b.Indent()
 }
 
+func (b *PsWriter) IfCmd(cmd string, arguments ...string) {
+	cmd = cmd + " " + strings.Join(arguments, " ")
+	b.Line(fmt.Sprintf("if(iex %s 2>$null) {", psQuote(cmd)))
+	b.Indent()
+}
+
 func (b *PsWriter) Else() {
 	b.Unindent()
 	b.Line("} else {")

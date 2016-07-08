@@ -317,8 +317,9 @@ func init() {
 		DefaultBuildsDir: "builds",
 		SharedBuildsDir:  false,
 		Shell: common.ShellScriptInfo{
-			Shell: "bash",
-			Type:  common.LoginShell,
+			Shell:         "bash",
+			Type:          common.LoginShell,
+			RunnerCommand: "gitlab-runner",
 		},
 		ShowHostname: true,
 	}

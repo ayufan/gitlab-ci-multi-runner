@@ -73,10 +73,10 @@ Supported features by different executors:
 | GitLab Runner Exec command            | ✓       | ✓      | ✓          | no         | no        | no   |
 | gitlab-ci.yml: image                  | no      | ✓      | ✓          | no         | no        | no   |
 | gitlab-ci.yml: services               | no      | ✓      | ✓          | no         | no        | no   |
-| gitlab-ci.yml: cache                  | ✓       | ✓      | no         | no         | no        | no   |
-| gitlab-ci.yml: artifacts              | ✓       | ✓      | no         | no         | no        | no   |
+| gitlab-ci.yml: cache                  | ✓       | ✓      | ✓          | ✓          | ✓         | ✓    |
+| gitlab-ci.yml: artifacts              | ✓       | ✓      | ✓          | ✓          | ✓         | ✓    |
 | Absolute paths: caching, artifacts    | no      | no     | no         | no         | no        | no   |
-| Passing artifacts between stages      | ✓       | ✓      | no         | no         | no        | no   |
+| Passing artifacts between stages      | ✓       | ✓      | ✓          | ✓          | ✓         | ✓    |
 
 Supported systems by different shells:
 
