@@ -56,10 +56,6 @@
 			"Rev": "4f601205d475e1995472d81b3787b197008c5dd7"
 		},
 		{
-			"ImportPath": "github.com/ramr/go-reaper",
-			"Rev": "1a6cbc07ef2f7e248769ef4efd80aaa16f97ec12"
-		},
-		{
 			"ImportPath": "github.com/stretchr/objx",
 			"Rev": "cbeaeb16a013161a98496fad62933b1d21786672"
 		},
