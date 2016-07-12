@@ -24,7 +24,10 @@ RPM_PLATFORMS ?= el/6 el/7 \
     ol/6 ol/7 \
     fedora/20 fedora/21 fedora/22 fedora/23
 RPM_ARCHS ?= x86_64 i686 arm armhf
-GO_LDFLAGS ?= -X main.NAME=$(PACKAGE_NAME) -X main.VERSION=$(VERSION) -X main.REVISION=$(REVISION) -X main.BUILT=$(BUILT) -X main.BRANCH=$(BRANCH)
+COMMON_PACKAGE_NAMESPACE=$(shell go list ./common)
+GO_LDFLAGS ?= -X $(COMMON_PACKAGE_NAMESPACE).NAME=$(PACKAGE_NAME) -X $(COMMON_PACKAGE_NAMESPACE).VERSION=$(VERSION) \
+              -X $(COMMON_PACKAGE_NAMESPACE).REVISION=$(REVISION) -X $(COMMON_PACKAGE_NAMESPACE).BUILT=$(BUILT) \
+              -X $(COMMON_PACKAGE_NAMESPACE).BRANCH=$(BRANCH)
 GO_FILES ?= $(shell find . -name '*.go')
 export GO15VENDOREXPERIMENT := 1
 export CGO_ENABLED := 0
@@ -152,11 +155,13 @@ build: executors/docker/bindata.go
 		-ldflags "$(GO_LDFLAGS)" \
 		-output="out/binaries/$(NAME)-{{.OS}}-{{.Arch}}"
 
-build_current: executors/docker/bindata.go
+build_simple:
 	# Building $(NAME) in version $(VERSION) for current platform
 	go build \
 		-ldflags "$(GO_LDFLAGS)" \
 		-o "out/binaries/$(NAME)"
+
+build_current: executors/docker/bindata.go build_simple
 
 fmt:
 	# Checking project code formatting...

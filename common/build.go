@@ -238,7 +238,7 @@ func (b *Build) Run(globalConfig *Config, trace BuildTrace) (err error) {
 	var executor Executor
 
 	logger := NewBuildLogger(trace, b.Log())
-	logger.Infoln(VersionLine() + helpers.ANSI_RESET)
+	logger.Infoln(AppVersion.Line() + helpers.ANSI_RESET)
 
 	defer func() {
 		if _, ok := err.(*BuildError); ok {
