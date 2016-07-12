@@ -5,13 +5,13 @@
 ### For Debian/Ubuntu
 ```bash
 apt-get install -y mercurial git-core wget make
-wget https://storage.googleapis.com/golang/go1.4.2.linux-amd64.tar.gz
+wget https://storage.googleapis.com/golang/go1.6.2.linux-amd64.tar.gz
 sudo tar -C /usr/local -xzf go*-*.tar.gz
 ```
 
 ### For OSX using binary package
 ```bash
-wget https://storage.googleapis.com/golang/go1.4.2.darwin-amd64-osx10.8.tar.gz
+wget https://storage.googleapis.com/golang/go1.6.2.darwin-amd64.tar.gz
 sudo tar -C /usr/local -xzf go*-*.tar.gz
 ```
 
@@ -22,13 +22,13 @@ brew install go
 
 ### For OSX using installation package
 ```
-wget https://storage.googleapis.com/golang/go1.4.2.darwin-amd64-osx10.8.pkg
+wget https://storage.googleapis.com/golang/go1.6.2.darwin-amd64.pkg
 open go*-*.pkg
 ```
 
 ### For FreeBSD
 ```
-pkg install go-1.4.2 gmake git mercurial
+pkg install go-1.6.2 gmake git mercurial
 ```
 
 ## 2. Install Docker Engine
