@@ -3,24 +3,17 @@ package virtualbox
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/ssh"
-	"github.com/stretchr/testify/require"
-	"os/exec"
 )
 
-func SkipIfNoVBoxManage(t *testing.T) bool {
-	_, err := exec.LookPath("VBoxManage")
-	if err == nil {
-		return false
-	}
-	t.Skip("Missing VBoxManage")
-	return true
-}
+const vboxManage = "VBoxManage"
 
 func TestVirtualBoxExecutorRegistered(t *testing.T) {
 	executors := common.GetExecutors()
@@ -33,21 +26,12 @@ func TestVirtualBoxCreateExecutor(t *testing.T) {
 }
 
 func TestVirtualBoxSuccessRun(t *testing.T) {
-	if helpers.SkipIntegrationTest(t) {
-		return
-	}
-	if SkipIfNoVBoxManage(t) {
+	if helpers.SkipIntegrationTest(t, vboxManage) {
 		return
 	}
 
 	build := &common.Build{
-		GetBuildResponse: common.GetBuildResponse{
-			RepoURL:       "https://gitlab.com/gitlab-org/gitlab-test.git",
-			Commands:      "echo Hello World",
-			Sha:           "6907208d755b60ebeacb2e9dfea74c92c3449a1f",
-			BeforeSha:     "c347ca2e140aa667b968e51ed0ffe055501fe4f4",
-			RefName:       "master",
-		},
+		GetBuildResponse: common.SuccessfulBuild,
 		Runner: &common.RunnerConfig{
 			RunnerSettings: common.RunnerSettings{
 				Executor: "virtualbox",
@@ -67,21 +51,12 @@ func TestVirtualBoxSuccessRun(t *testing.T) {
 }
 
 func TestVirtualBoxBuildFail(t *testing.T) {
-	if helpers.SkipIntegrationTest(t) {
-		return
-	}
-	if SkipIfNoVBoxManage(t) {
+	if helpers.SkipIntegrationTest(t, vboxManage) {
 		return
 	}
 
 	build := &common.Build{
-		GetBuildResponse: common.GetBuildResponse{
-			RepoURL:       "https://gitlab.com/gitlab-org/gitlab-test.git",
-			Commands:      "exit 1",
-			Sha:           "6907208d755b60ebeacb2e9dfea74c92c3449a1f",
-			BeforeSha:     "c347ca2e140aa667b968e51ed0ffe055501fe4f4",
-			RefName:       "master",
-		},
+		GetBuildResponse: common.FailedBuild,
 		Runner: &common.RunnerConfig{
 			RunnerSettings: common.RunnerSettings{
 				Executor: "virtualbox",
@@ -102,10 +77,7 @@ func TestVirtualBoxBuildFail(t *testing.T) {
 }
 
 func TestVirtualBoxMissingImage(t *testing.T) {
-	if helpers.SkipIntegrationTest(t) {
-		return
-	}
-	if SkipIfNoVBoxManage(t) {
+	if helpers.SkipIntegrationTest(t, vboxManage) {
 		return
 	}
 
@@ -130,10 +102,7 @@ func TestVirtualBoxMissingImage(t *testing.T) {
 }
 
 func TestVirtualBoxMissingSSHCredentials(t *testing.T) {
-	if helpers.SkipIntegrationTest(t) {
-		return
-	}
-	if SkipIfNoVBoxManage(t) {
+	if helpers.SkipIntegrationTest(t, vboxManage) {
 		return
 	}
 
@@ -151,4 +120,85 @@ func TestVirtualBoxMissingSSHCredentials(t *testing.T) {
 	err := build.Run(&common.Config{}, &common.Trace{Writer: os.Stdout})
 	require.Error(t, err)
 	assert.Contains(t, "Missing SSH config", err.Error())
+}
+
+
+func TestVirtualBoxBuildAbort(t *testing.T) {
+	if helpers.SkipIntegrationTest(t) {
+		return
+	}
+
+	build := &common.Build{
+		GetBuildResponse: common.LongRunningBuild,
+		Runner: &common.RunnerConfig{
+			RunnerSettings: common.RunnerSettings{
+				Executor: "virtualbox",
+				VirtualBox: &common.VirtualBoxConfig{
+					BaseName: "alpine",
+				},
+				SSH: &ssh.Config{
+					User:     "root",
+					Password: "root",
+				},
+			},
+		},
+		BuildAbort: make(chan os.Signal, 1),
+	}
+
+	abortTimer := time.AfterFunc(time.Second, func() {
+		t.Log("Interrupt")
+		build.BuildAbort <- os.Interrupt
+	})
+	defer abortTimer.Stop()
+
+	timeoutTimer := time.AfterFunc(time.Minute, func() {
+		t.Log("Timedout")
+		t.FailNow()
+	})
+	defer timeoutTimer.Stop()
+
+	err := build.Run(&common.Config{}, &common.Trace{Writer: os.Stdout})
+	assert.EqualError(t, err, "aborted: interrupt")
+}
+
+func TestVirtualBoxBuildCancel(t *testing.T) {
+	if helpers.SkipIntegrationTest(t) {
+		return
+	}
+
+	build := &common.Build{
+		GetBuildResponse: common.LongRunningBuild,
+		Runner: &common.RunnerConfig{
+			RunnerSettings: common.RunnerSettings{
+				Executor: "virtualbox",
+				VirtualBox: &common.VirtualBoxConfig{
+					BaseName: "alpine",
+				},
+				SSH: &ssh.Config{
+					User:     "root",
+					Password: "root",
+				},
+			},
+		},
+	}
+
+	trace := &common.Trace{Writer: os.Stdout}
+
+	abortTimer := time.AfterFunc(time.Second, func() {
+		t.Log("Interrupt")
+		for trace.Abort == nil {
+			time.Sleep(time.Second)
+		}
+		trace.Abort()
+	})
+	defer abortTimer.Stop()
+
+	timeoutTimer := time.AfterFunc(time.Minute, func() {
+		t.Log("Timedout")
+		t.FailNow()
+	})
+	defer timeoutTimer.Stop()
+
+	err := build.Run(&common.Config{}, trace)
+	assert.EqualError(t, err, "canceled")
 }
