@@ -14,7 +14,7 @@ type BuildLogger struct {
 
 func (e *BuildLogger) sendLog(logger func(args ...interface{}), logPrefix string, args ...interface{}) {
 	if e.log != nil {
-		fmt.Fprintln(e.log, logPrefix+fmt.Sprintln(args...)+helpers.ANSI_RESET)
+		fmt.Fprint(e.log, logPrefix+fmt.Sprintln(args...)+helpers.ANSI_RESET)
 
 		if e.log.IsStdout() {
 			return
