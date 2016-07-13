@@ -1,11 +1,11 @@
 package helpers
 
 import (
-	"testing"
 	"os/exec"
+	"testing"
 )
 
-func SkipIntegrationTests(t *testing.T, apps... string) bool {
+func SkipIntegrationTests(t *testing.T, apps ...string) bool {
 	if testing.Short() {
 		t.Skip("Skipping long tests")
 		return true

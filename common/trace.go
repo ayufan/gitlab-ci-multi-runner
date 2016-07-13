@@ -7,7 +7,7 @@ import (
 
 type Trace struct {
 	Writer io.Writer
-	Abort func()
+	Abort  func()
 }
 
 func (s *Trace) Write(p []byte) (n int, err error) {

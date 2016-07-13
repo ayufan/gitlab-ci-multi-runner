@@ -88,7 +88,7 @@ func TestShellBuildAbort(t *testing.T) {
 	})
 	defer abortTimer.Stop()
 
-	timeoutTimer := time.AfterFunc(time.Second * 3, func() {
+	timeoutTimer := time.AfterFunc(time.Second*3, func() {
 		t.Log("Timedout")
 		t.FailNow()
 	})
@@ -122,7 +122,7 @@ func TestShellBuildCancel(t *testing.T) {
 	})
 	defer abortTimer.Stop()
 
-	timeoutTimer := time.AfterFunc(time.Second * 3, func() {
+	timeoutTimer := time.AfterFunc(time.Second*3, func() {
 		t.Log("Timedout")
 		t.FailNow()
 	})
