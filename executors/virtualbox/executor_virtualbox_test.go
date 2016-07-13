@@ -26,7 +26,7 @@ func TestVirtualBoxCreateExecutor(t *testing.T) {
 }
 
 func TestVirtualBoxSuccessRun(t *testing.T) {
-	if helpers.SkipIntegrationTest(t, vboxManage) {
+	if helpers.SkipIntegrationTests(t, vboxManage) {
 		return
 	}
 
@@ -36,7 +36,8 @@ func TestVirtualBoxSuccessRun(t *testing.T) {
 			RunnerSettings: common.RunnerSettings{
 				Executor: "virtualbox",
 				VirtualBox: &common.VirtualBoxConfig{
-					BaseName: "alpine",
+					BaseName:         "alpine",
+					DisableSnapshots: true,
 				},
 				SSH: &ssh.Config{
 					User:     "root",
@@ -51,7 +52,7 @@ func TestVirtualBoxSuccessRun(t *testing.T) {
 }
 
 func TestVirtualBoxBuildFail(t *testing.T) {
-	if helpers.SkipIntegrationTest(t, vboxManage) {
+	if helpers.SkipIntegrationTests(t, vboxManage) {
 		return
 	}
 
@@ -61,7 +62,8 @@ func TestVirtualBoxBuildFail(t *testing.T) {
 			RunnerSettings: common.RunnerSettings{
 				Executor: "virtualbox",
 				VirtualBox: &common.VirtualBoxConfig{
-					BaseName: "alpine",
+					BaseName:         "alpine",
+					DisableSnapshots: true,
 				},
 				SSH: &ssh.Config{
 					User:     "root",
@@ -73,11 +75,12 @@ func TestVirtualBoxBuildFail(t *testing.T) {
 
 	err := build.Run(&common.Config{}, &common.Trace{Writer: os.Stdout})
 	require.Error(t, err, "error")
+	assert.IsType(t, err, &common.BuildError{})
 	assert.Contains(t, "Process exited with: 1", err.Error())
 }
 
 func TestVirtualBoxMissingImage(t *testing.T) {
-	if helpers.SkipIntegrationTest(t, vboxManage) {
+	if helpers.SkipIntegrationTests(t, vboxManage) {
 		return
 	}
 
@@ -86,7 +89,8 @@ func TestVirtualBoxMissingImage(t *testing.T) {
 			RunnerSettings: common.RunnerSettings{
 				Executor: "virtualbox",
 				VirtualBox: &common.VirtualBoxConfig{
-					BaseName: "non-existing-image",
+					BaseName:         "non-existing-image",
+					DisableSnapshots: true,
 				},
 				SSH: &ssh.Config{
 					User:     "root",
@@ -102,7 +106,7 @@ func TestVirtualBoxMissingImage(t *testing.T) {
 }
 
 func TestVirtualBoxMissingSSHCredentials(t *testing.T) {
-	if helpers.SkipIntegrationTest(t, vboxManage) {
+	if helpers.SkipIntegrationTests(t, vboxManage) {
 		return
 	}
 
@@ -111,7 +115,8 @@ func TestVirtualBoxMissingSSHCredentials(t *testing.T) {
 			RunnerSettings: common.RunnerSettings{
 				Executor: "virtualbox",
 				VirtualBox: &common.VirtualBoxConfig{
-					BaseName: "non-existing-image",
+					BaseName:         "non-existing-image",
+					DisableSnapshots: true,
 				},
 			},
 		},
@@ -122,9 +127,8 @@ func TestVirtualBoxMissingSSHCredentials(t *testing.T) {
 	assert.Contains(t, "Missing SSH config", err.Error())
 }
 
-
 func TestVirtualBoxBuildAbort(t *testing.T) {
-	if helpers.SkipIntegrationTest(t) {
+	if helpers.SkipIntegrationTests(t) {
 		return
 	}
 
@@ -134,7 +138,8 @@ func TestVirtualBoxBuildAbort(t *testing.T) {
 			RunnerSettings: common.RunnerSettings{
 				Executor: "virtualbox",
 				VirtualBox: &common.VirtualBoxConfig{
-					BaseName: "alpine",
+					BaseName:         "alpine",
+					DisableSnapshots: true,
 				},
 				SSH: &ssh.Config{
 					User:     "root",
@@ -162,7 +167,7 @@ func TestVirtualBoxBuildAbort(t *testing.T) {
 }
 
 func TestVirtualBoxBuildCancel(t *testing.T) {
-	if helpers.SkipIntegrationTest(t) {
+	if helpers.SkipIntegrationTests(t) {
 		return
 	}
 
@@ -172,7 +177,8 @@ func TestVirtualBoxBuildCancel(t *testing.T) {
 			RunnerSettings: common.RunnerSettings{
 				Executor: "virtualbox",
 				VirtualBox: &common.VirtualBoxConfig{
-					BaseName: "alpine",
+					BaseName:         "alpine",
+					DisableSnapshots: true,
 				},
 				SSH: &ssh.Config{
 					User:     "root",
@@ -200,5 +206,6 @@ func TestVirtualBoxBuildCancel(t *testing.T) {
 	defer timeoutTimer.Stop()
 
 	err := build.Run(&common.Config{}, trace)
+	assert.IsType(t, err, &common.BuildError{})
 	assert.EqualError(t, err, "canceled")
 }

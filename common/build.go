@@ -210,7 +210,7 @@ func (b *Build) run(executor Executor) (err error) {
 	b.Log().Debugln("Waiting for signals...")
 	select {
 	case <-buildCanceled:
-		err = errors.New("canceled")
+		err = &BuildError{Inner: errors.New("canceled")}
 
 	case <-time.After(time.Duration(buildTimeout) * time.Second):
 		err = fmt.Errorf("execution took longer than %v seconds", buildTimeout)

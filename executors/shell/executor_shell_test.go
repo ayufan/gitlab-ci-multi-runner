@@ -11,7 +11,7 @@ import (
 )
 
 func TestBashShellSuccessRun(t *testing.T) {
-	if helpers.SkipIntegrationTest(t, "bash") {
+	if helpers.SkipIntegrationTests(t, "bash") {
 		return
 	}
 
@@ -30,7 +30,7 @@ func TestBashShellSuccessRun(t *testing.T) {
 }
 
 func TestWindowsBatchSuccessRun(t *testing.T) {
-	if helpers.SkipIntegrationTest(t, "cmd.exe") {
+	if helpers.SkipIntegrationTests(t, "cmd.exe") {
 		return
 	}
 
@@ -49,7 +49,7 @@ func TestWindowsBatchSuccessRun(t *testing.T) {
 }
 
 func TestPowerShellSuccessRun(t *testing.T) {
-	if helpers.SkipIntegrationTest(t, "powershell.exe") {
+	if helpers.SkipIntegrationTests(t, "powershell.exe") {
 		return
 	}
 
@@ -68,7 +68,7 @@ func TestPowerShellSuccessRun(t *testing.T) {
 }
 
 func TestShellBuildAbort(t *testing.T) {
-	if helpers.SkipIntegrationTest(t) {
+	if helpers.SkipIntegrationTests(t) {
 		return
 	}
 
@@ -99,7 +99,7 @@ func TestShellBuildAbort(t *testing.T) {
 }
 
 func TestShellBuildCancel(t *testing.T) {
-	if helpers.SkipIntegrationTest(t) {
+	if helpers.SkipIntegrationTests(t) {
 		return
 	}
 
@@ -130,4 +130,5 @@ func TestShellBuildCancel(t *testing.T) {
 
 	err := build.Run(&common.Config{}, trace)
 	assert.EqualError(t, err, "canceled")
+	assert.IsType(t, err, &common.BuildError{})
 }

@@ -2,13 +2,12 @@ package helpers
 
 import (
 	"testing"
-	"os"
 	"os/exec"
 )
 
-func SkipIntegrationTest(t *testing.T, apps... string) bool {
-	if os.Getenv("INTEGRATION_TESTS") == "" {
-		t.Skip("Enable this tests with INTEGRATION_TESTS=1")
+func SkipIntegrationTests(t *testing.T, apps... string) bool {
+	if testing.Short() {
+		t.Skip("Skipping long tests")
 		return true
 	}
 
