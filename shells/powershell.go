@@ -202,8 +202,6 @@ func (b *PowerShell) GenerateScript(scriptType common.ShellScriptType, info comm
 	w := &PsWriter{
 		TemporaryPath: info.Build.FullProjectDir() + ".tmp",
 	}
-	w.Line("$ErrorActionPreference = \"Stop\"")
-	w.Line("")
 
 	if scriptType == common.ShellPrepareScript {
 		if len(info.Build.Hostname) != 0 {
