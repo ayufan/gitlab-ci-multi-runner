@@ -174,32 +174,32 @@ func (b *AbstractShell) cacheExtractor(w ShellWriter, options *archivingOptions,
 }
 
 func (b *AbstractShell) downloadArtifacts(w ShellWriter, build *common.BuildInfo, info common.ShellScriptInfo) {
-	b.guardRunnerCommand(w, info.RunnerCommand, "Artifacts downloading", func() {
-		args := []string{
-			"artifacts-downloader",
-			"--url",
-			info.Build.Runner.URL,
-			"--token",
-			build.Token,
-			"--id",
-			strconv.Itoa(build.ID),
-		}
+	args := []string{
+		"artifacts-downloader",
+		"--url",
+		info.Build.Runner.URL,
+		"--token",
+		build.Token,
+		"--id",
+		strconv.Itoa(build.ID),
+	}
 
-		w.Notice("Downloading artifacts for %s (%d)...", build.Name, build.ID)
-		w.Command(info.RunnerCommand, args...)
-	})
+	w.Notice("Downloading artifacts for %s (%d)...", build.Name, build.ID)
+	w.Command(info.RunnerCommand, args...)
 }
 
 func (b *AbstractShell) downloadAllArtifacts(w ShellWriter, dependencies *dependencies, info common.ShellScriptInfo) {
-	for _, otherBuild := range info.Build.DependsOnBuilds {
-		if otherBuild.Artifacts == nil || otherBuild.Artifacts.Filename == "" {
-			continue
+	b.guardRunnerCommand(w, info.RunnerCommand, "Artifacts downloading", func() {
+		for _, otherBuild := range info.Build.DependsOnBuilds {
+			if otherBuild.Artifacts == nil || otherBuild.Artifacts.Filename == "" {
+				continue
+			}
+			if !dependencies.IsDependent(otherBuild.Name) {
+				continue
+			}
+			b.downloadArtifacts(w, &otherBuild, info)
 		}
-		if !dependencies.IsDependent(otherBuild.Name) {
-			continue
-		}
-		b.downloadArtifacts(w, &otherBuild, info)
-	}
+	})
 }
 
 func (b *AbstractShell) writePrepareScript(w ShellWriter, info common.ShellScriptInfo) (err error) {
