@@ -52,7 +52,7 @@ func TestDockerCommandBuildFail(t *testing.T) {
 	err := build.Run(&common.Config{}, &common.Trace{Writer: os.Stdout})
 	require.Error(t, err, "error")
 	assert.IsType(t, err, &common.BuildError{})
-	assert.Contains(t, "exit code 1", err.Error())
+	assert.Contains(t, err.Error(), "exit code 1")
 }
 
 func TestDockerCommandMissingImage(t *testing.T) {

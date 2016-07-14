@@ -99,7 +99,7 @@ func TestParallelsMissingImage(t *testing.T) {
 
 	err := build.Run(&common.Config{}, &common.Trace{Writer: os.Stdout})
 	require.Error(t, err)
-	assert.Contains(t, "Could not find a registered machine named", err.Error())
+	assert.Contains(t, err.Error(), "Could not find a registered machine named")
 }
 
 func TestParallelsMissingSSHCredentials(t *testing.T) {
