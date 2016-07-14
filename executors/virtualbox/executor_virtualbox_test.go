@@ -128,7 +128,7 @@ func TestVirtualBoxMissingSSHCredentials(t *testing.T) {
 }
 
 func TestVirtualBoxBuildAbort(t *testing.T) {
-	if helpers.SkipIntegrationTests(t) {
+	if helpers.SkipIntegrationTests(t, vboxManage, "--version") {
 		return
 	}
 
@@ -167,7 +167,7 @@ func TestVirtualBoxBuildAbort(t *testing.T) {
 }
 
 func TestVirtualBoxBuildCancel(t *testing.T) {
-	if helpers.SkipIntegrationTests(t) {
+	if helpers.SkipIntegrationTests(t, vboxManage, "--version") {
 		return
 	}
 
