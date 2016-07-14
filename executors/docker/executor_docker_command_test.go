@@ -73,7 +73,7 @@ func TestDockerCommandMissingImage(t *testing.T) {
 
 	err := build.Run(&common.Config{}, &common.Trace{Writer: os.Stdout})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "image some/non-existing/image:latest not found")
+	assert.Contains(t, err.Error(), "not found")
 }
 
 func TestDockerCommandBuildAbort(t *testing.T) {
