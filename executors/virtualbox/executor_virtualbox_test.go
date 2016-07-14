@@ -13,7 +13,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/ssh"
 )
 
-const vboxManage = "VBoxManage"
+const vboxManage = "vboxmanage"
 
 func TestVirtualBoxExecutorRegistered(t *testing.T) {
 	executors := common.GetExecutors()
@@ -26,7 +26,7 @@ func TestVirtualBoxCreateExecutor(t *testing.T) {
 }
 
 func TestVirtualBoxSuccessRun(t *testing.T) {
-	if helpers.SkipIntegrationTests(t, vboxManage) {
+	if helpers.SkipIntegrationTests(t, vboxManage, "--version") {
 		return
 	}
 
@@ -52,7 +52,7 @@ func TestVirtualBoxSuccessRun(t *testing.T) {
 }
 
 func TestVirtualBoxBuildFail(t *testing.T) {
-	if helpers.SkipIntegrationTests(t, vboxManage) {
+	if helpers.SkipIntegrationTests(t, vboxManage, "--version") {
 		return
 	}
 
@@ -80,7 +80,7 @@ func TestVirtualBoxBuildFail(t *testing.T) {
 }
 
 func TestVirtualBoxMissingImage(t *testing.T) {
-	if helpers.SkipIntegrationTests(t, vboxManage) {
+	if helpers.SkipIntegrationTests(t, vboxManage, "--version") {
 		return
 	}
 
@@ -106,7 +106,7 @@ func TestVirtualBoxMissingImage(t *testing.T) {
 }
 
 func TestVirtualBoxMissingSSHCredentials(t *testing.T) {
-	if helpers.SkipIntegrationTests(t, vboxManage) {
+	if helpers.SkipIntegrationTests(t, vboxManage, "--version") {
 		return
 	}
 

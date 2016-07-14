@@ -11,21 +11,8 @@ import (
 	"time"
 )
 
-func SkipIfNoDocker(t *testing.T) bool {
-	cmd := exec.Command("docker", "info")
-	if cmd.Run() != nil {
-		t.Log("'docker info' failed")
-		t.Skip()
-		return true
-	}
-	return false
-}
-
 func TestDockerCommandSuccessRun(t *testing.T) {
-	if helpers.SkipIntegrationTests(t) {
-		return
-	}
-	if SkipIfNoDocker(t) {
+	if helpers.SkipIntegrationTests(t, "docker", "info") {
 		return
 	}
 
@@ -46,10 +33,7 @@ func TestDockerCommandSuccessRun(t *testing.T) {
 }
 
 func TestDockerCommandBuildFail(t *testing.T) {
-	if helpers.SkipIntegrationTests(t) {
-		return
-	}
-	if SkipIfNoDocker(t) {
+	if helpers.SkipIntegrationTests(t, "docker", "info") {
 		return
 	}
 
@@ -72,10 +56,7 @@ func TestDockerCommandBuildFail(t *testing.T) {
 }
 
 func TestDockerCommandMissingImage(t *testing.T) {
-	if helpers.SkipIntegrationTests(t) {
-		return
-	}
-	if SkipIfNoDocker(t) {
+	if helpers.SkipIntegrationTests(t, "docker", "info") {
 		return
 	}
 
@@ -96,7 +77,7 @@ func TestDockerCommandMissingImage(t *testing.T) {
 }
 
 func TestDockerCommandBuildAbort(t *testing.T) {
-	if helpers.SkipIntegrationTests(t) {
+	if helpers.SkipIntegrationTests(t, "docker", "info") {
 		return
 	}
 
@@ -130,7 +111,7 @@ func TestDockerCommandBuildAbort(t *testing.T) {
 }
 
 func TestDockerCommandBuildCancel(t *testing.T) {
-	if helpers.SkipIntegrationTests(t) {
+	if helpers.SkipIntegrationTests(t, "docker", "info") {
 		return
 	}
 
@@ -169,7 +150,7 @@ func TestDockerCommandBuildCancel(t *testing.T) {
 }
 
 func TestDockerCommandPrivilegedServices(t *testing.T) {
-	if helpers.SkipIntegrationTests(t) {
+	if helpers.SkipIntegrationTests(t, "docker", "info") {
 		return
 	}
 
