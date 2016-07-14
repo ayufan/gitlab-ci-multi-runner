@@ -1,4 +1,4 @@
-package virtualbox_test
+package parallels_test
 
 import (
 	"os"
@@ -13,26 +13,26 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/ssh"
 )
 
-const vboxImage = "ubuntu-runner"
-const vboxManage = "vboxmanage"
+const prlImage = "ubuntu-runner"
+const prlCtl = "prlctl"
 
-var vboxSshConfig = &ssh.Config{
+var prlSshConfig = &ssh.Config{
 	User:     "vagrant",
 	Password: "vagrant",
 }
 
-func TestVirtualBoxExecutorRegistered(t *testing.T) {
+func TestParallelsExecutorRegistered(t *testing.T) {
 	executors := common.GetExecutors()
-	assert.Contains(t, executors, "virtualbox")
+	assert.Contains(t, executors, "parallels")
 }
 
-func TestVirtualBoxCreateExecutor(t *testing.T) {
-	executor := common.NewExecutor("virtualbox")
+func TestParallelsCreateExecutor(t *testing.T) {
+	executor := common.NewExecutor("parallels")
 	assert.NotNil(t, executor)
 }
 
-func TestVirtualBoxSuccessRun(t *testing.T) {
-	if helpers.SkipIntegrationTests(t, vboxManage, "--version") {
+func TestParallelsSuccessRun(t *testing.T) {
+	if helpers.SkipIntegrationTests(t, prlCtl, "--version") {
 		return
 	}
 
@@ -40,22 +40,22 @@ func TestVirtualBoxSuccessRun(t *testing.T) {
 		GetBuildResponse: common.SuccessfulBuild,
 		Runner: &common.RunnerConfig{
 			RunnerSettings: common.RunnerSettings{
-				Executor: "virtualbox",
-				VirtualBox: &common.VirtualBoxConfig{
-					BaseName:         vboxImage,
+				Executor: "parallels",
+				Parallels: &common.ParallelsConfig{
+					BaseName:         prlImage,
 					DisableSnapshots: true,
 				},
-				SSH: vboxSshConfig,
+				SSH: prlSshConfig,
 			},
 		},
 	}
 
 	err := build.Run(&common.Config{}, &common.Trace{Writer: os.Stdout})
-	assert.NoError(t, err, "Make sure that you have done 'make -C tests/ubuntu virtualbox'")
+	assert.NoError(t, err, "Make sure that you have done 'make -C tests/ubuntu parallels'")
 }
 
-func TestVirtualBoxBuildFail(t *testing.T) {
-	if helpers.SkipIntegrationTests(t, vboxManage, "--version") {
+func TestParallelsBuildFail(t *testing.T) {
+	if helpers.SkipIntegrationTests(t, prlCtl, "--version") {
 		return
 	}
 
@@ -63,12 +63,12 @@ func TestVirtualBoxBuildFail(t *testing.T) {
 		GetBuildResponse: common.FailedBuild,
 		Runner: &common.RunnerConfig{
 			RunnerSettings: common.RunnerSettings{
-				Executor: "virtualbox",
-				VirtualBox: &common.VirtualBoxConfig{
-					BaseName:         vboxImage,
+				Executor: "parallels",
+				Parallels: &common.ParallelsConfig{
+					BaseName:         prlImage,
 					DisableSnapshots: true,
 				},
-				SSH: vboxSshConfig,
+				SSH: prlSshConfig,
 			},
 		},
 	}
@@ -79,20 +79,20 @@ func TestVirtualBoxBuildFail(t *testing.T) {
 	assert.Contains(t, err.Error(), "Process exited with: 1")
 }
 
-func TestVirtualBoxMissingImage(t *testing.T) {
-	if helpers.SkipIntegrationTests(t, vboxManage, "--version") {
+func TestParallelsMissingImage(t *testing.T) {
+	if helpers.SkipIntegrationTests(t, prlCtl, "--version") {
 		return
 	}
 
 	build := &common.Build{
 		Runner: &common.RunnerConfig{
 			RunnerSettings: common.RunnerSettings{
-				Executor: "virtualbox",
-				VirtualBox: &common.VirtualBoxConfig{
+				Executor: "parallels",
+				Parallels: &common.ParallelsConfig{
 					BaseName:         "non-existing-image",
 					DisableSnapshots: true,
 				},
-				SSH: vboxSshConfig,
+				SSH: prlSshConfig,
 			},
 		},
 	}
@@ -102,16 +102,16 @@ func TestVirtualBoxMissingImage(t *testing.T) {
 	assert.Contains(t, "Could not find a registered machine named", err.Error())
 }
 
-func TestVirtualBoxMissingSSHCredentials(t *testing.T) {
-	if helpers.SkipIntegrationTests(t, vboxManage, "--version") {
+func TestParallelsMissingSSHCredentials(t *testing.T) {
+	if helpers.SkipIntegrationTests(t, prlCtl, "--version") {
 		return
 	}
 
 	build := &common.Build{
 		Runner: &common.RunnerConfig{
 			RunnerSettings: common.RunnerSettings{
-				Executor: "virtualbox",
-				VirtualBox: &common.VirtualBoxConfig{
+				Executor: "parallels",
+				Parallels: &common.ParallelsConfig{
 					BaseName:         "non-existing-image",
 					DisableSnapshots: true,
 				},
@@ -121,11 +121,11 @@ func TestVirtualBoxMissingSSHCredentials(t *testing.T) {
 
 	err := build.Run(&common.Config{}, &common.Trace{Writer: os.Stdout})
 	require.Error(t, err)
-	assert.Contains(t, "Missing SSH config", err.Error())
+	assert.Contains(t, err.Error(), "Missing SSH config")
 }
 
-func TestVirtualBoxBuildAbort(t *testing.T) {
-	if helpers.SkipIntegrationTests(t, vboxManage, "--version") {
+func TestParallelsBuildAbort(t *testing.T) {
+	if helpers.SkipIntegrationTests(t, prlCtl, "--version") {
 		return
 	}
 
@@ -133,12 +133,12 @@ func TestVirtualBoxBuildAbort(t *testing.T) {
 		GetBuildResponse: common.LongRunningBuild,
 		Runner: &common.RunnerConfig{
 			RunnerSettings: common.RunnerSettings{
-				Executor: "virtualbox",
-				VirtualBox: &common.VirtualBoxConfig{
-					BaseName:         vboxImage,
+				Executor: "parallels",
+				Parallels: &common.ParallelsConfig{
+					BaseName:         prlImage,
 					DisableSnapshots: true,
 				},
-				SSH: vboxSshConfig,
+				SSH: prlSshConfig,
 			},
 		},
 		BuildAbort: make(chan os.Signal, 1),
@@ -160,8 +160,8 @@ func TestVirtualBoxBuildAbort(t *testing.T) {
 	assert.EqualError(t, err, "aborted: interrupt")
 }
 
-func TestVirtualBoxBuildCancel(t *testing.T) {
-	if helpers.SkipIntegrationTests(t, vboxManage, "--version") {
+func TestParallelsBuildCancel(t *testing.T) {
+	if helpers.SkipIntegrationTests(t, prlCtl, "--version") {
 		return
 	}
 
@@ -169,12 +169,12 @@ func TestVirtualBoxBuildCancel(t *testing.T) {
 		GetBuildResponse: common.LongRunningBuild,
 		Runner: &common.RunnerConfig{
 			RunnerSettings: common.RunnerSettings{
-				Executor: "virtualbox",
-				VirtualBox: &common.VirtualBoxConfig{
-					BaseName:         vboxImage,
+				Executor: "parallels",
+				Parallels: &common.ParallelsConfig{
+					BaseName:         prlImage,
 					DisableSnapshots: true,
 				},
-				SSH: vboxSshConfig,
+				SSH: prlSshConfig,
 			},
 		},
 	}
