@@ -6,3 +6,4 @@ builds/
 executors/docker/bindata.go
 dockerfiles/build/gitlab-runner-helper
 .idea/
+tests/ubuntu/.vagrant
