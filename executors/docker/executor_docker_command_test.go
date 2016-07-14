@@ -1,14 +1,14 @@
 package docker_test
 
 import (
+	"os"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
-	"os"
-	"os/exec"
-	"testing"
-	"time"
 )
 
 func TestDockerCommandSuccessRun(t *testing.T) {

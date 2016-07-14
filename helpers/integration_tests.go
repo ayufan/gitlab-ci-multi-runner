@@ -12,7 +12,7 @@ func SkipIntegrationTests(t *testing.T, app ...string) bool {
 	}
 
 	if len(app) > 0 {
-		cmd := exec.Command(app[0], app[1:])
+		cmd := exec.Command(app[0], app[1:]...)
 		err := cmd.Run()
 		if err != nil {
 			t.Skip(app[0], "failed", err)
