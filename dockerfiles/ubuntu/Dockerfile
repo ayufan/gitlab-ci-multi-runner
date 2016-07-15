@@ -1,5 +1,8 @@
 FROM ubuntu:14.04
 
+ADD https://github.com/Yelp/dumb-init/releases/download/v1.0.2/dumb-init_1.0.2_amd64 /usr/bin/dumb-init
+RUN chmod +x /usr/bin/dumb-init
+
 RUN apt-get update -y && \
     apt-get upgrade -y && \
     apt-get install -y ca-certificates wget apt-transport-https vim nano && \
@@ -21,5 +24,5 @@ ADD entrypoint /
 RUN chmod +x /entrypoint
 
 VOLUME ["/etc/gitlab-runner", "/home/gitlab-runner"]
-ENTRYPOINT ["/entrypoint"]
+ENTRYPOINT ["/usr/bin/dumb-init", "/entrypoint"]
 CMD ["run", "--user=gitlab-runner", "--working-directory=/home/gitlab-runner"]
