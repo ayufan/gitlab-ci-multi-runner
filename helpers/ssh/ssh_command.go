@@ -140,6 +140,7 @@ func (s *Client) Run(cmd Command) error {
 	if err != nil {
 		return err
 	}
+	defer session.Close()
 
 	var envVariables bytes.Buffer
 	for _, keyValue := range cmd.Environment {
@@ -156,7 +157,6 @@ func (s *Client) Run(cmd Command) error {
 	if err != nil {
 		return err
 	}
-	defer session.Close()
 
 	waitCh := make(chan error)
 	go func() {
@@ -170,6 +170,7 @@ func (s *Client) Run(cmd Command) error {
 	select {
 	case <-cmd.Abort:
 		session.Signal(ssh.SIGKILL)
+		session.Close()
 		return <-waitCh
 
 	case err := <-waitCh:

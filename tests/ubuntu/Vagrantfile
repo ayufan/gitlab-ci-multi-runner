@@ -1,0 +1,29 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+  config.vm.define "virtualbox" do |vbconfig|
+    vbconfig.vm.box = "ubuntu/trusty64"
+    vbconfig.vm.provider "virtualbox" do |vb|
+      vb.name = "ubuntu-runner"
+      vb.gui = false
+      vb.memory = "256"
+    end
+  end
+
+  config.vm.define "parallels" do |prlconfig|
+    prlconfig.vm.box = "parallels/ubuntu-14.04"
+    prlconfig.vm.provider "parallels" do |prl|
+      prl.name = "ubuntu-runner"
+      prl.memory = 256
+      prl.update_guest_tools = true
+    end
+  end
+
+  config.vm.synced_folder '.', '/vagrant', disabled: true
+
+  config.vm.provision "shell", inline: <<-SHELL
+    sudo apt-get update -yqqq
+    sudo apt-get install -yqqq git-core
+  SHELL
+end

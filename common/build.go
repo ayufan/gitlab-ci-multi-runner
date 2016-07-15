@@ -210,7 +210,7 @@ func (b *Build) run(executor Executor) (err error) {
 	b.Log().Debugln("Waiting for signals...")
 	select {
 	case <-buildCanceled:
-		err = errors.New("canceled")
+		err = &BuildError{Inner: errors.New("canceled")}
 
 	case <-time.After(time.Duration(buildTimeout) * time.Second):
 		err = fmt.Errorf("execution took longer than %v seconds", buildTimeout)
@@ -238,7 +238,7 @@ func (b *Build) Run(globalConfig *Config, trace BuildTrace) (err error) {
 	var executor Executor
 
 	logger := NewBuildLogger(trace, b.Log())
-	logger.Infoln(VersionLine() + helpers.ANSI_RESET)
+	logger.Infoln(AppVersion.Line() + helpers.ANSI_RESET)
 
 	defer func() {
 		if _, ok := err.(*BuildError); ok {

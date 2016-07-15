@@ -136,6 +136,9 @@ func (s *executor) createVM() error {
 		return err
 	}
 
+	// TODO: integration tests do fail on this due
+	// Unable to open new session in this virtual machine.
+	// Make sure the latest version of Parallels Tools is installed in this virtual machine and it has finished bootingg
 	s.Debugln("Waiting for VM to start...")
 	err = prl.TryExec(s.vmName, 120, "exit", "0")
 	if err != nil {
@@ -258,6 +261,9 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 
 	s.provisioned = true
 
+	// TODO: integration tests do fail on this due
+	// Unable to open new session in this virtual machine.
+	// Make sure the latest version of Parallels Tools is installed in this virtual machine and it has finished booting
 	s.Debugln("Updating VM date...")
 	err = prl.TryExec(s.vmName, 20, "sudo", "ntpdate", "-u", "time.apple.com")
 	if err != nil {
