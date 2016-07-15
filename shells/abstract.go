@@ -127,12 +127,21 @@ func (o *archivingOptions) CommandArguments() (args []string) {
 	return
 }
 
-func (b *AbstractShell) cacheExtractor(w ShellWriter, options *archivingOptions, info common.ShellScriptInfo) {
-	if options == nil {
+func (b *AbstractShell) guardRunnerCommand(w ShellWriter, runnerCommand string, action string, f func()) {
+	if runnerCommand == "" {
+		w.Warning("%s is not supported by this executor.", action)
 		return
 	}
-	if info.RunnerCommand == "" {
-		w.Warning("The cache is not supported in this executor.")
+
+	w.IfCmd(runnerCommand, "--version")
+	f()
+	w.Else()
+	w.Warning("Missing %s. %s is disabled.", runnerCommand, action)
+	w.EndIf()
+}
+
+func (b *AbstractShell) cacheExtractor(w ShellWriter, options *archivingOptions, info common.ShellScriptInfo) {
+	if options == nil {
 		return
 	}
 
@@ -158,16 +167,13 @@ func (b *AbstractShell) cacheExtractor(w ShellWriter, options *archivingOptions,
 	}
 
 	// Execute archive command
-	w.Notice("Checking cache for %s...", cacheKey)
-	w.Command(info.RunnerCommand, args...)
+	b.guardRunnerCommand(w, info.RunnerCommand, "Extracting cache", func() {
+		w.Notice("Checking cache for %s...", cacheKey)
+		w.Command(info.RunnerCommand, args...)
+	})
 }
 
 func (b *AbstractShell) downloadArtifacts(w ShellWriter, build *common.BuildInfo, info common.ShellScriptInfo) {
-	if info.RunnerCommand == "" {
-		w.Warning("The artifacts downloading is not supported in this executor.")
-		return
-	}
-
 	args := []string{
 		"artifacts-downloader",
 		"--url",
@@ -182,7 +188,7 @@ func (b *AbstractShell) downloadArtifacts(w ShellWriter, build *common.BuildInfo
 	w.Command(info.RunnerCommand, args...)
 }
 
-func (b *AbstractShell) downloadAllArtifacts(w ShellWriter, dependencies *dependencies, info common.ShellScriptInfo) {
+func (b *AbstractShell) buildArtifacts(dependencies *dependencies, info common.ShellScriptInfo) (otherBuilds []common.BuildInfo) {
 	for _, otherBuild := range info.Build.DependsOnBuilds {
 		if otherBuild.Artifacts == nil || otherBuild.Artifacts.Filename == "" {
 			continue
@@ -190,8 +196,22 @@ func (b *AbstractShell) downloadAllArtifacts(w ShellWriter, dependencies *depend
 		if !dependencies.IsDependent(otherBuild.Name) {
 			continue
 		}
-		b.downloadArtifacts(w, &otherBuild, info)
+		otherBuilds = append(otherBuilds, otherBuild)
 	}
+	return
+}
+
+func (b *AbstractShell) downloadAllArtifacts(w ShellWriter, dependencies *dependencies, info common.ShellScriptInfo) {
+	otherBuilds := b.buildArtifacts(dependencies, info)
+	if len(otherBuilds) == 0 {
+		return
+	}
+
+	b.guardRunnerCommand(w, info.RunnerCommand, "Artifacts downloading", func() {
+		for _, otherBuild := range otherBuilds {
+			b.downloadArtifacts(w, &otherBuild, info)
+		}
+	})
 }
 
 func (b *AbstractShell) writePrepareScript(w ShellWriter, info common.ShellScriptInfo) (err error) {
@@ -257,10 +277,6 @@ func (b *AbstractShell) cacheArchiver(w ShellWriter, options *archivingOptions, 
 	if options == nil {
 		return
 	}
-	if info.RunnerCommand == "" {
-		w.Warning("The cache is not supported in this executor.")
-		return
-	}
 
 	// Skip archiving if no cache is defined
 	cacheKey, cacheFile := b.cacheFile(info.Build, options.Key)
@@ -286,9 +302,11 @@ func (b *AbstractShell) cacheArchiver(w ShellWriter, options *archivingOptions, 
 		args = append(args, "--url", url.String())
 	}
 
-	// Execute archive command
-	w.Notice("Creating cache %s...", cacheKey)
-	w.Command(info.RunnerCommand, args...)
+	b.guardRunnerCommand(w, info.RunnerCommand, "Creating cache", func() {
+		// Execute archive command
+		w.Notice("Creating cache %s...", cacheKey)
+		w.Command(info.RunnerCommand, args...)
+	})
 }
 
 func (b *AbstractShell) uploadArtifacts(w ShellWriter, options *archivingOptions, info common.ShellScriptInfo) {
@@ -296,10 +314,6 @@ func (b *AbstractShell) uploadArtifacts(w ShellWriter, options *archivingOptions
 		return
 	}
 	if info.Build.Runner.URL == "" {
-		return
-	}
-	if info.RunnerCommand == "" {
-		w.Warning("The artifacts uploading is not supported in this executor.")
 		return
 	}
 
@@ -331,8 +345,10 @@ func (b *AbstractShell) uploadArtifacts(w ShellWriter, options *archivingOptions
 		args = append(args, "--expire-in", expireIn)
 	}
 
-	w.Notice("Uploading artifacts...")
-	w.Command(info.RunnerCommand, args...)
+	b.guardRunnerCommand(w, info.RunnerCommand, "Uploading artifacts", func() {
+		w.Notice("Uploading artifacts...")
+		w.Command(info.RunnerCommand, args...)
+	})
 }
 
 func (b *AbstractShell) writeAfterScript(w ShellWriter, info common.ShellScriptInfo) error {

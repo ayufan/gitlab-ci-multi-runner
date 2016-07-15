@@ -101,6 +101,12 @@ func (b *PsWriter) IfFile(path string) {
 	b.Indent()
 }
 
+func (b *PsWriter) IfCmd(cmd string, arguments ...string) {
+	cmd = cmd + " " + strings.Join(arguments, " ")
+	b.Line(fmt.Sprintf("if(iex %s 2>$null) {", psQuote(cmd)))
+	b.Indent()
+}
+
 func (b *PsWriter) Else() {
 	b.Unindent()
 	b.Line("} else {")
@@ -196,8 +202,6 @@ func (b *PowerShell) GenerateScript(scriptType common.ShellScriptType, info comm
 	w := &PsWriter{
 		TemporaryPath: info.Build.FullProjectDir() + ".tmp",
 	}
-	w.Line("$ErrorActionPreference = \"Stop\"")
-	w.Line("")
 
 	if scriptType == common.ShellPrepareScript {
 		if len(info.Build.Hostname) != 0 {

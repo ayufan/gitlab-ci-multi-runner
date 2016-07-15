@@ -104,6 +104,12 @@ func (b *CmdWriter) IfFile(path string) {
 	b.Indent()
 }
 
+func (b *CmdWriter) IfCmd(cmd string, arguments ...string) {
+	b.Line(fmt.Sprintf("%q %s 2>NUL 1>NUL", cmd, strings.Join(arguments, " ")))
+	b.Line("IF %errorlevel% EQU 0 (")
+	b.Indent()
+}
+
 func (b *CmdWriter) Else() {
 	b.Unindent()
 	b.Line(") ELSE (")
