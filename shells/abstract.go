@@ -188,15 +188,27 @@ func (b *AbstractShell) downloadArtifacts(w ShellWriter, build *common.BuildInfo
 	w.Command(info.RunnerCommand, args...)
 }
 
+func (b *AbstractShell) buildArtifacts(dependencies *dependencies, info common.ShellScriptInfo) (otherBuilds []common.BuildInfo) {
+	for _, otherBuild := range info.Build.DependsOnBuilds {
+		if otherBuild.Artifacts == nil || otherBuild.Artifacts.Filename == "" {
+			continue
+		}
+		if !dependencies.IsDependent(otherBuild.Name) {
+			continue
+		}
+		otherBuilds = append(otherBuilds, otherBuild)
+	}
+	return
+}
+
 func (b *AbstractShell) downloadAllArtifacts(w ShellWriter, dependencies *dependencies, info common.ShellScriptInfo) {
+	otherBuilds := b.buildArtifacts(dependencies, info)
+	if len(otherBuilds) == 0 {
+		return
+	}
+
 	b.guardRunnerCommand(w, info.RunnerCommand, "Artifacts downloading", func() {
-		for _, otherBuild := range info.Build.DependsOnBuilds {
-			if otherBuild.Artifacts == nil || otherBuild.Artifacts.Filename == "" {
-				continue
-			}
-			if !dependencies.IsDependent(otherBuild.Name) {
-				continue
-			}
+		for _, otherBuild := range otherBuilds {
 			b.downloadArtifacts(w, &otherBuild, info)
 		}
 	})
