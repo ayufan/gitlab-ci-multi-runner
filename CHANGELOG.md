@@ -1,3 +1,6 @@
+v 1.3.3
+- Fix zombie issue by using dumb-init
+
 v 1.3.2
 - Fix architecture detection bug introduced in 1.3.1
 
