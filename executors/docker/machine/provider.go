@@ -28,10 +28,11 @@ func (m *machineProvider) machineDetails(name string, acquire bool) *machineDeta
 	details, ok := m.details[name]
 	if !ok {
 		details = &machineDetails{
-			Name:    name,
-			Created: time.Now(),
-			Used:    time.Now(),
-			State:   machineStateIdle,
+			Name:      name,
+			Created:   time.Now(),
+			Used:      time.Now(),
+			UsedCount: 1, // any machine that we find we mark as already used
+			State:     machineStateIdle,
 		}
 		m.details[name] = details
 	}
@@ -50,6 +51,7 @@ func (m *machineProvider) create(config *common.RunnerConfig, state machineState
 	name := newMachineName(machineFilter(config))
 	details = m.machineDetails(name, true)
 	details.State = machineStateCreating
+	details.UsedCount = 0
 	errCh = make(chan error, 1)
 
 	// Create machine asynchronously
