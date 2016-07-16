@@ -84,8 +84,9 @@ func (m *machineProvider) create(config *common.RunnerConfig, state machineState
 }
 
 func (m *machineProvider) findFreeMachine(machines ...string) (details *machineDetails) {
-	// Enumerate all machines
-	for _, name := range machines {
+	// Enumerate all machines in reverse order, to always take the newest machines first
+	for idx := range machines {
+		name := machines[len(machines)-idx-1]
 		details := m.machineDetails(name, true)
 		if details == nil {
 			continue
