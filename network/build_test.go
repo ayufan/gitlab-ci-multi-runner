@@ -97,18 +97,13 @@ func TestIgnoreStatusChange(t *testing.T) {
 func TestBuildAbort(t *testing.T) {
 	traceUpdateInterval = 0
 
-	abort := make(chan bool)
-
 	u := &updateTraceNetwork{}
 	buildCredentials := &common.BuildCredentials{
 		ID: cancelID,
 	}
 	b := newBuildTrace(u, buildConfig, buildCredentials)
 	b.start()
-	b.Notify(func() {
-		abort <- true
-	})
-	assert.True(t, <-abort, "should abort the build")
+	assert.NotNil(t, <-b.Aborted(), "should abort the build")
 	b.Success()
 }
 

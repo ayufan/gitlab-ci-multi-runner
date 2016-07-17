@@ -103,7 +103,7 @@ func (c *clientBuildTrace) Fail(err error) {
 }
 
 func (c *clientBuildTrace) Aborted() chan interface{} {
-	return s.abortCh
+	return c.abortCh
 }
 
 func (c *clientBuildTrace) IsStdout() bool {
