@@ -322,6 +322,8 @@ func (m *machineProvider) Use(config *common.RunnerConfig, data common.ExecutorD
 
 	// Mark machine as used
 	details.State = machineStateUsed
+	details.Used = time.Now()
+	details.UsedCount++
 	return
 }
 
@@ -332,7 +334,6 @@ func (m *machineProvider) Release(config *common.RunnerConfig, data common.Execu
 		// Mark last used time when is Used
 		if details.State == machineStateUsed {
 			details.Used = time.Now()
-			details.UsedCount++
 		}
 		details.State = machineStateIdle
 	}
