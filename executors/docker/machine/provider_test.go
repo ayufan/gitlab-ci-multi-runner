@@ -414,11 +414,8 @@ func TestMachineMaxBuilds(t *testing.T) {
 	p.Release(config, d)
 
 	dd := d.(*machineDetails)
-	assert.Equal(t, machineStateIdle, dd.State, "the machine should still be in idle")
-
-	_, err = p.Acquire(config)
-	assert.Equal(t, machineStateRemoving, dd.State, "provider should get removed due to too many builds")
-	assert.Equal(t, "Too many builds", dd.Reason, "provider should get removed due to too many builds")
+	assert.Equal(t, machineStateRemoving, dd.State, "the machine should be removed due to too many builds")
+	assert.Equal(t, "Too many builds", dd.Reason, "the machine should be removed due to too many builds")
 }
 
 func TestMachineIdleLimits(t *testing.T) {
