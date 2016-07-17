@@ -102,7 +102,7 @@ func (c *clientBuildTrace) Fail(err error) {
 	c.finish()
 }
 
-func (s *clientBuildTrace) Aborted() chan interface{} {
+func (c *clientBuildTrace) Aborted() chan interface{} {
 	return s.abortCh
 }
 
