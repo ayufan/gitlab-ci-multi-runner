@@ -177,7 +177,7 @@ func (s *executor) runInContainer(name, command string) <-chan error {
 	go func() {
 		defer close(errc)
 
-		status, err := waitForPodRunning(s.kubeClient, s.pod, s.BuildLog)
+		status, err := waitForPodRunning(s.kubeClient, s.pod, s.BuildTrace)
 
 		if err != nil {
 			errc <- err
@@ -202,8 +202,8 @@ func (s *executor) runInContainer(name, command string) <-chan error {
 			ContainerName: name,
 			Command:       s.BuildShell.DockerCommand,
 			In:            strings.NewReader(command),
-			Out:           s.BuildLog,
-			Err:           s.BuildLog,
+			Out:           s.BuildTrace,
+			Err:           s.BuildTrace,
 			Stdin:         true,
 			Config:        config,
 			Client:        s.kubeClient,

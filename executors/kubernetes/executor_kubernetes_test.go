@@ -212,7 +212,7 @@ func TestCleanup(t *testing.T) {
 			pod:        test.Pod,
 		}
 		errored := false
-		ex.AbstractExecutor.BuildLog = FakeBuildTrace{
+		ex.AbstractExecutor.BuildTrace = FakeBuildTrace{
 			testWriter{
 				call: func(b []byte) (int, error) {
 					if test.Error && !errored {
