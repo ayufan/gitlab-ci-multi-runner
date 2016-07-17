@@ -2,6 +2,7 @@ package machine
 
 import (
 	"errors"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 
@@ -31,6 +32,7 @@ func (e *machineExecutor) log() (log *logrus.Entry) {
 			"name":      details.Name,
 			"usedcount": details.UsedCount,
 			"created":   details.Created,
+			"now":       time.Now(),
 		})
 	}
 	if e.config.Docker != nil {

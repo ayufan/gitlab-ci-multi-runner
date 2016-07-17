@@ -76,6 +76,7 @@ func (m *machineProvider) create(config *common.RunnerConfig, state machineState
 			details.Used = time.Now()
 			logrus.WithField("time", time.Since(started)).
 				WithField("name", details.Name).
+				WithField("now", time.Now()).
 				Infoln("Machine created")
 		}
 		errCh <- err
@@ -161,6 +162,7 @@ func (m *machineProvider) finalizeRemoval(details *machineDetails) {
 		WithField("created", time.Since(details.Created)).
 		WithField("used", time.Since(details.Used)).
 		WithField("reason", details.Reason).
+		WithField("now", time.Now()).
 		Infoln("Machine removed")
 }
 
@@ -179,6 +181,7 @@ func (m *machineProvider) remove(machineName string, reason ...interface{}) {
 		WithField("created", time.Since(details.Created)).
 		WithField("used", time.Since(details.Used)).
 		WithField("reason", details.Reason).
+		WithField("now", time.Now()).
 		Warningln("Removing machine")
 	details.Used = time.Now()
 	details.writeDebugInformation()
