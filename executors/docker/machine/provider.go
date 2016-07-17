@@ -166,13 +166,13 @@ func (m *machineProvider) finalizeRemoval(details *machineDetails) {
 		Infoln("Machine removed")
 }
 
-func (m *machineProvider) remove(machineName string, reason ...interface{}) {
+func (m *machineProvider) remove(machineName string, reason ...interface{}) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
 	details, _ := m.details[machineName]
 	if details == nil {
-		return
+		return errors.New("Machine not found")
 	}
 
 	details.Reason = fmt.Sprint(reason...)
@@ -187,6 +187,7 @@ func (m *machineProvider) remove(machineName string, reason ...interface{}) {
 	details.writeDebugInformation()
 
 	go m.finalizeRemoval(details)
+	return nil
 }
 
 func (m *machineProvider) updateMachine(config *common.RunnerConfig, data *machinesData, details *machineDetails) error {
@@ -337,6 +338,14 @@ func (m *machineProvider) Release(config *common.RunnerConfig, data common.Execu
 		// Mark last used time when is Used
 		if details.State == machineStateUsed {
 			details.Used = time.Now()
+		}
+
+		// Remove machine if we already used it
+		if config.Machine.MaxBuilds > 0 && details.UsedCount >= config.Machine.MaxBuilds {
+			err := m.remove(details.Name, "Too many builds")
+			if err == nil {
+				return nil
+			}
 		}
 		details.State = machineStateIdle
 	}
