@@ -228,7 +228,7 @@ func (c *ExecCommand) createBuild(repoURL string, abortSignal chan os.Signal) (b
 		Runner: &common.RunnerConfig{
 			RunnerSettings: c.RunnerSettings,
 		},
-		BuildAbort: abortSignal,
+		SystemInterrupt: abortSignal,
 	}
 	return
 }

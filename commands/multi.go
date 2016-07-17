@@ -127,7 +127,7 @@ func (mr *RunCommand) processRunner(id int, runner *common.RunnerConfig, runners
 		GetBuildResponse: *buildData,
 		Runner:           runner,
 		ExecutorData:     context,
-		BuildAbort:       mr.abortBuilds,
+		SystemInterrupt:  mr.abortBuilds,
 	}
 
 	// Add build to list of builds to assign numbers

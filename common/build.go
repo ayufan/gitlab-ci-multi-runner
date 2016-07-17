@@ -33,14 +33,14 @@ const (
 type Build struct {
 	GetBuildResponse `yaml:",inline"`
 
-	Trace        BuildTrace
-	BuildAbort   chan os.Signal `json:"-" yaml:"-"`
-	RootDir      string         `json:"-" yaml:"-"`
-	BuildDir     string         `json:"-" yaml:"-"`
-	CacheDir     string         `json:"-" yaml:"-"`
-	Hostname     string         `json:"-" yaml:"-"`
-	Runner       *RunnerConfig  `json:"runner"`
-	ExecutorData ExecutorData
+	Trace           BuildTrace
+	SystemInterrupt chan os.Signal `json:"-" yaml:"-"`
+	RootDir         string         `json:"-" yaml:"-"`
+	BuildDir        string         `json:"-" yaml:"-"`
+	CacheDir        string         `json:"-" yaml:"-"`
+	Hostname        string         `json:"-" yaml:"-"`
+	Runner          *RunnerConfig  `json:"runner"`
+	ExecutorData    ExecutorData
 
 	// Unique ID for all running builds on this runner
 	RunnerID int `json:"runner_id"`
@@ -192,13 +192,16 @@ func (b *Build) run(executor Executor) (err error) {
 		buildTimeout = DefaultTimeout
 	}
 
-	buildCanceled := make(chan bool)
-	buildFinish := make(chan error)
+	buildCanceled := make(chan bool, 1)
+	buildFinish := make(chan error, 1)
 	buildAbort := make(chan interface{})
 
-	// Wait for cancel notification
+	// Send non-blocking cancel notification
 	b.Trace.Notify(func() {
-		buildCanceled <- true
+		select {
+		case buildCanceled <- true:
+		default:
+		}
 	})
 
 	// Run build script
@@ -213,9 +216,9 @@ func (b *Build) run(executor Executor) (err error) {
 		err = &BuildError{Inner: errors.New("canceled")}
 
 	case <-time.After(time.Duration(buildTimeout) * time.Second):
-		err = fmt.Errorf("execution took longer than %v seconds", buildTimeout)
+		err = &BuildError{Inner: fmt.Errorf("execution took longer than %v seconds", buildTimeout)}
 
-	case signal := <-b.BuildAbort:
+	case signal := <-b.SystemInterrupt:
 		err = fmt.Errorf("aborted: %v", signal)
 
 	case err = <-buildFinish:

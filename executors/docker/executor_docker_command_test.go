@@ -91,12 +91,12 @@ func TestDockerCommandBuildAbort(t *testing.T) {
 				},
 			},
 		},
-		BuildAbort: make(chan os.Signal, 1),
+		SystemInterrupt: make(chan os.Signal, 1),
 	}
 
 	abortTimer := time.AfterFunc(time.Second, func() {
 		t.Log("Interrupt")
-		build.BuildAbort <- os.Interrupt
+		build.SystemInterrupt <- os.Interrupt
 	})
 	defer abortTimer.Stop()
 
