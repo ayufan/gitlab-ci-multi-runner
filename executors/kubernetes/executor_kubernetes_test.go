@@ -18,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/fake"
+	"github.com/Sirupsen/logrus"
 )
 
 var (
@@ -212,11 +213,11 @@ func TestCleanup(t *testing.T) {
 			pod:        test.Pod,
 		}
 		errored := false
-		ex.AbstractExecutor.BuildTrace = FakeBuildTrace{
+		buildTrace := FakeBuildTrace{
 			testWriter{
 				call: func(b []byte) (int, error) {
 					if test.Error && !errored {
-						if strings.Contains(string(b), "Error cleaning up") {
+						if s := string(b); strings.Contains(s, "Error cleaning up") {
 							errored = true
 						} else {
 							t.Errorf("expected failure. got: '%s'", string(b))
@@ -226,6 +227,8 @@ func TestCleanup(t *testing.T) {
 				},
 			},
 		}
+		ex.AbstractExecutor.BuildTrace = buildTrace
+		ex.AbstractExecutor.BuildLogger = common.NewBuildLogger(buildTrace, logrus.WithFields(logrus.Fields{}))
 		ex.Cleanup()
 		if test.Error && !errored {
 			t.Errorf("expected cleanup to error but it didn't")
