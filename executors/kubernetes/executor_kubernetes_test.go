@@ -120,6 +120,14 @@ func TestBuildContainer(t *testing.T) {
 						Name:      "repo",
 						MountPath: "/test",
 					},
+					api.VolumeMount{
+						Name: "etc-ssl-certs",
+						MountPath: "/etc/ssl/certs",
+					},
+					api.VolumeMount{
+						Name: "usr-share-ca-certificates",
+						MountPath: "/usr/share/ca-certificates",
+					},
 				},
 				SecurityContext: &api.SecurityContext{
 					Privileged: &TRUE,

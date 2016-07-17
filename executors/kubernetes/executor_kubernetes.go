@@ -104,6 +104,22 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 							EmptyDir: &api.EmptyDirVolumeSource{},
 						},
 					},
+					api.Volume{
+						Name: "etc-ssl-certs",
+						VolumeSource: api.VolumeSource{
+							HostPath: &api.HostPathVolumeSource{
+								Path: "/etc/ssl/certs",
+							},
+						},
+					},
+					api.Volume{
+						Name: "usr-share-ca-certificates",
+						VolumeSource: api.VolumeSource{
+							HostPath: &api.HostPathVolumeSource{
+								Path: "/usr/share/ca-certificates",
+							},
+						},
+					},
 				},
 				RestartPolicy: api.RestartPolicyNever,
 				Containers: append([]api.Container{
@@ -163,6 +179,14 @@ func (s *executor) buildContainer(name, image string, limits api.ResourceList, c
 			api.VolumeMount{
 				Name:      "repo",
 				MountPath: strings.Join(path, "/"),
+			},
+			api.VolumeMount{
+				Name: "etc-ssl-certs",
+				MountPath: "/etc/ssl/certs",
+			},
+			api.VolumeMount{
+				Name: "usr-share-ca-certificates",
+				MountPath: "/usr/share/ca-certificates",
 			},
 		},
 		SecurityContext: &api.SecurityContext{
