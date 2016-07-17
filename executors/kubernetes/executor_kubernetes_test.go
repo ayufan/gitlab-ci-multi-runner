@@ -11,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 
+	"github.com/Sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/testapi"
@@ -18,7 +19,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/fake"
-	"github.com/Sirupsen/logrus"
 )
 
 var (
@@ -121,11 +121,11 @@ func TestBuildContainer(t *testing.T) {
 						MountPath: "/test",
 					},
 					api.VolumeMount{
-						Name: "etc-ssl-certs",
+						Name:      "etc-ssl-certs",
 						MountPath: "/etc/ssl/certs",
 					},
 					api.VolumeMount{
-						Name: "usr-share-ca-certificates",
+						Name:      "usr-share-ca-certificates",
 						MountPath: "/usr/share/ca-certificates",
 					},
 				},

@@ -83,6 +83,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 
 func (s *executor) Run(cmd common.ExecutorCommand) error {
 	var err error
+
 	s.Debugln("Starting Kubernetes command...")
 
 	if s.pod == nil {
@@ -153,7 +154,6 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 func (s *executor) Cleanup() {
 	if s.pod != nil {
 		err := s.kubeClient.Pods(s.pod.Namespace).Delete(s.pod.Name, nil)
-
 		if err != nil {
 			s.Errorln(fmt.Sprintf("Error cleaning up pod: %s", err.Error()))
 		}
@@ -181,11 +181,11 @@ func (s *executor) buildContainer(name, image string, limits api.ResourceList, c
 				MountPath: strings.Join(path, "/"),
 			},
 			api.VolumeMount{
-				Name: "etc-ssl-certs",
+				Name:      "etc-ssl-certs",
 				MountPath: "/etc/ssl/certs",
 			},
 			api.VolumeMount{
-				Name: "usr-share-ca-certificates",
+				Name:      "usr-share-ca-certificates",
 				MountPath: "/usr/share/ca-certificates",
 			},
 		},
