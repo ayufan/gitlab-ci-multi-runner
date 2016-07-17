@@ -127,14 +127,11 @@ func TestDockerCommandBuildCancel(t *testing.T) {
 		},
 	}
 
-	trace := &common.Trace{Writer: os.Stdout}
+	trace := &common.Trace{Writer: os.Stdout, Abort: make(chan interface{}, 1)}
 
 	abortTimer := time.AfterFunc(time.Second, func() {
 		t.Log("Interrupt")
-		for trace.Abort == nil {
-			time.Sleep(time.Second)
-		}
-		trace.Abort()
+		trace.Abort <- true
 	})
 	defer abortTimer.Stop()
 

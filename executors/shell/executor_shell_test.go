@@ -112,13 +112,11 @@ func TestShellBuildCancel(t *testing.T) {
 		},
 	}
 
-	trace := &common.Trace{Writer: os.Stdout}
+	trace := &common.Trace{Writer: os.Stdout, Abort: make(chan interface{}, 1)}
 
 	abortTimer := time.AfterFunc(time.Second, func() {
 		t.Log("Interrupt")
-		if trace.Abort != nil {
-			trace.Abort()
-		}
+		trace.Abort <- true
 	})
 	defer abortTimer.Stop()
 

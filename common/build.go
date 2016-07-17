@@ -192,17 +192,8 @@ func (b *Build) run(executor Executor) (err error) {
 		buildTimeout = DefaultTimeout
 	}
 
-	buildCanceled := make(chan bool, 1)
 	buildFinish := make(chan error, 1)
 	buildAbort := make(chan interface{})
-
-	// Send non-blocking cancel notification
-	b.Trace.Notify(func() {
-		select {
-		case buildCanceled <- true:
-		default:
-		}
-	})
 
 	// Run build script
 	go func() {
@@ -212,7 +203,7 @@ func (b *Build) run(executor Executor) (err error) {
 	// Wait for signals: cancel, timeout, abort or finish
 	b.Log().Debugln("Waiting for signals...")
 	select {
-	case <-buildCanceled:
+	case <-b.Trace.Aborted():
 		err = &BuildError{Inner: errors.New("canceled")}
 
 	case <-time.After(time.Duration(buildTimeout) * time.Second):

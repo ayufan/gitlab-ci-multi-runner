@@ -7,7 +7,7 @@ import (
 
 type Trace struct {
 	Writer io.Writer
-	Abort  func()
+	Abort  chan interface{}
 }
 
 func (s *Trace) Write(p []byte) (n int, err error) {
@@ -23,8 +23,8 @@ func (s *Trace) Success() {
 func (s *Trace) Fail(err error) {
 }
 
-func (s *Trace) Notify(abort func()) {
-	s.Abort = abort
+func (s *Trace) Aborted() chan interface{} {
+	return s.Abort
 }
 
 func (s *Trace) IsStdout() bool {
