@@ -126,7 +126,7 @@ type BuildTrace interface {
 	io.Writer
 	Success()
 	Fail(err error)
-	Notify(abort func())
+	Aborted() chan interface{}
 	IsStdout() bool
 }
 

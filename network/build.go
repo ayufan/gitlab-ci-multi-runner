@@ -68,7 +68,7 @@ type clientBuildTrace struct {
 	buildCredentials *common.BuildCredentials
 	id               int
 	limit            int64
-	abort            func()
+	abortCh          chan interface{}
 
 	incrementalAvailable bool
 
@@ -102,8 +102,8 @@ func (c *clientBuildTrace) Fail(err error) {
 	c.finish()
 }
 
-func (c *clientBuildTrace) Notify(abort func()) {
-	c.abort = abort
+func (c *clientBuildTrace) Aborted() chan interface{} {
+	return c.abortCh
 }
 
 func (c *clientBuildTrace) IsStdout() bool {
@@ -274,13 +274,22 @@ func (c *clientBuildTrace) staleUpdate() common.UpdateState {
 	return upload
 }
 
+func (c *clientBuildTrace) abort() bool {
+	select {
+	case c.abortCh <- true:
+		return true
+
+	default:
+		return false
+	}
+}
+
 func (c *clientBuildTrace) watch() {
 	for {
 		select {
 		case <-time.After(traceUpdateInterval):
 			state := c.update()
-			if state == common.UpdateAbort && c.abort != nil {
-				c.abort()
+			if state == common.UpdateAbort && c.abort() {
 				<-c.finished
 				return
 			}
@@ -298,5 +307,6 @@ func newBuildTrace(client common.Network, config common.RunnerConfig, buildCrede
 		config:           config,
 		buildCredentials: buildCredentials,
 		id:               buildCredentials.ID,
+		abortCh:          make(chan interface{}),
 	}
 }

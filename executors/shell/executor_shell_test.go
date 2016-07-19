@@ -79,12 +79,12 @@ func TestShellBuildAbort(t *testing.T) {
 				Executor: "shell",
 			},
 		},
-		BuildAbort: make(chan os.Signal, 1),
+		SystemInterrupt: make(chan os.Signal, 1),
 	}
 
 	abortTimer := time.AfterFunc(time.Second, func() {
 		t.Log("Interrupt")
-		build.BuildAbort <- os.Interrupt
+		build.SystemInterrupt <- os.Interrupt
 	})
 	defer abortTimer.Stop()
 
@@ -112,13 +112,11 @@ func TestShellBuildCancel(t *testing.T) {
 		},
 	}
 
-	trace := &common.Trace{Writer: os.Stdout}
+	trace := &common.Trace{Writer: os.Stdout, Abort: make(chan interface{}, 1)}
 
 	abortTimer := time.AfterFunc(time.Second, func() {
 		t.Log("Interrupt")
-		if trace.Abort != nil {
-			trace.Abort()
-		}
+		trace.Abort <- true
 	})
 	defer abortTimer.Stop()
 

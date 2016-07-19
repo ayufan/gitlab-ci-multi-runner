@@ -74,7 +74,7 @@ func (r *RunSingleCommand) processBuild(data common.ExecutorData, abortSignal ch
 	newBuild := common.Build{
 		GetBuildResponse: *buildData,
 		Runner:           &r.RunnerConfig,
-		BuildAbort:       abortSignal,
+		SystemInterrupt:  abortSignal,
 		ExecutorData:     data,
 	}
 
