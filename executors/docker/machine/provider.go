@@ -28,10 +28,11 @@ func (m *machineProvider) machineDetails(name string, acquire bool) *machineDeta
 	details, ok := m.details[name]
 	if !ok {
 		details = &machineDetails{
-			Name:    name,
-			Created: time.Now(),
-			Used:    time.Now(),
-			State:   machineStateIdle,
+			Name:      name,
+			Created:   time.Now(),
+			Used:      time.Now(),
+			UsedCount: 1, // any machine that we find we mark as already used
+			State:     machineStateIdle,
 		}
 		m.details[name] = details
 	}
@@ -50,6 +51,7 @@ func (m *machineProvider) create(config *common.RunnerConfig, state machineState
 	name := newMachineName(machineFilter(config))
 	details = m.machineDetails(name, true)
 	details.State = machineStateCreating
+	details.UsedCount = 0
 	errCh = make(chan error, 1)
 
 	// Create machine asynchronously
@@ -74,6 +76,7 @@ func (m *machineProvider) create(config *common.RunnerConfig, state machineState
 			details.Used = time.Now()
 			logrus.WithField("time", time.Since(started)).
 				WithField("name", details.Name).
+				WithField("now", time.Now()).
 				Infoln("Machine created")
 		}
 		errCh <- err
@@ -82,8 +85,9 @@ func (m *machineProvider) create(config *common.RunnerConfig, state machineState
 }
 
 func (m *machineProvider) findFreeMachine(machines ...string) (details *machineDetails) {
-	// Enumerate all machines
-	for _, name := range machines {
+	// Enumerate all machines in reverse order, to always take the newest machines first
+	for idx := range machines {
+		name := machines[len(machines)-idx-1]
 		details := m.machineDetails(name, true)
 		if details == nil {
 			continue
@@ -158,16 +162,17 @@ func (m *machineProvider) finalizeRemoval(details *machineDetails) {
 		WithField("created", time.Since(details.Created)).
 		WithField("used", time.Since(details.Used)).
 		WithField("reason", details.Reason).
+		WithField("now", time.Now()).
 		Infoln("Machine removed")
 }
 
-func (m *machineProvider) remove(machineName string, reason ...interface{}) {
+func (m *machineProvider) remove(machineName string, reason ...interface{}) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
 	details, _ := m.details[machineName]
 	if details == nil {
-		return
+		return errors.New("Machine not found")
 	}
 
 	details.Reason = fmt.Sprint(reason...)
@@ -176,11 +181,13 @@ func (m *machineProvider) remove(machineName string, reason ...interface{}) {
 		WithField("created", time.Since(details.Created)).
 		WithField("used", time.Since(details.Used)).
 		WithField("reason", details.Reason).
+		WithField("now", time.Now()).
 		Warningln("Removing machine")
 	details.Used = time.Now()
 	details.writeDebugInformation()
 
 	go m.finalizeRemoval(details)
+	return nil
 }
 
 func (m *machineProvider) updateMachine(config *common.RunnerConfig, data *machinesData, details *machineDetails) error {
@@ -319,6 +326,8 @@ func (m *machineProvider) Use(config *common.RunnerConfig, data common.ExecutorD
 
 	// Mark machine as used
 	details.State = machineStateUsed
+	details.Used = time.Now()
+	details.UsedCount++
 	return
 }
 
@@ -329,7 +338,14 @@ func (m *machineProvider) Release(config *common.RunnerConfig, data common.Execu
 		// Mark last used time when is Used
 		if details.State == machineStateUsed {
 			details.Used = time.Now()
-			details.UsedCount++
+		}
+
+		// Remove machine if we already used it
+		if config.Machine.MaxBuilds > 0 && details.UsedCount >= config.Machine.MaxBuilds {
+			err := m.remove(details.Name, "Too many builds")
+			if err == nil {
+				return nil
+			}
 		}
 		details.State = machineStateIdle
 	}

@@ -95,6 +95,9 @@ func (m *testMachine) Provision(name string) error {
 }
 
 func (m *testMachine) Remove(name string) error {
+	if name == "remove-fail" {
+		return errors.New("failed to remove")
+	}
 	var machines []string
 	for _, machine := range m.machines {
 		if machine != name {
@@ -206,6 +209,7 @@ func TestMachineDetails(t *testing.T) {
 	m1 := p.machineDetails("test", false)
 	assert.NotNil(t, m1, "returns a new machine")
 	assert.Equal(t, machineStateIdle, m1.State)
+	assert.Equal(t, 1, m1.UsedCount)
 
 	m2 := p.machineDetails("test", false)
 	assert.Equal(t, m1, m2, "returns the same machine")
@@ -249,6 +253,7 @@ func TestMachineCreationAndRemoval(t *testing.T) {
 	assert.NotNil(t, d)
 	assert.NoError(t, <-errCh)
 	assert.Equal(t, machineStateUsed, d.State)
+	assert.Equal(t, 0, d.UsedCount)
 	assert.NotNil(t, p.details[d.Name])
 
 	d2, errCh := p.create(machineProvisionFail, machineStateUsed)
@@ -383,13 +388,21 @@ func TestMachineLimitMax(t *testing.T) {
 	assertIdleMachines(t, p, 2, "it should downscale to 2 nodes")
 }
 
-func TestMachineMaxBuilds(t *testing.T) {
+func TestMachineMaxBuildsForExistingMachines(t *testing.T) {
 	provisionRetryInterval = 0
 
-	p, _ := testMachineProvider("machine1")
-
+	p, _ := testMachineProvider("remove-fail")
 	config := createMachineConfig(1, 5)
 	config.Machine.MaxBuilds = 1
+	d, err := p.Acquire(config)
+	assert.Error(t, err)
+	assert.Nil(t, d)
+}
+
+func TestMachineMaxBuilds(t *testing.T) {
+	p, _ := testMachineProvider("machine1")
+	config := createMachineConfig(1, 5)
+	config.Machine.MaxBuilds = 2 // by default we set it to 1
 	d, err := p.Acquire(config)
 	assert.NoError(t, err)
 	assert.NotNil(t, d)
@@ -401,11 +414,8 @@ func TestMachineMaxBuilds(t *testing.T) {
 	p.Release(config, d)
 
 	dd := d.(*machineDetails)
-	assert.Equal(t, machineStateIdle, dd.State, "the machine should still be in idle")
-
-	_, err = p.Acquire(config)
-	assert.Equal(t, machineStateRemoving, dd.State, "provider should get removed due to too many builds")
-	assert.Equal(t, "Too many builds", dd.Reason, "provider should get removed due to too many builds")
+	assert.Equal(t, machineStateRemoving, dd.State, "the machine should be removed due to too many builds")
+	assert.Equal(t, "Too many builds", dd.Reason, "the machine should be removed due to too many builds")
 }
 
 func TestMachineIdleLimits(t *testing.T) {
