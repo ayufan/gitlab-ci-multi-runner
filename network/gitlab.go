@@ -90,7 +90,10 @@ func (n *GitLabClient) GetBuild(config common.RunnerConfig) (*common.GetBuildRes
 
 	switch result {
 	case 201:
-		config.Log().WithField("build", strconv.Itoa(response.ID)).Println("Checking for builds...", "received")
+		config.Log().WithFields(logrus.Fields{
+			"build":    strconv.Itoa(response.ID),
+			"repo_url": response.RepoCleanURL(),
+		}).Println("Checking for builds...", "received")
 		response.TLSCAChain = certificates
 		return &response, true
 	case 403:

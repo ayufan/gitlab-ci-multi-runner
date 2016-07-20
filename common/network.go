@@ -2,6 +2,7 @@ package common
 
 import (
 	"io"
+	"net/url"
 )
 
 type UpdateState int
@@ -87,6 +88,16 @@ type GetBuildResponse struct {
 	Tag             bool           `json:"tag"`
 	DependsOnBuilds []BuildInfo    `json:"depends_on_builds"`
 	TLSCAChain      string         `json:"-"`
+}
+
+func (b *GetBuildResponse) RepoCleanURL() string {
+	repoURL, err := url.Parse(b.RepoURL)
+	if err != nil {
+		return err.Error()
+	}
+
+	repoURL.User = nil
+	return repoURL.String()
 }
 
 type RegisterRunnerRequest struct {
