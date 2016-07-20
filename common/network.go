@@ -2,7 +2,7 @@ package common
 
 import (
 	"io"
-	"regexp"
+	"net/url"
 )
 
 type UpdateState int
@@ -91,12 +91,13 @@ type GetBuildResponse struct {
 }
 
 func (b *GetBuildResponse) RepoCleanURL() string {
-	reg, err := regexp.Compile("gitlab-ci-token:[^@]+@")
+	repoURL, err := url.Parse(b.RepoURL)
 	if err != nil {
-		return ""
+		return err.Error()
 	}
 
-	return reg.ReplaceAllString(b.RepoURL, "")
+	repoURL.User = nil
+	return repoURL.String()
 }
 
 type RegisterRunnerRequest struct {
