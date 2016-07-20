@@ -2,6 +2,7 @@ package common
 
 import (
 	"io"
+	"regexp"
 )
 
 type UpdateState int
@@ -87,6 +88,15 @@ type GetBuildResponse struct {
 	Tag             bool           `json:"tag"`
 	DependsOnBuilds []BuildInfo    `json:"depends_on_builds"`
 	TLSCAChain      string         `json:"-"`
+}
+
+func (b *GetBuildResponse) RepoCleanURL() string {
+	reg, err := regexp.Compile("gitlab-ci-token:[^@]+@")
+	if err != nil {
+		return ""
+	}
+
+	return reg.ReplaceAllString(b.RepoURL, "")
 }
 
 type RegisterRunnerRequest struct {
