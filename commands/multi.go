@@ -185,7 +185,8 @@ func (mr *RunCommand) loadConfig() error {
 	}
 
 	mr.healthy = nil
-	mr.log().Println("Config loaded:", helpers.ToYAML(mr.config))
+	mr.log().Println("Configuration loaded")
+	mr.log().Debugln(helpers.ToYAML(mr.config))
 
 	// initialize sentry
 	if mr.config.SentryDSN != nil {
