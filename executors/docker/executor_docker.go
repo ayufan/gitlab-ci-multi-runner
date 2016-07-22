@@ -619,6 +619,7 @@ func (s *executor) prepareBuildContainer() (options *docker.CreateContainerOptio
 			Privileged:    s.Config.Docker.Privileged,
 			CapAdd:        s.Config.Docker.CapAdd,
 			CapDrop:       s.Config.Docker.CapDrop,
+			SecurityOpt:   s.Config.Docker.SecurityOpt,
 			RestartPolicy: docker.NeverRestart(),
 			ExtraHosts:    s.Config.Docker.ExtraHosts,
 			NetworkMode:   s.Config.Docker.NetworkMode,
