@@ -39,7 +39,7 @@ func (e *BuildLogger) Println(args ...interface{}) {
 	if e.entry == nil {
 		return
 	}
-	e.sendLog(e.entry.Println, helpers.ANSI_CLEAR, args...)
+	e.sendLog(e.entry.Debugln, helpers.ANSI_CLEAR, args...)
 }
 
 func (e *BuildLogger) Infoln(args ...interface{}) {
