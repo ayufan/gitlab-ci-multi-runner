@@ -15,6 +15,9 @@ v 1.4.0
 - Fix Absolute method for absolute path discovering for bash
 - Fix zombie issues by using dumb-init instead of github.com/ramr/go-reaper
 
+v 1.3.4
+- Fix panic while artifacts handling errors
+
 v 1.3.2
 - Fix architecture detection bug introduced in 1.3.1
 
