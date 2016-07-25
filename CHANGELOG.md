@@ -1,3 +1,6 @@
+v 1.3.4
+- Fix panic while artifacts handling errors
+
 v 1.3.3
 - Fix zombie issue by using dumb-init
 

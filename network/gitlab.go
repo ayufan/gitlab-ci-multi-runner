@@ -318,10 +318,13 @@ func (n *GitLabClient) UploadRawArtifacts(config common.BuildCredentials, reader
 	res, err := n.doRaw(mappedConfig, "POST", fmt.Sprintf("builds/%d/artifacts?%s", config.ID, query.Encode()), pr, mpw.FormDataContentType(), headers)
 
 	log := logrus.WithFields(logrus.Fields{
-		"id":             config.ID,
-		"token":          helpers.ShortenToken(config.Token),
-		"responseStatus": res.Status,
+		"id":    config.ID,
+		"token": helpers.ShortenToken(config.Token),
 	})
+
+	if res != nil {
+		log = log.WithField("responseStatus", res.Status)
+	}
 
 	if err != nil {
 		log.Errorln("Uploading artifacts to coordinator...", "error", err.Error())
@@ -386,10 +389,13 @@ func (n *GitLabClient) DownloadArtifacts(config common.BuildCredentials, artifac
 	res, err := n.doRaw(mappedConfig, "GET", fmt.Sprintf("builds/%d/artifacts", config.ID), nil, "", headers)
 
 	log := logrus.WithFields(logrus.Fields{
-		"id":             config.ID,
-		"token":          helpers.ShortenToken(config.Token),
-		"responseStatus": res.Status,
+		"id":    config.ID,
+		"token": helpers.ShortenToken(config.Token),
 	})
+
+	if res != nil {
+		log = log.WithField("responseStatus", res.Status)
+	}
 
 	if err != nil {
 		log.Errorln("Downloading artifacts from coordinator...", "error", err.Error())
