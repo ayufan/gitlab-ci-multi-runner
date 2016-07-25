@@ -1,5 +1,8 @@
 v 1.5.0 (unreleased)
 
+v 1.4.1
+- Fix panic while artifacts handling errors
+
 v 1.4.0
 - Add sentry support
 - Add support for cloning VirtualBox VM snapshots as linked clones
