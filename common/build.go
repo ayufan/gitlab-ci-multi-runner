@@ -277,7 +277,7 @@ func (b *Build) Run(globalConfig *Config, trace BuildTrace) (err error) {
 	b.Trace = trace
 
 	provider := GetExecutor(b.Runner.Executor)
-	if executor == nil {
+	if provider == nil {
 		return errors.New("executor not found")
 	}
 
