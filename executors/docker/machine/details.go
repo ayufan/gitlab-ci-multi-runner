@@ -11,16 +11,20 @@ import (
 )
 
 type machineDetails struct {
-	Name      string
-	Created   time.Time `yaml:"-"`
-	Used      time.Time `yaml:"-"`
-	UsedCount int
-	State     machineState
-	Reason    string
+	Name         string
+	Created      time.Time `yaml:"-"`
+	Used         time.Time `yaml:"-"`
+	UsedCount    int
+	State        machineState
+	Reason       string
 }
 
 func (m *machineDetails) isUsed() bool {
 	return m.State != machineStateIdle
+}
+
+func (m *machineDetails) canBeUsed() bool {
+	return m.State == machineStateAcquired
 }
 
 func (m *machineDetails) match(machineFilter string) bool {

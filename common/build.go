@@ -228,6 +228,34 @@ func (b *Build) run(executor Executor) (err error) {
 	}
 }
 
+func (b *Build) createExecutor(globalConfig *Config) (executor Executor, err error) {
+	executor = NewExecutor(b.Runner.Executor)
+	if executor == nil {
+		err = errors.New("executor not found")
+		return
+	}
+
+	err = executor.Prepare(globalConfig, b.Runner, b)
+	return
+}
+
+func (b *Build) retryCreateExecutor(globalConfig *Config, logger BuildLogger) (executor Executor, err error) {
+	for tries := 0; tries < PreparationRetries; tries++ {
+		executor, err = b.createExecutor(globalConfig)
+		if err == nil {
+			break
+		}
+		if executor != nil {
+			executor.Cleanup()
+			executor = nil
+		}
+		logger.SoftErrorln("Preparation failed:", err)
+		logger.Infoln("Will be retried in", PreparationRetryInterval, "...")
+		time.Sleep(PreparationRetryInterval)
+	}
+	return
+}
+
 func (b *Build) Run(globalConfig *Config, trace BuildTrace) (err error) {
 	var executor Executor
 
@@ -251,16 +279,14 @@ func (b *Build) Run(globalConfig *Config, trace BuildTrace) (err error) {
 	}()
 
 	b.Trace = trace
-	executor = NewExecutor(b.Runner.Executor)
-	if executor == nil {
-		return errors.New("executor not found")
-	}
 
-	err = executor.Prepare(globalConfig, b.Runner, b)
+	executor, err = b.retryCreateExecutor(globalConfig, logger)
 	if err == nil {
 		err = b.run(executor)
 	}
-	executor.Finish(err)
+	if executor != nil {
+		executor.Finish(err)
+	}
 	return err
 }
 

@@ -297,7 +297,7 @@ func (m *machineProvider) Acquire(config *common.RunnerConfig) (data common.Exec
 func (m *machineProvider) Use(config *common.RunnerConfig, data common.ExecutorData) (newConfig common.RunnerConfig, newData common.ExecutorData, err error) {
 	// Find a new machine
 	details, _ := data.(*machineDetails)
-	if details == nil {
+	if details == nil || !details.canBeUsed() || !m.machine.CanConnect(details.Name) {
 		details, err = m.retryUseMachine(config)
 		if err != nil {
 			return
