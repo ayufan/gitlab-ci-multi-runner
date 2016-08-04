@@ -2,6 +2,7 @@ package mocks
 
 import "gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 import "github.com/stretchr/testify/mock"
+
 import "io"
 
 type Network struct {
@@ -50,8 +51,8 @@ func (m *Network) UpdateBuild(config common.RunnerConfig, id int, state common.B
 
 	return r0
 }
-func (m *Network) PatchTrace(config common.RunnerConfig, buildCredentials *common.BuildCredentials, tracePatch common.BuildTracePatch) common.UpdateState {
-	ret := m.Called(config, buildCredentials, tracePatch)
+func (m *Network) PatchTrace(config common.RunnerConfig, buildCredentials *common.BuildCredentials, tracePart common.BuildTracePatch) common.UpdateState {
+	ret := m.Called(config, buildCredentials, tracePart)
 
 	r0 := ret.Get(0).(common.UpdateState)
 

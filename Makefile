@@ -198,6 +198,8 @@ mocks: FORCE
 	rm -rf mocks/
 	mockery -dir=$(GOPATH)/src/github.com/ayufan/golang-kardianos-service -name=Interface
 	mockery -dir=./common -name=Network
+	mockery -dir=./common -name=Executor
+	mockery -dir=./common -name=ExecutorProvider
 	mockery -dir=./helpers/docker -name=Client
 
 test-docker:
