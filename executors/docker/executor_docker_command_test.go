@@ -2,18 +2,18 @@ package docker_test
 
 import (
 	"os"
-	"testing"
-	"time"
 	"os/exec"
 	"strings"
+	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/docker"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/docker"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors/docker"
 )
 
 func TestDockerCommandSuccessRun(t *testing.T) {
@@ -181,7 +181,7 @@ func TestDockerCommandPrivilegedServices(t *testing.T) {
 }
 
 func runDockerInDocker(version string) (id string, err error) {
-	cmd := exec.Command("docker", "run", "--detach", "--privileged", "-p", "2375", "docker:" + version + "-dind")
+	cmd := exec.Command("docker", "run", "--detach", "--privileged", "-p", "2375", "docker:"+version+"-dind")
 	cmd.Stderr = os.Stderr
 	data, err := cmd.Output()
 	if err != nil {
@@ -256,7 +256,7 @@ func testDockerVersion(t *testing.T, version string) {
 			RunnerSettings: common.RunnerSettings{
 				Executor: "docker",
 				Docker: &common.DockerConfig{
-					Image: "alpine",
+					Image:             "alpine",
 					DockerCredentials: credentials,
 				},
 			},
