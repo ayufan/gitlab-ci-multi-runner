@@ -241,11 +241,11 @@ func (c *clientBuildTrace) incrementalUpdate() common.UpdateState {
 }
 
 func (c *clientBuildTrace) resendPatch(id int, config common.RunnerConfig, buildCredentials *common.BuildCredentials, tracePatch common.BuildTracePatch) (update common.UpdateState) {
-	config.Log().Warningln(id, "Resending trace patch due to range missmatch")
+	config.Log().Warningln(id, "Resending trace patch due to range mismatch")
 
 	update = c.client.PatchTrace(config, buildCredentials, tracePatch)
 	if update == common.UpdateRangeMissmatch {
-		config.Log().Errorln(id, "Appending trace to coordinator...", "failed due to range missmatch")
+		config.Log().Errorln(id, "Appending trace to coordinator...", "failed due to range mismatch")
 		update = common.UpdateFailed
 	}
 
