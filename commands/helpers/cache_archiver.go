@@ -22,7 +22,7 @@ type CacheArchiverCommand struct {
 }
 
 func (c *CacheArchiverCommand) upload() (bool, error) {
-	logrus.Infoln("Uploading", filepath.Base(c.File))
+	logrus.Infoln("Uploading", filepath.Base(c.File), "to", c.URL)
 
 	file, err := os.Open(c.File)
 	if err != nil {

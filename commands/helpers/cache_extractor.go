@@ -54,7 +54,7 @@ func (c *CacheExtractorCommand) download() (bool, error) {
 		return false, nil
 	}
 
-	logrus.Infoln("Downloading", filepath.Base(c.File))
+	logrus.Infoln("Downloading", filepath.Base(c.File), "from", c.URL)
 	_, err = io.Copy(file, resp.Body)
 	if err != nil {
 		return true, err
