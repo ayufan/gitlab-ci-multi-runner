@@ -1,14 +1,15 @@
 {
 	"ImportPath": "gitlab.com/gitlab-org/gitlab-ci-multi-runner",
 	"GoVersion": "go1.6.0",
+	"GodepVersion": "v74",
 	"Packages": [
 		"./..."
 	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/BurntSushi/toml",
-			"Comment": "v0.1.0-24-gffbe061",
-			"Rev": "ffbe061dbf09df6f4d404ef06736cc2b9e2510f7"
+			"Comment": "v0.2.0",
+			"Rev": "bbd5bb678321a0d6e58f1099321dfa73391c1b6f"
 		},
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
