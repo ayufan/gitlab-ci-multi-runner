@@ -812,7 +812,7 @@ func (s *executor) getImageName() (string, error) {
 	}
 
 	if s.Config.Docker.Image == "" {
-		return "", errors.New("Missing image")
+		return "", errors.New("No Docker image specified to run the build in.")
 	}
 
 	return s.Config.Docker.Image, nil
