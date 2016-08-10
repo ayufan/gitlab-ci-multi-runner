@@ -259,7 +259,7 @@ func (n *GitLabClient) PatchTrace(config common.RunnerConfig, buildCredentials *
 	case 404:
 		log.Warningln("Appending trace to coordinator...", "not-found")
 		return common.UpdateNotFound
-	case 406:
+	case 403:
 		log.Errorln("Appending trace to coordinator...", "forbidden")
 		return common.UpdateAbort
 	case 416:
