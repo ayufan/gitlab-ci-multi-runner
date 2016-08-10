@@ -1,5 +1,8 @@
 v 1.5.0 (unreleased)
 
+v 1.4.2
+- Fix abort mechanism when patching trace
+
 v 1.4.1
 - Fix panic while artifacts handling errors
 
