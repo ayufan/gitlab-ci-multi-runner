@@ -2,6 +2,7 @@ v 1.5.0 (unreleased)
 
 v 1.4.2
 - Fix abort mechanism when patching trace
+- Use armel instead of arm for Debian packages
 
 v 1.4.1
 - Fix panic while artifacts handling errors
