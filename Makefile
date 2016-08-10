@@ -19,7 +19,7 @@ DEB_PLATFORMS ?= debian/wheezy debian/jessie debian/stretch debian/buster \
     ubuntu/precise ubuntu/trusty ubuntu/utopic ubuntu/vivid ubuntu/wily ubuntu/xenial \
     raspbian/wheezy raspbian/jessie raspbian/stretch raspbian/buster \
     linuxmint/petra linuxmint/qiana linuxmint/rebecca linuxmint/rafaela linuxmint/rosa
-DEB_ARCHS ?= amd64 i386 arm armhf
+DEB_ARCHS ?= amd64 i386 armel armhf
 RPM_PLATFORMS ?= el/6 el/7 \
     ol/6 ol/7 \
     fedora/20 fedora/21 fedora/22 fedora/23
@@ -229,7 +229,7 @@ package-deb:
 	# Building Debian compatible packages...
 	make package-deb-fpm ARCH=amd64 PACKAGE_ARCH=amd64
 	make package-deb-fpm ARCH=386 PACKAGE_ARCH=i386
-	make package-deb-fpm ARCH=arm PACKAGE_ARCH=arm
+	make package-deb-fpm ARCH=arm PACKAGE_ARCH=armel
 	make package-deb-fpm ARCH=arm PACKAGE_ARCH=armhf
 
 package-rpm:
