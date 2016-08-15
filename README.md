@@ -16,6 +16,8 @@ The official repository for this project is on [GitLab.com](https://gitlab.com/g
 * [Issues](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues)
 * [Merge Requests](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/merge_requests)
 
+Contributions are welcome, per the [contribution guidelines](https://gitlab.com/gitlab-org/gitlab-ce/CONTRIBUTING.md) and the contributor license agreements linked to from there.
+
 #### Closing issues and merge requests
 
 GitLab is growing very fast and we have a limited resources to deal with reported issues
