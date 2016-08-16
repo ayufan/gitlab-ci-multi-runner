@@ -89,9 +89,11 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 	if s.pod == nil {
 		services := make([]api.Container, len(s.options.Services))
 		for i, image := range s.options.Services {
-			services[i] = s.buildContainer(fmt.Sprintf("svc-%d", i), image, s.serviceLimits)
+			resolvedImage := s.Build.GetAllVariables().ExpandValue(image)
+			services[i] = s.buildContainer(fmt.Sprintf("svc-%d", i), resolvedImage, s.serviceLimits)
 		}
 
+		buildImage := s.Build.GetAllVariables().ExpandValue(s.options.Image)
 		s.pod, err = s.kubeClient.Pods(s.Config.Kubernetes.Namespace).Create(&api.Pod{
 			ObjectMeta: api.ObjectMeta{
 				GenerateName: s.Build.ProjectUniqueName(),
@@ -124,7 +126,7 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 				},
 				RestartPolicy: api.RestartPolicyNever,
 				Containers: append([]api.Container{
-					s.buildContainer("build", s.options.Image, s.buildLimits, s.BuildShell.DockerCommand...),
+					s.buildContainer("build", buildImage, s.buildLimits, s.BuildShell.DockerCommand...),
 					s.buildContainer("pre", "munnerz/gitlab-runner-helper", s.serviceLimits, s.BuildShell.DockerCommand...),
 				}, services...),
 			},
