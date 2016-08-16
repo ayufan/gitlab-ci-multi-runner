@@ -369,7 +369,8 @@ type FakeBuildTrace struct {
 	testWriter
 }
 
-func (f FakeBuildTrace) Success()       {}
-func (f FakeBuildTrace) Fail(error)     {}
-func (f FakeBuildTrace) Notify(func())  {}
-func (f FakeBuildTrace) IsStdout() bool { return false }
+func (f FakeBuildTrace) Success()                  {}
+func (f FakeBuildTrace) Fail(error)                {}
+func (f FakeBuildTrace) Notify(func())             {}
+func (f FakeBuildTrace) Aborted() chan interface{} { return make(chan interface{}) }
+func (f FakeBuildTrace) IsStdout() bool            { return false }
