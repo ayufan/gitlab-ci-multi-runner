@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"os/exec"
+	"os/user"
 	"reflect"
 	"strings"
 	"testing"
-
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
+	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/testapi"
@@ -19,11 +21,17 @@ import (
 	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/fake"
+
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 )
 
 var (
-	TRUE  = true
-	FALSE = false
+	TRUE           = true
+	FALSE          = false
+	minikube       = "minikube"
+	minikubeConfig *common.KubernetesConfig
 )
 
 func TestLimits(t *testing.T) {
@@ -359,18 +367,91 @@ func TestPrepare(t *testing.T) {
 	}
 }
 
+func TestKubernetesSuccessRun(t *testing.T) {
+	if helpers.SkipIntegrationTests(t, "minikube", "version") {
+		return
+	}
+
+	buildResponse := common.SuccessfulBuild
+	buildResponse.Options = map[string]interface{}{
+		"image": "debian",
+	}
+	build := &common.Build{
+		GetBuildResponse: buildResponse,
+		Runner: &common.RunnerConfig{
+			RunnerSettings: common.RunnerSettings{
+				Executor:   "kubernetes",
+				Kubernetes: minikubeConfig,
+			},
+		},
+	}
+
+	err := build.Run(&common.Config{}, &common.Trace{Writer: os.Stdout})
+	assert.NoError(t, err, "Ensure minikube is able to create a local Kubernetes cluster succesfully")
+}
+
+func TestMain(m *testing.M) {
+	hasMinikube, _ := helpers.ExecuteCommandSucceeded("minikube", "version")
+	if !testing.Short() && hasMinikube {
+		err := exec.Command("minikube", "start").Run()
+
+		if err != nil {
+			fmt.Println("error starting minikube cluster:", err.Error())
+			os.Exit(1)
+		}
+
+		usr, err := user.Current()
+
+		if err != nil {
+			fmt.Println("error looking up current user account:", err.Error())
+			os.Exit(1)
+		}
+
+		ipBytes, err := exec.Command("minikube", "ip").Output()
+
+		if err != nil {
+			fmt.Println("error detecting minikube ip:", err.Error())
+			os.Exit(1)
+		}
+
+		crtPath := fmt.Sprintf("%s/.minikube/apiserver.crt", usr.HomeDir)
+		keyPath := fmt.Sprintf("%s/.minikube/apiserver.key", usr.HomeDir)
+		caPath := fmt.Sprintf("%s/.minikube/ca.crt", usr.HomeDir)
+		kubeIP := fmt.Sprintf("https://%s:8443", strings.Replace(string(ipBytes), "\n", "", -1))
+
+		minikubeConfig = &common.KubernetesConfig{
+			Host:      kubeIP,
+			CAFile:    caPath,
+			CertFile:  crtPath,
+			KeyFile:   keyPath,
+			Namespace: "default",
+		}
+
+		// wait 3 seconds because `minikube start` exits with status 0 before the apiserver
+		// is actually listening
+		time.Sleep(time.Second * 3)
+	}
+	os.Exit(m.Run())
+}
+
 type FakeReadCloser struct {
 	io.Reader
 }
 
-func (f FakeReadCloser) Close() error { return nil }
+func (f FakeReadCloser) Close() error {
+	return nil
+}
 
 type FakeBuildTrace struct {
 	testWriter
 }
 
-func (f FakeBuildTrace) Success()                  {}
-func (f FakeBuildTrace) Fail(error)                {}
-func (f FakeBuildTrace) Notify(func())             {}
-func (f FakeBuildTrace) Aborted() chan interface{} { return make(chan interface{}) }
-func (f FakeBuildTrace) IsStdout() bool            { return false }
+func (f FakeBuildTrace) Success()      {}
+func (f FakeBuildTrace) Fail(error)    {}
+func (f FakeBuildTrace) Notify(func()) {}
+func (f FakeBuildTrace) Aborted() chan interface{} {
+	return make(chan interface{})
+}
+func (f FakeBuildTrace) IsStdout() bool {
+	return false
+}

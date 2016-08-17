@@ -11,13 +11,23 @@ func SkipIntegrationTests(t *testing.T, app ...string) bool {
 		return true
 	}
 
+	if ok, err := ExecuteCommandSucceeded(app...); !ok {
+		t.Skip(app[0], "failed", err)
+		return true
+	}
+
+	return false
+}
+
+// ExecuteCommandSucceeded tests whether a particular command execution successfully
+// completes. If it does not, it returns the error produced.
+func ExecuteCommandSucceeded(app ...string) (bool, error) {
 	if len(app) > 0 {
 		cmd := exec.Command(app[0], app[1:]...)
 		err := cmd.Run()
 		if err != nil {
-			t.Skip(app[0], "failed", err)
-			return true
+			return false, err
 		}
 	}
-	return false
+	return true, nil
 }
