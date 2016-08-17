@@ -11,6 +11,10 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 )
 
+const (
+	defaultHelperImage = "munnerz/gitlab-runner-helper"
+)
+
 var (
 	executorOptions = executors.ExecutorOptions{
 		SharedBuildsDir: false,
@@ -76,6 +80,19 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 		return err
 	}
 
+	if len(s.options.Image) == 0 {
+		switch len(s.Config.Kubernetes.Image) {
+		case 0:
+			s.options.Image = "debian:latest"
+		default:
+			s.options.Image = s.Config.Kubernetes.Image
+		}
+	}
+
+	if len(s.Config.Kubernetes.HelperImage) == 0 {
+		s.Config.Kubernetes.HelperImage = defaultHelperImage
+	}
+
 	s.Println("Using Kubernetes executor with image", s.options.Image, "...")
 
 	return nil
@@ -127,7 +144,7 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 				RestartPolicy: api.RestartPolicyNever,
 				Containers: append([]api.Container{
 					s.buildContainer("build", buildImage, s.buildLimits, s.BuildShell.DockerCommand...),
-					s.buildContainer("pre", "munnerz/gitlab-runner-helper", s.serviceLimits, s.BuildShell.DockerCommand...),
+					s.buildContainer("pre", s.Config.Kubernetes.HelperImage, s.serviceLimits, s.BuildShell.DockerCommand...),
 				}, services...),
 			},
 		})
