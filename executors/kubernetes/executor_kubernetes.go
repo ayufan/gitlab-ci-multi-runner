@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
-
+	"golang.org/x/net/context"
 	"k8s.io/kubernetes/pkg/api"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 )
 
 const (
@@ -93,14 +94,16 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 		s.Config.Kubernetes.HelperImage = defaultHelperImage
 	}
 
+	if len(s.Config.Kubernetes.Namespace) == 0 {
+		s.Config.Kubernetes.Namespace = "default"
+	}
+
 	s.Println("Using Kubernetes executor with image", s.options.Image, "...")
 
 	return nil
 }
 
 func (s *executor) Run(cmd common.ExecutorCommand) error {
-	var err error
-
 	s.Debugln("Starting Kubernetes command...")
 
 	if s.pod == nil {
@@ -111,7 +114,7 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 		}
 
 		buildImage := s.Build.GetAllVariables().ExpandValue(s.options.Image)
-		s.pod, err = s.kubeClient.Pods(s.Config.Kubernetes.Namespace).Create(&api.Pod{
+		pod, err := s.kubeClient.Pods(s.Config.Kubernetes.Namespace).Create(&api.Pod{
 			ObjectMeta: api.ObjectMeta{
 				GenerateName: s.Build.ProjectUniqueName(),
 				Namespace:    s.Config.Kubernetes.Namespace,
@@ -152,6 +155,8 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 		if err != nil {
 			return err
 		}
+
+		s.pod = pod
 	}
 
 	var containerName string
@@ -162,10 +167,12 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 		containerName = "build"
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
 	select {
-	case err := <-s.runInContainer(containerName, cmd.Script):
+	case err := <-s.runInContainer(ctx, containerName, cmd.Script):
 		return err
 	case <-cmd.Abort:
+		cancel()
 		return fmt.Errorf("build aborted")
 	}
 }
@@ -215,12 +222,12 @@ func (s *executor) buildContainer(name, image string, limits api.ResourceList, c
 	}
 }
 
-func (s *executor) runInContainer(name, command string) <-chan error {
+func (s *executor) runInContainer(ctx context.Context, name, command string) <-chan error {
 	errc := make(chan error, 1)
 	go func() {
 		defer close(errc)
 
-		status, err := waitForPodRunning(s.kubeClient, s.pod, s.BuildTrace)
+		status, err := waitForPodRunning(ctx, s.kubeClient, s.pod, s.BuildTrace)
 
 		if err != nil {
 			errc <- err

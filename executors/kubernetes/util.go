@@ -5,12 +5,13 @@ import (
 	"io"
 	"time"
 
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-
+	"golang.org/x/net/context"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 )
 
 func getKubeClientConfig(config *common.KubernetesConfig) (*restclient.Config, error) {
@@ -50,31 +51,46 @@ func getKubeClient(config *common.KubernetesConfig) (*client.Client, error) {
 // either PodRunning, PodSucceeded or PodFailed has been reached. In the case of
 // PodRunning, it will also wait until all containers within the pod are also Ready
 // Returns error if the call to retreive pod details fails
-func waitForPodRunning(c *client.Client, pod *api.Pod, out io.Writer) (status api.PodPhase, err error) {
+func waitForPodRunning(ctx context.Context, c *client.Client, pod *api.Pod, out io.Writer) (api.PodPhase, error) {
+	type resp struct {
+		done  bool
+		phase api.PodPhase
+		err   error
+	}
 	for {
-		pod, err := c.Pods(pod.Namespace).Get(pod.Name)
-		if err != nil {
-			return api.PodUnknown, err
-		}
-		ready := false
-		if pod.Status.Phase == api.PodRunning {
-			ready = true
-			for _, status := range pod.Status.ContainerStatuses {
-				if !status.Ready {
-					ready = false
-					break
+		select {
+		case r := <-func() <-chan resp {
+			errc := make(chan resp)
+			go func() {
+				defer close(errc)
+				pod, err := c.Pods(pod.Namespace).Get(pod.Name)
+				if err != nil {
+					errc <- resp{true, api.PodUnknown, err}
+					return
 				}
+
+				switch pod.Status.Phase {
+				case api.PodRunning:
+					errc <- resp{true, pod.Status.Phase, nil}
+				case api.PodSucceeded:
+					errc <- resp{true, pod.Status.Phase, fmt.Errorf("pod already succeeded before it begins running")}
+				case api.PodFailed:
+					errc <- resp{true, pod.Status.Phase, fmt.Errorf("pod status is failed")}
+				default:
+					fmt.Fprintf(out, "Waiting for pod %s/%s to be running, status is %s\n", pod.Namespace, pod.Name, pod.Status.Phase)
+					time.Sleep(1 * time.Second)
+					errc <- resp{false, pod.Status.Phase, nil}
+				}
+			}()
+			return errc
+		}():
+			if r.done {
+				return r.phase, r.err
 			}
-			if ready {
-				return api.PodRunning, nil
-			}
+			continue
+		case <-ctx.Done():
+			return api.PodUnknown, ctx.Err()
 		}
-		if pod.Status.Phase == api.PodSucceeded || pod.Status.Phase == api.PodFailed {
-			return pod.Status.Phase, nil
-		}
-		fmt.Fprintf(out, "Waiting for pod %s/%s to be running, status is %s, pod ready: %v\n", pod.Namespace, pod.Name, pod.Status.Phase, ready)
-		time.Sleep(1 * time.Second)
-		continue
 	}
 }
 

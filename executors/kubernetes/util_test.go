@@ -7,14 +7,15 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-
+	"golang.org/x/net/context"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/fake"
+
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 )
 
 func TestGetKubeClientConfig(t *testing.T) {
@@ -188,7 +189,7 @@ func TestWaitForPodRunning(t *testing.T) {
 				return len(b), nil
 			},
 		}
-		phase, err := waitForPodRunning(c, test.Pod, fw)
+		phase, err := waitForPodRunning(context.Background(), c, test.Pod, fw)
 
 		if err != nil && !test.Error {
 			t.Errorf("Expected success. Got: %s", err.Error())
