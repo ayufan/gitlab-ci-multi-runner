@@ -25,6 +25,11 @@ RPM_PLATFORMS ?= el/6 el/7 \
     fedora/20 fedora/21 fedora/22 fedora/23
 RPM_ARCHS ?= x86_64 i686 arm armhf
 COMMON_PACKAGE_NAMESPACE=$(shell go list ./common)
+
+# Packages in vendor/ are included in ./...
+# https://github.com/golang/go/issues/11659
+OUR_PACKAGES=$(shell go list ./... | grep -v '/vendor/')
+
 GO_LDFLAGS ?= -X $(COMMON_PACKAGE_NAMESPACE).NAME=$(PACKAGE_NAME) -X $(COMMON_PACKAGE_NAMESPACE).VERSION=$(VERSION) \
               -X $(COMMON_PACKAGE_NAMESPACE).REVISION=$(REVISION) -X $(COMMON_PACKAGE_NAMESPACE).BUILT=$(BUILT) \
               -X $(COMMON_PACKAGE_NAMESPACE).BRANCH=$(BRANCH)
@@ -166,27 +171,26 @@ build_current: executors/docker/bindata.go build_simple
 
 fmt:
 	# Checking project code formatting...
-	@go fmt ./... | awk '{ print "Please run go fmt"; exit 1 }'
+	@go fmt $(OUR_PACKAGES) | awk '{ print "Please run go fmt"; exit 1 }'
 
 vet:
 	# Checking for suspicious constructs...
-	@go vet ./...
+	@go vet $(OUR_PACKAGES)
 
 lint:
 	# Checking project code style...
-	@golint ./... | ( ! grep -v -e "be unexported" -e "don't use an underscore in package name" -e "ALL_CAPS" )
+	@golint ./... | ( ! grep -v -e "^vendor/" -e "be unexported" -e "don't use an underscore in package name" -e "ALL_CAPS" )
 
 complexity:
 	# Checking code complexity
-	@gocyclo -over 9 $(shell find . -name '*.go' | grep -v \
-	    -e "/Godeps" \
+	@gocyclo -over 9 $(shell find . -name '*.go' -not -path './vendor/*' | grep -v \
 	    -e "/helpers/shell_escape.go" \
 	    -e "/executors/parallels/" \
 	    -e "/executors/virtualbox/")
 
 test: executors/docker/bindata.go
 	# Running tests...
-	@go test ./... -cover
+	@go test $(OUR_PACKAGES) -cover
 
 install: executors/docker/bindata.go
 	go install --ldflags="$(GO_LDFLAGS)"
