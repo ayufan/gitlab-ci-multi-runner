@@ -146,6 +146,7 @@ executors/docker/bindata.go: out/docker/prebuilt-x86_64.tar.gz out/docker/prebui
 		-o executors/docker/bindata.go \
 		out/docker/prebuilt-x86_64.tar.gz \
 		out/docker/prebuilt-arm.tar.gz
+	go fmt executors/docker/bindata.go
 
 docker: executors/docker/bindata.go
 
