@@ -6,8 +6,9 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/stretchr/testify/assert"
+
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/mocks"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/docker"
 )
 
 func TestParseDeviceStringOne(t *testing.T) {
@@ -83,7 +84,7 @@ func TestSplitService(t *testing.T) {
 }
 
 func TestDockerForNamedImage(t *testing.T) {
-	var c mocks.Client
+	var c docker_helpers.MockClient
 	defer c.AssertExpectations(t)
 
 	e := executor{client: &c}
@@ -115,7 +116,7 @@ func TestDockerForNamedImage(t *testing.T) {
 }
 
 func TestDockerForExistingImage(t *testing.T) {
-	var c mocks.Client
+	var c docker_helpers.MockClient
 	defer c.AssertExpectations(t)
 
 	e := executor{client: &c}
@@ -144,7 +145,7 @@ func (e *executor) setPolicyMode(pullPolicy common.DockerPullPolicy) {
 }
 
 func TestDockerGetImageById(t *testing.T) {
-	var c mocks.Client
+	var c docker_helpers.MockClient
 	defer c.AssertExpectations(t)
 
 	c.On("InspectImage", "ID").
@@ -162,7 +163,7 @@ func TestDockerGetImageById(t *testing.T) {
 }
 
 func TestDockerUnknownPolicyMode(t *testing.T) {
-	var c mocks.Client
+	var c docker_helpers.MockClient
 	defer c.AssertExpectations(t)
 
 	e := executor{client: &c}
@@ -173,7 +174,7 @@ func TestDockerUnknownPolicyMode(t *testing.T) {
 }
 
 func TestDockerPolicyModeNever(t *testing.T) {
-	var c mocks.Client
+	var c docker_helpers.MockClient
 	defer c.AssertExpectations(t)
 
 	c.On("InspectImage", "existing").
@@ -197,7 +198,7 @@ func TestDockerPolicyModeNever(t *testing.T) {
 }
 
 func TestDockerPolicyModeIfNotPresentForExistingImage(t *testing.T) {
-	var c mocks.Client
+	var c docker_helpers.MockClient
 	defer c.AssertExpectations(t)
 
 	e := executor{client: &c}
@@ -213,7 +214,7 @@ func TestDockerPolicyModeIfNotPresentForExistingImage(t *testing.T) {
 }
 
 func TestDockerPolicyModeIfNotPresentForNotExistingImage(t *testing.T) {
-	var c mocks.Client
+	var c docker_helpers.MockClient
 	defer c.AssertExpectations(t)
 
 	e := executor{client: &c}
@@ -247,7 +248,7 @@ func TestDockerPolicyModeIfNotPresentForNotExistingImage(t *testing.T) {
 }
 
 func TestDockerPolicyModeAlwaysForExistingImage(t *testing.T) {
-	var c mocks.Client
+	var c docker_helpers.MockClient
 	defer c.AssertExpectations(t)
 
 	e := executor{client: &c}
@@ -272,7 +273,7 @@ func TestDockerPolicyModeAlwaysForExistingImage(t *testing.T) {
 }
 
 func TestDockerGetExistingDockerImageIfPullFails(t *testing.T) {
-	var c mocks.Client
+	var c docker_helpers.MockClient
 	defer c.AssertExpectations(t)
 
 	e := executor{client: &c}

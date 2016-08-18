@@ -195,12 +195,11 @@ dockerfiles:
 
 mocks: FORCE
 	go get github.com/vektra/mockery/.../
-	rm -rf mocks/
-	mockery -dir=$(GOPATH)/src/github.com/ayufan/golang-kardianos-service -name=Interface
-	mockery -dir=./common -name=Network
-	mockery -dir=./common -name=Executor
-	mockery -dir=./common -name=ExecutorProvider
-	mockery -dir=./helpers/docker -name=Client
+	rm -rf ./mocks ./helpers/docker/mocks ./common/mocks ./helpers/service/mocks
+	find . -type f -name 'mock_*' -delete
+	mockery -dir=$(GOPATH)/src/github.com/ayufan/golang-kardianos-service -output=./helpers/service/mocks -name=Interface
+	mockery -dir=./common -all -inpkg
+	mockery -dir=./helpers/docker -all -inpkg
 
 test-docker:
 	make test-docker-image IMAGE=centos:6 TYPE=rpm
