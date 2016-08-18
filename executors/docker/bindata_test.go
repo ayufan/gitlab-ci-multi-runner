@@ -1,36 +1,17 @@
 package docker
 
 import (
-	"bytes"
-	"compress/gzip"
-	"github.com/stretchr/testify/assert"
-	"io"
-	"io/ioutil"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPrebuiltX86_64Assets(t *testing.T) {
-	data, err := Asset("prebuilt-x86_64.tar.gz")
-	assert.NoError(t, err)
-
-	gz, err := gzip.NewReader(bytes.NewReader(data))
-	assert.NoError(t, err)
-	assert.NotNil(t, gz)
-	defer gz.Close()
-
-	_, err = io.Copy(ioutil.Discard, gz)
+	_, err := Asset("prebuilt-x86_64" + prebuiltImageExtension)
 	assert.NoError(t, err)
 }
 
 func TestPrebuiltARMAssets(t *testing.T) {
-	data, err := Asset("prebuilt-arm.tar.gz")
-	assert.NoError(t, err)
-
-	gz, err := gzip.NewReader(bytes.NewReader(data))
-	assert.NoError(t, err)
-	assert.NotNil(t, gz)
-	defer gz.Close()
-
-	_, err = io.Copy(ioutil.Discard, gz)
+	_, err := Asset("prebuilt-arm" + prebuiltImageExtension)
 	assert.NoError(t, err)
 }

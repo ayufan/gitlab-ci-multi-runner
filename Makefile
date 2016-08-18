@@ -84,7 +84,7 @@ deps:
 	go get -u github.com/jteeuwen/go-bindata/...
 	go install cmd/vet
 
-out/docker/prebuilt-x86_64.tar.gz: $(GO_FILES)
+out/docker/prebuilt-x86_64.tar.xz: $(GO_FILES)
 	# Create directory
 	mkdir -p out/docker
 
@@ -101,18 +101,18 @@ ifneq (, $(shell docker info))
 	docker create --name=gitlab-runner-prebuilt-x86_64-$(REVISION) gitlab-runner-prebuilt-x86_64:$(REVISION) /bin/sh
 	docker export -o out/docker/prebuilt-x86_64.tar gitlab-runner-prebuilt-x86_64-$(REVISION)
 	docker rm -f gitlab-runner-prebuilt-x86_64-$(REVISION)
-	gzip -f -9 out/docker/prebuilt-x86_64.tar
+	xz -f -9 out/docker/prebuilt-x86_64.tar
 else
 	$(warning =============================================)
 	$(warning WARNING: downloading prebuilt docker images that will be embedded in gitlab-runner)
 	$(warning WARNING: to use images compiled from your code install Docker Engine)
-	$(warning WARNING: and remove out/docker/prebuilt-x86_64.tar.gz)
+	$(warning WARNING: and remove out/docker/prebuilt-x86_64.tar.xz)
 	$(warning =============================================)
-	curl -o out/docker/prebuilt-x86_64.tar.gz \
-		https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/docker/prebuilt-x86_64.tar.gz
+	curl -o out/docker/prebuilt-x86_64.tar.xz \
+		https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/docker/prebuilt-x86_64.tar.xz
 endif
 
-out/docker/prebuilt-arm.tar.gz: $(GO_FILES)
+out/docker/prebuilt-arm.tar.xz: $(GO_FILES)
 	# Create directory
 	mkdir -p out/docker
 
@@ -129,18 +129,18 @@ ifneq (, $(shell docker info))
 	docker create --name=gitlab-runner-prebuilt-arm-$(REVISION) gitlab-runner-prebuilt-arm:$(REVISION) /bin/sh
 	docker export -o out/docker/prebuilt-arm.tar gitlab-runner-prebuilt-arm-$(REVISION)
 	docker rm -f gitlab-runner-prebuilt-arm-$(REVISION)
-	gzip -f -9 out/docker/prebuilt-arm.tar
+	xz -f -9 out/docker/prebuilt-arm.tar
 else
 	$(warning =============================================)
 	$(warning WARNING: downloading prebuilt docker images that will be embedded in gitlab-runner)
 	$(warning WARNING: to use images compiled from your code install Docker Engine)
-	$(warning WARNING: and remove out/docker/prebuilt-arm.tar.gz)
+	$(warning WARNING: and remove out/docker/prebuilt-arm.tar.xz)
 	$(warning =============================================)
-	curl -o out/docker/prebuilt-arm.tar.gz \
-		https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/docker/prebuilt-arm.tar.gz
+	curl -o out/docker/prebuilt-arm.tar.xz \
+		https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/docker/prebuilt-arm.tar.xz
 endif
 
-executors/docker/bindata.go: out/docker/prebuilt-x86_64.tar.gz out/docker/prebuilt-arm.tar.gz
+executors/docker/bindata.go: out/docker/prebuilt-x86_64.tar.xz out/docker/prebuilt-arm.tar.xz
 	# Generating embedded data
 	go-bindata \
 		-pkg docker \
@@ -149,8 +149,8 @@ executors/docker/bindata.go: out/docker/prebuilt-x86_64.tar.gz out/docker/prebui
 		-nometadata \
 		-prefix out/docker/ \
 		-o executors/docker/bindata.go \
-		out/docker/prebuilt-x86_64.tar.gz \
-		out/docker/prebuilt-arm.tar.gz
+		out/docker/prebuilt-x86_64.tar.xz \
+		out/docker/prebuilt-arm.tar.xz
 	go fmt executors/docker/bindata.go
 
 docker: executors/docker/bindata.go
