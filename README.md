@@ -10,13 +10,8 @@ The old name of this project was GitLab CI Multi Runner but please use "GitLab R
 
 ### Contributing
 
-The official repository for this project is on [GitLab.com](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner).
+Contributions are welcome, see [`CONTRIBUTING.md`](CONTRIBUTING.md) for more details.
 
-* [Development](docs/development/README.md)
-* [Issues](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues)
-* [Merge Requests](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/merge_requests)
-
-Contributions are welcome, per the [contribution guidelines](https://gitlab.com/gitlab-org/gitlab-ce/CONTRIBUTING.md) and the contributor license agreements linked to from there.
 
 #### Closing issues and merge requests
 
