@@ -11,6 +11,6 @@ The official repository for this project is on [GitLab.com](https://gitlab.com/g
 ## Contributor license agreement
 
 By submitting code as an individual you agree to the
-[individual contributor license agreement](https://gitlab.com/gitlab-org/gitlab-ce/doc/legal/individual_contributor_license_agreement.md).
+[individual contributor license agreement](https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/legal/individual_contributor_license_agreement.md).
 By submitting code as an entity you agree to the
-[corporate contributor license agreement](https://gitlab.com/gitlab-org/gitlab-ce/doc/legal/corporate_contributor_license_agreement.md).
+[corporate contributor license agreement](https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/legal/corporate_contributor_license_agreement.md).
