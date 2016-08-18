@@ -4,6 +4,7 @@ This is the repository of the official GitLab Runner written in Go.
 It runs tests and sends the results to GitLab.
 [GitLab CI](https://about.gitlab.com/gitlab-ci) is the open-source
 continuous integration service included with GitLab that coordinates the testing.
+The old name of this project was GitLab CI Multi Runner but please use "GitLab Runner" (without CI) from now on.
 
 ![Build Status](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/badges/master/build.svg)
 
@@ -14,6 +15,8 @@ The official repository for this project is on [GitLab.com](https://gitlab.com/g
 * [Development](docs/development/README.md)
 * [Issues](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues)
 * [Merge Requests](https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/merge_requests)
+
+Contributions are welcome, per the [contribution guidelines](https://gitlab.com/gitlab-org/gitlab-ce/CONTRIBUTING.md) and the contributor license agreements linked to from there.
 
 #### Closing issues and merge requests
 

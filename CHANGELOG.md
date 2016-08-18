@@ -1,5 +1,11 @@
 v 1.5.0 (unreleased)
 
+v 1.4.2
+- Fix abort mechanism when patching trace
+
+v 1.4.1
+- Fix panic while artifacts handling errors
+
 v 1.4.0
 - Add sentry support
 - Add support for cloning VirtualBox VM snapshots as linked clones
@@ -17,6 +23,9 @@ v 1.4.0
 
 v 1.3.4
 - Fix panic while artifacts handling errors
+
+v 1.3.3
+- Fix zombie issue by using dumb-init
 
 v 1.3.2
 - Fix architecture detection bug introduced in 1.3.1

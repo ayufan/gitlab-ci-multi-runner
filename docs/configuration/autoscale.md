@@ -328,7 +328,7 @@ concurrent = 50   # All registered Runners can run up to 50 concurrent builds
 
 [[runners]]
   url = "https://gitlab.com/ci"
-  token = "RUNNER_TOKEN"
+  token = "RUNNER_TOKEN"            # Note this is different from the registration token used by `gitlab-runner register`
   name = "autoscale-runner"
   executor = "docker+machine"       # This Runner is using the 'docker+machine' executor
   limit = 10                        # This Runner can execute up to 10 builds (created machines)
