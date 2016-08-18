@@ -2,7 +2,6 @@ package docker
 
 import (
 	"bytes"
-	"compress/gzip"
 	"crypto/md5"
 	"errors"
 	"fmt"
@@ -39,9 +38,6 @@ type executor struct {
 	options  dockerOptions
 	info     *docker.Env
 }
-
-const prebuiltImageName = "gitlab-runner-prebuilt"
-const PrebuiltArchive = "prebuilt.tar.gz"
 
 func (s *executor) getServiceVariables() []string {
 	return s.Build.GetAllVariables().PublicOrInternal().StringList()
@@ -177,23 +173,17 @@ func (s *executor) getPrebuiltImage() (image *docker.Image, err error) {
 		return
 	}
 
-	data, err := Asset("prebuilt-" + architecture + ".tar.gz")
+	data, err := Asset("prebuilt-" + architecture + prebuiltImageExtension)
 	if err != nil {
 		return nil, fmt.Errorf("Unsupported architecture: %s: %q", architecture, err.Error())
 	}
-
-	gz, err := gzip.NewReader(bytes.NewReader(data))
-	if err != nil {
-		return
-	}
-	defer gz.Close()
 
 	s.Debugln("Loading prebuilt image...")
 	err = s.client.ImportImage(docker.ImportImageOptions{
 		Repository:  prebuiltImageName + "-" + architecture,
 		Tag:         common.REVISION,
 		Source:      "-",
-		InputStream: gz,
+		InputStream: bytes.NewBuffer(data),
 	})
 	if err != nil {
 		return
@@ -844,7 +834,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 
 	s.Println("Using Docker executor with image", imageName, "...")
 
-	client, err := docker_helpers.New(s.Config.Docker.DockerCredentials, dockerAPIVersion)
+	client, err := docker_helpers.New(s.Config.Docker.DockerCredentials, DockerAPIVersion)
 	if err != nil {
 		return err
 	}

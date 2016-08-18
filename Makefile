@@ -25,6 +25,11 @@ RPM_PLATFORMS ?= el/6 el/7 \
     fedora/20 fedora/21 fedora/22 fedora/23
 RPM_ARCHS ?= x86_64 i686 arm armhf
 COMMON_PACKAGE_NAMESPACE=$(shell go list ./common)
+
+# Packages in vendor/ are included in ./...
+# https://github.com/golang/go/issues/11659
+OUR_PACKAGES=$(shell go list ./... | grep -v '/vendor/')
+
 GO_LDFLAGS ?= -X $(COMMON_PACKAGE_NAMESPACE).NAME=$(PACKAGE_NAME) -X $(COMMON_PACKAGE_NAMESPACE).VERSION=$(VERSION) \
               -X $(COMMON_PACKAGE_NAMESPACE).REVISION=$(REVISION) -X $(COMMON_PACKAGE_NAMESPACE).BUILT=$(BUILT) \
               -X $(COMMON_PACKAGE_NAMESPACE).BRANCH=$(BRANCH)
@@ -79,7 +84,7 @@ deps:
 	go get -u github.com/jteeuwen/go-bindata/...
 	go install cmd/vet
 
-out/docker/prebuilt-x86_64.tar.gz: $(GO_FILES)
+out/docker/prebuilt-x86_64.tar.xz: $(GO_FILES)
 	# Create directory
 	mkdir -p out/docker
 
@@ -96,18 +101,18 @@ ifneq (, $(shell docker info))
 	docker create --name=gitlab-runner-prebuilt-x86_64-$(REVISION) gitlab-runner-prebuilt-x86_64:$(REVISION) /bin/sh
 	docker export -o out/docker/prebuilt-x86_64.tar gitlab-runner-prebuilt-x86_64-$(REVISION)
 	docker rm -f gitlab-runner-prebuilt-x86_64-$(REVISION)
-	gzip -f -9 out/docker/prebuilt-x86_64.tar
+	xz -f -9 out/docker/prebuilt-x86_64.tar
 else
 	$(warning =============================================)
 	$(warning WARNING: downloading prebuilt docker images that will be embedded in gitlab-runner)
 	$(warning WARNING: to use images compiled from your code install Docker Engine)
-	$(warning WARNING: and remove out/docker/prebuilt-x86_64.tar.gz)
+	$(warning WARNING: and remove out/docker/prebuilt-x86_64.tar.xz)
 	$(warning =============================================)
-	curl -o out/docker/prebuilt-x86_64.tar.gz \
-		https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/docker/prebuilt-x86_64.tar.gz
+	curl -o out/docker/prebuilt-x86_64.tar.xz \
+		https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/docker/prebuilt-x86_64.tar.xz
 endif
 
-out/docker/prebuilt-arm.tar.gz: $(GO_FILES)
+out/docker/prebuilt-arm.tar.xz: $(GO_FILES)
 	# Create directory
 	mkdir -p out/docker
 
@@ -124,18 +129,18 @@ ifneq (, $(shell docker info))
 	docker create --name=gitlab-runner-prebuilt-arm-$(REVISION) gitlab-runner-prebuilt-arm:$(REVISION) /bin/sh
 	docker export -o out/docker/prebuilt-arm.tar gitlab-runner-prebuilt-arm-$(REVISION)
 	docker rm -f gitlab-runner-prebuilt-arm-$(REVISION)
-	gzip -f -9 out/docker/prebuilt-arm.tar
+	xz -f -9 out/docker/prebuilt-arm.tar
 else
 	$(warning =============================================)
 	$(warning WARNING: downloading prebuilt docker images that will be embedded in gitlab-runner)
 	$(warning WARNING: to use images compiled from your code install Docker Engine)
-	$(warning WARNING: and remove out/docker/prebuilt-arm.tar.gz)
+	$(warning WARNING: and remove out/docker/prebuilt-arm.tar.xz)
 	$(warning =============================================)
-	curl -o out/docker/prebuilt-arm.tar.gz \
-		https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/docker/prebuilt-arm.tar.gz
+	curl -o out/docker/prebuilt-arm.tar.xz \
+		https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/docker/prebuilt-arm.tar.xz
 endif
 
-executors/docker/bindata.go: out/docker/prebuilt-x86_64.tar.gz out/docker/prebuilt-arm.tar.gz
+executors/docker/bindata.go: out/docker/prebuilt-x86_64.tar.xz out/docker/prebuilt-arm.tar.xz
 	# Generating embedded data
 	go-bindata \
 		-pkg docker \
@@ -144,8 +149,9 @@ executors/docker/bindata.go: out/docker/prebuilt-x86_64.tar.gz out/docker/prebui
 		-nometadata \
 		-prefix out/docker/ \
 		-o executors/docker/bindata.go \
-		out/docker/prebuilt-x86_64.tar.gz \
-		out/docker/prebuilt-arm.tar.gz
+		out/docker/prebuilt-x86_64.tar.xz \
+		out/docker/prebuilt-arm.tar.xz
+	go fmt executors/docker/bindata.go
 
 docker: executors/docker/bindata.go
 
@@ -165,20 +171,19 @@ build_current: executors/docker/bindata.go build_simple
 
 fmt:
 	# Checking project code formatting...
-	@go fmt ./... | awk '{ print "Please run go fmt"; exit 1 }'
+	@go fmt $(OUR_PACKAGES) | awk '{ print "Please run go fmt"; exit 1 }'
 
 vet:
 	# Checking for suspicious constructs...
-	@go vet ./...
+	@go vet $(OUR_PACKAGES)
 
 lint:
 	# Checking project code style...
-	@golint ./... | ( ! grep -v -e "be unexported" -e "don't use an underscore in package name" -e "ALL_CAPS" )
+	@golint ./... | ( ! grep -v -e "^vendor/" -e "be unexported" -e "don't use an underscore in package name" -e "ALL_CAPS" )
 
 complexity:
 	# Checking code complexity
-	@gocyclo -over 9 $(shell find . -name '*.go' | grep -v \
-	    -e "/Godeps" \
+	@gocyclo -over 9 $(shell find . -name '*.go' -not -path './vendor/*' | grep -v \
 	    -e "/helpers/shell_escape.go" \
 			-e "/executors/kubernetes/executor_kubernetes_test.go" \
 			-e "/executors/kubernetes/util_test.go" \
@@ -188,7 +193,7 @@ complexity:
 
 test: executors/docker/bindata.go
 	# Running tests...
-	@go test ./... -cover
+	@go test $(OUR_PACKAGES) -cover
 
 install: executors/docker/bindata.go
 	go install --ldflags="$(GO_LDFLAGS)"
