@@ -41,7 +41,6 @@ type executor struct {
 	prepod       *api.Pod
 	pod          *api.Pod
 	options      *kubernetesOptions
-	extraOptions Options
 
 	buildLimits   api.ResourceList
 	serviceLimits api.ResourceList
@@ -57,9 +56,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 		return fmt.Errorf("Kubernetes doesn't support shells that require script file")
 	}
 
-	s.extraOptions = DefaultOptions{s.Build.Variables}
-
-	if !s.Config.Kubernetes.AllowPrivileged && s.extraOptions.Privileged() {
+	if !s.Config.Kubernetes.Privileged {
 		return fmt.Errorf("Runner does not allow privileged containers")
 	}
 
@@ -146,7 +143,7 @@ func (s *executor) buildContainer(name, image string, limits api.ResourceList, c
 	path := strings.Split(s.Build.BuildDir, "/")
 	path = path[:len(path)-1]
 
-	privileged := s.extraOptions.Privileged()
+	privileged := s.Config.Kubernetes.Privileged
 
 	return api.Container{
 		Name:    name,
