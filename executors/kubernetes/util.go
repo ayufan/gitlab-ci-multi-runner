@@ -69,25 +69,27 @@ func waitForPodRunning(ctx context.Context, c *client.Client, pod *api.Pod, out 
 					return
 				}
 
-				switch pod.Status.Phase {
-				case api.PodRunning:
-					errc <- resp{true, pod.Status.Phase, nil}
-				case api.PodSucceeded:
-					errc <- resp{true, pod.Status.Phase, fmt.Errorf("pod already succeeded before it begins running")}
-				case api.PodFailed:
-					errc <- resp{true, pod.Status.Phase, fmt.Errorf("pod status is failed")}
-				default:
-					fmt.Fprintf(out, "Waiting for pod %s/%s to be running, status is %s\n", pod.Namespace, pod.Name, pod.Status.Phase)
-					time.Sleep(1 * time.Second)
-					errc <- resp{false, pod.Status.Phase, nil}
+				ready, err := isRunning(pod)
+
+				if err != nil {
+					errc <- resp{true, pod.Status.Phase, err}
+					return
 				}
+
+				if ready {
+					errc <- resp{true, pod.Status.Phase, nil}
+					return
+				}
+
+				fmt.Fprintf(out, "Waiting for pod %s/%s to be running, status is %s\n", pod.Namespace, pod.Name, pod.Status.Phase)
+				time.Sleep(1 * time.Second)
+				errc <- resp{false, pod.Status.Phase, nil}
 			}()
 			return errc
 		}():
 			if r.done {
 				return r.phase, r.err
 			}
-			continue
 		case <-ctx.Done():
 			return api.PodUnknown, ctx.Err()
 		}
