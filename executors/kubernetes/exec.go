@@ -1,9 +1,12 @@
 /*
 Copyright 2014 The Kubernetes Authors All rights reserved.
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
     http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,12 +21,12 @@ import (
 	"io"
 	"net/url"
 
-	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
-	kubelet_remotecommand "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
+	remotecommandserver "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
+	log "github.com/Sirupsen/logrus"
 )
 
 // RemoteExecutor defines the interface accepted by the Exec command - provided for test stubbing
@@ -39,8 +42,7 @@ func (*DefaultRemoteExecutor) Execute(method string, url *url.URL, config *restc
 	if err != nil {
 		return err
 	}
-
-	return exec.Stream([]string{kubelet_remotecommand.StreamProtocolV1Name}, stdin, stdout, stderr, tty)
+	return exec.Stream(remotecommandserver.SupportedStreamingProtocols, stdin, stdout, stderr, tty)
 }
 
 // ExecOptions declare the arguments accepted by the Exec command
@@ -51,13 +53,13 @@ type ExecOptions struct {
 	Stdin         bool
 	Command       []string
 
-	In  io.Reader
-	Out io.Writer
-	Err io.Writer
+	In            io.Reader
+	Out           io.Writer
+	Err           io.Writer
 
-	Executor RemoteExecutor
-	Client   *client.Client
-	Config   *restclient.Config
+	Executor      RemoteExecutor
+	Client        *client.Client
+	Config        *restclient.Config
 }
 
 // Run executes a validated remote execution against a pod.
@@ -73,7 +75,7 @@ func (p *ExecOptions) Run() error {
 
 	containerName := p.ContainerName
 	if len(containerName) == 0 {
-		glog.V(4).Infof("defaulting container name to %s", pod.Spec.Containers[0].Name)
+		log.Infof("defaulting container name to %s", pod.Spec.Containers[0].Name)
 		containerName = pod.Spec.Containers[0].Name
 	}
 
