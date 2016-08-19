@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
+	kubelet_remotecommand "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
 )
 
 // RemoteExecutor defines the interface accepted by the Exec command - provided for test stubbing
@@ -38,7 +39,8 @@ func (*DefaultRemoteExecutor) Execute(method string, url *url.URL, config *restc
 	if err != nil {
 		return err
 	}
-	return exec.Stream(stdin, stdout, stderr, tty)
+
+	return exec.Stream([]string{kubelet_remotecommand.StreamProtocolV1Name}, stdin, stdout, stderr, tty)
 }
 
 // ExecOptions declare the arguments accepted by the Exec command

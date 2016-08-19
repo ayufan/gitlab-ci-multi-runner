@@ -99,16 +99,16 @@ func waitForPodRunning(ctx context.Context, c *client.Client, pod *api.Pod, out 
 // values for Kubernetes. This allows users to write "500m" for CPU,
 // and "50Mi" for memory (etc.)
 func limits(cpu, memory string) (api.ResourceList, error) {
-	var rCPU, rMem *resource.Quantity
+	var rCPU, rMem resource.Quantity
 	var err error
 
-	parse := func(s string) (*resource.Quantity, error) {
-		var q *resource.Quantity
+	parse := func(s string) (resource.Quantity, error) {
+		var q resource.Quantity
 		if len(s) == 0 {
 			return q, nil
 		}
 		if q, err = resource.ParseQuantity(s); err != nil {
-			return nil, fmt.Errorf("error parsing resource limit: %s", err.Error())
+			return q, fmt.Errorf("error parsing resource limit: %s", err.Error())
 		}
 		return q, nil
 	}
@@ -123,11 +123,12 @@ func limits(cpu, memory string) (api.ResourceList, error) {
 
 	l := make(api.ResourceList)
 
-	if rCPU != nil {
-		l[api.ResourceLimitsCPU] = *rCPU
+	q := resource.Quantity{}
+	if rCPU != q {
+		l[api.ResourceLimitsCPU] = rCPU
 	}
-	if rMem != nil {
-		l[api.ResourceLimitsMemory] = *rMem
+	if rMem != q {
+		l[api.ResourceLimitsMemory] = rMem
 	}
 
 	return l, nil
