@@ -23,6 +23,10 @@ func (m *machineDetails) isUsed() bool {
 	return m.State != machineStateIdle
 }
 
+func (m *machineDetails) canBeUsed() bool {
+	return m.State == machineStateAcquired
+}
+
 func (m *machineDetails) match(machineFilter string) bool {
 	var query string
 	if n, _ := fmt.Sscanf(m.Name, machineFilter, &query); n != 1 {

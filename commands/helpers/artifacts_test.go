@@ -3,17 +3,18 @@ package helpers
 import (
 	"archive/zip"
 	"bytes"
-	"github.com/Sirupsen/logrus"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/mocks"
 	"io"
 	"os"
+
+	"github.com/Sirupsen/logrus"
+
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 )
 
 const artifactsTestArchivedFile = "archive_file"
 
 type testNetwork struct {
-	mocks.Network
+	common.MockNetwork
 	downloadState  common.DownloadState
 	downloadCalled int
 	uploadState    common.UploadState
