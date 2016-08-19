@@ -802,6 +802,48 @@ func (s *executor) getImageName() (string, error) {
 	return s.Config.Docker.Image, nil
 }
 
+func (s *executor) connectDocker() (err error) {
+	client, err := docker_helpers.New(s.Config.Docker.DockerCredentials, DockerAPIVersion)
+	if err != nil {
+		return err
+	}
+	s.client = client
+
+	s.info, err = client.Info()
+	if err != nil {
+		return err
+	}
+
+	return
+}
+
+func (s *executor) createDependencies() (err error) {
+	err = s.bindDevices()
+	if err != nil {
+		return err
+	}
+
+	s.Debugln("Creating build volume...")
+	err = s.createBuildVolume()
+	if err != nil {
+		return err
+	}
+
+	s.Debugln("Creating services...")
+	err = s.createServices()
+	if err != nil {
+		return err
+	}
+
+	s.Debugln("Creating user-defined volumes...")
+	err = s.createUserVolumes()
+	if err != nil {
+		return err
+	}
+
+	return
+}
+
 func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerConfig, build *common.Build) error {
 	err := s.AbstractExecutor.Prepare(globalConfig, config, build)
 	if err != nil {
@@ -828,36 +870,12 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 
 	s.Println("Using Docker executor with image", imageName, "...")
 
-	client, err := docker_helpers.New(s.Config.Docker.DockerCredentials, DockerAPIVersion)
-	if err != nil {
-		return err
-	}
-	s.client = client
-
-	s.info, err = client.Info()
+	err = s.connectDocker()
 	if err != nil {
 		return err
 	}
 
-	err = s.bindDevices()
-	if err != nil {
-		return err
-	}
-
-	s.Debugln("Creating build volume...")
-	err = s.createBuildVolume()
-	if err != nil {
-		return err
-	}
-
-	s.Debugln("Creating services...")
-	err = s.createServices()
-	if err != nil {
-		return err
-	}
-
-	s.Debugln("Creating user-defined volumes...")
-	err = s.createUserVolumes()
+	err = s.createDependencies()
 	if err != nil {
 		return err
 	}
