@@ -248,6 +248,7 @@ func testDockerVersion(t *testing.T, version string) {
 		return
 	}
 
+	t.Log("Connecting to", credentials.Host, "...")
 	err = waitForDocker(credentials)
 	if err != nil {
 		t.Error("Wait for docker:", err)
@@ -302,7 +303,7 @@ func TestDocker1_11Compatibility(t *testing.T) {
 		return
 	}
 
-	testDockerVersion(t, "1.12")
+	testDockerVersion(t, "1.11")
 }
 
 func TestDocker1_12Compatibility(t *testing.T) {
