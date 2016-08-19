@@ -75,6 +75,7 @@ func TestWaitForPodRunning(t *testing.T) {
 	retries := 0
 
 	tests := []struct {
+		Name        string
 		Pod         *api.Pod
 		ClientFunc  func(*http.Request) (*http.Response, error)
 		PodEndPhase api.PodPhase
@@ -82,6 +83,7 @@ func TestWaitForPodRunning(t *testing.T) {
 		Error       bool
 	}{
 		{
+			Name: "ensure function retries until ready",
 			Pod: &api.Pod{
 				ObjectMeta: api.ObjectMeta{
 					Name:      "test-pod",
@@ -90,7 +92,7 @@ func TestWaitForPodRunning(t *testing.T) {
 			},
 			ClientFunc: func(req *http.Request) (*http.Response, error) {
 				switch p, m := req.URL.Path, req.Method; {
-				case p == "/api/"+version+"/namespaces/test-ns/pods/test-pod" && m == "GET":
+				case p == "/api/" + version + "/namespaces/test-ns/pods/test-pod" && m == "GET":
 					pod := &api.Pod{
 						ObjectMeta: api.ObjectMeta{
 							Name:      "test-pod",
@@ -111,6 +113,7 @@ func TestWaitForPodRunning(t *testing.T) {
 					}
 
 					if retries > 2 {
+						pod.Status.Phase = api.PodRunning
 						pod.Status.ContainerStatuses = []api.ContainerStatus{
 							{
 								Ready: true,
@@ -131,6 +134,7 @@ func TestWaitForPodRunning(t *testing.T) {
 			Retries:     2,
 		},
 		{
+			Name: "ensure function errors if pod already succeeded",
 			Pod: &api.Pod{
 				ObjectMeta: api.ObjectMeta{
 					Name:      "test-pod",
@@ -139,7 +143,7 @@ func TestWaitForPodRunning(t *testing.T) {
 			},
 			ClientFunc: func(req *http.Request) (*http.Response, error) {
 				switch p, m := req.URL.Path, req.Method; {
-				case p == "/api/"+version+"/namespaces/test-ns/pods/test-pod" && m == "GET":
+				case p == "/api/" + version + "/namespaces/test-ns/pods/test-pod" && m == "GET":
 					pod := &api.Pod{
 						ObjectMeta: api.ObjectMeta{
 							Name:      "test-pod",
@@ -158,9 +162,11 @@ func TestWaitForPodRunning(t *testing.T) {
 					return nil, fmt.Errorf("unexpected request")
 				}
 			},
+			Error: true,
 			PodEndPhase: api.PodSucceeded,
 		},
 		{
+			Name: "ensure function returns error if pod unknown",
 			Pod: &api.Pod{
 				ObjectMeta: api.ObjectMeta{
 					Name:      "test-pod",
@@ -196,12 +202,12 @@ func TestWaitForPodRunning(t *testing.T) {
 		phase, err := waitForPodRunning(context.Background(), c, test.Pod, fw)
 
 		if err != nil && !test.Error {
-			t.Errorf("Expected success. Got: %s", err.Error())
+			t.Errorf("[%s] Expected success. Got: %s", test.Name, err.Error())
 			continue
 		}
 
 		if phase != test.PodEndPhase {
-			t.Errorf("Invalid end state. Expected '%v', got: '%v'", test.PodEndPhase, phase)
+			t.Errorf("[%s] Invalid end state. Expected '%v', got: '%v'", test.Name, test.PodEndPhase, phase)
 			continue
 		}
 	}
