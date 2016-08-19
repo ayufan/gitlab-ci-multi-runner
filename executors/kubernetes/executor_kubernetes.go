@@ -107,56 +107,11 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 	s.Debugln("Starting Kubernetes command...")
 
 	if s.pod == nil {
-		services := make([]api.Container, len(s.options.Services))
-		for i, image := range s.options.Services {
-			resolvedImage := s.Build.GetAllVariables().ExpandValue(image)
-			services[i] = s.buildContainer(fmt.Sprintf("svc-%d", i), resolvedImage, s.serviceLimits)
-		}
-
-		buildImage := s.Build.GetAllVariables().ExpandValue(s.options.Image)
-		pod, err := s.kubeClient.Pods(s.Config.Kubernetes.Namespace).Create(&api.Pod{
-			ObjectMeta: api.ObjectMeta{
-				GenerateName: s.Build.ProjectUniqueName(),
-				Namespace:    s.Config.Kubernetes.Namespace,
-			},
-			Spec: api.PodSpec{
-				Volumes: []api.Volume{
-					api.Volume{
-						Name: "repo",
-						VolumeSource: api.VolumeSource{
-							EmptyDir: &api.EmptyDirVolumeSource{},
-						},
-					},
-					api.Volume{
-						Name: "etc-ssl-certs",
-						VolumeSource: api.VolumeSource{
-							HostPath: &api.HostPathVolumeSource{
-								Path: "/etc/ssl/certs",
-							},
-						},
-					},
-					api.Volume{
-						Name: "usr-share-ca-certificates",
-						VolumeSource: api.VolumeSource{
-							HostPath: &api.HostPathVolumeSource{
-								Path: "/usr/share/ca-certificates",
-							},
-						},
-					},
-				},
-				RestartPolicy: api.RestartPolicyNever,
-				Containers: append([]api.Container{
-					s.buildContainer("build", buildImage, s.buildLimits, s.BuildShell.DockerCommand...),
-					s.buildContainer("pre", s.Config.Kubernetes.HelperImage, s.serviceLimits, s.BuildShell.DockerCommand...),
-				}, services...),
-			},
-		})
+		err := s.setupBuildPod()
 
 		if err != nil {
 			return err
 		}
-
-		s.pod = pod
 	}
 
 	var containerName string
@@ -220,6 +175,61 @@ func (s *executor) buildContainer(name, image string, limits api.ResourceList, c
 		},
 		Stdin: true,
 	}
+}
+
+func (s *executor) setupBuildPod() error {
+	services := make([]api.Container, len(s.options.Services))
+	for i, image := range s.options.Services {
+		resolvedImage := s.Build.GetAllVariables().ExpandValue(image)
+		services[i] = s.buildContainer(fmt.Sprintf("svc-%d", i), resolvedImage, s.serviceLimits)
+	}
+
+	buildImage := s.Build.GetAllVariables().ExpandValue(s.options.Image)
+	pod, err := s.kubeClient.Pods(s.Config.Kubernetes.Namespace).Create(&api.Pod{
+		ObjectMeta: api.ObjectMeta{
+			GenerateName: s.Build.ProjectUniqueName(),
+			Namespace:    s.Config.Kubernetes.Namespace,
+		},
+		Spec: api.PodSpec{
+			Volumes: []api.Volume{
+				api.Volume{
+					Name: "repo",
+					VolumeSource: api.VolumeSource{
+						EmptyDir: &api.EmptyDirVolumeSource{},
+					},
+				},
+				api.Volume{
+					Name: "etc-ssl-certs",
+					VolumeSource: api.VolumeSource{
+						HostPath: &api.HostPathVolumeSource{
+							Path: "/etc/ssl/certs",
+						},
+					},
+				},
+				api.Volume{
+					Name: "usr-share-ca-certificates",
+					VolumeSource: api.VolumeSource{
+						HostPath: &api.HostPathVolumeSource{
+							Path: "/usr/share/ca-certificates",
+						},
+					},
+				},
+			},
+			RestartPolicy: api.RestartPolicyNever,
+			Containers: append([]api.Container{
+				s.buildContainer("build", buildImage, s.buildLimits, s.BuildShell.DockerCommand...),
+				s.buildContainer("pre", s.Config.Kubernetes.HelperImage, s.serviceLimits, s.BuildShell.DockerCommand...),
+			}, services...),
+		},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	s.pod = pod
+
+	return nil
 }
 
 func (s *executor) runInContainer(ctx context.Context, name, command string) <-chan error {
