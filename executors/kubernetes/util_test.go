@@ -118,7 +118,9 @@ func TestWaitForPodRunning(t *testing.T) {
 						}
 					}
 					retries++
-					return &http.Response{StatusCode: 200, Body: objBody(codec, pod)}, nil
+					return &http.Response{StatusCode: 200, Body: objBody(codec, pod), Header: map[string][]string{
+						"Content-Type": []string{"application/json"},
+					}}, nil
 				default:
 					// Ensures no GET is performed when deleting by name
 					t.Errorf("unexpected request: %s %#v\n%#v", req.Method, req.URL, req)
@@ -147,7 +149,9 @@ func TestWaitForPodRunning(t *testing.T) {
 							Phase: api.PodSucceeded,
 						},
 					}
-					return &http.Response{StatusCode: 200, Body: objBody(codec, pod)}, nil
+					return &http.Response{StatusCode: 200, Body: objBody(codec, pod), Header: map[string][]string{
+						"Content-Type": []string{"application/json"},
+					}}, nil
 				default:
 					// Ensures no GET is performed when deleting by name
 					t.Errorf("unexpected request: %s %#v\n%#v", req.Method, req.URL, req)
