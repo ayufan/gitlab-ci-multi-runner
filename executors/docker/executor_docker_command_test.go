@@ -152,33 +152,50 @@ func TestDockerCommandBuildCancel(t *testing.T) {
 	assert.EqualError(t, err, "canceled")
 }
 
-func TestDockerCommandPrivilegedServices(t *testing.T) {
+func TestDockerPrivilegedServiceAccessingBuildsFolder(t *testing.T) {
 	if helpers.SkipIntegrationTests(t, "docker", "info") {
 		return
 	}
 
-	build := &common.Build{
-		GetBuildResponse: common.LongRunningBuild,
-		Runner: &common.RunnerConfig{
-			RunnerSettings: common.RunnerSettings{
-				Executor: "docker",
-				Docker: &common.DockerConfig{
-					Image:      "alpine",
-					Privileged: true,
-				},
-			},
-		},
-	}
-	build.Commands = "docker info"
-	build.Options = common.BuildOptions{
-		"image": "docker:git",
-		"services": []string{
-			"docker:dind",
-		},
+	commands := []string{
+		"docker info",
+		"docker run -v $(pwd):$(pwd) -w $(pwd) alpine touch test",
+		"cat test",
 	}
 
-	err := build.Run(&common.Config{}, &common.Trace{Writer: os.Stdout})
-	assert.NoError(t, err)
+	strategies := []string{
+		"fetch",
+		"clone",
+	}
+
+	for _, strategy := range strategies {
+		t.Log("Testing", strategy, "strategy...")
+		build := &common.Build{
+			GetBuildResponse: common.LongRunningBuild,
+			Runner: &common.RunnerConfig{
+				RunnerSettings: common.RunnerSettings{
+					Executor: "docker",
+					Docker: &common.DockerConfig{
+						Image:      "alpine",
+						Privileged: true,
+					},
+				},
+			},
+		}
+		build.Commands = strings.Join(commands, "\n")
+		build.Options = common.BuildOptions{
+			"image": "docker:git",
+			"services": []string{
+				"docker:dind",
+			},
+		}
+		build.Variables = append(build.Variables, common.BuildVariable{
+			Key: "GIT_STRATEGY", Value: strategy,
+		})
+
+		err := build.Run(&common.Config{}, &common.Trace{Writer: os.Stdout})
+		assert.NoError(t, err)
+	}
 }
 
 func runDockerInDocker(version string) (id string, err error) {

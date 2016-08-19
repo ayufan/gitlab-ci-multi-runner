@@ -31,12 +31,16 @@ type dockerOptions struct {
 
 type executor struct {
 	executors.AbstractExecutor
-	client   docker_helpers.Client
-	builds   []*docker.Container
-	services []*docker.Container
-	caches   []*docker.Container
-	options  dockerOptions
-	info     *docker.Env
+	client      docker_helpers.Client
+	builds      []*docker.Container
+	services    []*docker.Container
+	caches      []*docker.Container
+	options     dockerOptions
+	info        *docker.Env
+	binds       []string
+	volumesFrom []string
+	devices     []docker.Device
+	links       []string
 }
 
 func (s *executor) getServiceVariables() []string {
@@ -199,10 +203,10 @@ func (s *executor) getAbsoluteContainerPath(dir string) string {
 	return path.Join(s.Build.FullProjectDir(), dir)
 }
 
-func (s *executor) addHostVolume(binds *[]string, hostPath, containerPath string) error {
+func (s *executor) addHostVolume(hostPath, containerPath string) error {
 	containerPath = s.getAbsoluteContainerPath(containerPath)
 	s.Debugln("Using host-based", hostPath, "for", containerPath, "...")
-	*binds = append(*binds, fmt.Sprintf("%v:%v", hostPath, containerPath))
+	s.binds = append(s.binds, fmt.Sprintf("%v:%v", hostPath, containerPath))
 	return nil
 }
 
@@ -281,7 +285,7 @@ func (s *executor) createCacheVolume(containerName, containerPath string) (*dock
 	return container, nil
 }
 
-func (s *executor) addCacheVolume(binds, volumesFrom *[]string, containerPath string) error {
+func (s *executor) addCacheVolume(containerPath string) error {
 	var err error
 	containerPath = s.getAbsoluteContainerPath(containerPath)
 
@@ -301,7 +305,7 @@ func (s *executor) addCacheVolume(binds, volumesFrom *[]string, containerPath st
 			return err
 		}
 		s.Debugln("Using path", hostPath, "as cache for", containerPath, "...")
-		*binds = append(*binds, fmt.Sprintf("%v:%v", filepath.ToSlash(hostPath), containerPath))
+		s.binds = append(s.binds, fmt.Sprintf("%v:%v", filepath.ToSlash(hostPath), containerPath))
 		return nil
 	}
 
@@ -324,20 +328,20 @@ func (s *executor) addCacheVolume(binds, volumesFrom *[]string, containerPath st
 	}
 
 	s.Debugln("Using container", container.ID, "as cache", containerPath, "...")
-	*volumesFrom = append(*volumesFrom, container.ID)
+	s.volumesFrom = append(s.volumesFrom, container.ID)
 	return nil
 }
 
-func (s *executor) addVolume(binds, volumesFrom *[]string, volume string) error {
+func (s *executor) addVolume(volume string) error {
 	var err error
 	hostVolume := strings.SplitN(volume, ":", 2)
 	switch len(hostVolume) {
 	case 2:
-		err = s.addHostVolume(binds, hostVolume[0], hostVolume[1])
+		err = s.addHostVolume(hostVolume[0], hostVolume[1])
 
 	case 1:
 		// disable cache disables
-		err = s.addCacheVolume(binds, volumesFrom, hostVolume[0])
+		err = s.addCacheVolume(hostVolume[0])
 	}
 
 	if err != nil {
@@ -346,34 +350,41 @@ func (s *executor) addVolume(binds, volumesFrom *[]string, volume string) error 
 	return err
 }
 
-func (s *executor) createVolumes() ([]string, []string, error) {
-	var binds, volumesFrom []string
-
-	for _, volume := range s.Config.Docker.Volumes {
-		s.addVolume(&binds, &volumesFrom, volume)
-	}
-
+func (s *executor) createBuildVolume() (err error) {
 	// Cache Git sources:
 	// take path of the projects directory,
 	// because we use `rm -rf` which could remove the mounted volume
 	parentDir := path.Dir(s.Build.FullProjectDir())
 
-	// Caching is supported only for absolute and non-root paths
-	if path.IsAbs(parentDir) && parentDir != "/" {
-		if s.Build.GetGitStrategy() == common.GitFetch && !s.Config.Docker.DisableCache {
-			// create persistent cache container
-			s.addVolume(&binds, &volumesFrom, parentDir)
-		} else {
-			// create temporary cache container
-			container, _ := s.createCacheVolume("", parentDir)
-			if container != nil {
-				s.caches = append(s.caches, container)
-				volumesFrom = append(volumesFrom, container.ID)
-			}
+	if !path.IsAbs(parentDir) && parentDir != "/" {
+		return errors.New("build directory needs to be absolute and non-root path")
+	}
+
+	if s.Build.GetGitStrategy() == common.GitFetch && !s.Config.Docker.DisableCache {
+		// create persistent cache container
+		err = s.addVolume(parentDir)
+	} else {
+		var container *docker.Container
+
+		// create temporary cache container
+		container, err = s.createCacheVolume("", parentDir)
+		if container != nil {
+			s.caches = append(s.caches, container)
+			s.volumesFrom = append(s.volumesFrom, container.ID)
 		}
 	}
 
-	return binds, volumesFrom, nil
+	return
+}
+
+func (s *executor) createUserVolumes() (err error) {
+	for _, volume := range s.Config.Docker.Volumes {
+		err = s.addVolume(volume)
+		if err != nil {
+			return
+		}
+	}
+	return nil
 }
 
 func (s *executor) parseDeviceString(deviceString string) (device docker.Device, err error) {
@@ -406,18 +417,17 @@ func (s *executor) parseDeviceString(deviceString string) (device docker.Device,
 	return
 }
 
-func (s *executor) createDevices() (devices []docker.Device, err error) {
+func (s *executor) bindDevices() (err error) {
 	for _, deviceString := range s.Config.Docker.Devices {
-
 		device, err := s.parseDeviceString(deviceString)
 		if err != nil {
 			err = fmt.Errorf("Failed to parse device string %q: %s", deviceString, err)
-			return nil, err
+			return err
 		}
 
-		devices = append(devices, device)
+		s.devices = append(s.devices, device)
 	}
-	return
+	return nil
 }
 
 func (s *executor) splitServiceAndVersion(serviceDescription string) (service string, version string, linkNames []string) {
@@ -473,6 +483,8 @@ func (s *executor) createService(service, version string) (*docker.Container, er
 			RestartPolicy: docker.NeverRestart(),
 			Privileged:    s.Config.Docker.Privileged,
 			NetworkMode:   s.Config.Docker.NetworkMode,
+			Binds:         s.binds,
+			VolumesFrom:   s.volumesFrom,
 			LogConfig: docker.LogConfig{
 				Type: "json-file",
 			},
@@ -570,10 +582,10 @@ func (s *executor) createFromServiceDescription(description string, linksMap map
 	return
 }
 
-func (s *executor) createServices() ([]string, error) {
+func (s *executor) createServices() (err error) {
 	serviceNames, err := s.getServiceNames()
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	linksMap := make(map[string]*docker.Container)
@@ -581,19 +593,42 @@ func (s *executor) createServices() ([]string, error) {
 	for _, serviceDescription := range serviceNames {
 		err = s.createFromServiceDescription(serviceDescription, linksMap)
 		if err != nil {
-			return nil, err
+			return
 		}
 	}
 
 	s.waitForServices()
 
-	links := s.buildServiceLinks(linksMap)
-	return links, nil
+	s.links = s.buildServiceLinks(linksMap)
+	return
 }
 
 func (s *executor) prepareBuildContainer() (options *docker.CreateContainerOptions, err error) {
-	options = &docker.CreateContainerOptions{
+
+	return
+}
+
+func (s *executor) createContainer(containerType, imageName string, cmd []string) (container *docker.Container, err error) {
+	// Fetch image
+	image, err := s.getDockerImage(imageName)
+	if err != nil {
+		return nil, err
+	}
+
+	hostname := s.Config.Docker.Hostname
+	if hostname == "" {
+		hostname = s.Build.ProjectUniqueName()
+	}
+
+	containerName := s.Build.ProjectUniqueName() + "-" + containerType
+
+	options := docker.CreateContainerOptions{
+		Name: containerName,
 		Config: &docker.Config{
+			Image:        image.ID,
+			Hostname:     hostname,
+			Cmd:          cmd,
+			Labels:       s.getLabels(containerType),
 			Tty:          false,
 			AttachStdin:  true,
 			AttachStdout: true,
@@ -613,56 +648,15 @@ func (s *executor) prepareBuildContainer() (options *docker.CreateContainerOptio
 			RestartPolicy: docker.NeverRestart(),
 			ExtraHosts:    s.Config.Docker.ExtraHosts,
 			NetworkMode:   s.Config.Docker.NetworkMode,
-			Links:         s.Config.Docker.Links,
+			Links:         append(s.Config.Docker.Links, s.links...),
+			Devices:       s.devices,
+			Binds:         s.binds,
+			VolumesFrom:   s.volumesFrom,
 			LogConfig: docker.LogConfig{
 				Type: "json-file",
 			},
 		},
 	}
-
-	devices, err := s.createDevices()
-	if err != nil {
-		return options, err
-	}
-	options.HostConfig.Devices = devices
-
-	s.Debugln("Creating services...")
-	links, err := s.createServices()
-	if err != nil {
-		return options, err
-	}
-	options.HostConfig.Links = append(options.HostConfig.Links, links...)
-
-	s.Debugln("Creating cache directories...")
-	binds, volumesFrom, err := s.createVolumes()
-	if err != nil {
-		return options, err
-	}
-	options.HostConfig.Binds = binds
-	options.HostConfig.VolumesFrom = volumesFrom
-	return
-}
-
-func (s *executor) createContainer(containerType, imageName string, cmd []string, options docker.CreateContainerOptions) (container *docker.Container, err error) {
-	// Fetch image
-	image, err := s.getDockerImage(imageName)
-	if err != nil {
-		return nil, err
-	}
-
-	hostname := s.Config.Docker.Hostname
-	if hostname == "" {
-		hostname = s.Build.ProjectUniqueName()
-	}
-
-	containerName := s.Build.ProjectUniqueName() + "-" + containerType
-
-	// Fill container options
-	options.Name = containerName
-	options.Config.Image = image.ID
-	options.Config.Hostname = hostname
-	options.Config.Cmd = cmd
-	options.Config.Labels = s.getLabels(containerType)
 
 	// this will fail potentially some builds if there's name collision
 	s.removeContainer(containerName)
@@ -841,6 +835,29 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 	s.client = client
 
 	s.info, err = client.Info()
+	if err != nil {
+		return err
+	}
+
+	err = s.bindDevices()
+	if err != nil {
+		return err
+	}
+
+	s.Debugln("Creating build volume...")
+	err = s.createBuildVolume()
+	if err != nil {
+		return err
+	}
+
+	s.Debugln("Creating services...")
+	err = s.createServices()
+	if err != nil {
+		return err
+	}
+
+	s.Debugln("Creating user-defined volumes...")
+	err = s.createUserVolumes()
 	if err != nil {
 		return err
 	}

@@ -32,24 +32,19 @@ func (s *commandExecutor) Prepare(globalConfig *common.Config, config *common.Ru
 		return err
 	}
 
-	options, err := s.prepareBuildContainer()
-	if err != nil {
-		return err
-	}
-
 	buildImage, err := s.getPrebuiltImage()
 	if err != nil {
 		return err
 	}
 
 	// Start pre-build container which will git clone changes
-	s.predefinedContainer, err = s.createContainer("predefined", buildImage.ID, []string{"gitlab-runner-build"}, *options)
+	s.predefinedContainer, err = s.createContainer("predefined", buildImage.ID, []string{"gitlab-runner-build"})
 	if err != nil {
 		return err
 	}
 
 	// Start build container which will run actual build
-	s.buildContainer, err = s.createContainer("build", imageName, s.BuildShell.DockerCommand, *options)
+	s.buildContainer, err = s.createContainer("build", imageName, s.BuildShell.DockerCommand)
 	if err != nil {
 		return err
 	}
