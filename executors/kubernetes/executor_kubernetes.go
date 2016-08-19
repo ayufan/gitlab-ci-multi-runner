@@ -53,11 +53,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 	}
 
 	if s.BuildShell.PassFile {
-		return fmt.Errorf("Kubernetes doesn't support shells that require script file")
-	}
-
-	if !s.Config.Kubernetes.Privileged {
-		return fmt.Errorf("Runner does not allow privileged containers")
+		return fmt.Errorf("kubernetes doesn't support shells that require script file")
 	}
 
 	err = build.Options.Decode(&s.options)
@@ -67,7 +63,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 
 	s.kubeClient, err = getKubeClient(config.Kubernetes)
 	if err != nil {
-		return fmt.Errorf("Error connecting to Kubernetes: %s", err.Error())
+		return fmt.Errorf("error connecting to Kubernetes: %s", err.Error())
 	}
 
 	if s.serviceLimits, err = limits(s.Config.Kubernetes.ServiceCPUs, s.Config.Kubernetes.ServiceMemory); err != nil {
@@ -78,21 +74,8 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 		return err
 	}
 
-	if s.options.Image == "" {
-		switch len(s.Config.Kubernetes.Image) {
-		case 0:
-			return fmt.Errorf("no image specified and no default set in config")
-		default:
-			s.options.Image = s.Config.Kubernetes.Image
-		}
-	}
-
-	if len(s.Config.Kubernetes.HelperImage) == 0 {
-		s.Config.Kubernetes.HelperImage = defaultHelperImage
-	}
-
-	if len(s.Config.Kubernetes.Namespace) == 0 {
-		s.Config.Kubernetes.Namespace = "default"
+	if err = s.checkDefaults(); err != nil {
+		return err
 	}
 
 	s.Println("Using Kubernetes executor with image", s.options.Image, "...")
@@ -271,6 +254,26 @@ func (s *executor) runInContainer(ctx context.Context, name, command string) <-c
 	}()
 
 	return errc
+}
+
+func (s *executor) checkDefaults() error {
+	if s.options.Image == "" {
+		if s.Config.Kubernetes.Image == "" {
+			return fmt.Errorf("no image specified and no default set in config")
+		}
+
+		s.options.Image = s.Config.Kubernetes.Image
+	}
+
+	if s.Config.Kubernetes.HelperImage == "" {
+		s.Config.Kubernetes.HelperImage = defaultHelperImage
+	}
+
+	if s.Config.Kubernetes.Namespace == "" {
+		s.Config.Kubernetes.Namespace = "default"
+	}
+
+	return nil
 }
 
 func createFn() common.Executor {
