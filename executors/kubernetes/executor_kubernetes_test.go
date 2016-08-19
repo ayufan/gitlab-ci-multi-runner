@@ -266,12 +266,12 @@ func TestPrepare(t *testing.T) {
 			RunnerConfig: &common.RunnerConfig{
 				RunnerSettings: common.RunnerSettings{
 					Kubernetes: &common.KubernetesConfig{
-						Host:            "test-server",
-						ServiceCPUs:     "0.5",
-						ServiceMemory:   "200Mi",
-						CPUs:            "1.5",
-						Memory:          "4Gi",
-						Privileged: true,
+						Host:          "test-server",
+						ServiceCPUs:   "0.5",
+						ServiceMemory: "200Mi",
+						CPUs:          "1.5",
+						Memory:        "4Gi",
+						Privileged:    true,
 					},
 				},
 			},
@@ -311,12 +311,12 @@ func TestPrepare(t *testing.T) {
 			RunnerConfig: &common.RunnerConfig{
 				RunnerSettings: common.RunnerSettings{
 					Kubernetes: &common.KubernetesConfig{
-						Host:            "test-server",
-						ServiceCPUs:     "0.5",
-						ServiceMemory:   "200Mi",
-						CPUs:            "1.5",
-						Memory:          "4Gi",
-						Privileged: false,
+						Host:          "test-server",
+						ServiceCPUs:   "0.5",
+						ServiceMemory: "200Mi",
+						CPUs:          "1.5",
+						Memory:        "4Gi",
+						Privileged:    false,
 					},
 				},
 			},

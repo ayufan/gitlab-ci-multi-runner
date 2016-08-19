@@ -46,11 +46,24 @@ func getKubeClient(config *common.KubernetesConfig) (*client.Client, error) {
 	return client.New(restConfig)
 }
 
+func isRunning(pod *api.Pod) (bool, error) {
+	switch pod.Status.Phase {
+	case api.PodRunning:
+		return true, nil
+	case api.PodSucceeded:
+		return false, fmt.Errorf("pod already succeeded before it begins running")
+	case api.PodFailed:
+		return false, fmt.Errorf("pod status is failed")
+	default:
+		return false, nil
+	}
+}
+
 // waitForPodRunning will use client c to detect when pod reaches the PodRunning
 // state. It will check every second, and will return the final PodPhase once
 // either PodRunning, PodSucceeded or PodFailed has been reached. In the case of
 // PodRunning, it will also wait until all containers within the pod are also Ready
-// Returns error if the call to retreive pod details fails
+// Returns error if the call to retrieve pod details fails
 func waitForPodRunning(ctx context.Context, c *client.Client, pod *api.Pod, out io.Writer) (api.PodPhase, error) {
 	type resp struct {
 		done  bool

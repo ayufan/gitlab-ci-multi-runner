@@ -37,10 +37,10 @@ type kubernetesOptions struct {
 type executor struct {
 	executors.AbstractExecutor
 
-	kubeClient   *client.Client
-	prepod       *api.Pod
-	pod          *api.Pod
-	options      *kubernetesOptions
+	kubeClient *client.Client
+	prepod     *api.Pod
+	pod        *api.Pod
+	options    *kubernetesOptions
 
 	buildLimits   api.ResourceList
 	serviceLimits api.ResourceList
