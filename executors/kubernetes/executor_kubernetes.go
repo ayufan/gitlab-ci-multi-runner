@@ -84,7 +84,7 @@ func (s *executor) Prepare(globalConfig *common.Config, config *common.RunnerCon
 	if s.options.Image == "" {
 		switch len(s.Config.Kubernetes.Image) {
 		case 0:
-			s.options.Image = "debian:latest"
+			return fmt.Errorf("no image specified and no default set in config")
 		default:
 			s.options.Image = s.Config.Kubernetes.Image
 		}
