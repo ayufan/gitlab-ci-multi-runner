@@ -92,7 +92,7 @@ func TestWaitForPodRunning(t *testing.T) {
 			},
 			ClientFunc: func(req *http.Request) (*http.Response, error) {
 				switch p, m := req.URL.Path, req.Method; {
-				case p == "/api/" + version + "/namespaces/test-ns/pods/test-pod" && m == "GET":
+				case p == "/api/"+version+"/namespaces/test-ns/pods/test-pod" && m == "GET":
 					pod := &api.Pod{
 						ObjectMeta: api.ObjectMeta{
 							Name:      "test-pod",
@@ -143,7 +143,7 @@ func TestWaitForPodRunning(t *testing.T) {
 			},
 			ClientFunc: func(req *http.Request) (*http.Response, error) {
 				switch p, m := req.URL.Path, req.Method; {
-				case p == "/api/" + version + "/namespaces/test-ns/pods/test-pod" && m == "GET":
+				case p == "/api/"+version+"/namespaces/test-ns/pods/test-pod" && m == "GET":
 					pod := &api.Pod{
 						ObjectMeta: api.ObjectMeta{
 							Name:      "test-pod",
@@ -162,7 +162,7 @@ func TestWaitForPodRunning(t *testing.T) {
 					return nil, fmt.Errorf("unexpected request")
 				}
 			},
-			Error: true,
+			Error:       true,
 			PodEndPhase: api.PodSucceeded,
 		},
 		{

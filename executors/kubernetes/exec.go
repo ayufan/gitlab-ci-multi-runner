@@ -21,12 +21,12 @@ import (
 	"io"
 	"net/url"
 
+	log "github.com/Sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 	remotecommandserver "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
-	log "github.com/Sirupsen/logrus"
 )
 
 // RemoteExecutor defines the interface accepted by the Exec command - provided for test stubbing
@@ -53,13 +53,13 @@ type ExecOptions struct {
 	Stdin         bool
 	Command       []string
 
-	In            io.Reader
-	Out           io.Writer
-	Err           io.Writer
+	In  io.Reader
+	Out io.Writer
+	Err io.Writer
 
-	Executor      RemoteExecutor
-	Client        *client.Client
-	Config        *restclient.Config
+	Executor RemoteExecutor
+	Client   *client.Client
+	Config   *restclient.Config
 }
 
 // Run executes a validated remote execution against a pod.
