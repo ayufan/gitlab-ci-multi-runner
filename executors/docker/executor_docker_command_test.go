@@ -201,13 +201,11 @@ func getDockerCredentials(id string) (credentials docker_helpers.DockerCredentia
 	}
 
 	hostPort := strings.Split(strings.TrimSpace(string(data)), ":")
-	if hostPort[0] == "0.0.0.0" {
-		// When running in environment with DOCKER_HOST we usually use external servers
-		if dockerHost, err := url.Parse(os.Getenv("DOCKER_HOST")); err != nil {
-			hostPort[0] = dockerHost.Host
-		} else {
-			hostPort[0] = "localhost"
-		}
+	if dockerHost, err := url.Parse(os.Getenv("DOCKER_HOST")); err == nil {
+		dockerHostPort := strings.Split(dockerHost.Host, ":")
+		hostPort[0] = dockerHostPort[0]
+	} else if hostPort[0] == "0.0.0.0" {
+		hostPort[0] = "localhost"
 	}
 	credentials.Host = "tcp://" + hostPort[0] + ":" + hostPort[1]
 	return
