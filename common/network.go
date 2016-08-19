@@ -2,7 +2,8 @@ package common
 
 import (
 	"io"
-	"net/url"
+
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/url"
 )
 
 type UpdateState int
@@ -90,14 +91,8 @@ type GetBuildResponse struct {
 	TLSCAChain      string         `json:"-"`
 }
 
-func (b *GetBuildResponse) RepoCleanURL() string {
-	repoURL, err := url.Parse(b.RepoURL)
-	if err != nil {
-		return err.Error()
-	}
-
-	repoURL.User = nil
-	return repoURL.String()
+func (b *GetBuildResponse) RepoCleanURL() (ret string) {
+	return url_helpers.CleanURL(b.RepoURL)
 }
 
 type RegisterRunnerRequest struct {
