@@ -276,12 +276,20 @@ func TestDocker1_8Compatibility(t *testing.T) {
 	if helpers.SkipIntegrationTests(t, "docker", "info") {
 		return
 	}
+	if os.Getenv("CI") != "" {
+		t.Skip("This test doesn't work in nested dind")
+		return
+	}
 
 	testDockerVersion(t, "1.8")
 }
 
 func TestDocker1_9Compatibility(t *testing.T) {
 	if helpers.SkipIntegrationTests(t, "docker", "info") {
+		return
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("This test doesn't work in nested dind")
 		return
 	}
 
@@ -292,6 +300,10 @@ func TestDocker1_10Compatibility(t *testing.T) {
 	if helpers.SkipIntegrationTests(t, "docker", "info") {
 		return
 	}
+	if os.Getenv("CI") != "" {
+		t.Skip("This test doesn't work in nested dind")
+		return
+	}
 
 	testDockerVersion(t, "1.10")
 }
@@ -300,12 +312,20 @@ func TestDocker1_11Compatibility(t *testing.T) {
 	if helpers.SkipIntegrationTests(t, "docker", "info") {
 		return
 	}
+	if os.Getenv("CI") != "" {
+		t.Skip("This test doesn't work in nested dind")
+		return
+	}
 
 	testDockerVersion(t, "1.11")
 }
 
 func TestDocker1_12Compatibility(t *testing.T) {
 	if helpers.SkipIntegrationTests(t, "docker", "info") {
+		return
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("This test doesn't work in nested dind")
 		return
 	}
 
