@@ -94,12 +94,9 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 		}
 	}
 
-	var containerName string
-	switch {
-	case cmd.Predefined:
+	containerName := "build"
+	if cmd.Predefined {
 		containerName = "pre"
-	default:
-		containerName = "build"
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
