@@ -134,11 +134,12 @@ func waitForPodRunning(ctx context.Context, c *client.Client, pod *api.Pod, out 
 	for i := 0; i < 60; i++ {
 		select {
 		case r := <-triggerPodPhaseCheck(c, pod, out):
-			if r.done {
-				return r.phase, r.err
-			} else {
+			if !r.done {
 				time.Sleep(3 * time.Second)
+				continue
 			}
+
+			return r.phase, r.err
 		case <-ctx.Done():
 			return api.PodUnknown, ctx.Err()
 		}
