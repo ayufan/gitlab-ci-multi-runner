@@ -218,6 +218,12 @@ distinguish which variable should go where.
 >
 Secure variables are only passed to the build container.
 
+## Build directory in service
+
+Since version 1.5 GitLab Runner mounts a `/build` directory to all stared services.
+
+See an issue: https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues/1520
+
 ### PostgreSQL service example
 
 See the specific documentation for
