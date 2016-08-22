@@ -17,7 +17,7 @@ var dockerDialer = &net.Dialer{
 	KeepAlive: 30 * time.Second,
 }
 
-var cache clientCache = clientCache{
+var cache = clientCache{
 	clients: make(map[string]Client),
 }
 
