@@ -116,7 +116,10 @@ func (s *executor) buildContainer(name, image string, limits api.ResourceList, c
 	path := strings.Split(s.Build.BuildDir, "/")
 	path = path[:len(path)-1]
 
-	privileged := s.Config.Kubernetes.Privileged
+	privileged := false
+	if s.Config.Kubernetes != nil {
+		privileged = s.Config.Kubernetes.Privileged
+	}
 
 	return api.Container{
 		Name:    name,

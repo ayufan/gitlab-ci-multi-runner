@@ -5,12 +5,8 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
-	"os/user"
-	"reflect"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -29,16 +25,12 @@ import (
 
 var (
 	TRUE           = true
-	FALSE          = false
-	minikube       = "minikube"
-	minikubeConfig *common.KubernetesConfig
 )
 
 func TestLimits(t *testing.T) {
 	tests := []struct {
 		CPU, Memory string
 		Expected    api.ResourceList
-		Error       bool
 	}{
 		{
 			CPU:    "100m",
@@ -63,12 +55,10 @@ func TestLimits(t *testing.T) {
 		{
 			CPU:      "100j",
 			Expected: api.ResourceList{},
-			Error:    true,
 		},
 		{
 			Memory:   "100j",
 			Expected: api.ResourceList{},
-			Error:    true,
 		},
 		{
 			Expected: api.ResourceList{},
@@ -76,17 +66,8 @@ func TestLimits(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		res, err := limits(test.CPU, test.Memory)
-
-		if err != nil && !test.Error {
-			t.Errorf("got error but expected '%v': %s", test.Expected, err)
-			continue
-		}
-
-		if !reflect.DeepEqual(res, test.Expected) {
-			t.Errorf("got: '%v' but expected: '%v'", res, test.Expected)
-			continue
-		}
+		res, _ := limits(test.CPU, test.Memory)
+		assert.Equal(t, test.Expected, res)
 	}
 }
 
@@ -128,14 +109,6 @@ func TestBuildContainer(t *testing.T) {
 						Name:      "repo",
 						MountPath: "/test",
 					},
-					api.VolumeMount{
-						Name:      "etc-ssl-certs",
-						MountPath: "/etc/ssl/certs",
-					},
-					api.VolumeMount{
-						Name:      "usr-share-ca-certificates",
-						MountPath: "/usr/share/ca-certificates",
-					},
 				},
 				SecurityContext: &api.SecurityContext{
 					Privileged: &TRUE,
@@ -168,10 +141,7 @@ func TestBuildContainer(t *testing.T) {
 				},
 			},
 		}
-		if bc := e.buildContainer(test.Name, test.Image, test.Limits, test.Command...); !reflect.DeepEqual(bc, test.Expected) {
-			t.Errorf("error testing buildContainer. expected '%v', got '%v'", test.Expected, bc)
-			continue
-		}
+		assert.Equal(t, test.Expected, e.buildContainer(test.Name, test.Image, test.Limits, test.Command...))
 	}
 }
 
@@ -338,6 +308,11 @@ func TestPrepare(t *testing.T) {
 		err := e.Prepare(test.GlobalConfig, test.RunnerConfig, test.Build)
 
 		if err != nil {
+			if test.Error {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
 			if !test.Error {
 				t.Errorf("Got error. Expected: %v", test.Expected)
 			}
@@ -352,15 +327,12 @@ func TestPrepare(t *testing.T) {
 		// It currently contains some moving parts that are failing, meaning
 		// we'll need to mock _something_
 		e.kubeClient = nil
-		if !reflect.DeepEqual(e, test.Expected) {
-			t.Errorf("Got executor '%+v' but expected '%+v'", e, test.Expected)
-			continue
-		}
+		assert.Equal(t, test.Expected, e)
 	}
 }
 
 func TestKubernetesSuccessRun(t *testing.T) {
-	if helpers.SkipIntegrationTests(t, "minikube", "version") {
+	if helpers.SkipIntegrationTests(t, "kubectl", "cluster-info") {
 		return
 	}
 
@@ -373,57 +345,12 @@ func TestKubernetesSuccessRun(t *testing.T) {
 		Runner: &common.RunnerConfig{
 			RunnerSettings: common.RunnerSettings{
 				Executor:   "kubernetes",
-				Kubernetes: minikubeConfig,
 			},
 		},
 	}
 
 	err := build.Run(&common.Config{}, &common.Trace{Writer: os.Stdout})
 	assert.NoError(t, err, "Ensure minikube is able to create a local Kubernetes cluster succesfully")
-}
-
-func TestMain(m *testing.M) {
-	hasMinikube, _ := helpers.ExecuteCommandSucceeded("minikube", "version")
-	if !testing.Short() && hasMinikube {
-		err := exec.Command("minikube", "start").Run()
-
-		if err != nil {
-			fmt.Println("error starting minikube cluster:", err.Error())
-			os.Exit(1)
-		}
-
-		usr, err := user.Current()
-
-		if err != nil {
-			fmt.Println("error looking up current user account:", err.Error())
-			os.Exit(1)
-		}
-
-		ipBytes, err := exec.Command("minikube", "ip").Output()
-
-		if err != nil {
-			fmt.Println("error detecting minikube ip:", err.Error())
-			os.Exit(1)
-		}
-
-		crtPath := fmt.Sprintf("%s/.minikube/apiserver.crt", usr.HomeDir)
-		keyPath := fmt.Sprintf("%s/.minikube/apiserver.key", usr.HomeDir)
-		caPath := fmt.Sprintf("%s/.minikube/ca.crt", usr.HomeDir)
-		kubeIP := fmt.Sprintf("https://%s:8443", strings.Replace(string(ipBytes), "\n", "", -1))
-
-		minikubeConfig = &common.KubernetesConfig{
-			Host:      kubeIP,
-			CAFile:    caPath,
-			CertFile:  crtPath,
-			KeyFile:   keyPath,
-			Namespace: "default",
-		}
-
-		// wait 3 seconds because `minikube start` exits with status 0 before the apiserver
-		// is actually listening
-		time.Sleep(time.Second * 3)
-	}
-	os.Exit(m.Run())
 }
 
 type FakeReadCloser struct {
