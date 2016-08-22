@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -36,35 +35,7 @@ func httpTransportFix(host string, client Client) {
 	}
 }
 
-type cacheKey struct {
-	credentials DockerCredentials
-	apiVersion  string
-}
-
-var (
-	cache   = make(map[cacheKey]Client)
-	cacheMu sync.Mutex
-)
-
-func New(c DockerCredentials, apiVersion string) (Client, error) {
-	key := cacheKey{credentials: c, apiVersion: apiVersion}
-
-	cacheMu.Lock()
-	defer cacheMu.Unlock()
-
-	if c, ok := cache[key]; ok {
-		return c, nil
-	}
-
-	client, err := build(c, apiVersion)
-	if err == nil {
-		cache[key] = client
-	}
-
-	return client, err
-}
-
-func build(c DockerCredentials, apiVersion string) (client Client, err error) {
+func New(c DockerCredentials, apiVersion string) (client Client, err error) {
 	endpoint := "unix:///var/run/docker.sock"
 	tlsVerify := false
 	tlsCertPath := ""
@@ -109,4 +80,18 @@ func build(c DockerCredentials, apiVersion string) (client Client, err error) {
 		logrus.Errorln("Error while Docker client creation:", err)
 	}
 	return
+}
+
+func Close(client Client) {
+	dockerClient, ok := client.(*docker.Client)
+	if !ok {
+		return
+	}
+
+	// Nuke all connections
+	if transport, ok := dockerClient.HTTPClient.Transport.(*http.Transport); ok && transport != http.DefaultTransport {
+		transport.DisableKeepAlives = true
+		transport.CloseIdleConnections()
+		logrus.Debugln("Closed all idle connections for docker.Client:", dockerClient)
+	}
 }

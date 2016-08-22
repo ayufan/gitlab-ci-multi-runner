@@ -882,7 +882,9 @@ func (s *executor) Cleanup() {
 
 	wg.Wait()
 
-	s.client = nil
+	if s.client != nil {
+		docker_helpers.Close(s.client)
+	}
 
 	s.AbstractExecutor.Cleanup()
 }
