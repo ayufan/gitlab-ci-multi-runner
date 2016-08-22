@@ -1,16 +1,15 @@
-# The Kubernetes executor
+# The Kubernetes executor (**EXPERIMENTAL**)
 
 GitLab Runner can use Kubernetes to run builds on a kubernetes cluster. This is
 possible with the use of the **Kubernetes** executor.
 
 The **Kubernetes** executor, when used with GitLab CI, connects to the Kubernetes
 API in the cluster creating a Pod for each GitLab CI Job. This Pod is made
-up of, at the very least, a build container and a helper container, there will
+up of, at the very least, a build container, there will
 then be additional containers, one for each `service` defined by the GitLab CI
 yaml. The names for these containers are as follows:
 
 - The build container is `build`
-- The helper container is `pre`
 - The services containers are `svc-X` where `X` is `[0-9]+`
 
 ---
@@ -27,15 +26,14 @@ The Kubernetes executor divides the build into multiple steps:
 1. **Prepare**: Create the Pod against the Kubernetes Cluster.
 	This creates the containers required for the build and services to run.
 1. **Pre-build**: Clone, restore cache and download artifacts from previous
-   stages. This is run on a special Docker Image.
-1. **Build**: User build. This is run on the user-provided docker image.
-1. **Post-build**: Create cache, upload artifacts to GitLab. This is run on
-   a special Docker Image.
+   stages.
+   User provided image needs to have `git` installed.
+1. **Build**: User build.
+1. **Post-build**: Create cache, upload artifacts to GitLab.
 
-The special Docker Image is based on [Alpine Linux] and contains all the tools
-required to run the prepare step of the build: the Git binary and the Runner
-binary for supporting caching and artifacts. You can find the definition of
-this special image [in the official Runner repository][special-build].
+All stages are run on user provided image. 
+This image needs to have `git` installed and optionally
+GitLab Runner binary installed for supporting artifacts and caching.
 
 ## Connecting to the Kubernetes API
 
@@ -64,7 +62,6 @@ The following keywords help to define the behaviour of the Runner within kuberne
 - `memory`: The amount of memory allocated to build containers
 - `service_cpus`: The CPU allocation given to build service containers
 - `service_memory`: The amount of memory allocated to build service containers
-- `helper_image`: A docker image used as the gitlab-helper during builds, for cloning repositories and uploading artifacts
 
 ## Define keywords in the config toml
 

@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -95,8 +96,22 @@ func getPodPhase(c *client.Client, pod *api.Pod, out io.Writer) podPhaseResponse
 		return podPhaseResponse{true, pod.Status.Phase, nil}
 	}
 
+	// check status of containers
+	for _, container := range pod.Status.ContainerStatuses {
+		if container.Ready {
+			continue
+		}
+		if container.State.Waiting == nil {
+			continue
+		}
+
+		switch container.State.Waiting.Reason {
+		case "ErrImagePull", "ImagePullBackOff":
+			return podPhaseResponse{true, api.PodUnknown, errors.New(container.State.Waiting.Message)}
+		}
+	}
+
 	fmt.Fprintf(out, "Waiting for pod %s/%s to be running, status is %s\n", pod.Namespace, pod.Name, pod.Status.Phase)
-	time.Sleep(1 * time.Second)
 	return podPhaseResponse{false, pod.Status.Phase, nil}
 
 }
@@ -116,16 +131,19 @@ func triggerPodPhaseCheck(c *client.Client, pod *api.Pod, out io.Writer) <-chan 
 // PodRunning, it will also wait until all containers within the pod are also Ready
 // Returns error if the call to retrieve pod details fails
 func waitForPodRunning(ctx context.Context, c *client.Client, pod *api.Pod, out io.Writer) (api.PodPhase, error) {
-	for {
+	for i := 0; i < 60; i++ {
 		select {
 		case r := <-triggerPodPhaseCheck(c, pod, out):
 			if r.done {
 				return r.phase, r.err
+			} else {
+				time.Sleep(3 * time.Second)
 			}
 		case <-ctx.Done():
 			return api.PodUnknown, ctx.Err()
 		}
 	}
+	return api.PodUnknown, errors.New("timedout waiting for pod to start")
 }
 
 // limits takes a string representing CPU & memory limits,

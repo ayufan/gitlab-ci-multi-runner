@@ -95,6 +95,9 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	select {
 	case err := <-s.runInContainer(ctx, containerName, cmd.Script):
+		if err != nil && strings.Contains(err.Error(), "executing in Docker Container") {
+			return &common.BuildError{Inner: err}
+		}
 		return err
 	case <-cmd.Abort:
 		cancel()

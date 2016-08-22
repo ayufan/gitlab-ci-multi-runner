@@ -7,9 +7,12 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/testapi"
@@ -68,80 +71,6 @@ func TestLimits(t *testing.T) {
 	for _, test := range tests {
 		res, _ := limits(test.CPU, test.Memory)
 		assert.Equal(t, test.Expected, res)
-	}
-}
-
-func TestBuildContainer(t *testing.T) {
-	tests := []struct {
-		Name, Image, BuildDir string
-		Privileged            bool
-		Command               []string
-		Environment           []string
-		Limits                api.ResourceList
-
-		Expected api.Container
-	}{
-		{
-			Name:        "test",
-			Image:       "image",
-			BuildDir:    "/test/build",
-			Privileged:  true,
-			Command:     []string{"test", "command"},
-			Environment: nil,
-			Limits:      nil,
-
-			Expected: api.Container{
-				Name:    "test",
-				Image:   "image",
-				Command: []string{"test", "command"},
-				Env: []api.EnvVar{
-					{Name: "CI", Value: "true"}, {Name: "CI_BUILD_REF"}, {Name: "CI_BUILD_BEFORE_SHA"},
-					{Name: "CI_BUILD_REF_NAME"}, {Name: "CI_BUILD_ID", Value: "0"}, {Name: "CI_BUILD_REPO"},
-					{Name: "CI_BUILD_TOKEN"}, {Name: "CI_PROJECT_ID", Value: "0"}, {Name: "CI_PROJECT_DIR", Value: "/test/build"},
-					{Name: "CI_SERVER", Value: "yes"}, {Name: "CI_SERVER_NAME", Value: "GitLab CI"}, {Name: "CI_SERVER_VERSION"},
-					{Name: "CI_SERVER_REVISION"}, {Name: "GITLAB_CI", Value: "true"},
-				},
-				Resources: api.ResourceRequirements{
-					Limits: nil,
-				},
-				VolumeMounts: []api.VolumeMount{
-					api.VolumeMount{
-						Name:      "repo",
-						MountPath: "/test",
-					},
-				},
-				SecurityContext: &api.SecurityContext{
-					Privileged: &TRUE,
-				},
-				Stdin: true,
-			},
-		},
-	}
-
-	for _, test := range tests {
-		e := executor{
-			AbstractExecutor: executors.AbstractExecutor{
-				Build: &common.Build{
-					BuildDir: test.BuildDir,
-					Runner: &common.RunnerConfig{
-						RunnerSettings: common.RunnerSettings{
-							Environment: test.Environment,
-							Kubernetes: &common.KubernetesConfig{
-								Privileged: test.Privileged,
-							},
-						},
-					},
-				},
-				ExecutorOptions: executors.ExecutorOptions{
-					Shell: common.ShellScriptInfo{
-						Build: &common.Build{
-							BuildDir: test.BuildDir,
-						},
-					},
-				},
-			},
-		}
-		assert.Equal(t, test.Expected, e.buildContainer(test.Name, test.Image, test.Limits, test.Command...))
 	}
 }
 
@@ -294,6 +223,19 @@ func TestPrepare(t *testing.T) {
 				},
 				Runner: &common.RunnerConfig{},
 			},
+			Expected: &executor{
+				options: &kubernetesOptions{
+					Image: "test-image",
+				},
+				serviceLimits: api.ResourceList{
+					api.ResourceLimitsCPU:    resource.MustParse("0.5"),
+					api.ResourceLimitsMemory: resource.MustParse("200Mi"),
+				},
+				buildLimits: api.ResourceList{
+					api.ResourceLimitsCPU:    resource.MustParse("1.5"),
+					api.ResourceLimitsMemory: resource.MustParse("4Gi"),
+				},
+			},
 			Error: true,
 		},
 	}
@@ -351,7 +293,127 @@ func TestKubernetesSuccessRun(t *testing.T) {
 	}
 
 	err := build.Run(&common.Config{}, &common.Trace{Writer: os.Stdout})
-	assert.NoError(t, err, "Ensure minikube is able to create a local Kubernetes cluster succesfully")
+	assert.NoError(t, err)
+}
+
+func TestKubernetesBuildFail(t *testing.T) {
+	if helpers.SkipIntegrationTests(t, "kubectl", "cluster-info") {
+		return
+	}
+
+	build := &common.Build{
+		GetBuildResponse: common.FailedBuild,
+		Runner: &common.RunnerConfig{
+			RunnerSettings: common.RunnerSettings{
+				Executor:   "kubernetes",
+				Kubernetes: &common.KubernetesConfig{},
+			},
+		},
+	}
+	build.Options = map[string]interface{}{
+		"image": "docker:git",
+	}
+
+	err := build.Run(&common.Config{}, &common.Trace{Writer: os.Stdout})
+	require.Error(t, err, "error")
+	assert.IsType(t, err, &common.BuildError{})
+	assert.Contains(t, err.Error(), "Error executing in Docker Container: 1")
+}
+
+func TestKubernetesMissingImage(t *testing.T) {
+	if helpers.SkipIntegrationTests(t, "kubectl", "cluster-info") {
+		return
+	}
+
+	build := &common.Build{
+		GetBuildResponse: common.FailedBuild,
+		Runner: &common.RunnerConfig{
+			RunnerSettings: common.RunnerSettings{
+				Executor:   "kubernetes",
+				Kubernetes: &common.KubernetesConfig{},
+			},
+		},
+	}
+	build.Options = map[string]interface{}{
+		"image": "some/non-existing/image",
+	}
+
+	err := build.Run(&common.Config{}, &common.Trace{Writer: os.Stdout})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestKubernetesBuildAbort(t *testing.T) {
+	if helpers.SkipIntegrationTests(t, "kubectl", "cluster-info") {
+		return
+	}
+
+	build := &common.Build{
+		GetBuildResponse: common.FailedBuild,
+		Runner: &common.RunnerConfig{
+			RunnerSettings: common.RunnerSettings{
+				Executor:   "kubernetes",
+				Kubernetes: &common.KubernetesConfig{},
+			},
+		},
+		SystemInterrupt: make(chan os.Signal, 1),
+	}
+	build.Options = map[string]interface{}{
+		"image": "docker:git",
+	}
+
+	abortTimer := time.AfterFunc(time.Second, func() {
+		t.Log("Interrupt")
+		build.SystemInterrupt <- os.Interrupt
+	})
+	defer abortTimer.Stop()
+
+	timeoutTimer := time.AfterFunc(time.Minute, func() {
+		t.Log("Timedout")
+		t.FailNow()
+	})
+	defer timeoutTimer.Stop()
+
+	err := build.Run(&common.Config{}, &common.Trace{Writer: os.Stdout})
+	assert.EqualError(t, err, "aborted: interrupt")
+}
+
+func TestKubernetesBuildCancel(t *testing.T) {
+	if helpers.SkipIntegrationTests(t, "kubectl", "cluster-info") {
+		return
+	}
+
+	build := &common.Build{
+		GetBuildResponse: common.FailedBuild,
+		Runner: &common.RunnerConfig{
+			RunnerSettings: common.RunnerSettings{
+				Executor:   "kubernetes",
+				Kubernetes: &common.KubernetesConfig{},
+			},
+		},
+		SystemInterrupt: make(chan os.Signal, 1),
+	}
+	build.Options = map[string]interface{}{
+		"image": "docker:git",
+	}
+
+	trace := &common.Trace{Writer: os.Stdout, Abort: make(chan interface{}, 1)}
+
+	abortTimer := time.AfterFunc(time.Second, func() {
+		t.Log("Interrupt")
+		trace.Abort <- true
+	})
+	defer abortTimer.Stop()
+
+	timeoutTimer := time.AfterFunc(time.Minute, func() {
+		t.Log("Timedout")
+		t.FailNow()
+	})
+	defer timeoutTimer.Stop()
+
+	err := build.Run(&common.Config{}, trace)
+	assert.IsType(t, err, &common.BuildError{})
+	assert.EqualError(t, err, "canceled")
 }
 
 type FakeReadCloser struct {
