@@ -99,7 +99,6 @@ type KubernetesConfig struct {
 	Memory        string `toml:"memory" json:"memory" long:"memory" env:"KUBERNETES_MEMORY" description:"The amount of memory allocated to build containers"`
 	ServiceCPUs   string `toml:"service_cpus" json:"service_cpus" long:"service-cpus" env:"KUBERNETES_SERVICE_CPUS" description:"The CPU allocation given to build service containers"`
 	ServiceMemory string `toml:"service_memory" json:"service_memory" long:"service-memory" env:"KUBERNETES_SERVICE_MEMORY" description:"The amount of memory allocated to build service containers"`
-	HelperImage   string `toml:"helper_image" json:"helper_image" long:"helper-image" env:"KUBERNETES_HELPER_IMAGE" description:"[ADVANCED] Override the default helper image used to clone repos and upload artifacts"`
 }
 
 type RunnerCredentials struct {

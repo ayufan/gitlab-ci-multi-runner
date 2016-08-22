@@ -12,10 +12,6 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/executors"
 )
 
-const (
-	defaultHelperImage = "munnerz/gitlab-runner-helper"
-)
-
 var (
 	executorOptions = executors.ExecutorOptions{
 		SharedBuildsDir: false,
@@ -95,9 +91,6 @@ func (s *executor) Run(cmd common.ExecutorCommand) error {
 	}
 
 	containerName := "build"
-	if cmd.Predefined {
-		containerName = "pre"
-	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	select {
@@ -171,7 +164,6 @@ func (s *executor) setupBuildPod() error {
 			RestartPolicy: api.RestartPolicyNever,
 			Containers: append([]api.Container{
 				s.buildContainer("build", buildImage, s.buildLimits, s.BuildShell.DockerCommand...),
-				s.buildContainer("pre", s.Config.Kubernetes.HelperImage, s.serviceLimits, s.BuildShell.DockerCommand...),
 			}, services...),
 		},
 	})
@@ -236,10 +228,6 @@ func (s *executor) checkDefaults() error {
 		}
 
 		s.options.Image = s.Config.Kubernetes.Image
-	}
-
-	if s.Config.Kubernetes.HelperImage == "" {
-		s.Config.Kubernetes.HelperImage = defaultHelperImage
 	}
 
 	if s.Config.Kubernetes.Namespace == "" {
