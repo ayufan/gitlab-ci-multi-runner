@@ -201,13 +201,11 @@ func getDockerCredentials(id string) (credentials docker_helpers.DockerCredentia
 	}
 
 	hostPort := strings.Split(strings.TrimSpace(string(data)), ":")
-	if hostPort[0] == "0.0.0.0" {
-		// When running in environment with DOCKER_HOST we usually use external servers
-		if dockerHost, err := url.Parse(os.Getenv("DOCKER_HOST")); err != nil {
-			hostPort[0] = dockerHost.Host
-		} else {
-			hostPort[0] = "localhost"
-		}
+	if dockerHost, err := url.Parse(os.Getenv("DOCKER_HOST")); err == nil {
+		dockerHostPort := strings.Split(dockerHost.Host, ":")
+		hostPort[0] = dockerHostPort[0]
+	} else if hostPort[0] == "0.0.0.0" {
+		hostPort[0] = "localhost"
 	}
 	credentials.Host = "tcp://" + hostPort[0] + ":" + hostPort[1]
 	return
@@ -248,6 +246,7 @@ func testDockerVersion(t *testing.T, version string) {
 		return
 	}
 
+	t.Log("Connecting to", credentials.Host, "...")
 	err = waitForDocker(credentials)
 	if err != nil {
 		t.Error("Wait for docker:", err)
@@ -277,12 +276,20 @@ func TestDocker1_8Compatibility(t *testing.T) {
 	if helpers.SkipIntegrationTests(t, "docker", "info") {
 		return
 	}
+	if os.Getenv("CI") != "" {
+		t.Skip("This test doesn't work in nested dind")
+		return
+	}
 
 	testDockerVersion(t, "1.8")
 }
 
 func TestDocker1_9Compatibility(t *testing.T) {
 	if helpers.SkipIntegrationTests(t, "docker", "info") {
+		return
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("This test doesn't work in nested dind")
 		return
 	}
 
@@ -293,6 +300,10 @@ func TestDocker1_10Compatibility(t *testing.T) {
 	if helpers.SkipIntegrationTests(t, "docker", "info") {
 		return
 	}
+	if os.Getenv("CI") != "" {
+		t.Skip("This test doesn't work in nested dind")
+		return
+	}
 
 	testDockerVersion(t, "1.10")
 }
@@ -301,12 +312,20 @@ func TestDocker1_11Compatibility(t *testing.T) {
 	if helpers.SkipIntegrationTests(t, "docker", "info") {
 		return
 	}
+	if os.Getenv("CI") != "" {
+		t.Skip("This test doesn't work in nested dind")
+		return
+	}
 
-	testDockerVersion(t, "1.12")
+	testDockerVersion(t, "1.11")
 }
 
 func TestDocker1_12Compatibility(t *testing.T) {
 	if helpers.SkipIntegrationTests(t, "docker", "info") {
+		return
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("This test doesn't work in nested dind")
 		return
 	}
 
