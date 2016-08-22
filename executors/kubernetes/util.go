@@ -59,47 +59,52 @@ func isRunning(pod *api.Pod) (bool, error) {
 	}
 }
 
+type podPhaseResponse struct {
+	done  bool
+	phase api.PodPhase
+	err   error
+}
+
+func getPodPhase(c *client.Client, pod *api.Pod, out io.Writer) podPhaseResponse {
+	pod, err := c.Pods(pod.Namespace).Get(pod.Name)
+	if err != nil {
+		return podPhaseResponse{true, api.PodUnknown, err}
+	}
+
+	ready, err := isRunning(pod)
+
+	if err != nil {
+		return podPhaseResponse{true, pod.Status.Phase, err}
+	}
+
+	if ready {
+		return podPhaseResponse{true, pod.Status.Phase, nil}
+	}
+
+	fmt.Fprintf(out, "Waiting for pod %s/%s to be running, status is %s\n", pod.Namespace, pod.Name, pod.Status.Phase)
+	time.Sleep(1 * time.Second)
+	return podPhaseResponse{false, pod.Status.Phase, nil}
+
+}
+
+func triggerPodPhaseCheck(c *client.Client, pod *api.Pod, out io.Writer) <-chan podPhaseResponse {
+	errc := make(chan podPhaseResponse)
+	go func() {
+		defer close(errc)
+		errc <- getPodPhase(c, pod, out)
+	}()
+	return errc
+}
+
 // waitForPodRunning will use client c to detect when pod reaches the PodRunning
 // state. It will check every second, and will return the final PodPhase once
 // either PodRunning, PodSucceeded or PodFailed has been reached. In the case of
 // PodRunning, it will also wait until all containers within the pod are also Ready
 // Returns error if the call to retrieve pod details fails
 func waitForPodRunning(ctx context.Context, c *client.Client, pod *api.Pod, out io.Writer) (api.PodPhase, error) {
-	type resp struct {
-		done  bool
-		phase api.PodPhase
-		err   error
-	}
 	for {
 		select {
-		case r := <-func() <-chan resp {
-			errc := make(chan resp)
-			go func() {
-				defer close(errc)
-				pod, err := c.Pods(pod.Namespace).Get(pod.Name)
-				if err != nil {
-					errc <- resp{true, api.PodUnknown, err}
-					return
-				}
-
-				ready, err := isRunning(pod)
-
-				if err != nil {
-					errc <- resp{true, pod.Status.Phase, err}
-					return
-				}
-
-				if ready {
-					errc <- resp{true, pod.Status.Phase, nil}
-					return
-				}
-
-				fmt.Fprintf(out, "Waiting for pod %s/%s to be running, status is %s\n", pod.Namespace, pod.Name, pod.Status.Phase)
-				time.Sleep(1 * time.Second)
-				errc <- resp{false, pod.Status.Phase, nil}
-			}()
-			return errc
-		}():
+		case r := <-triggerPodPhaseCheck(c, pod, out):
 			if r.done {
 				return r.phase, r.err
 			}
