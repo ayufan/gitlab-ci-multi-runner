@@ -102,7 +102,7 @@ func (r *RunSingleCommand) Execute(c *cli.Context) {
 
 	executorProvider := common.GetExecutor(r.Executor)
 	if executorProvider == nil {
-		log.Fatalln("Uknown executor:", r.Executor)
+		log.Fatalln("Unknown executor:", r.Executor)
 	}
 
 	log.Println("Starting runner for", r.URL, "with token", r.ShortDescription(), "...")
