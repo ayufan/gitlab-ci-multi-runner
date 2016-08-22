@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+	clientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 )
@@ -33,7 +34,7 @@ func getKubeClientConfig(config *common.KubernetesConfig) (*restclient.Config, e
 			Host: config.Host,
 		}, nil
 	default:
-		return restclient.InClusterConfig()
+		return clientcmd.DefaultClientConfig.ClientConfig()
 	}
 }
 

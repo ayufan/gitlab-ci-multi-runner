@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	TRUE           = true
+	TRUE = true
 )
 
 func TestLimits(t *testing.T) {
@@ -338,13 +338,14 @@ func TestKubernetesSuccessRun(t *testing.T) {
 
 	buildResponse := common.SuccessfulBuild
 	buildResponse.Options = map[string]interface{}{
-		"image": "debian",
+		"image": "docker:git",
 	}
 	build := &common.Build{
 		GetBuildResponse: buildResponse,
 		Runner: &common.RunnerConfig{
 			RunnerSettings: common.RunnerSettings{
 				Executor:   "kubernetes",
+				Kubernetes: &common.KubernetesConfig{},
 			},
 		},
 	}
