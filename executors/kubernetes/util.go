@@ -11,9 +11,14 @@ import (
 	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	clientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 )
+
+func init() {
+	clientcmd.DefaultCluster = clientcmdapi.Cluster{}
+}
 
 func getKubeClientConfig(config *common.KubernetesConfig) (*restclient.Config, error) {
 	switch {
@@ -29,12 +34,20 @@ func getKubeClientConfig(config *common.KubernetesConfig) (*restclient.Config, e
 				CAFile:   config.CAFile,
 			},
 		}, nil
+
 	case len(config.Host) > 0:
 		return &restclient.Config{
 			Host: config.Host,
 		}, nil
+
 	default:
-		return clientcmd.DefaultClientConfig.ClientConfig()
+		config, err := clientcmd.NewDefaultClientConfigLoadingRules().Load()
+		if err != nil {
+			return nil, err
+		}
+
+		clientConfig := clientcmd.NewDefaultClientConfig(*config, &clientcmd.ConfigOverrides{})
+		return clientConfig.ClientConfig()
 	}
 }
 

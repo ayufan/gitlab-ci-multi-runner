@@ -253,6 +253,11 @@
 			"Rev": "fd52762d25a41827db7ef64c43756fd4b9f7e382"
 		},
 		{
+			"ImportPath": "github.com/imdario/mergo",
+			"Comment": "0.2.2-6-g50d4dbd",
+			"Rev": "50d4dbd4eb0e84778abe37cefef140271d96fade"
+		},
+		{
 			"ImportPath": "github.com/jonboulle/clockwork",
 			"Comment": "v0.1.0-2-ge3653ac",
 			"Rev": "e3653ace2d63753697e0e5b07b9393971c0bba9d"
@@ -760,7 +765,27 @@
 			"Rev": "b0deb2eb8f4037421077f77cb163dbb4c0a2a9f5"
 		},
 		{
+			"ImportPath": "k8s.io/kubernetes/pkg/client/unversioned/auth",
+			"Comment": "v1.3.5",
+			"Rev": "b0deb2eb8f4037421077f77cb163dbb4c0a2a9f5"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/pkg/client/unversioned/clientcmd",
+			"Comment": "v1.3.5",
+			"Rev": "b0deb2eb8f4037421077f77cb163dbb4c0a2a9f5"
+		},
+		{
 			"ImportPath": "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api",
+			"Comment": "v1.3.5",
+			"Rev": "b0deb2eb8f4037421077f77cb163dbb4c0a2a9f5"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api/latest",
+			"Comment": "v1.3.5",
+			"Rev": "b0deb2eb8f4037421077f77cb163dbb4c0a2a9f5"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api/v1",
 			"Comment": "v1.3.5",
 			"Rev": "b0deb2eb8f4037421077f77cb163dbb4c0a2a9f5"
 		},
@@ -886,6 +911,11 @@
 		},
 		{
 			"ImportPath": "k8s.io/kubernetes/pkg/util/hash",
+			"Comment": "v1.3.5",
+			"Rev": "b0deb2eb8f4037421077f77cb163dbb4c0a2a9f5"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/pkg/util/homedir",
 			"Comment": "v1.3.5",
 			"Rev": "b0deb2eb8f4037421077f77cb163dbb4c0a2a9f5"
 		},
