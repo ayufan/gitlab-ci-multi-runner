@@ -5,6 +5,7 @@ port=$(env | grep -m1 _TCP_PORT | cut -d = -f 2)
 
 if [ -z "$host" ] || [ -z "$port" ]; then
 	echo "No HOST or PORT"
+	exit 1
 fi
 
 echo -n "waiting for TCP connection to $host:$port..."

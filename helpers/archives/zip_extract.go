@@ -81,21 +81,23 @@ func extractZipFile(file *zip.File) (err error) {
 }
 
 func ExtractZipArchive(archive *zip.Reader) error {
+	tracker := newPathErrorTracker()
+
 	for _, file := range archive.File {
-		if err := extractZipFile(file); err != nil {
-			logrus.Warningf("%s: %s", file.Name, err)
+		if err := extractZipFile(file); tracker.actionable(err) {
+			logrus.Warningf("%s: %s (suppressing repeats)", file.Name, err)
 		}
 	}
 
 	for _, file := range archive.File {
 		// Update file permissions
-		if err := os.Chmod(file.Name, file.Mode().Perm()); err != nil {
-			logrus.Warningf("%s: %s", file.Name, err)
+		if err := os.Chmod(file.Name, file.Mode().Perm()); tracker.actionable(err) {
+			logrus.Warningf("%s: %s (suppressing repeats)", file.Name, err)
 		}
 
 		// Process zip metadata
-		if err := processZipExtra(&file.FileHeader); err != nil {
-			logrus.Warningf("%s: %s", file.Name, err)
+		if err := processZipExtra(&file.FileHeader); tracker.actionable(err) {
+			logrus.Warningf("%s: %s (suppressing repeats)", file.Name, err)
 		}
 	}
 	return nil

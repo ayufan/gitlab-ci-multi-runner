@@ -263,7 +263,7 @@ func (n *GitLabClient) PatchTrace(config common.RunnerConfig, buildCredentials *
 		log.Errorln("Appending trace to coordinator...", "forbidden")
 		return common.UpdateAbort
 	case 416:
-		log.Warningln("Appending trace to coordinator...", "range missmatch")
+		log.Warningln("Appending trace to coordinator...", "range mismatch")
 
 		remoteRange := strings.Split(remoteRange, "-")
 		newOffset, _ := strconv.Atoi(remoteRange[1])

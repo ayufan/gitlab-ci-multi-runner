@@ -18,7 +18,7 @@ The GitLab Runner provides these options:
         Create the certificate file at: `/etc/gitlab-runner/certs/my.gitlab.server.com.crt`. 
 
 3. GitLab Runner exposes `tls-ca-file` option during registration and in [`config.toml`](advanced-configuration.md)
-which allows you to specify custom file with certificates. This file will be read everytime when runner tries to
+which allows you to specify custom file with certificates. This file will be read every time when runner tries to
 access the GitLab server.
 
 ### Git cloning

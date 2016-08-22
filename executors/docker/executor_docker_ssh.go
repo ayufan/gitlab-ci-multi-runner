@@ -30,13 +30,8 @@ func (s *sshExecutor) Prepare(globalConfig *common.Config, config *common.Runner
 		return err
 	}
 
-	options, err := s.prepareBuildContainer()
-	if err != nil {
-		return err
-	}
-
 	// Start build container which will run actual build
-	container, err := s.createContainer("build", imageName, []string{}, *options)
+	container, err := s.createContainer("build", imageName, []string{})
 	if err != nil {
 		return err
 	}

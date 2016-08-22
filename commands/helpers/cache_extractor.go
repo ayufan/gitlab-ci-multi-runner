@@ -15,6 +15,7 @@ import (
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/archives"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/formatter"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/url"
 )
 
 type CacheExtractorCommand struct {
@@ -54,7 +55,7 @@ func (c *CacheExtractorCommand) download() (bool, error) {
 		return false, nil
 	}
 
-	logrus.Infoln("Downloading", filepath.Base(c.File))
+	logrus.Infoln("Downloading", filepath.Base(c.File), "from", url_helpers.CleanURL(c.URL))
 	_, err = io.Copy(file, resp.Body)
 	if err != nil {
 		return true, err

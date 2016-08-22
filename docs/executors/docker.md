@@ -218,6 +218,12 @@ distinguish which variable should go where.
 >
 Secure variables are only passed to the build container.
 
+## Build directory in service
+
+Since version 1.5 GitLab Runner mounts a `/build` directory to all stared services.
+
+See an issue: https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues/1520
+
 ### PostgreSQL service example
 
 See the specific documentation for
@@ -265,6 +271,15 @@ The `volumes` directive supports 2 types of storage:
 2. `<host-path>:<path>[:<mode>]` - **the host-bound storage**. The `<path>` is
     bind to `<host-path>` on the host system. The optional `<mode>` can specify
     that this storage is read-only or read-write (default).
+
+## The persistent storage for builds
+
+If you make the `/builds` to be **the host-bound storage**, your builds will be stored in:
+`/builds/<short-token>/<concurrent-id>/<namespace>/<project-name>`, where:
+
+- `<short-token>` is a shortened version of the Runner's token (first 8 letters)
+- `<concurrent-id>` is a unique number, identifying the local job ID on the
+  particular Runner in context of the project
 
 ## The privileged mode
 
