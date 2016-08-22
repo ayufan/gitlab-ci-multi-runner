@@ -147,15 +147,15 @@ func TestBuildContainer(t *testing.T) {
 
 	for _, test := range tests {
 		e := executor{
-			extraOptions: FakeOptions{
-				privileged: test.Privileged,
-			},
 			AbstractExecutor: executors.AbstractExecutor{
 				Build: &common.Build{
 					BuildDir: test.BuildDir,
 					Runner: &common.RunnerConfig{
 						RunnerSettings: common.RunnerSettings{
 							Environment: test.Environment,
+							Kubernetes: &common.KubernetesConfig{
+								Privileged: test.Privileged,
+							},
 						},
 					},
 				},
@@ -291,11 +291,6 @@ func TestPrepare(t *testing.T) {
 				options: &kubernetesOptions{
 					Image: "test-image",
 				},
-				extraOptions: DefaultOptions{
-					BuildVariables: []common.BuildVariable{
-						common.BuildVariable{Key: "privileged", Value: "true"},
-					},
-				},
 				serviceLimits: api.ResourceList{
 					api.ResourceLimitsCPU:    resource.MustParse("0.5"),
 					api.ResourceLimitsMemory: resource.MustParse("200Mi"),
@@ -325,9 +320,6 @@ func TestPrepare(t *testing.T) {
 					Sha: "1234567890",
 					Options: common.BuildOptions{
 						"image": "test-image",
-					},
-					Variables: []common.BuildVariable{
-						common.BuildVariable{Key: "privileged", Value: "true"},
 					},
 				},
 				Runner: &common.RunnerConfig{},
