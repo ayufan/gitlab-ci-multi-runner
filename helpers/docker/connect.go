@@ -17,6 +17,10 @@ var dockerDialer = &net.Dialer{
 	KeepAlive: 30 * time.Second,
 }
 
+var cache = clientCache{
+	clients: make(map[string]Client),
+}
+
 func httpTransportFix(host string, client Client) {
 	dockerClient, ok := client.(*docker.Client)
 	if !ok || dockerClient == nil {
@@ -60,6 +64,10 @@ func New(c DockerCredentials, apiVersion string) (client Client, err error) {
 		tlsCertPath = os.Getenv("DOCKER_CERT_PATH")
 	}
 
+	if client := cache.fromCache(endpoint, apiVersion, tlsVerify, tlsCertPath); client != nil {
+		return client, err
+	}
+
 	if tlsVerify {
 		client, err = docker.NewVersionedTLSClient(
 			endpoint,
@@ -70,15 +78,17 @@ func New(c DockerCredentials, apiVersion string) (client Client, err error) {
 		)
 		if err != nil {
 			logrus.Errorln("Error while TLS Docker client creation:", err)
+			return
 		}
-
-		return
+	} else {
+		client, err = docker.NewVersionedClient(endpoint, apiVersion)
+		if err != nil {
+			logrus.Errorln("Error while Docker client creation:", err)
+			return
+		}
 	}
 
-	client, err = docker.NewVersionedClient(endpoint, apiVersion)
-	if err != nil {
-		logrus.Errorln("Error while Docker client creation:", err)
-	}
+	cache.cache(client, endpoint, apiVersion, tlsVerify, tlsCertPath)
 	return
 }
 

@@ -214,13 +214,16 @@ func (m *machineProvider) updateMachine(config *common.RunnerConfig, data *machi
 	return nil
 }
 
-func (m *machineProvider) updateMachines(machines []string, config *common.RunnerConfig) (data machinesData) {
+func (m *machineProvider) updateMachines(machines []string, config *common.RunnerConfig) (data machinesData, validMachines []string) {
 	data.Runner = config.ShortDescription()
+	validMachines = make([]string, 0, len(machines))
 
 	for _, name := range machines {
 		details := m.machineDetails(name, false)
 		err := m.updateMachine(config, &data, details)
-		if err != nil {
+		if err == nil {
+			validMachines = append(validMachines, name)
+		} else {
 			m.remove(details.Name, err)
 		}
 
@@ -265,7 +268,7 @@ func (m *machineProvider) Acquire(config *common.RunnerConfig) (data common.Exec
 	m.acquireLock.Lock()
 
 	// Update a list of currently configured machines
-	machinesData := m.updateMachines(machines, config)
+	machinesData, validMachines := m.updateMachines(machines, config)
 
 	// Pre-create machines
 	m.createMachines(config, &machinesData)
@@ -281,7 +284,7 @@ func (m *machineProvider) Acquire(config *common.RunnerConfig) (data common.Exec
 	machinesData.writeDebugInformation()
 
 	// Try to find a free machine
-	details := m.findFreeMachine(machines...)
+	details := m.findFreeMachine(validMachines...)
 	if details != nil {
 		data = details
 		return
@@ -297,7 +300,7 @@ func (m *machineProvider) Acquire(config *common.RunnerConfig) (data common.Exec
 func (m *machineProvider) Use(config *common.RunnerConfig, data common.ExecutorData) (newConfig common.RunnerConfig, newData common.ExecutorData, err error) {
 	// Find a new machine
 	details, _ := data.(*machineDetails)
-	if details == nil {
+	if details == nil || !details.canBeUsed() || !m.machine.CanConnect(details.Name) {
 		details, err = m.retryUseMachine(config)
 		if err != nil {
 			return

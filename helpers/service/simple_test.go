@@ -2,10 +2,12 @@ package service_helpers
 
 import (
 	"errors"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/mocks"
-	"testing"
+
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/service/mocks"
 )
 
 var errExample = errors.New("example error")

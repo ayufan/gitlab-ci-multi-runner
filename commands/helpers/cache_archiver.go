@@ -12,6 +12,7 @@ import (
 
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/common"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/archives"
+	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/url"
 )
 
 type CacheArchiverCommand struct {
@@ -22,7 +23,7 @@ type CacheArchiverCommand struct {
 }
 
 func (c *CacheArchiverCommand) upload() (bool, error) {
-	logrus.Infoln("Uploading", filepath.Base(c.File))
+	logrus.Infoln("Uploading", filepath.Base(c.File), "to", url_helpers.CleanURL(c.URL))
 
 	file, err := os.Open(c.File)
 	if err != nil {

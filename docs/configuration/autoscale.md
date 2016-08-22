@@ -84,7 +84,7 @@ and [GitLab Runner - Advanced Configuration][runner-configuration].
 | Parameter  | Value            | Description |
 |------------|------------------|-------------|
 | `executor` | string           | To use the autoscale feature, `executor` must be set to `docker+machine` or `docker-ssh+machine`. |
-| `limit`    | integer          | Limits how many jobs can be handled concurrently by this specific token. 0 simply means don't limit. For autoscale it's the upper limit of machines created by this provider (in conjuction with `concurrent` and `IdleCount`). |
+| `limit`    | integer          | Limits how many jobs can be handled concurrently by this specific token. 0 simply means don't limit. For autoscale it's the upper limit of machines created by this provider (in conjunction with `concurrent` and `IdleCount`). |
 
 ### `[runners.machine]` options
 
@@ -158,7 +158,7 @@ machines stay in _Idle_ state and GitLab Runner is satisfied.
 
 ---
 
-**This is what happend:**
+**This is what happened:**
 We had 2 machines, waiting in _Idle_ state for new builds. After the 5 builds
 where queued, new machines were created, so in total we had 7 machines. Five of
 them were running builds, and 2 were in _Idle_ state, waiting for the next
@@ -328,7 +328,7 @@ concurrent = 50   # All registered Runners can run up to 50 concurrent builds
 
 [[runners]]
   url = "https://gitlab.com/ci"
-  token = "RUNNER_TOKEN"
+  token = "RUNNER_TOKEN"            # Note this is different from the registration token used by `gitlab-runner register`
   name = "autoscale-runner"
   executor = "docker+machine"       # This Runner is using the 'docker+machine' executor
   limit = 10                        # This Runner can execute up to 10 builds (created machines)
