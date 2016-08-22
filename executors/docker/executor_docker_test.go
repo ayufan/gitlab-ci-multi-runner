@@ -304,3 +304,37 @@ func TestDockerGetExistingDockerImageIfPullFails(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, image, "No existing image")
 }
+
+func TestHostMountedBuildsDirectory(t *testing.T) {
+	tests := []struct {
+		path    string
+		volumes []string
+		result  bool
+	}{
+		{"/build", []string{"/build:/build"}, true},
+		{"/build", []string{"/build/:/build"}, true},
+		{"/build", []string{"/build"}, false},
+		{"/build", []string{"/folder:/folder"}, false},
+		{"/build", []string{"/folder"}, false},
+		{"/build/other/directory", []string{"/build/:/build"}, true},
+		{"/build/other/directory", []string{}, false},
+	}
+
+	for _, i := range tests {
+		c := common.RunnerConfig{
+			RunnerSettings: common.RunnerSettings{
+				BuildsDir: i.path,
+				Docker: &common.DockerConfig{
+					Volumes: i.volumes,
+				},
+			},
+		}
+		e := &executor{}
+
+		t.Log("Testing", i.path, "if volumes are configured to:", i.volumes, "...")
+		assert.Equal(t, i.result, e.isHostMountedVolume(i.path, i.volumes...))
+
+		e.prepareBuildsDir(&c)
+		assert.Equal(t, i.result, e.SharedBuildsDir)
+	}
+}

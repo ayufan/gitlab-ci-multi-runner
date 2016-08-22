@@ -272,6 +272,15 @@ The `volumes` directive supports 2 types of storage:
     bind to `<host-path>` on the host system. The optional `<mode>` can specify
     that this storage is read-only or read-write (default).
 
+## The persistent storage for builds
+
+If you make the `/builds` to be **the host-bound storage**, your builds will be stored in:
+`/builds/<short-token>/<concurrent-id>/<namespace>/<project-name>`, where:
+
+- `<short-token>` is a shortened version of the Runner's token (first 8 letters)
+- `<concurrent-id>` is a unique number, identifying the local job ID on the
+  particular Runner in context of the project
+
 ## The privileged mode
 
 The Docker executor supports a number of options that allows to fine tune the

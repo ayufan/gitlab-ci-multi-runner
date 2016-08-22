@@ -360,7 +360,7 @@ func (s *executor) createBuildVolume() (err error) {
 		return errors.New("build directory needs to be absolute and non-root path")
 	}
 
-	if s.isHostMountedVolume(s.Build.RootDir) {
+	if s.isHostMountedVolume(s.Build.RootDir, s.Config.Docker.Volumes...) {
 		return nil
 	}
 
@@ -391,16 +391,24 @@ func (s *executor) createUserVolumes() (err error) {
 	return nil
 }
 
-func (s *executor) isHostMountedVolume(dir string) bool {
-	dir = path.Clean(dir)
+func (s *executor) isHostMountedVolume(dir string, volumes ...string) bool {
+	isParentOf := func(parent string, dir string) bool {
+		for dir != "/" && dir != "." {
+			if dir == parent {
+				return true
+			}
+			dir = path.Dir(dir)
+		}
+		return false
+	}
 
-	for _, volume := range s.Config.Docker.Volumes {
-		hostVolume := strings.SplitN(volume, ":", 2)
-		if len(hostVolume) != 2 {
+	for _, volume := range volumes {
+		hostVolume := strings.Split(volume, ":")
+		if len(hostVolume) < 2 {
 			continue
 		}
 
-		if path.Clean(hostVolume[1]) == dir {
+		if isParentOf(path.Clean(hostVolume[1]), path.Clean(dir)) {
 			return true
 		}
 	}
@@ -912,7 +920,7 @@ func (s *executor) prepareBuildsDir(config *common.RunnerConfig) error {
 	if rootDir == "" {
 		rootDir = s.DefaultBuildsDir
 	}
-	if s.isHostMountedVolume(rootDir) {
+	if s.isHostMountedVolume(rootDir, config.Docker.Volumes...) {
 		s.SharedBuildsDir = true
 	}
 	return nil
