@@ -1,3 +1,5 @@
+v 1.6.0 (unreleased)
+
 v 1.5.0
 - Update vendored toml !258
 - Release armel instead arm for Debian packages !264
