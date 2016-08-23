@@ -631,11 +631,6 @@ func (s *executor) createServices() (err error) {
 	return
 }
 
-func (s *executor) prepareBuildContainer() (options *docker.CreateContainerOptions, err error) {
-
-	return
-}
-
 func (s *executor) createContainer(containerType, imageName string, cmd []string) (container *docker.Container, err error) {
 	// Fetch image
 	image, err := s.getDockerImage(imageName)
