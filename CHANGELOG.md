@@ -1,7 +1,10 @@
+v 1.5.1
+- Fix file mode of gitlab-runner-service script !283
+
 v 1.5.0
 - Update vendored toml !258
 - Release armel instead arm for Debian packages !264
-- Improve concurrency of docker+machine executor !254 
+- Improve concurrency of docker+machine executor !254
 - Use .xz for prebuilt docker images to reduce binary size and provisioning speed of Docker Engines !249
 - Remove vendored test files !271
 - Update gitlab-runner-service to return 1 when no Host or PORT is defined !253
