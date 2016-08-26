@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"time"
 
 	"golang.org/x/net/context"
@@ -59,6 +60,17 @@ func getKubeClient(config *common.KubernetesConfig) (*client.Client, error) {
 	}
 
 	return client.New(restConfig)
+}
+
+func closeKubeClient(client *client.Client) bool {
+	if client == nil || client.Client == nil || client.Client.Transport == nil {
+		return false
+	}
+	if transport, _ := client.Client.Transport.(*http.Transport); transport != nil {
+		transport.CloseIdleConnections()
+		return true
+	}
+	return false
 }
 
 func isRunning(pod *api.Pod) (bool, error) {

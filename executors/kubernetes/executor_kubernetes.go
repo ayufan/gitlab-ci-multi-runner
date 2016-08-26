@@ -112,6 +112,7 @@ func (s *executor) Cleanup() {
 			s.Errorln(fmt.Sprintf("Error cleaning up pod: %s", err.Error()))
 		}
 	}
+	closeKubeClient(s.kubeClient)
 	s.AbstractExecutor.Cleanup()
 }
 
