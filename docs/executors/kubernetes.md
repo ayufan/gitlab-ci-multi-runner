@@ -57,7 +57,7 @@ on the cluster.
 The following keywords help to define the behaviour of the Runner within kubernetes:
 
 - `namespace`: Namespace to run Kubernetes Pods in
-- `allow_privileged`: Allow containers to be run with the privileged flag
+- `privileged`: Run containers with the privileged flag
 - `cpus`: The CPU allocation given to build containers
 - `memory`: The amount of memory allocated to build containers
 - `service_cpus`: The CPU allocation given to build service containers
@@ -83,80 +83,9 @@ concurrent = 4
     key_file = "/etc/ssl/kubernetes/api.key"
     ca_file = "/etc/ssl/kubernetes/ca.crt"
     namespace = "gitlab"
-    allow_privileged = true
+    privileged = true
     cpus = "750m"
     memory = "250m"
     service_cpus = "1000m"
     service_memory = "450m"
 ```
-
-## Kubernetes Configuration
-
-To get started with the GitLab CI Runner on Kubernetes you need to define
-resources that you can then push to the cluster with kubectl.
-
-A recommended approach to this is to create a `ConfigMap` in kubernetes such as
-the following:
-
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: gitlab-runner
-  namespace: gitlab
-data:
-  config.toml: |
-    concurrent = 4
-
-    [[runners]]
-      name = "Kubernetes Runner"
-      url = "https://gitlab.com/ci"
-      token = "...."
-      executor = "kubernetes"
-      [runners.kubernetes]
-        namespace = "gitlab"
-        allow_privileged = true
-```
-
-Then create a `Deployment` or `ReplicationController` which uses the `ConfigMap`.
-This is an example of a `Deployment`:
-
-```yaml
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: gitlab-runner
-  namespace: gitlab
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      name: gitlab-runner
-  template:
-    metadata:
-      labels:
-        name: gitlab-runner
-    spec:
-      containers:
-      - args:
-        - run
-        image: munnerz/gitlab-ci-multi-runner:latest
-        imagePullPolicy: Always
-        name: gitlab-runner
-        volumeMounts:
-        - mountPath: /etc/gitlab-runner
-          name: config
-        - mountPath: /etc/ssl/certs
-          name: cacerts
-          readOnly: true
-      restartPolicy: Always
-      volumes:
-      - configMap:
-          name: gitlab-runner
-        name: config
-      - hostPath:
-          path: /usr/share/ca-certificates/mozilla
-        name: cacerts
-```
-
-[special-build]: https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/tree/master/dockerfiles/build
