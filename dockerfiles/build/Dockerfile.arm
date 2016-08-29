@@ -1,6 +1,4 @@
 FROM scaleway/alpine
 
-RUN apk add --update bash ca-certificates git && \
-	apk add git-lfs --update-cache --repository http://dl-3.alpinelinux.org/alpine/edge/testing/
-
+RUN apk add --update bash ca-certificates git
 COPY ./ /usr/bin
