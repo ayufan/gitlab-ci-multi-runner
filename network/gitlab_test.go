@@ -45,7 +45,7 @@ func TestClients(t *testing.T) {
 }
 
 func testGetBuildHandler(w http.ResponseWriter, r *http.Request, t *testing.T) {
-	if r.URL.Path != "/api/v1/builds/register.json" {
+	if r.URL.Path != "/ci/api/v1/builds/register.json" {
 		w.WriteHeader(404)
 		return
 	}
@@ -143,7 +143,7 @@ func TestGetBuild(t *testing.T) {
 }
 
 func testRegisterRunnerHandler(w http.ResponseWriter, r *http.Request, t *testing.T) {
-	if r.URL.Path != "/api/v1/runners/register.json" {
+	if r.URL.Path != "/ci/api/v1/runners/register.json" {
 		w.WriteHeader(404)
 		return
 	}
@@ -237,7 +237,7 @@ func TestRegisterRunner(t *testing.T) {
 
 func TestDeleteRunner(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/runners/delete" {
+		if r.URL.Path != "/ci/api/v1/runners/delete" {
 			w.WriteHeader(404)
 			return
 		}
@@ -299,7 +299,7 @@ func TestDeleteRunner(t *testing.T) {
 
 func TestVerifyRunner(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/builds/-1" {
+		if r.URL.Path != "/ci/api/v1/builds/-1" {
 			w.WriteHeader(404)
 			return
 		}
@@ -361,7 +361,7 @@ func TestVerifyRunner(t *testing.T) {
 
 func TestUpdateBuild(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/builds/10.json" {
+		if r.URL.Path != "/ci/api/v1/builds/10.json" {
 			w.WriteHeader(404)
 			return
 		}
@@ -422,7 +422,7 @@ func TestUpdateBuild(t *testing.T) {
 
 func TestArtifactsUpload(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/builds/10/artifacts" {
+		if r.URL.Path != "/ci/api/v1/builds/10/artifacts" {
 			w.WriteHeader(404)
 			return
 		}
