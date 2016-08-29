@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"fmt"
+	"path/filepath"
+
 	"github.com/BurntSushi/toml"
 	log "github.com/Sirupsen/logrus"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/docker"
 	"gitlab.com/gitlab-org/gitlab-ci-multi-runner/helpers/ssh"
-	"path/filepath"
 )
 
 type DockerPullPolicy string
@@ -86,6 +87,20 @@ type VirtualBoxConfig struct {
 	DisableSnapshots bool   `toml:"disable_snapshots,omitzero" json:"disable_snapshots" long:"disable-snapshots" env:"VIRTUALBOX_DISABLE_SNAPSHOTS" description:"Disable snapshoting to speedup VM creation"`
 }
 
+type KubernetesConfig struct {
+	Host          string `toml:"host" json:"host" long:"host" env:"KUBERNETES_HOST" description:"Optional Kubernetes master host URL (auto-discovery attempted if not specified)"`
+	CertFile      string `toml:"cert_file" json:"cert_file" long:"cert-file" env:"KUBERNETES_CERT_FILE" description:"Optional Kubernetes master auth certificate"`
+	KeyFile       string `toml:"key_file" json:"key_file" long:"key-file" env:"KUBERNETES_KEY_FILE" description:"Optional Kubernetes master auth private key"`
+	CAFile        string `toml:"ca_file" json:"ca_file" long:"ca-file" env:"KUBERNETES_CA_FILE" description:"Optional Kubernetes master auth ca certificate"`
+	Image         string `toml:"image" json:"image" long:"image" env:"KUBERNETES_IMAGE" description:"Default docker image to use for builds when none is specified"`
+	Namespace     string `toml:"namespace" json:"namespace" long:"namespace" env:"KUBERNETES_NAMESPACE" description:"Namespace to run Kubernetes jobs in"`
+	Privileged    bool   `toml:"privileged" json:"privileged" long:"privileged" env:"KUBERNETES_PRIVILEGED" description:"Run all containers with the privileged flag enabled"`
+	CPUs          string `toml:"cpus" json:"cpus" long:"cpus" env:"KUBERNETES_CPUS" description:"The CPU allocation given to build containers"`
+	Memory        string `toml:"memory" json:"memory" long:"memory" env:"KUBERNETES_MEMORY" description:"The amount of memory allocated to build containers"`
+	ServiceCPUs   string `toml:"service_cpus" json:"service_cpus" long:"service-cpus" env:"KUBERNETES_SERVICE_CPUS" description:"The CPU allocation given to build service containers"`
+	ServiceMemory string `toml:"service_memory" json:"service_memory" long:"service-memory" env:"KUBERNETES_SERVICE_MEMORY" description:"The amount of memory allocated to build service containers"`
+}
+
 type RunnerCredentials struct {
 	URL       string `toml:"url" json:"url" short:"u" long:"url" env:"CI_SERVER_URL" required:"true" description:"Runner URL"`
 	Token     string `toml:"token" json:"token" short:"t" long:"token" env:"CI_SERVER_TOKEN" required:"true" description:"Runner token"`
@@ -117,6 +132,7 @@ type RunnerSettings struct {
 	VirtualBox *VirtualBoxConfig `toml:"virtualbox" json:"virtualbox" group:"virtualbox executor" namespace:"virtualbox"`
 	Cache      *CacheConfig      `toml:"cache" json:"cache" group:"cache configuration" namespace:"cache"`
 	Machine    *DockerMachine    `toml:"machine" json:"machine" group:"docker machine provider" namespace:"machine"`
+	Kubernetes *KubernetesConfig `toml:"kubernetes" json:"kubernetes" group:"kubernetes executor" namespace:"kubernetes"`
 }
 
 type RunnerConfig struct {
