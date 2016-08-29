@@ -96,7 +96,7 @@ Register the runner:
 ```bash
 sudo -u gitlab-runner -H /usr/local/bin/gitlab-ci-multi-runner register
 
-Please enter the gitlab-ci coordinator URL (e.g. https://gitlab.com/ci):
+Please enter the gitlab-ci coordinator URL (e.g. https://gitlab.com):
 
 Please enter the gitlab-ci token for this runner:
 

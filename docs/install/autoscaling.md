@@ -114,8 +114,8 @@ more in [Distributed runners caching][caching].
     Example output:
 
     ```bash
-    Please enter the gitlab-ci coordinator URL (e.g. https://gitlab.com/ci )
-    https://gitlab.com/ci
+    Please enter the gitlab-ci coordinator URL (e.g. https://gitlab.com )
+    https://gitlab.com
     Please enter the gitlab-ci token for this runner
     xxx
     Please enter the gitlab-ci description for this runner

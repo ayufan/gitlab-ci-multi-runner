@@ -327,7 +327,7 @@ The `config.toml` below uses the `digitalocean` Docker Machine driver:
 concurrent = 50   # All registered Runners can run up to 50 concurrent builds
 
 [[runners]]
-  url = "https://gitlab.com/ci"
+  url = "https://gitlab.com"
   token = "RUNNER_TOKEN"            # Note this is different from the registration token used by `gitlab-runner register`
   name = "autoscale-runner"
   executor = "docker+machine"       # This Runner is using the 'docker+machine' executor
