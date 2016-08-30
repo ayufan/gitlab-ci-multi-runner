@@ -18,7 +18,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -200,8 +199,10 @@ func (n *client) doJSON(uri, method string, statusCode int, request interface{},
 
 func fixCIURL(url string) string {
 	url = strings.TrimRight(url, "/")
-	re := regexp.MustCompile("(/ci)?$")
-	return re.ReplaceAllString(url, "/ci")
+	if !strings.HasSuffix(url, "/ci") {
+		url += "/ci"
+	}
+	return url
 }
 
 func newClient(config common.RunnerCredentials) (c *client, err error) {
