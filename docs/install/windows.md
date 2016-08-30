@@ -39,6 +39,12 @@ gitlab-ci-multi-runner install --user ENTER-YOUR-USERNAME --password ENTER-YOUR-
 gitlab-ci-multi-runner start
 ```
 
+> `Important` If you encounter an error like '*The account name is invalid*' try to add `.\` before the username.
+> ```shell
+> gitlab-ci-multi-runner install --user ".\ENTER-YOUR-USERNAME" --password "ENTER-YOUR-PASSWORD"
+> ```
+
+
 > **Notice:** If you don't have a Windows Password, Runner's service won't start. To
 > fix this please read [How to Configure the Service to Start Up with the Built-in System Account](https://support.microsoft.com/en-us/kb/327545#bookmark-6)
 > on Microsoft's support website.
