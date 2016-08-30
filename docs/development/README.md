@@ -130,5 +130,6 @@ Which is especially tricky on Windows.
 
 Try to execute: `make deps docker`, if it doesn't help you can do that in steps:
 1. Execute `go get -u github.com/jteeuwen/go-bindata/...`
-2. Download https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/docker/prebuilt.tar.gz and save to out/docker/prebuilt.tar.gz
-3. Execute `make docker` or check the Makefile how this command looks like
+2. Download https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/docker/prebuilt-x86_64.tar.xz and save to out/docker/prebuilt-x86_64.tar.xz
+3. Download https://gitlab-ci-multi-runner-downloads.s3.amazonaws.com/master/docker/prebuilt-arm.tar.xz and save to out/docker/prebuilt-arm.tar.xz
+4. Execute `make docker` or check the Makefile how this command looks like
