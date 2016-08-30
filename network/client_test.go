@@ -23,10 +23,10 @@ func clientHandler(w http.ResponseWriter, r *http.Request) {
 		"Body:", string(body))
 
 	switch r.URL.Path {
-	case "/api/v1/test/ok":
-	case "/api/v1/test/auth":
+	case "/ci/api/v1/test/ok":
+	case "/ci/api/v1/test/auth":
 		w.WriteHeader(403)
-	case "/api/v1/test/json":
+	case "/ci/api/v1/test/json":
 		if r.Header.Get("Content-Type") != "application/json" {
 			w.WriteHeader(400)
 		} else if r.Header.Get("Accept") != "application/json" {
@@ -158,4 +158,19 @@ func TestClientCertificateInPredefinedDirectory(t *testing.T) {
 	statusCode, statusText, certificates := c.doJSON("test/ok", "GET", 200, nil, nil)
 	assert.Equal(t, 200, statusCode, statusText)
 	assert.NotEmpty(t, certificates)
+}
+
+func TestUrlFixing(t *testing.T) {
+	assert.Equal(t, "https://gitlab.example.com/ci", fixCIURL("https://gitlab.example.com/ci///"))
+	assert.Equal(t, "https://gitlab.example.com/ci", fixCIURL("https://gitlab.example.com/ci/"))
+	assert.Equal(t, "https://gitlab.example.com/ci", fixCIURL("https://gitlab.example.com/ci"))
+	assert.Equal(t, "https://gitlab.example.com/ci", fixCIURL("https://gitlab.example.com/"))
+	assert.Equal(t, "https://gitlab.example.com/ci", fixCIURL("https://gitlab.example.com///"))
+	assert.Equal(t, "https://gitlab.example.com/ci", fixCIURL("https://gitlab.example.com"))
+	assert.Equal(t, "https://example.com/gitlab/ci", fixCIURL("https://example.com/gitlab/ci/"))
+	assert.Equal(t, "https://example.com/gitlab/ci", fixCIURL("https://example.com/gitlab/ci///"))
+	assert.Equal(t, "https://example.com/gitlab/ci", fixCIURL("https://example.com/gitlab/ci"))
+	assert.Equal(t, "https://example.com/gitlab/ci", fixCIURL("https://example.com/gitlab/"))
+	assert.Equal(t, "https://example.com/gitlab/ci", fixCIURL("https://example.com/gitlab///"))
+	assert.Equal(t, "https://example.com/gitlab/ci", fixCIURL("https://example.com/gitlab"))
 }

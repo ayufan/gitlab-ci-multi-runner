@@ -8,7 +8,7 @@ You can export it as a variable and run the command below as is:
 ```bash
 gitlab-ci-multi-runner register \
 --non-interactive \
---url "https://gitlab.com/ci" \
+--url "https://gitlab.com" \
 --registration-token "$REGISTRATION_TOKEN" \
 --description "gitlab-ce-ruby-2.1" \
 --executor "docker" \

@@ -197,8 +197,16 @@ func (n *client) doJSON(uri, method string, statusCode int, request interface{},
 	return res.StatusCode, res.Status, n.getCAChain(res.TLS)
 }
 
+func fixCIURL(url string) string {
+	url = strings.TrimRight(url, "/")
+	if !strings.HasSuffix(url, "/ci") {
+		url += "/ci"
+	}
+	return url
+}
+
 func newClient(config common.RunnerCredentials) (c *client, err error) {
-	url, err := url.Parse(strings.TrimRight(config.URL, "/") + "/api/v1/")
+	url, err := url.Parse(fixCIURL(config.URL) + "/api/v1/")
 	if err != nil {
 		return
 	}

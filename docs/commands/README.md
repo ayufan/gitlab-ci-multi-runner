@@ -293,7 +293,7 @@ a full URL and the runner's token, or the runner's name. First get the runner's 
 executing `gitlab-runner list`:
 
 ```bash
-test-runner     Executor=shell Token=t0k3n URL=http://gitlab.example.com/ci/
+test-runner     Executor=shell Token=t0k3n URL=http://gitlab.example.com
 ```
 
 Then use this information to unregister it, using one of the following commands.
@@ -305,7 +305,7 @@ make sure to have a backup of `config.toml` before executing it.
 #### By URL and token:
 
 ```bash
-gitlab-runner unregister --url http://gitlab.example.com/ci/ --token t0k3n
+gitlab-runner unregister --url http://gitlab.example.com/ --token t0k3n
 ```
 
 #### By name:

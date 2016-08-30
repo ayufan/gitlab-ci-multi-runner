@@ -16,8 +16,8 @@ Register the runner:
 cd C:\Multi-Runner
 gitlab-ci-multi-runner register
 
-Please enter the gitlab-ci coordinator URL (e.g. http://gitlab-ci.org:3000/ )
-https://ci.gitlab.com
+Please enter the gitlab-ci coordinator URL (e.g. https://gitlab.com )
+https://gitlab.com
 Please enter the gitlab-ci token for this runner
 xxx
 Please enter the gitlab-ci description for this runner
