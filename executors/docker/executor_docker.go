@@ -32,6 +32,7 @@ type dockerOptions struct {
 type executor struct {
 	executors.AbstractExecutor
 	client      docker_helpers.Client
+	failures    []*docker.Container
 	builds      []*docker.Container
 	services    []*docker.Container
 	caches      []*docker.Container
@@ -258,7 +259,7 @@ func (s *executor) createCacheVolume(containerName, containerPath string) (*dock
 	container, err := s.client.CreateContainer(createContainerOptions)
 	if err != nil {
 		if container != nil {
-			go s.removeContainer(container.ID)
+			s.failures = append(s.failures, container)
 		}
 		return nil, err
 	}
@@ -266,19 +267,19 @@ func (s *executor) createCacheVolume(containerName, containerPath string) (*dock
 	s.Debugln("Starting cache container", container.ID, "...")
 	err = s.client.StartContainer(container.ID, nil)
 	if err != nil {
-		go s.removeContainer(container.ID)
+		s.failures = append(s.failures, container)
 		return nil, err
 	}
 
 	s.Debugln("Waiting for cache container", container.ID, "...")
 	errorCode, err := s.client.WaitContainer(container.ID)
 	if err != nil {
-		go s.removeContainer(container.ID)
+		s.failures = append(s.failures, container)
 		return nil, err
 	}
 
 	if errorCode != 0 {
-		go s.removeContainer(container.ID)
+		s.failures = append(s.failures, container)
 		return nil, fmt.Errorf("cache container for %s returned %d", containerPath, errorCode)
 	}
 
@@ -528,7 +529,7 @@ func (s *executor) createService(service, version string) (*docker.Container, er
 	s.Debugln("Starting service container", container.ID, "...")
 	err = s.client.StartContainer(container.ID, nil)
 	if err != nil {
-		go s.removeContainer(container.ID)
+		s.failures = append(s.failures, container)
 		return nil, err
 	}
 
@@ -688,7 +689,7 @@ func (s *executor) createContainer(containerType, imageName string, cmd []string
 	container, err = s.client.CreateContainer(options)
 	if err != nil {
 		if container != nil {
-			go s.removeContainer(container.ID)
+			s.failures = append(s.failures, container)
 		}
 		return nil, err
 	}
@@ -930,6 +931,10 @@ func (s *executor) Cleanup() {
 			s.removeContainer(id)
 			wg.Done()
 		}()
+	}
+
+	for _, failure := range s.failures {
+		remove(failure.ID)
 	}
 
 	for _, service := range s.services {
