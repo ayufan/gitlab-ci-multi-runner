@@ -22,10 +22,10 @@ type CmdWriter struct {
 }
 
 func batchQuote(text string) string {
-	return "\"" + batchEscape(text) + "\""
+	return "\"" + batchEscapeInsideQuotedString(text) + "\""
 }
 
-func batchEscape(text string) string {
+func batchEscapeInsideQuotedString(text string) string {
 	// taken from: http://www.robvanderwoude.com/escapechars.php
 	text = strings.Replace(text, "^", "^^", -1)
 	text = strings.Replace(text, "!", "^^!", -1)
@@ -41,6 +41,14 @@ func batchEscape(text string) string {
 func batchEscapeVariable(text string) string {
 	text = strings.Replace(text, "%", "%%", -1)
 	text = batchEscape(text)
+	return text
+}
+
+// If not inside a quoted string (e.g., echo text), escape more things
+func batchEscape(text string) string {
+	text = batchEscapeInsideQuotedString(text)
+	text = strings.Replace(text, "(", "^(", -1)
+	text = strings.Replace(text, ")", "^)", -1)
 	return text
 }
 
