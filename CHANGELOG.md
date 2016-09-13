@@ -1,3 +1,9 @@
+v 1.5.3
+- Fix Caret-escape parentheses when not inside double quotes for Windows cmd
+
+v 1.5.2
+(no changes)
+
 v 1.5.1
 - Fix file mode of gitlab-runner-service script !283
 
