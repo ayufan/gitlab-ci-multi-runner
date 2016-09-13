@@ -1,3 +1,6 @@
+v 1.3.5
+- Fix Caret-escape parentheses when not inside double quotes for Windows cmd
+
 v 1.3.4
 - Fix panic while artifacts handling errors
 
