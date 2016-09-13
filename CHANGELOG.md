@@ -1,5 +1,6 @@
 v 1.4.3
 - Fix Caret-escape parentheses when not inside double quotes for Windows cmd
+- Remove LFS from prebuilt images
 
 v 1.4.2
 - Fix abort mechanism when patching trace
