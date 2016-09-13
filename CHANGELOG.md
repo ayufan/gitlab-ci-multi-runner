@@ -1,5 +1,6 @@
 v 1.5.3
 - Fix Caret-escape parentheses when not inside double quotes for Windows cmd
+- Remove LFS from prebuilt images
 
 v 1.5.2
 (no changes)
