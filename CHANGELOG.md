@@ -1,4 +1,5 @@
-v 1.5.0 (unreleased)
+v 1.4.3
+- Fix Caret-escape parentheses when not inside double quotes for Windows cmd
 
 v 1.4.2
 - Fix abort mechanism when patching trace
